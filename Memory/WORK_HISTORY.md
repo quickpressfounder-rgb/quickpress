@@ -33,7 +33,34 @@
 
 ## Detailed Log of Work Done Today (29 October 2026)
 
-### 49. Clean Build & Release for Customer, Partner, and Captain APKs & Play Store AAB Bundles
+### 50. Implementation of Captain/Partner Realtime WebSocket Dispatch, Screen Unfreeze, Notch Safe-Area & Push Ringing
+- **User Request:** "inplement karo" (Implement solutions for the 4 issues: distorted black action capsule messages, unresponsive screen / freeze after order accept, popup notch cutoff, zero-lag WebSocket order updates, and background ring/resume sync on Partner & Captain apps).
+- **Key Fixes & Improvements:**
+  1. **Permanent Suppression of Black Action Toast (Issue 1 & 2):**
+     - Suppressed floating Sonner `<Toaster />` to `return null;` and exported `noopToast` in `rider-frontend/src/shared/ui/sonner.tsx`, identical to customer app.
+     - Eliminates warped multi-line black capsule toasts and prevents `z-[999999]` touch-interception layer from mounting.
+  2. **Screen Freeze & Touch Lock After Order Accept (Issue 3):**
+     - Replaced invalid nested `<button>` inside `<button>` with `<div role="button">` and inner dismiss button in `rider-frontend/src/screens/RiderDashboardScreen.tsx`.
+     - Added live listener for `"qp:active_order_updated"` and `storage` in `RiderDashboardScreen.tsx` so active order state syncs without requiring reload.
+     - Handled `navigate({ to: "/orders" })` promise rejection in `GlobalOrderDispatchListener.tsx` with fallback to `window.location.href = "/orders"`.
+  3. **Flash Trip Offer Card Camera Hole / Notch Safe Area (Issue 4.1):**
+     - Replaced hardcoded `top-3` with `style={{ top: "max(calc(env(safe-area-inset-top, 0px) + 14px), 48px)" }}` in `rider-frontend/src/components/orders/FlashTripOfferModal.tsx`, guaranteeing clearance below camera punch-holes and status bar across all Android devices.
+  4. **Zero-Lag Socket & Foreground Resume Sync (Issue 4.2 & 4.3):**
+     - Added `@capacitor/app` `appStateChange` and window visibility listeners in `partner-frontend/src/context/PartnerOrdersContext.tsx`, `rider-frontend/src/screens/RiderDashboardScreen.tsx`, and `rider-frontend/src/screens/RiderOrdersScreen.tsx` to immediately rebind sockets and fetch live orders the instant the app returns to the foreground, eliminating the need for manual pull-to-refresh.
+     - Expanded FCM recipient lookup in `backend-python/app/core/fcm.py` to check `partner_profiles` and `rider_profiles` to find the linked `userId`, ensuring urgent high-priority order dispatch push notifications with native alarm sounds reach devices when the app is in the background or killed.
+     - Unified Socket.IO room subscriptions in `backend-python/app/services/socket_service.py` to support both `rider:{riderId}` and `rider_{riderId}`.
+- **Files Modified:**
+  - `rider-frontend/src/shared/ui/sonner.tsx`
+  - `rider-frontend/src/components/orders/FlashTripOfferModal.tsx`
+  - `rider-frontend/src/components/orders/GlobalOrderDispatchListener.tsx`
+  - `rider-frontend/src/screens/RiderDashboardScreen.tsx`
+  - `rider-frontend/src/screens/RiderOrdersScreen.tsx`
+  - `partner-frontend/src/context/PartnerOrdersContext.tsx`
+  - `backend-python/app/core/fcm.py`
+  - `backend-python/app/services/socket_service.py`
+  - `Memory/WORK_HISTORY.md`
+
+---
 - **User Request:** "apk update andreslese karo" (Build, update, and release all Android APKs & Play Store AAB bundles for QuickPress apps: Customer, Partner, and Captain/Rider).
 - **Key Fixes & Improvements:**
   1. **Circular Import & SSR Hoisting Fix in Customer App:**

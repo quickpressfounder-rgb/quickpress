@@ -105,6 +105,20 @@ async def send_fcm_push(
                 or await database.find_one("users", {"linked_partner_id": uid})
                 or await database.find_one("users", {"firebase_uid": uid})
             )
+            if not u:
+                pp = await database.find_one(
+                    "partner_profiles",
+                    {"$or": [{"_id": uid}, {"partnerId": uid}, {"partner_id": uid}]},
+                )
+                if pp and pp.get("userId"):
+                    u = await database.find_one("users", {"_id": str(pp["userId"])})
+            if not u:
+                rp = await database.find_one(
+                    "rider_profiles",
+                    {"$or": [{"_id": uid}, {"riderId": uid}, {"rider_id": uid}]},
+                )
+                if rp and rp.get("userId"):
+                    u = await database.find_one("users", {"_id": str(rp["userId"])})
             if u:
                 for t in (u.get("fcm_tokens") or []):
                     if t and t not in tokens:

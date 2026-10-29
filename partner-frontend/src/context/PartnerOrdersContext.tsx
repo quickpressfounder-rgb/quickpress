@@ -557,20 +557,37 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
     return () => unsub();
   }, [load, isOperationalRoute]);
 
-  // Active fast polling when screen is active + tab visibility listener for instant refresh on focus
+  // Active fast polling when screen is active + tab visibility and Capacitor appStateChange listener for instant refresh on focus/resume
   useEffect(() => {
     if (!hasActiveSessionToken("partner")) return;
 
     // Refresh immediately on tab focus or screen wake
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && hasActiveSessionToken("partner") && isOperationalRoute()) {
+      if ((document.visibilityState === "visible" || typeof document === "undefined") && hasActiveSessionToken("partner") && isOperationalRoute()) {
         rebindPartnerSocket();
-        void load({ silent: true });
+        void load({ silent: false });
       }
     };
 
     window.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("focus", handleVisibilityChange);
+
+    let removeCapacitorListener: (() => void) | undefined;
+    if (typeof window !== "undefined") {
+      import("@capacitor/app")
+        .then(({ App }) => {
+          const handle = App.addListener("appStateChange", ({ isActive }) => {
+            if (isActive && hasActiveSessionToken("partner") && isOperationalRoute()) {
+              rebindPartnerSocket();
+              void load({ silent: false });
+            }
+          });
+          removeCapacitorListener = () => {
+            handle.then((h) => h.remove()).catch(() => {});
+          };
+        })
+        .catch(() => {});
+    }
 
     // Fast 3.5s interval when tab is focused, 10s when in background
     const pollInterval = setInterval(() => {
@@ -583,6 +600,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
       clearInterval(pollInterval);
       window.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", handleVisibilityChange);
+      removeCapacitorListener?.();
     };
   }, [load, isOperationalRoute]);
 

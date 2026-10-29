@@ -308,7 +308,13 @@ export const GlobalOrderDispatchListener: React.FC = () => {
 
         activeFlashOfferRef.current = null;
         setActiveFlashOffer(null);
-        navigate({ to: "/orders" });
+        try {
+          void navigate({ to: "/orders" as any }).catch(() => {
+            window.location.href = "/orders";
+          });
+        } catch {
+          window.location.href = "/orders";
+        }
       }}
       onDeclined={(declinedId) => {
         stopOrderAlertSound();

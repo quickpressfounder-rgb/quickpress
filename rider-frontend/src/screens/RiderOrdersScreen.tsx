@@ -268,12 +268,43 @@ export function RiderOrdersScreen() {
 
   useEffect(() => {
     loadOffers();
+
+    const handleSync = () => {
+      if (!activeOrder) {
+        loadOffers(true);
+      }
+    };
+    window.addEventListener("visibilitychange", handleSync);
+    window.addEventListener("focus", handleSync);
+
+    let removeCapacitorListener: (() => void) | undefined;
+    if (typeof window !== "undefined") {
+      import("@capacitor/app")
+        .then(({ App }) => {
+          const handle = App.addListener("appStateChange", ({ isActive }) => {
+            if (isActive && !activeOrder) {
+              loadOffers(true);
+            }
+          });
+          removeCapacitorListener = () => {
+            handle.then((h) => h.remove()).catch(() => {});
+          };
+        })
+        .catch(() => {});
+    }
+
     const timer = setInterval(() => {
       if (!activeOrder) {
         loadOffers(true);
       }
     }, 4000);
-    return () => clearInterval(timer);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("visibilitychange", handleSync);
+      window.removeEventListener("focus", handleSync);
+      removeCapacitorListener?.();
+    };
   }, [activeOrder]);
 
   // 15-minute SLA Countdown Timer

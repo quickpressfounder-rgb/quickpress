@@ -84,6 +84,26 @@ export function RiderDashboardScreen() {
 
   // Restore saved active order safely and verify live server status
   useEffect(() => {
+    const handleActiveUpdate = (e: any) => {
+      if (e?.detail) {
+        setSavedActiveOrder(e.detail);
+      }
+    };
+    window.addEventListener("qp:active_order_updated", handleActiveUpdate);
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "qp_active_rider_order") {
+        if (!e.newValue) {
+          setSavedActiveOrder(null);
+        } else {
+          try {
+            setSavedActiveOrder(JSON.parse(e.newValue));
+          } catch {}
+        }
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+
     try {
       const saved = localStorage.getItem("qp_active_rider_order");
       if (saved) {
@@ -112,6 +132,11 @@ export function RiderDashboardScreen() {
         }
       }
     } catch {}
+
+    return () => {
+      window.removeEventListener("qp:active_order_updated", handleActiveUpdate);
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   // Load real metrics from MongoDB Atlas Backend
@@ -192,13 +217,42 @@ export function RiderDashboardScreen() {
     };
   }, [loadRealData]);
 
-  // Periodic polling for real-time notification badge updates
+  // Instant sync on foreground resume / visibility / Capacitor appStateChange
   useEffect(() => {
+    const handleSync = () => {
+      loadRealData();
+    };
+    window.addEventListener("visibilitychange", handleSync);
+    window.addEventListener("focus", handleSync);
+
+    let removeCapacitorListener: (() => void) | undefined;
+    if (typeof window !== "undefined") {
+      import("@capacitor/app")
+        .then(({ App }) => {
+          const handle = App.addListener("appStateChange", ({ isActive }) => {
+            if (isActive) {
+              loadRealData();
+            }
+          });
+          removeCapacitorListener = () => {
+            handle.then((h) => h.remove()).catch(() => {});
+          };
+        })
+        .catch(() => {});
+    }
+
+    // Periodic polling for real-time notification badge updates
     const timer = setInterval(() => {
       fetchUnreadCount().then(setUnreadNotifCount).catch(() => {});
     }, 25000);
-    return () => clearInterval(timer);
-  }, []);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("visibilitychange", handleSync);
+      window.removeEventListener("focus", handleSync);
+      removeCapacitorListener?.();
+    };
+  }, [loadRealData]);
 
   // GPS Geolocation Tracking via High-Performance Engine
   useEffect(() => {
@@ -334,10 +388,17 @@ export function RiderDashboardScreen() {
       {/* Active Trip Floating Pill (if order is active) */}
       {savedActiveOrder && (
         <div className="absolute bottom-20 left-4 right-4 z-40 animate-in slide-in-from-bottom-2 duration-200">
-          <button
-            type="button"
-            onClick={() => navigate({ to: "/orders" })}
-            className="w-full flex items-center justify-between p-3.5 bg-white/95 backdrop-blur-md text-zinc-900 rounded-2xl shadow-lg border border-emerald-300 active:scale-98 transition-all"
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              try {
+                void navigate({ to: "/orders" });
+              } catch {
+                window.location.href = "/orders";
+              }
+            }}
+            className="w-full flex items-center justify-between p-3.5 bg-white/95 backdrop-blur-md text-zinc-900 rounded-2xl shadow-lg border border-emerald-300 active:scale-98 transition-all cursor-pointer"
           >
             <div className="flex items-center gap-2.5 text-left">
               <div className="flex items-center justify-center size-8 rounded-xl bg-emerald-600 text-white font-black text-xs shadow-xs">
@@ -358,9 +419,8 @@ export function RiderDashboardScreen() {
                     localStorage.removeItem("qp_active_delivery_order");
                   } catch {}
                   setSavedActiveOrder(null);
-                  toast.info("Trip dismissed from dashboard.");
                 }}
-                className="flex items-center justify-center size-7 rounded-lg bg-zinc-100 hover:bg-rose-100 text-zinc-500 hover:text-rose-700 active:scale-95 transition-all text-xs font-bold"
+                className="flex items-center justify-center size-7 rounded-lg bg-zinc-100 hover:bg-rose-100 text-zinc-500 hover:text-rose-700 active:scale-95 transition-all text-xs font-bold cursor-pointer"
                 title="Dismiss Stale Trip"
               >
                 ✕
@@ -370,7 +430,7 @@ export function RiderDashboardScreen() {
                 <span>➔</span>
               </div>
             </div>
-          </button>
+          </div>
         </div>
       )}
 

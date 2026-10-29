@@ -82,6 +82,7 @@ async def connect(sid: str, environ: dict, auth: Optional[dict] = None) -> None:
                 await sio.enter_room(sid, r)
         if rider_id:
             await sio.enter_room(sid, f"rider:{rider_id}")
+            await sio.enter_room(sid, f"rider_{rider_id}")
         if phone:
             await sio.enter_room(sid, f"phone:{phone}")
 
@@ -102,6 +103,10 @@ async def join(sid: str, data: Any) -> None:
             pid = room_str[8:]
             for r in _get_partner_room_variants(pid):
                 await sio.enter_room(sid, r)
+        elif room_str.startswith("rider:"):
+            await sio.enter_room(sid, f"rider_{room_str[6:]}")
+        elif room_str.startswith("rider_"):
+            await sio.enter_room(sid, f"rider:{room_str[6:]}")
 
 
 @sio.on("room.join")
@@ -114,6 +119,10 @@ async def room_join(sid: str, data: Any) -> None:
             pid = room_str[8:]
             for r in _get_partner_room_variants(pid):
                 await sio.enter_room(sid, r)
+        elif room_str.startswith("rider:"):
+            await sio.enter_room(sid, f"rider_{room_str[6:]}")
+        elif room_str.startswith("rider_"):
+            await sio.enter_room(sid, f"rider:{room_str[6:]}")
 
 
 @sio.event

@@ -254,7 +254,10 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-x-0 top-3 z-[9999] flex justify-center px-3 sm:px-4 pointer-events-none select-none animate-in fade-in slide-in-from-top-4 duration-300">
+    <div
+      className="fixed inset-x-0 z-[9999] flex justify-center px-3 sm:px-4 pointer-events-none select-none animate-in fade-in slide-in-from-top-4 duration-300"
+      style={{ top: "max(calc(env(safe-area-inset-top, 0px) + 14px), 48px)" }}
+    >
       {/* Exact Card from Video (Frame 00:02 - 00:07) */}
       <div className="w-full max-w-md bg-white rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.18)] border border-zinc-200/90 p-4 text-zinc-900 pointer-events-auto flex flex-col gap-3 font-sans">
         
