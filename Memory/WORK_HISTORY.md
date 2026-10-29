@@ -3292,3 +3292,40 @@ This single command will automatically:
   - Rebuilt Android Captain binaries via `python3 build_all_apks.py rider`:
     - `QuickPress-Captain.apk` (18 MB) - compiled, signed, and mirrored.
     - `QuickPress-Captain.aab` (17 MB) - compiled and verified.
+
+### 58. Clean White Minimalist Revamp: Captain Rate Card Modal, Duty Permissions Screen, and Captain Referral Modal
+- **User Request:**
+  - "ab caption rate popup permission page caption refreral popup in teen ka bhi banano" (Now make these three as well: Captain Rate Card Popup, Permission Page, and Captain Referral Popup into the clean white theme).
+  - Adhere strictly to the 4 Golden Design Rules:
+    1. Zero black backgrounds (black used only for text and primary pill CTA buttons).
+    2. Purpose-driven, fast 1-tap UX.
+    3. Zero cartoon icons / zero emojis.
+    4. Header scroll clipping prevention (safe area notch padding directly on sticky headers).
+- **Architectural & UI Revamps:**
+  - **1. Captain Rate Card Modal (`rider-frontend/src/components/home/CaptainRateCardModal.tsx`):**
+    - Converted to pure clean white bottom sheet/modal with soft backdrop blur.
+    - 0% Commission guarantee banner in subtle emerald (`bg-emerald-50 border border-emerald-200`).
+    - Clean rate breakdown table with hairline dividers: Base Fare (₹25), Distance Fare (₹8/km), Waiting (₹1/min), Surge Multiplier (Up to 1.5x), Night Bonus (+₹15).
+    - Android native hardware/gesture back button listener via `@capacitor/app`.
+    - Safe-area bottom padding with solid black CTA pill `[Got it, Captain]`.
+  - **2. Duty Permissions Page (`rider-frontend/src/screens/CaptainPermissionsScreen.tsx`):**
+    - Redesigned with notch-safe sticky header (`paddingTop: max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)`) with solid background so header never clips on scroll.
+    - Duty Readiness status card with progress bar and `Road Ready` emerald badge.
+    - Order Siren & Vibration test banner converted into clean white card with play/stop toggle.
+    - 5 individual clean white permission cards (Battery Optimization, Floating Overlay, GPS Location, Notifications & Siren, Camera Access) with 1-tap allow black pills (`Allow`) and emerald allowed badges (`Allowed`).
+    - 1-Click Master Grant CTA: solid black pill `[Grant All Critical Permissions in 1 Click]`.
+    - Accordion guides for OEM battery optimizations (Xiaomi, Samsung, Vivo, Oppo) without emojis.
+    - Sticky bottom gate bar with safe-area bottom padding and `[Continue to Duty]` button.
+  - **3. Captain Referral Modal (`rider-frontend/src/components/layout/CaptainReferralModal.tsx`):**
+    - Replaced black container (`bg-zinc-950`) with clean white card (`bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs`).
+    - Claimable reward card with direct wallet transfer action.
+    - Referral code box with 1-tap copy and WhatsApp direct sharing button.
+    - Referred captains milestone progress list with percentage progress bars and claim CTAs.
+    - Android native back-button listener for effortless hardware back dismissal.
+- **Verification & Packaging:**
+  - `npm run build` in `rider-frontend`: PASSED (Built in 967ms, 0 errors).
+  - Built and verified Android binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18 MB) - compiled, signed, and mirrored.
+    - `QuickPress-Captain.aab` (17 MB) - compiled and verified.
+- **Git Commit:**
+  - Commit `9773b8a`: `feat(captain): revamp rate card modal, permissions screen, and referral modal to clean white theme` pushed to GitHub `main`.
