@@ -6,37 +6,74 @@
 
 declare global {
   interface Window {
-    QuickPressNativeBridge?: {
-      setCaptainOnlineStatus?: (online: boolean) => void;
-      startFloatingBubble?: () => void;
-      stopFloatingBubble?: () => void;
-      isFloatingBubbleRunning?: () => boolean;
-      canDrawOverlays?: () => boolean;
-      requestOverlayPermission?: () => void;
-      isBatteryOptimizationIgnored?: () => boolean;
-      requestIgnoreBatteryOptimization?: () => void;
-      areNotificationsEnabled?: () => boolean;
-      openNotificationSettings?: () => void;
-      isLocationGranted?: () => boolean;
-      requestLocationPermission?: () => void;
-      isBackgroundLocationGranted?: () => boolean;
-      requestBackgroundLocationPermission?: () => void;
-      isCameraGranted?: () => boolean;
-      requestCameraPermission?: () => void;
-      openAppSettings?: () => void;
-      bringAppToFront?: (targetRoute?: string) => void;
-    };
+    QuickPressNativeBridge?: any;
+    QuickPressRiderBridge?: any;
     __qpNavigate?: (route: string) => void;
   }
 }
 
+export function getBridge(): any {
+  if (typeof window === "undefined") return null;
+  return (window as any).QuickPressNativeBridge || (window as any).QuickPressRiderBridge || null;
+}
+
 export function isNativeAndroidApp(): boolean {
-  return typeof window !== "undefined" && Boolean(window.QuickPressNativeBridge);
+  return typeof window !== "undefined" && Boolean(getBridge());
+}
+
+export function startBackgroundOrderRing(orderCode?: string, amount?: string, customerName?: string, pickupAddress?: string): void {
+  const bridge = getBridge();
+  if (bridge && typeof bridge.startBackgroundOrderRing === "function") {
+    try {
+      bridge.startBackgroundOrderRing(
+        orderCode || "OFFER-TEST",
+        amount || "₹65",
+        customerName || "Customer",
+        pickupAddress || "Kasganj Hub"
+      );
+    } catch (e) {
+      console.warn("[CaptainOpt] startBackgroundOrderRing error:", e);
+    }
+  }
+}
+
+export function stopBackgroundOrderRing(): void {
+  const bridge = getBridge();
+  if (bridge && typeof bridge.stopBackgroundOrderRing === "function") {
+    try {
+      bridge.stopBackgroundOrderRing();
+    } catch (e) {
+      console.warn("[CaptainOpt] stopBackgroundOrderRing error:", e);
+    }
+  }
+}
+
+export function requestAllCaptainPermissions(): void {
+  const bridge = getBridge();
+  if (bridge) {
+    if (typeof bridge.requestLocationPermission === "function") bridge.requestLocationPermission();
+    if (typeof bridge.requestIgnoreBatteryOptimization === "function") bridge.requestIgnoreBatteryOptimization();
+    if (typeof bridge.requestOverlayPermission === "function") bridge.requestOverlayPermission();
+  }
+}
+
+export function hasCompletedCaptainPermissions(): boolean {
+  if (typeof window === "undefined") return true;
+  return (
+    localStorage.getItem("qp_captain_permissions_allowed") === "1" ||
+    localStorage.getItem("qp_permissions_onboarded") === "true"
+  );
+}
+
+export function setCaptainPermissionsCompleted(): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("qp_captain_permissions_allowed", "1");
+  localStorage.setItem("qp_permissions_onboarded", "true");
 }
 
 export function setCaptainOnlineStatus(online: boolean): void {
   if (typeof window === "undefined") return;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.setCaptainOnlineStatus === "function") {
     try {
       bridge.setCaptainOnlineStatus(online);
@@ -48,7 +85,7 @@ export function setCaptainOnlineStatus(online: boolean): void {
 
 export function startFloatingBubble(): void {
   if (typeof window === "undefined") return;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.startFloatingBubble === "function") {
     try {
       bridge.startFloatingBubble();
@@ -60,7 +97,7 @@ export function startFloatingBubble(): void {
 
 export function stopFloatingBubble(): void {
   if (typeof window === "undefined") return;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.stopFloatingBubble === "function") {
     try {
       bridge.stopFloatingBubble();
@@ -72,7 +109,7 @@ export function stopFloatingBubble(): void {
 
 export function isFloatingBubbleRunning(): boolean {
   if (typeof window === "undefined") return false;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.isFloatingBubbleRunning === "function") {
     try {
       return Boolean(bridge.isFloatingBubbleRunning());
@@ -85,7 +122,7 @@ export function isFloatingBubbleRunning(): boolean {
 
 export function canDrawOverlays(): boolean {
   if (typeof window === "undefined") return false;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.canDrawOverlays === "function") {
     try {
       return Boolean(bridge.canDrawOverlays());
@@ -98,7 +135,7 @@ export function canDrawOverlays(): boolean {
 
 export function requestOverlayPermission(): void {
   if (typeof window === "undefined") return;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.requestOverlayPermission === "function") {
     try {
       bridge.requestOverlayPermission();
@@ -110,7 +147,7 @@ export function requestOverlayPermission(): void {
 
 export function isBatteryOptimizationIgnored(): boolean {
   if (typeof window === "undefined") return false;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.isBatteryOptimizationIgnored === "function") {
     try {
       return Boolean(bridge.isBatteryOptimizationIgnored());
@@ -123,7 +160,7 @@ export function isBatteryOptimizationIgnored(): boolean {
 
 export function requestIgnoreBatteryOptimization(): void {
   if (typeof window === "undefined") return;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.requestIgnoreBatteryOptimization === "function") {
     try {
       bridge.requestIgnoreBatteryOptimization();
@@ -135,7 +172,7 @@ export function requestIgnoreBatteryOptimization(): void {
 
 export function areNotificationsEnabled(): boolean {
   if (typeof window === "undefined") return false;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.areNotificationsEnabled === "function") {
     try {
       return Boolean(bridge.areNotificationsEnabled());
@@ -151,7 +188,7 @@ export function areNotificationsEnabled(): boolean {
 
 export function openNotificationSettings(): void {
   if (typeof window === "undefined") return;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.openNotificationSettings === "function") {
     try {
       bridge.openNotificationSettings();
@@ -167,7 +204,7 @@ export function openNotificationSettings(): void {
 
 export function isLocationGranted(): boolean {
   if (typeof window === "undefined") return false;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.isLocationGranted === "function") {
     try {
       return Boolean(bridge.isLocationGranted());
@@ -183,7 +220,7 @@ export function isLocationGranted(): boolean {
 
 export function requestLocationPermission(): void {
   if (typeof window === "undefined") return;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.requestLocationPermission === "function") {
     try {
       bridge.requestLocationPermission();
@@ -205,7 +242,7 @@ export function requestLocationPermission(): void {
 
 export function isBackgroundLocationGranted(): boolean {
   if (typeof window === "undefined") return false;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.isBackgroundLocationGranted === "function") {
     try {
       return Boolean(bridge.isBackgroundLocationGranted());
@@ -218,7 +255,7 @@ export function isBackgroundLocationGranted(): boolean {
 
 export function requestBackgroundLocationPermission(): void {
   if (typeof window === "undefined") return;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.requestBackgroundLocationPermission === "function") {
     try {
       bridge.requestBackgroundLocationPermission();
@@ -232,7 +269,7 @@ export function requestBackgroundLocationPermission(): void {
 
 export function isCameraGranted(): boolean {
   if (typeof window === "undefined") return false;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.isCameraGranted === "function") {
     try {
       return Boolean(bridge.isCameraGranted());
@@ -248,7 +285,7 @@ export function isCameraGranted(): boolean {
 
 export function requestCameraPermission(): void {
   if (typeof window === "undefined") return;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.requestCameraPermission === "function") {
     try {
       bridge.requestCameraPermission();
@@ -270,7 +307,7 @@ export function requestCameraPermission(): void {
 
 export function openAppSettings(): void {
   if (typeof window === "undefined") return;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.openAppSettings === "function") {
     try {
       bridge.openAppSettings();
@@ -282,7 +319,7 @@ export function openAppSettings(): void {
 
 export function bringAppToFront(targetRoute: string = "/orders"): void {
   if (typeof window === "undefined") return;
-  const bridge = window.QuickPressNativeBridge;
+  const bridge = getBridge();
   if (bridge && typeof bridge.bringAppToFront === "function") {
     try {
       bridge.bringAppToFront(targetRoute);

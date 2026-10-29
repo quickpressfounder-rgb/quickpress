@@ -15,20 +15,55 @@ logger = logging.getLogger(__name__)
 
 
 async def register_fcm_token(user_id: str, fcm_token: str, device_type: str = "web") -> None:
-    """Register or update an FCM token for a user."""
+    """Register or update an FCM token for a user, partner, or rider."""
     if not user_id or not fcm_token:
         return
     try:
-        user = await database.find_one("users", {"_id": user_id})
+        user = (
+            await database.find_one("users", {"_id": user_id})
+            or await database.find_one("users", {"linked_id": user_id})
+            or await database.find_one("users", {"linked_partner_id": user_id})
+        )
+        if not user:
+            pp = await database.find_one(
+                "partner_profiles",
+                {"$or": [{"_id": user_id}, {"partnerId": user_id}, {"partner_id": user_id}]},
+            )
+            if pp:
+                if pp.get("userId"):
+                    user = await database.find_one("users", {"_id": str(pp["userId"])})
+                try:
+                    await database.collection("partner_profiles").update_one(
+                        {"_id": pp.get("_id")},
+                        {"$set": {"fcm_token": fcm_token, "device_type": device_type}}
+                    )
+                except Exception:
+                    pass
+        if not user:
+            rp = await database.find_one(
+                "rider_profiles",
+                {"$or": [{"_id": user_id}, {"riderId": user_id}, {"rider_id": user_id}]},
+            )
+            if rp:
+                if rp.get("userId"):
+                    user = await database.find_one("users", {"_id": str(rp["userId"])})
+                try:
+                    await database.collection("rider_profiles").update_one(
+                        {"_id": rp.get("_id")},
+                        {"$set": {"fcm_token": fcm_token, "device_type": device_type}}
+                    )
+                except Exception:
+                    pass
         if not user:
             return
+        uid = str(user.get("_id") or user.get("id"))
         tokens = list(user.get("fcm_tokens") or [])
         if fcm_token not in tokens:
             tokens.append(fcm_token)
             # Keep at most last 5 active device tokens per user
             tokens = tokens[-5:]
             await database.collection("users").update_one(
-                {"_id": user_id},
+                {"_id": uid},
                 {"$set": {"fcm_tokens": tokens, "fcm_token": fcm_token, "device_type": device_type}}
             )
     except Exception as e:

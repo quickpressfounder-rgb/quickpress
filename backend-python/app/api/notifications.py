@@ -14,7 +14,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from typing import Any, Dict, List, Optional, Union
 
-from app.core.deps import current_user
+from app.core.deps import current_user, optional_user
 from app.db.notification_repositories import notification_repository
 from app.models.notification import (
     NotificationActionResponse,
@@ -70,15 +70,57 @@ async def mark_read(
 @router.post("/notifications/fcm-token")
 async def save_fcm_token(
     payload: dict,
-    user: User = Depends(current_user),
+    user: Optional[User] = Depends(optional_user),
 ) -> dict:
-    """Save user FCM push notification token."""
+    """Save user / partner / rider FCM push notification token.
+    Supports authenticated sessions as well as unauthenticated native Android boot sync.
+    """
     token = str(payload.get("token") or payload.get("fcmToken") or "").strip()
     device = str(payload.get("device") or payload.get("deviceType") or "web").strip()
-    if token:
-        from app.core.fcm import register_fcm_token
-        await register_fcm_token(user.id, token, device)
-    return {"ok": True, "registered": bool(token), "device": device}
+    role = str(payload.get("role") or "").strip().lower()
+    user_id = str(payload.get("userId") or payload.get("user_id") or "").strip()
+    partner_id = str(payload.get("partnerId") or payload.get("partner_id") or "").strip()
+    rider_id = str(payload.get("riderId") or payload.get("rider_id") or "").strip()
+    phone = str(payload.get("phone") or "").strip()
+
+    target_user_id: Optional[str] = user.id if user else None
+
+    from app.db.client import database
+    from app.core.fcm import register_fcm_token
+
+    if not target_user_id:
+        if user_id:
+            target_user_id = user_id
+        elif partner_id:
+            pp = await database.find_one("partner_profiles", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}, {"partner_id": partner_id}]})
+            if pp and pp.get("userId"):
+                target_user_id = str(pp["userId"])
+            else:
+                target_user_id = partner_id
+        elif rider_id:
+            rp = await database.find_one("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"rider_id": rider_id}]})
+            if rp and rp.get("userId"):
+                target_user_id = str(rp["userId"])
+            else:
+                target_user_id = rider_id
+        elif phone:
+            digits = "".join(c for c in phone if c.isdigit())
+            u = await database.find_one("users", {"$or": [{"phone": phone}, {"phone": f"+91{digits[-10:]}" if len(digits) >= 10 else phone}]})
+            if u:
+                target_user_id = str(u.get("_id") or u.get("id"))
+        elif role == "partner":
+            partners = await database.find_many("partner_profiles")
+            if partners:
+                target_user_id = str(partners[0].get("userId") or partners[0].get("_id"))
+        elif role == "rider":
+            riders = await database.find_many("rider_profiles")
+            if riders:
+                target_user_id = str(riders[0].get("userId") or riders[0].get("_id"))
+
+    if token and target_user_id:
+        await register_fcm_token(target_user_id, token, device)
+
+    return {"ok": True, "registered": bool(token and target_user_id), "device": device, "userId": target_user_id}
 
 
 @router.delete("/notifications/fcm-token")

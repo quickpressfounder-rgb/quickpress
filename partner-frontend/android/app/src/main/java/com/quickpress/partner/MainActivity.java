@@ -463,7 +463,9 @@ public class MainActivity extends BridgeActivity {
                 settings.setMediaPlaybackRequiresUserGesture(false);
 
                 // Register Native Merchant Bridge for Physical WakeLock & Battery Optimization
-                webView.addJavascriptInterface(new QuickPressMerchantBridge(), "QuickPressNativeBridge");
+                QuickPressMerchantBridge merchantBridge = new QuickPressMerchantBridge();
+                webView.addJavascriptInterface(merchantBridge, "QuickPressNativeBridge");
+                webView.addJavascriptInterface(merchantBridge, "QuickPressMerchantBridge");
 
                 // Safely enable offscreen pre-rasterization via reflection if supported by Chromium engine
                 try {

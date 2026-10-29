@@ -459,7 +459,9 @@ public class MainActivity extends BridgeActivity {
                 settings.setMediaPlaybackRequiresUserGesture(false);
 
                 // Register Native Captain Bridge for Floating Bubble, Background GPS, and Screen Wakeup
-                webView.addJavascriptInterface(new QuickPressRiderBridge(), "QuickPressNativeBridge");
+                QuickPressRiderBridge riderBridge = new QuickPressRiderBridge();
+                webView.addJavascriptInterface(riderBridge, "QuickPressNativeBridge");
+                webView.addJavascriptInterface(riderBridge, "QuickPressRiderBridge");
 
                 // Safely enable offscreen pre-rasterization via reflection if supported by Chromium engine
                 try {
@@ -741,6 +743,22 @@ public class MainActivity extends BridgeActivity {
                     }
                 } catch (Exception ignored) {}
             });
+        }
+
+        @JavascriptInterface
+        public void startBackgroundOrderRing(final String orderCode, final String amount, final String customerName, final String pickupAddress) {
+            runOnUiThread(() -> startOrderAlarmDirectly(
+                MainActivity.this,
+                orderCode != null ? orderCode : "OFFER",
+                amount != null ? amount : "₹60",
+                customerName != null ? customerName : "Customer",
+                pickupAddress != null ? pickupAddress : "Kasganj Hub"
+            ));
+        }
+
+        @JavascriptInterface
+        public void startBackgroundOrderRing(final String orderCode, final String amount, final String customerName) {
+            startBackgroundOrderRing(orderCode, amount, customerName, "Kasganj Hub");
         }
 
         @JavascriptInterface

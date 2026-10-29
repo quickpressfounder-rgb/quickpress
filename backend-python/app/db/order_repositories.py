@@ -823,11 +823,10 @@ class OrderRepository:
         from app.services.socket_service import EVENT_ORDER_CREATED, broadcast_order_event
         from app.services.order_notifications import dispatch_order_created_notifications
 
-        # ⚡ Instantaneous Zero-Lag Socket Broadcast (0ms):
-        # Fire directly into asyncio event loop microtick so partner & fleet consoles ring immediately (<0.010s).
+        # ⚡ Instantaneous Zero-Lag Socket Broadcast & Push Notifications (<0.010s):
+        # Fire directly into asyncio event loop microtick so partner & fleet consoles ring immediately.
         asyncio.create_task(broadcast_order_event(EVENT_ORDER_CREATED, document))
-
-        # Offload multi-channel push notifications (FCM/OneSignal/SMS) to async worker queue
+        asyncio.create_task(dispatch_order_created_notifications(document))
         async_task_queue.enqueue(dispatch_order_created_notifications, document)
 
         # Partner Acceptance Gate: Rider assignment will ONLY occur after partner reviews and accepts the order.

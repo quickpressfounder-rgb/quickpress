@@ -7,6 +7,7 @@ import { io, type Socket } from "socket.io-client";
 import { getStoredPartnerSession } from "../api/partner/partner-auth-api";
 import { readSession } from "../api/core/session-store";
 import { getCachedPartnerProfile } from "../api/partner/partner-profile-api";
+import { apiBaseUrl } from "../api/core/config";
 
 let socket: Socket | null = null;
 const orderListeners = new Set<(order: any) => void>();
@@ -17,6 +18,12 @@ const PRODUCTION_SOCKET_URL = "https://api.withquickpress.com";
 
 function getSocketUrl(): string {
   if (typeof window === "undefined") return PRODUCTION_SOCKET_URL;
+  try {
+    const base = apiBaseUrl();
+    if (base && typeof base === "string" && base.startsWith("http")) {
+      return base.replace(/\/+$/, "");
+    }
+  } catch {}
   const custom = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL;
   if (custom && typeof custom === "string" && custom.trim()) {
     let clean = custom.trim().replace(/\/+$/, "");
@@ -73,29 +80,34 @@ function joinPartnerRooms(sock: Socket, partnerId: string, phone: string, userId
   lastJoinedRoomsKey = key;
   console.log("[PartnerSocket] ⚡ Joining partner realtime rooms:", { partnerId, phone, userId });
 
+  const emitJoin = (room: string) => {
+    sock.emit("join", room);
+    sock.emit("room.join", room);
+  };
+
   // Join global partners channel
-  sock.emit("join", "partners");
+  emitJoin("partners");
 
   if (partnerId) {
-    sock.emit("join", `partner:${partnerId}`);
+    emitJoin(`partner:${partnerId}`);
     if (partnerId.toUpperCase().startsWith("PRT-")) {
-      sock.emit("join", `partner:${partnerId.slice(4)}`);
+      emitJoin(`partner:${partnerId.slice(4)}`);
     } else if (/^\d+$/.test(partnerId)) {
-      sock.emit("join", `partner:PRT-${partnerId}`);
+      emitJoin(`partner:PRT-${partnerId}`);
     }
   }
 
   if (phone) {
-    sock.emit("join", `phone:${phone}`);
+    emitJoin(`phone:${phone}`);
     const digits = phone.replace(/\D/g, "");
     if (digits.length >= 10) {
-      sock.emit("join", `phone:${digits.slice(-10)}`);
-      sock.emit("join", `phone:91${digits.slice(-10)}`);
+      emitJoin(`phone:${digits.slice(-10)}`);
+      emitJoin(`phone:91${digits.slice(-10)}`);
     }
   }
 
   if (userId) {
-    sock.emit("join", `user:${userId}`);
+    emitJoin(`user:${userId}`);
   }
 }
 

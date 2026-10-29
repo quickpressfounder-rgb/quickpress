@@ -512,6 +512,8 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
           const managed = toManagedOrder(rawOrder);
           if (orderId) managed.id = orderId;
           if (code) managed.code = code;
+          const payloadAmount = Number(data?.amount || rawOrder?.amount || (rawOrder?.totals?.grandTotal) || 0);
+          if (payloadAmount > 0) managed.amount = payloadAmount;
           managed.stage = "new";
 
           // ⚡ TRIGGER ORDER ALARM BELL INSTANTANEOUSLY (<0.010s) + Native Android Background Siren
@@ -535,6 +537,9 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
           if (typeof window !== "undefined") {
             window.dispatchEvent(new CustomEvent("qp:partner:new_order", { detail: managed }));
           }
+
+          // Background silent sync to populate any server-computed fields
+          void load({ silent: true });
         }
       } else if (orderId) {
         // Lifecycle event (accepted, in transit, ready, delivered, cancelled)
@@ -596,12 +601,12 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
         .catch(() => {});
     }
 
-    // Fast 3.5s interval when tab is focused, 10s when in background
+    // Fast 2.0s fallback interval when tab is focused, 6s when in background
     const pollInterval = setInterval(() => {
       if (hasActiveSessionToken("partner") && isOperationalRoute()) {
         void load({ silent: true });
       }
-    }, typeof document !== "undefined" && document.visibilityState === "visible" ? 3500 : 10000);
+    }, typeof document !== "undefined" && document.visibilityState === "visible" ? 2000 : 6000);
 
     return () => {
       clearInterval(pollInterval);

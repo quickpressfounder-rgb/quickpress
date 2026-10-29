@@ -68,31 +68,59 @@ export async function initFirebaseMessaging() {
   }
 }
 
+export async function syncNativeFcmToken(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const bridge = (window as any).QuickPressNativeBridge || (window as any).QuickPressRiderBridge;
+    if (!bridge || typeof bridge.getNativeFcmToken !== "function") return null;
+
+    const nativeToken = bridge.getNativeFcmToken();
+    if (nativeToken && typeof nativeToken === "string" && nativeToken.trim().length > 10) {
+      const cleanToken = nativeToken.trim();
+      currentToken = cleanToken;
+      console.log("[Rider-FCM] ⚡ Syncing native Android FCM token to backend:", cleanToken.slice(0, 18) + "...");
+      try {
+        await apiPostJson("/api/notifications/fcm-token", {
+          token: cleanToken,
+          device: "android",
+          deviceType: "android",
+          role: "rider",
+        });
+      } catch (apiErr) {
+        console.debug("[Rider-FCM] Native token sync notice:", apiErr);
+      }
+      return cleanToken;
+    }
+  } catch (err) {
+    console.debug("[Rider-FCM] syncNativeFcmToken error:", err);
+  }
+  return null;
+}
+
 export async function requestPushNotificationPermission(): Promise<string | null> {
+  // 1. Native Android App: Always check and sync Native Captain FCM Token first
+  const native = await syncNativeFcmToken();
+  if (native) {
+    return native;
+  }
+
+  const isNative =
+    typeof window !== "undefined" &&
+    Boolean((window as any).QuickPressNativeBridge || (window as any).QuickPressRiderBridge);
+
+  if (isNative) {
+    // Retry once after 600ms in case Firebase token was initializing
+    await new Promise((r) => setTimeout(r, 600));
+    const retryNative = await syncNativeFcmToken();
+    if (retryNative) return retryNative;
+  }
+
+  // 2. Web Push for Desktop & Browsers (requires PushManager)
   if (!isPushNotificationSupported()) {
     return null;
   }
 
   try {
-    // 0. Check for Native Android FCM Token from QuickPressRiderBridge
-    try {
-      const nativeToken = (window as any).QuickPressRiderBridge?.getNativeFcmToken?.();
-      if (nativeToken && typeof nativeToken === "string" && nativeToken.length > 10) {
-        currentToken = nativeToken;
-        try {
-          await apiPostJson("/api/notifications/fcm-token", {
-            token: nativeToken,
-            device: "android",
-            deviceType: "android",
-            role: "rider",
-          });
-        } catch (apiErr) {
-          console.debug("[Rider-FCM] Native token sync notice:", apiErr);
-        }
-        return nativeToken;
-      }
-    } catch {}
-
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
       return null;

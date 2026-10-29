@@ -481,12 +481,15 @@ async def broadcast_order_event(
             order.get("payableAmount")
             or pricing.get("grandTotal")
             or pricing.get("total")
+            or (order.get("totals") or {}).get("grandTotal")
+            or (order.get("financialSnapshot") or {}).get("grandTotal")
+            or (order.get("pricingSnapshot") or {}).get("grandTotal")
             or order.get("total")
             or order.get("amount")
             or 0.0
         ),
         "customerName": cust.get("name") or order.get("customerName") or "Customer",
-        "customerPhone": cust.get("phone") or order.get("customerPhone") or "",
+        "customerPhone": cust.get("phone") or order.get("customerPhone") or (order.get("address") or {}).get("phone") or "",
         "address": addr.get("formatted") or addr.get("address") or (str(addr) if isinstance(addr, str) else ""),
         "partnerId": partner_id,
         "riderId": rider_id,

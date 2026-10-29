@@ -7,12 +7,20 @@ import {
   Camera,
   Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
   Layers,
   Navigation,
+  Play,
   Settings,
   ShieldCheck,
+  Smartphone,
   Sparkles,
+  Square,
+  Volume2,
+  VolumeX,
+  Zap,
 } from "lucide-react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
@@ -27,12 +35,64 @@ import {
   isNativeAndroidApp,
   openAppSettings,
   openNotificationSettings,
+  requestAllCaptainPermissions,
   requestBackgroundLocationPermission,
   requestCameraPermission,
   requestIgnoreBatteryOptimization,
   requestOverlayPermission,
+  setCaptainPermissionsCompleted,
+  startBackgroundOrderRing,
+  stopBackgroundOrderRing,
 } from "../lib/captain-device-opt";
-import { triggerHaptic } from "../lib/captain-audio";
+import {
+  playOrderAlertSound,
+  stopOrderAlertSound,
+  triggerHaptic,
+} from "../lib/captain-audio";
+
+const BRAND_GUIDES = [
+  {
+    id: "xiaomi",
+    name: "Xiaomi / Redmi / POCO",
+    badge: "MIUI / HyperOS",
+    steps: [
+      "Open Settings ➔ Apps ➔ Manage Apps ➔ QuickPress Captain",
+      "Turn ON 'Autostart' & 'Autostart in background'",
+      "Go to Battery Saver ➔ Select 'No Restrictions'",
+      "Enable 'Display pop-up windows while running in background'",
+    ],
+  },
+  {
+    id: "samsung",
+    name: "Samsung Galaxy",
+    badge: "One UI",
+    steps: [
+      "Open Settings ➔ Battery and Device Care ➔ Battery",
+      "Tap 'Background usage limits' ➔ 'Never sleeping apps'",
+      "Tap '+' and add 'QuickPress Captain'",
+      "Turn OFF 'Put unused apps to sleep'",
+    ],
+  },
+  {
+    id: "vivo",
+    name: "Vivo / iQOO",
+    badge: "Funtouch OS",
+    steps: [
+      "Open Settings ➔ Battery ➔ High background power consumption ➔ Turn ON",
+      "Go to App Manager ➔ Permissions ➔ Autostart ➔ Allow",
+    ],
+  },
+  {
+    id: "oppo",
+    name: "Oppo / Realme / OnePlus",
+    badge: "ColorOS / OxygenOS",
+    steps: [
+      "Open Settings ➔ Apps ➔ App Management ➔ QuickPress Captain",
+      "Tap 'Battery usage' ➔ Allow background activity & Auto-launch",
+      "Tap 'Display over other apps' ➔ Allow",
+    ],
+  },
+];
 
 export function CaptainPermissionsScreen() {
   const navigate = useNavigate();
@@ -44,6 +104,8 @@ export function CaptainPermissionsScreen() {
   const [notificationsAllowed, setNotificationsAllowed] = useState(false);
   const [cameraAllowed, setCameraAllowed] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isTestingSound, setIsTestingSound] = useState(false);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
 
   const refreshPermissions = useCallback(() => {
     // 1. Native bridge / Sync checks
@@ -144,17 +206,48 @@ export function CaptainPermissionsScreen() {
     setTimeout(refreshPermissions, 1000);
   };
 
-  const handleContinue = () => {
-    if (!allGranted) {
-      toast.error("आगे बढ़ने के लिए कृपया सभी 5 परमिशन्स Allow करें!");
-      handleTriggerFirstUngranted();
-      return;
+  const toggleSoundTest = () => {
+    if (isTestingSound) {
+      stopOrderAlertSound();
+      stopBackgroundOrderRing();
+      setIsTestingSound(false);
+      toast.info("Order siren stopped");
+    } else {
+      triggerHaptic([100, 50, 100]);
+      playOrderAlertSound();
+      startBackgroundOrderRing("TEST-001", "₹75", "Kasganj Customer", "Kasganj Market Hub");
+      setIsTestingSound(true);
+      toast.success("⚡ Playing High-Priority Order Alarm Ringtone & Vibration", {
+        description: "Testing emergency sound channels & lockscreen alert",
+      });
     }
+  };
+
+  const handleGrantAll = () => {
+    triggerHaptic(40);
+    requestAllCaptainPermissions();
+    requestIgnoreBatteryOptimization();
+    requestOverlayPermission();
+    openNotificationSettings();
+    requestBackgroundLocationPermission();
+    setTimeout(refreshPermissions, 1000);
+  };
+
+  // Clean up any test siren on unmount
+  useEffect(() => {
+    return () => {
+      stopOrderAlertSound();
+      stopBackgroundOrderRing();
+    };
+  }, []);
+
+  const handleContinue = () => {
+    stopOrderAlertSound();
+    stopBackgroundOrderRing();
+    setIsTestingSound(false);
 
     triggerHaptic([50, 50, 100]);
-    try {
-      localStorage.setItem("qp_captain_permissions_allowed", "1");
-    } catch {}
+    setCaptainPermissionsCompleted();
 
     setShowSuccessModal(true);
     setTimeout(() => {
@@ -240,6 +333,59 @@ export function CaptainPermissionsScreen() {
 
       {/* 3. Clean Permissions List (Direct Redirects on Click) */}
       <main className="mx-auto max-w-lg px-4 pt-3 space-y-2.5">
+        {/* Urgent Dispatch Sound & Vibration Test Banner */}
+        <div className="rounded-2xl border-2 border-amber-300 bg-linear-to-r from-amber-50 to-orange-50 p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className={`flex size-11 shrink-0 items-center justify-center rounded-2xl shadow-xs transition-colors ${
+                  isTestingSound
+                    ? "bg-amber-500 text-white animate-pulse"
+                    : "bg-white text-amber-600 border border-amber-200"
+                }`}
+              >
+                {isTestingSound ? (
+                  <Volume2 className="size-6 animate-bounce" />
+                ) : (
+                  <BellRing className="size-5.5 text-amber-600" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-xs font-black uppercase tracking-wider text-amber-900">
+                  High-Priority Order Siren Test
+                </h3>
+                <p className="text-[11px] text-amber-800 font-semibold mt-0.5 leading-snug">
+                  {isTestingSound
+                    ? "Loud siren & vibration active. Tap stop to finish."
+                    : "Test loud order alarm & background vibration"}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleSoundTest}
+              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black shadow-xs active:scale-95 transition-all cursor-pointer ${
+                isTestingSound
+                  ? "bg-rose-600 hover:bg-rose-500 text-white"
+                  : "bg-amber-500 hover:bg-amber-400 text-slate-950"
+              }`}
+            >
+              {isTestingSound ? (
+                <>
+                  <Square className="size-3.5 fill-current" />
+                  <span>Stop Alarm</span>
+                </>
+              ) : (
+                <>
+                  <Play className="size-3.5 fill-current" />
+                  <span>Test Sound</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
         {/* Permission 1: Battery Usage */}
         <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs flex items-center justify-between gap-3 transition-all">
           <div className="flex items-center gap-3 min-w-0">
@@ -437,6 +583,70 @@ export function CaptainPermissionsScreen() {
                 Allow
               </button>
             )}
+          </div>
+        </div>
+
+        {/* 1-Click Grant All Critical Permissions */}
+        <button
+          type="button"
+          onClick={handleGrantAll}
+          className="w-full flex items-center justify-center gap-2 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs py-3.5 shadow-sm active:scale-98 transition cursor-pointer"
+        >
+          <Zap className="size-4 stroke-[2.5]" />
+          <span>Grant All Critical Permissions in 1 Click</span>
+        </button>
+
+        {/* Manufacturer Phone Battery Guides (MIUI, Samsung, Vivo, Oppo) */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs space-y-3">
+          <div className="flex items-center gap-2">
+            <Smartphone className="size-4 text-slate-700" />
+            <h4 className="text-xs font-black text-slate-900">
+              Phone Battery Optimization Setup (Keep App Running in Background)
+            </h4>
+          </div>
+          <p className="text-[11px] text-slate-500 font-medium">
+            Chinese Android phones (MIUI, Vivo, Oppo) background apps band kar dete hain. Apne phone model par tap karke settings follow karein:
+          </p>
+
+          <div className="space-y-1.5">
+            {BRAND_GUIDES.map((brand) => {
+              const isOpen = selectedBrand === brand.id;
+              return (
+                <div
+                  key={brand.id}
+                  className="rounded-xl border border-slate-100 bg-slate-50/70 overflow-hidden transition"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBrand(isOpen ? null : brand.id)}
+                    className="w-full flex items-center justify-between p-2.5 text-left text-xs font-bold text-slate-800 hover:bg-slate-100/80 transition cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>{brand.name}</span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-700">
+                        {brand.badge}
+                      </span>
+                    </div>
+                    {isOpen ? (
+                      <ChevronUp className="size-4 text-slate-500" />
+                    ) : (
+                      <ChevronDown className="size-4 text-slate-500" />
+                    )}
+                  </button>
+
+                  {isOpen && (
+                    <div className="px-3 pb-3 pt-1 text-[11px] text-slate-600 space-y-1.5 border-t border-slate-100 bg-white">
+                      {brand.steps.map((step, idx) => (
+                        <div key={idx} className="flex items-start gap-1.5">
+                          <span className="font-bold text-amber-600">Step {idx + 1}:</span>
+                          <span>{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </main>
