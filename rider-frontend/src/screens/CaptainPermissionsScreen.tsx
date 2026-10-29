@@ -256,12 +256,12 @@ export function CaptainPermissionsScreen() {
   };
 
   return (
-    <div
-      className="min-h-screen bg-[#F6F7F9] pb-32 text-slate-900 select-none font-sans"
-      style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 8px), 44px)" }}
-    >
-      {/* 1. Clean Top App Header (Notch Safe, Single Header) */}
-      <header className="sticky top-0 z-30 bg-[#F6F7F9] border-b border-slate-200/80 px-4 pb-3">
+    <div className="min-h-screen bg-[#F6F7F9] pb-32 text-slate-900 select-none font-sans">
+      {/* 1. Clean Top App Header (Notch Safe, Never clips on scroll) */}
+      <header
+        className="sticky top-0 z-30 bg-[#F6F7F9] border-b border-slate-200/80 px-4 pb-3 shadow-2xs"
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
+      >
         <div className="mx-auto max-w-lg flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button

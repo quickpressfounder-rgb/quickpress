@@ -3281,3 +3281,14 @@ This single command will automatically:
   - Recompiled Captain Android binaries via `python3 build_all_apks.py rider`:
     - `QuickPress-Captain.apk` (18 MB)
     - `QuickPress-Captain.aab` (17 MB)
+
+### 57. Critical Scroll Header Notch Clipping Fix & Cartoon Elimination
+- **Bug Root Cause & Resolution:**
+  - *Header Clipping on Scroll:* Headers were clipping under the device camera notch and status bar when scrolling. Root cause was that `paddingTop` was placed on the parent `div` instead of the sticky `<header>`. When the user scrolled, the outer `div`s padding scrolled away, causing the header to stick at `top: 0` directly behind the device notch.
+  - *Fix:* Removed `paddingTop` from parent containers across `RiderMenuScreen.tsx`, `RiderIncentivesScreen.tsx`, `RiderAnalyticsScreen.tsx`, and `CaptainPermissionsScreen.tsx`, placing `style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}` directly on the sticky `<header>` with a solid background and hairline bottom border. The header now remains firmly below the notch regardless of scroll depth.
+  - *Zero Cartoon Policy:* Removed all candy-crush icons, emojis (🍬, 🍭, 🚀, 👑, 🎁), and playful text across Incentives, Menu, and Analytics. Converted all milestones to clean, professional enterprise cards with Lucide vector outline icons.
+- **Verification & Packaging:**
+  - `npm run build` in `rider-frontend`: PASSED (0 errors, 1.07s).
+  - Rebuilt Android Captain binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18 MB) - compiled, signed, and mirrored.
+    - `QuickPress-Captain.aab` (17 MB) - compiled and verified.

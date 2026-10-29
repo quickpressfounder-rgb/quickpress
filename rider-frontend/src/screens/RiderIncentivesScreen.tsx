@@ -7,8 +7,8 @@ import {
   ChevronRight,
   Clock,
   Compass,
-  Gift,
   Headphones,
+  Lock,
   Minus,
   Play,
   Plus,
@@ -28,103 +28,55 @@ import {
   type RiderIncentivesResponse,
   type CandyCrushLevel,
 } from "../api/rider/rider-incentives-api";
-import { CandyCrushMilestoneMap } from "../components/incentives/CandyCrushMilestoneMap";
 import { RiderBottomNav } from "../components/RiderBottomNav";
 import { triggerHaptic, playSuccessChime, speakText } from "../lib/captain-audio";
 import { useLanguage } from "../lib/i18n";
 
-type TabKey = "candy" | "quests" | "streak" | "calculator";
+type TabKey = "milestones" | "quests" | "streak" | "calculator";
 
-const DEFAULT_CANDY_CRUSH_LEVELS: CandyCrushLevel[] = [
+interface MilestoneLevel {
+  level: number;
+  title: string;
+  target: number;
+  reward: number;
+  description: string;
+}
+
+const DEFAULT_MILESTONE_LEVELS: MilestoneLevel[] = [
   {
     level: 1,
-    title: "Rookie Kickoff",
+    title: "Level 1: Starter Target",
     target: 1,
     reward: 25.0,
-    badge: "🍬",
-    flavor: "Strawberry Jelly",
-    description: "Complete 1st delivery today to activate daily streak",
-    color: "#EC4899",
-    gradient: "from-pink-500 via-rose-500 to-red-500",
-    status: "in_progress",
-    isClaimed: false,
-    isClaimable: false,
-    progress: 0,
-    progressPercent: 0,
-    ridesRemaining: 1,
-    extraPerRide: 25,
+    description: "Complete 1st delivery today to activate daily bonus streak",
   },
   {
     level: 2,
-    title: "Sugar Street Cruiser",
+    title: "Level 2: City Cruiser",
     target: 3,
     reward: 60.0,
-    badge: "🍭",
-    flavor: "Citrus Swirl",
-    description: "3 successful order deliveries across Kasganj market",
-    color: "#F97316",
-    gradient: "from-orange-400 via-amber-500 to-red-500",
-    status: "locked",
-    isClaimed: false,
-    isClaimable: false,
-    progress: 0,
-    progressPercent: 0,
-    ridesRemaining: 3,
-    extraPerRide: 20,
+    description: "3 completed deliveries across Kasganj market hub",
   },
   {
     level: 3,
-    title: "Speedster Star",
+    title: "Level 3: Speedster Milestone",
     target: 5,
     reward: 120.0,
-    badge: "⭐",
-    flavor: "Golden Honey",
-    description: "5 deliveries! Qualifies for speed & fuel cash bonus",
-    color: "#EAB308",
-    gradient: "from-yellow-400 via-amber-500 to-orange-500",
-    status: "locked",
-    isClaimed: false,
-    isClaimable: false,
-    progress: 0,
-    progressPercent: 0,
-    ridesRemaining: 5,
-    extraPerRide: 24,
+    description: "5 deliveries! Qualifies for speed and fuel cash bonus",
   },
   {
     level: 4,
-    title: "Kasganj Express",
+    title: "Level 4: Express Milestone",
     target: 8,
     reward: 200.0,
-    badge: "⚡",
-    flavor: "Blueberry Blast",
-    description: "8 deliveries completed with 100% on-time guarantee",
-    color: "#3B82F6",
-    gradient: "from-blue-500 via-indigo-500 to-cyan-500",
-    status: "locked",
-    isClaimed: false,
-    isClaimable: false,
-    progress: 0,
-    progressPercent: 0,
-    ridesRemaining: 8,
-    extraPerRide: 25,
+    description: "8 deliveries completed with on-time delivery guarantee",
   },
   {
     level: 5,
-    title: "Master Delivery Champion",
+    title: "Level 5: Master Champion",
     target: 12,
     reward: 350.0,
-    badge: "👑",
-    flavor: "Royal Caramel",
-    description: "12 deliveries! Elite captain jackpot & weekly bonus multiplier",
-    color: "#8B5CF6",
-    gradient: "from-purple-500 via-violet-600 to-pink-500",
-    status: "locked",
-    isClaimed: false,
-    isClaimable: false,
-    progress: 0,
-    progressPercent: 0,
-    ridesRemaining: 12,
-    extraPerRide: 29,
+    description: "12 deliveries! Elite captain jackpot with weekly bonus multiplier",
   },
 ];
 
@@ -132,7 +84,7 @@ export function RiderIncentivesScreen() {
   const navigate = useNavigate();
   const { t } = useLanguage();
 
-  const [activeTab, setActiveTab] = useState<TabKey>("candy");
+  const [activeTab, setActiveTab] = useState<TabKey>("milestones");
   const [data, setData] = useState<RiderIncentivesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -196,8 +148,8 @@ export function RiderIncentivesScreen() {
       const res = await claimRiderIncentive(level);
       if (res && res.success) {
         playSuccessChime();
-        speakText(`Congratulations Captain! ₹${res.claimedAmount || 50} bonus added to wallet!`);
-        toast.success(`🎉 Milestone Claimed! ₹${res.claimedAmount || 50} credited to wallet!`);
+        speakText(`Milestone claimed. ₹${res.claimedAmount || 50} added to your wallet.`);
+        toast.success(`Milestone Claimed! ₹${res.claimedAmount || 50} credited to wallet`);
         await loadData(true);
       } else {
         toast.error(res?.message || "Milestone not yet completed");
@@ -242,13 +194,43 @@ export function RiderIncentivesScreen() {
   const surgeZones = data?.surgeZones ?? [];
   const weeklyStreak = data?.weeklyStreak;
 
+  // Derive milestones list
+  const activeMilestones = useMemo(() => {
+    if (data?.candyCrushLevels && data.candyCrushLevels.length > 0) {
+      return data.candyCrushLevels.map((lvl) => ({
+        level: lvl.level,
+        title: lvl.title || `Level ${lvl.level}`,
+        target: lvl.target,
+        reward: lvl.reward,
+        description: lvl.description,
+        isClaimed: lvl.isClaimed,
+        isClaimable: lvl.isClaimable,
+        progress: lvl.progress,
+        progressPercent: lvl.progressPercent,
+      }));
+    }
+    return DEFAULT_MILESTONE_LEVELS.map((lvl) => {
+      const isClaimed = completedToday >= lvl.target && completedToday > 0;
+      const isClaimable = completedToday >= lvl.target && !isClaimed;
+      const progress = Math.min(completedToday, lvl.target);
+      const progressPercent = Math.min(100, Math.round((progress / lvl.target) * 100));
+      return {
+        ...lvl,
+        isClaimed,
+        isClaimable,
+        progress,
+        progressPercent,
+      };
+    });
+  }, [data?.candyCrushLevels, completedToday]);
+
   return (
-    <div
-      className="min-h-screen bg-[#F8F9FA] text-slate-900 select-none font-sans pb-32"
-      style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 8px), 44px)" }}
-    >
-      {/* 1. TOP HEADER (Exact Screenshot Style: Arrow, Title, Help Pill, Refresh) */}
-      <header className="sticky top-0 z-30 bg-[#F8F9FA]/95 backdrop-blur-md px-4 pb-0">
+    <div className="min-h-screen bg-[#F8F9FA] text-slate-900 select-none font-sans pb-32">
+      {/* 1. TOP HEADER (Notch Safe: Padding on Header so it NEVER clips when scrolling) */}
+      <header
+        className="sticky top-0 z-40 bg-[#F8F9FA] border-b border-slate-200/80 px-4 pb-0 shadow-2xs"
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
+      >
         <div className="mx-auto max-w-lg flex items-center justify-between pb-2.5">
           <div className="flex items-center gap-3">
             <button
@@ -301,9 +283,9 @@ export function RiderIncentivesScreen() {
         </div>
 
         {/* 4 SUB-TABS WITH WARM GOLDEN YELLOW UNDERLINE (Screenshot 2 & 3 Match) */}
-        <div className="mx-auto max-w-lg grid grid-cols-4 text-center text-xs font-bold border-b border-slate-200/80">
+        <div className="mx-auto max-w-lg grid grid-cols-4 text-center text-xs font-bold border-t border-slate-200/80">
           {[
-            { id: "candy", label: "Level Map" },
+            { id: "milestones", label: "Milestones" },
             { id: "quests", label: "Quests" },
             { id: "streak", label: "Streak" },
             { id: "calculator", label: "Calculator" },
@@ -386,28 +368,28 @@ export function RiderIncentivesScreen() {
           <div className="p-4 rounded-2xl bg-white border border-amber-300 shadow-2xs flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-amber-100 text-amber-800 font-black shrink-0">
-                🎁
+                <Award className="size-5 text-amber-700" />
               </div>
               <div>
                 <h4 className="text-sm font-black text-slate-950">
-                  ₹{Number(data?.totalClaimableIncentives).toFixed(0)} Ready to Claim!
+                  ₹{Number(data?.totalClaimableIncentives).toFixed(0)} Ready to Claim
                 </h4>
                 <p className="text-xs text-slate-500">
-                  Tap your completed level to instantly credit wallet
+                  Tap below to instantly credit bonus to your wallet
                 </p>
               </div>
             </div>
             <button
               type="button"
-              onClick={() => setActiveTab("candy")}
+              onClick={() => setActiveTab("milestones")}
               className="px-3 py-1.5 rounded-full bg-slate-950 text-white text-xs font-bold active:scale-95 transition cursor-pointer"
             >
-              Claim ➔
+              Claim
             </button>
           </div>
         )}
 
-        {/* VIDEO TUTORIAL CARD (Exact Screenshot 1 Style) */}
+        {/* VIDEO TUTORIAL CARD (Screenshot 1 Style) */}
         <div
           role="button"
           tabIndex={0}
@@ -437,29 +419,106 @@ export function RiderIncentivesScreen() {
           <ChevronRight className="size-5 text-slate-400 shrink-0" />
         </div>
 
-        {/* TAB 1: LEVEL MAP */}
-        {activeTab === "candy" && (
-          <div className="space-y-3.5">
+        {/* TAB 1: DAILY MILESTONE TARGETS (Speed-First, Pure White Clean Cards, Zero Cartoon Fluff) */}
+        {activeTab === "milestones" && (
+          <div className="space-y-3">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
-                Level Map Journey
+                Daily Milestone Targets
               </h3>
               <span className="text-[10px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                 0% Commission Guarantee
               </span>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-2 shadow-2xs overflow-hidden">
-              <CandyCrushMilestoneMap
-                levels={
-                  data?.candyCrushLevels && data.candyCrushLevels.length > 0
-                    ? data.candyCrushLevels
-                    : DEFAULT_CANDY_CRUSH_LEVELS
-                }
-                completedToday={completedToday}
-                onClaimLevel={handleClaimMilestone}
-                claimingLevel={claimingLevel}
-              />
+            <div className="space-y-2.5">
+              {activeMilestones.map((m) => {
+                const isReached = completedToday >= m.target;
+                const progress = Math.min(completedToday, m.target);
+                const percent = Math.min(100, Math.round((progress / m.target) * 100));
+
+                return (
+                  <div
+                    key={m.level}
+                    className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-2xs"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`flex size-10 items-center justify-center rounded-xl shrink-0 font-black text-sm ${
+                            isReached
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : "bg-slate-100 text-slate-700 border border-slate-200"
+                          }`}
+                        >
+                          {isReached ? <CheckCircle2 className="size-5 text-emerald-600" /> : m.level}
+                        </div>
+
+                        <div>
+                          <h4 className="text-sm font-black text-slate-950 leading-tight">
+                            {m.title}
+                          </h4>
+                          <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                            {m.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="text-base font-black text-emerald-700">
+                          +₹{Number(m.reward).toFixed(0)}
+                        </span>
+                        <p className="text-[10px] font-semibold text-slate-500 mt-0.5">
+                          {m.target} {m.target === 1 ? "Trip" : "Trips"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="mt-3 pt-2.5 border-t border-slate-100">
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-600 mb-1">
+                        <span>Progress: {progress}/{m.target} orders</span>
+                        <span className="text-slate-950 font-bold">{percent}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-slate-950 rounded-full transition-all duration-500"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action Bar */}
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="text-[11px] font-medium text-slate-500">
+                        {isReached ? "Milestone Unlocked" : `${m.target - progress} more to unlock`}
+                      </span>
+
+                      {isReached ? (
+                        m.isClaimed ? (
+                          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                            Claimed ✓
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={claimingLevel === m.level}
+                            onClick={() => handleClaimMilestone(m.level)}
+                            className="px-4 py-1.5 rounded-full bg-slate-950 text-white text-xs font-black shadow-xs active:scale-95 transition cursor-pointer"
+                          >
+                            {claimingLevel === m.level ? "Claiming..." : `Claim ₹${m.reward}`}
+                          </button>
+                        )
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs font-semibold text-slate-400">
+                          <Lock className="size-3 text-slate-400" />
+                          <span>Locked</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -472,7 +531,7 @@ export function RiderIncentivesScreen() {
                 Special Flash Quests
               </h3>
               <span className="text-[10px] font-black text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                ⚡ Active Today
+                Active Today
               </span>
             </div>
 
@@ -598,7 +657,7 @@ export function RiderIncentivesScreen() {
                     <span className="text-xs font-bold text-slate-500">Completed</span>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Complete 6 duty days this week to unlock ₹500 Mega Reward!
+                    Complete 6 duty days this week to unlock ₹500 Mega Reward
                   </p>
                 </div>
 
@@ -756,7 +815,7 @@ export function RiderIncentivesScreen() {
             className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-slate-950 hover:bg-slate-900 active:scale-98 text-white font-black text-sm shadow-xs transition cursor-pointer"
           >
             <Compass className="size-4" />
-            <span>Go Online & Complete Today's Target 🚀</span>
+            <span>Go Online & Complete Today's Target</span>
           </button>
         </div>
       </main>

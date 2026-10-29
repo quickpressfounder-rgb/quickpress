@@ -128,12 +128,12 @@ export function RiderAnalyticsScreen() {
   const trends = summary?.trends ?? [];
 
   return (
-    <div
-      className="min-h-screen bg-[#F8F9FA] text-slate-900 select-none font-sans pb-32"
-      style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 8px), 44px)" }}
-    >
-      {/* 1. TOP HEADER (Exact Screenshot Style: Arrow, Title, Help Pill, Refresh) */}
-      <header className="sticky top-0 z-30 bg-[#F8F9FA]/95 backdrop-blur-md px-4 pb-0">
+    <div className="min-h-screen bg-[#F8F9FA] text-slate-900 select-none font-sans pb-32">
+      {/* 1. TOP HEADER (Notch Safe: Padding on Header so it NEVER clips when scrolling) */}
+      <header
+        className="sticky top-0 z-40 bg-[#F8F9FA] border-b border-slate-200/80 px-4 pb-0 shadow-2xs"
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
+      >
         <div className="mx-auto max-w-lg flex items-center justify-between pb-2.5">
           <div className="flex items-center gap-3">
             <button
@@ -451,17 +451,23 @@ export function RiderAnalyticsScreen() {
 
           <div className="grid grid-cols-3 gap-2.5 text-center">
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 space-y-1">
-              <div className="text-xl">⚡</div>
-              <p className="text-[11px] font-black text-slate-900">Speed Demon</p>
+              <div className="flex size-7 items-center justify-center rounded-lg bg-amber-50 text-amber-700 mx-auto">
+                <Zap className="size-4" />
+              </div>
+              <p className="text-[11px] font-black text-slate-900">Speed SLA</p>
               <p className="text-[9px] text-slate-500 font-medium">Under 20 min avg</p>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 space-y-1">
-              <div className="text-xl">🛡️</div>
+              <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 mx-auto">
+                <ShieldCheck className="size-4" />
+              </div>
               <p className="text-[11px] font-black text-slate-900">Zero Fault</p>
               <p className="text-[9px] text-slate-500 font-medium">0 delivery issues</p>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 space-y-1">
-              <div className="text-xl">🌟</div>
+              <div className="flex size-7 items-center justify-center rounded-lg bg-purple-50 text-purple-700 mx-auto">
+                <Award className="size-4" />
+              </div>
               <p className="text-[11px] font-black text-slate-900">5-Star Rider</p>
               <p className="text-[9px] text-slate-500 font-medium">Top rated in city</p>
             </div>

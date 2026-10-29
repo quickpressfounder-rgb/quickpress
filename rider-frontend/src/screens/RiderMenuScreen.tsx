@@ -174,12 +174,12 @@ export function RiderMenuScreen() {
   const lifetimeTotal = Number(wallet?.lifetimeEarnings ?? 735).toFixed(2);
 
   return (
-    <div
-      className="min-h-screen bg-[#F8F9FA] text-slate-900 select-none font-sans pb-32"
-      style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 8px), 44px)" }}
-    >
-      {/* 1. TOP HEADER (Exact Screenshot Style: Arrow, Title, Help Pill, Refresh) */}
-      <header className="sticky top-0 z-30 bg-[#F8F9FA]/95 backdrop-blur-md px-4 pb-3">
+    <div className="min-h-screen bg-[#F8F9FA] text-slate-900 select-none font-sans pb-32">
+      {/* 1. TOP HEADER (Notch Safe, Stays locked above content on scroll) */}
+      <header
+        className="sticky top-0 z-40 bg-[#F8F9FA] border-b border-slate-200/80 px-4 pb-3 shadow-2xs"
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
+      >
         <div className="mx-auto max-w-lg flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
