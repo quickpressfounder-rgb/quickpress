@@ -36,6 +36,7 @@ export const riderRoutes = {
   notifications: "/notifications",
   profile: "/profile",
   permissions: "/permissions",
+  menu: "/menu",
 } as const;
 
 export const riderTabs = [

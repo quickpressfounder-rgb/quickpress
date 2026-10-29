@@ -89,14 +89,14 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
         onClick={onClose}
         className="fixed inset-0 z-50 flex justify-start bg-black/60 backdrop-blur-xs select-none animate-in fade-in duration-200"
       >
-        {/* Drawer Container (Wallet Screen Theme) */}
+        {/* Drawer Container (Clean White Minimalist Theme) */}
         <div
           onClick={(e) => e.stopPropagation()}
-          className="relative flex flex-col w-[86vw] max-w-[340px] h-[100dvh] bg-[#F4F5F7] text-zinc-900 shadow-2xl rounded-r-3xl border-r border-zinc-200/90 overflow-hidden animate-in slide-in-from-left duration-300"
+          className="relative flex flex-col w-[86vw] max-w-[340px] h-[100dvh] bg-[#F8F9FA] text-slate-900 shadow-2xl rounded-r-3xl border-r border-slate-200/90 overflow-hidden animate-in slide-in-from-left duration-300"
         >
           {/* 1. Header with Close Button & Profile Badge (Fixed with Safe Area Padding) */}
           <div
-            className="px-4 pb-3.5 bg-white border-b border-zinc-200/80 shadow-2xs shrink-0"
+            className="px-4 pb-3.5 bg-white border-b border-slate-200/80 shadow-2xs shrink-0"
             style={{
               paddingTop: "max(env(safe-area-inset-top, 0px) + 12px, 22px)",
             }}
@@ -119,37 +119,37 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                   triggerHaptic(15);
                   onClose();
                 }}
-                className="flex items-center justify-center w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 hover:text-zinc-950 active:scale-90 transition-all cursor-pointer"
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-950 active:scale-90 transition-all cursor-pointer"
                 aria-label="Close Drawer"
               >
                 <X className="w-4 h-4 stroke-[2.5]" />
               </button>
             </div>
 
-            {/* Profile Card (Matching Wallet Hero Card layout) */}
+            {/* Profile Card (Clean White Theme) */}
             <button
               type="button"
               onClick={handleOpenProfile}
-              className="w-full flex items-center justify-between p-3.5 bg-gradient-to-br from-amber-50/90 via-white to-amber-50/40 hover:bg-amber-50 border border-amber-200/90 rounded-2xl text-left active:scale-98 transition-all shadow-2xs cursor-pointer"
+              className="w-full flex items-center justify-between p-3.5 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-2xl text-left active:scale-98 transition-all shadow-2xs cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 {effectivePhoto ? (
                   <img
                     src={effectivePhoto}
                     alt={captainName}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-amber-300 shadow-xs shrink-0"
+                    className="w-12 h-12 rounded-full object-cover border-2 border-amber-400 shadow-xs shrink-0"
                   />
                 ) : (
-                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-[#FFC700] text-neutral-950 font-black text-lg shadow-xs shrink-0">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-400 text-slate-950 font-black text-lg shadow-xs shrink-0">
                     {captainName.slice(0, 1).toUpperCase()}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <h3 className="text-sm font-black text-zinc-950 leading-tight truncate">
+                  <h3 className="text-sm font-black text-slate-950 leading-tight truncate">
                     {captainName || "Captain"}
                   </h3>
                   {captainId && formatCaptainId(captainId) ? (
-                    <p className="text-[11px] font-bold text-zinc-500 mt-0.5 font-mono">
+                    <p className="text-[11px] font-bold text-slate-500 mt-0.5 font-mono">
                       ID: {formatCaptainId(captainId)}
                     </p>
                   ) : null}
@@ -166,7 +166,7 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                   </div>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
+              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
             </button>
           </div>
 

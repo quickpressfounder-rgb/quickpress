@@ -3232,3 +3232,30 @@ This single command will automatically:
   - Git Commits: `5abb969`, `90d0f5b`, `8087632`, `6001649`, `c78ac9e`, `d41a755`.
 
 
+
+### 55. Clean White Minimalist Rider Menu Screen (`/menu`) & Theme Alignment
+- **Feature Overview & Motivation:**
+  - Based on the user reference screenshots from Captain Earnings & All Orders, created a dedicated, pixel-perfect **Rider Menu Screen** (`/menu`) adhering strictly to the **Clean White Minimalist Theme** (`#F8F9FA` background, pure white rounded cards, subtle border `#E5E7EB`, zero heavy gradients).
+  - Linked the dashboard top-bar hamburger button directly to `/menu` with haptic feedback.
+  - Refreshed `CaptainSidebarDrawer.tsx` to match the exact same clean white theme for visual consistency.
+- **Components & Architecture:**
+  - **1. Route & Navigation (`rider-frontend`):**
+    - Created `rider-frontend/src/routes/menu.tsx` protected by `requireRiderSession()`.
+    - Added `menu: "/menu"` to `riderRoutes` in `rider-frontend/src/navigation/rider-routes.ts`.
+    - Generated TanStack router manifest and SSR bundle with zero errors.
+  - **2. RiderMenuScreen (`rider-frontend/src/screens/RiderMenuScreen.tsx`):**
+    - Notch-safe sticky header with back arrow, bold title "Menu", `[🎧 Help]` pill button, and live `[🔄]` refresh button.
+    - Captain Profile Hero card with photo/avatar, Captain ID, verified status pill, and rating.
+    - 2-column metrics grid for "Today Earnings" and "Wallet Balance" matching the user screenshots.
+    - Soft lavender promotional banner ("Know all about your Earnings") with red play icon.
+    - 4 grouped white rounded cards with dividers:
+      - Operational: All Orders, View Rate Card, Trip History & Receipts, Performance & Analytics.
+      - Growth & Rewards: Incentives & Milestone Quests, City Leaderboard, Refer Captain & Earn ₹300.
+      - Device Diagnostics: Duty & Device Permissions (with live status badge), Test High-Priority Siren (interactive audio + vibration toggle), Notifications.
+      - Support & Account: Language selector, Logout Captain Account, and App version footer.
+    - Clean 2-tab bottom navigation `<RiderBottomNav active="dashboard" />`.
+- **Verification & Packaging:**
+  - `npm run build` in `rider-frontend`: PASSED (Built in 7.73s, zero errors).
+  - Rebuilt Android Captain binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18 MB) - compiled, signed, and mirrored.
+    - `QuickPress-Captain.aab` (17 MB) - compiled and verified.

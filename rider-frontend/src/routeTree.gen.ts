@@ -22,6 +22,7 @@ import { Route as InstructionRouteImport } from './routes/instruction'
 import { Route as InstructionsRouteImport } from './routes/instructions'
 import { Route as LanguageRouteImport } from './routes/language'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as MenuRouteImport } from './routes/menu'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as OrdersRouteImport } from './routes/orders'
@@ -99,6 +100,11 @@ const LeaderboardRoute = LeaderboardRouteImport.update({
   path: '/leaderboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MenuRoute = MenuRouteImport.update({
+  id: '/menu',
+  path: '/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -169,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/instructions': typeof InstructionsRoute
   '/language': typeof LanguageRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/menu': typeof MenuRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByTo {
   '/instructions': typeof InstructionsRoute
   '/language': typeof LanguageRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/menu': typeof MenuRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
@@ -222,6 +230,7 @@ export interface FileRoutesById {
   '/instructions': typeof InstructionsRoute
   '/language': typeof LanguageRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/menu': typeof MenuRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
@@ -250,6 +259,7 @@ export interface FileRouteTypes {
     | '/instructions'
     | '/language'
     | '/leaderboard'
+    | '/menu'
     | '/notifications'
     | '/onboarding'
     | '/orders'
@@ -276,6 +286,7 @@ export interface FileRouteTypes {
     | '/instructions'
     | '/language'
     | '/leaderboard'
+    | '/menu'
     | '/notifications'
     | '/onboarding'
     | '/orders'
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '/instructions'
     | '/language'
     | '/leaderboard'
+    | '/menu'
     | '/notifications'
     | '/onboarding'
     | '/orders'
@@ -329,6 +341,7 @@ export interface RootRouteChildren {
   InstructionsRoute: typeof InstructionsRoute
   LanguageRoute: typeof LanguageRoute
   LeaderboardRoute: typeof LeaderboardRoute
+  MenuRoute: typeof MenuRoute
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
   OrdersRoute: typeof OrdersRoute
@@ -435,6 +448,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeaderboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/menu': {
+      id: '/menu'
+      path: '/menu'
+      fullPath: '/menu'
+      preLoaderRoute: typeof MenuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/notifications': {
       id: '/notifications'
       path: '/notifications'
@@ -529,6 +549,7 @@ const rootRouteChildren: RootRouteChildren = {
   InstructionsRoute: InstructionsRoute,
   LanguageRoute: LanguageRoute,
   LeaderboardRoute: LeaderboardRoute,
+  MenuRoute: MenuRoute,
   NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
   OrdersRoute: OrdersRoute,

@@ -381,7 +381,10 @@ export function RiderDashboardScreen() {
       <CaptainTopBar
         isOnline={isOnline}
         onToggleDuty={() => handleToggleDuty(!isOnline)}
-        onOpenDrawer={() => setIsDrawerOpen(true)}
+        onOpenDrawer={() => {
+          triggerHaptic(20);
+          navigate({ to: "/menu" });
+        }}
         onOpenNotifications={() => navigate({ to: "/notifications" })}
         onOpenEarnings={() => navigate({ to: "/wallet" })}
         onOpenRateCard={() => setIsRateCardOpen(true)}
