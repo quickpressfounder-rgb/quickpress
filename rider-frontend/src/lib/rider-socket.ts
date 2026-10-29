@@ -216,6 +216,8 @@ export function initRiderSocket(): Socket | null {
       socket.on("order.delivered", handleOrderEvent);
       socket.on("order.completed", handleOrderEvent);
       socket.on("order.cancelled", handleOrderEvent);
+      socket.on("ride.cancelled", handleOrderEvent);
+      socket.on("order.status_changed", handleOrderEvent);
 
       // Wallet events
       socket.on("wallet.updated", handleWalletEvent);

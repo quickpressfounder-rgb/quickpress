@@ -60,6 +60,20 @@ class PartnerOrderResponse(BaseModel):
     hasDefectsReported: Optional[bool] = False
     custodyAudit: Optional[Dict[str, Any]] = None
     isAddressMasked: Optional[bool] = False
+    partnerId: Optional[str] = None
+    partnerAcceptedAt: Optional[str] = None
+    partnerAcceptDeadline: Optional[str] = None
+    partnerSlaSeconds: Optional[int] = None
+    riderAcceptDeadline: Optional[str] = None
+    riderSlaSeconds: Optional[int] = None
+    cancelledReason: Optional[str] = None
+    cancellationReason: Optional[str] = None
+    cancelledBy: Optional[str] = None
+    slaBreached: Optional[str] = None
+    autoCancelled: Optional[bool] = False
+    isExpress: Optional[bool] = False
+    expressFee: Optional[float] = 0.0
+    partnerExpressBonus: Optional[float] = 0.0
 
 
 class PartnerBagIntakePayload(BaseModel):

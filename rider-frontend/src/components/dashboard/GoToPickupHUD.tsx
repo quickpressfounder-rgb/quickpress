@@ -365,20 +365,19 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   }, [onBackToTrips, navigate]);
 
   useEffect(() => {
-    // Intercept browser / Android back button so it backs out to /orders without resetting the trip
-    try {
-      window.history.pushState({ hudActive: true }, "");
-    } catch {}
-
-    const onPopState = () => {
+    // Intercept native Android back button without corrupting browser history stack
+    const onAndroidBack = (e: any) => {
+      try {
+        if (typeof e?.preventDefault === "function") e.preventDefault();
+      } catch {}
       if (onBackToTrips) {
         onBackToTrips();
       }
     };
 
-    window.addEventListener("popstate", onPopState);
+    window.addEventListener("qp:android-back", onAndroidBack);
     return () => {
-      window.removeEventListener("popstate", onPopState);
+      window.removeEventListener("qp:android-back", onAndroidBack);
     };
   }, [onBackToTrips]);
 
@@ -445,6 +444,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           try {
             localStorage.removeItem("qp_active_rider_order");
             localStorage.removeItem("qp_active_delivery_order");
+            window.dispatchEvent(new CustomEvent("qp:active_order_updated", { detail: null }));
           } catch {}
           toast.info(`Trip #${order.orderCode || targetId.slice(-6).toUpperCase()} is already completed/closed.`);
           if (onTripCompleted) {
@@ -462,6 +462,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           try {
             localStorage.removeItem("qp_active_rider_order");
             localStorage.removeItem("qp_active_delivery_order");
+            window.dispatchEvent(new CustomEvent("qp:active_order_updated", { detail: null }));
           } catch {}
           toast.info(`Trip #${order.orderCode || targetId.slice(-6).toUpperCase()} is no longer active.`);
           if (onTripCompleted) {
@@ -571,6 +572,27 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           setIsInAppNavActive(true);
           setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
         }
+
+        // 4. Order / Ride Cancelled by Customer or Store
+        if (
+          stat === "cancelled" ||
+          data?.event === "order.cancelled" ||
+          data?.event === "ride.cancelled"
+        ) {
+          try {
+            localStorage.removeItem("qp_active_rider_order");
+            localStorage.removeItem("qp_active_delivery_order");
+            window.dispatchEvent(new CustomEvent("qp:active_order_updated", { detail: null }));
+          } catch {}
+          toast.error("❌ Yeh order customer/store dwara cancel kar diya gaya.");
+          if (onCancelTrip) {
+            onCancelTrip();
+          } else if (onTripCompleted) {
+            onTripCompleted();
+          } else {
+            navigate({ to: "/orders" });
+          }
+        }
       }
     };
     try {
@@ -580,12 +602,16 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       socket?.on("order.status_changed", handleOrderEvent);
       socket?.on("order.out_for_delivery", handleOrderEvent);
       socket?.on("order.dispatch_verified", handleOrderEvent);
+      socket?.on("order.cancelled", handleOrderEvent);
+      socket?.on("ride.cancelled", handleOrderEvent);
       return () => {
         socket?.off("order.processing", handleOrderEvent);
         socket?.off("order.ready", handleOrderEvent);
         socket?.off("order.status_changed", handleOrderEvent);
         socket?.off("order.out_for_delivery", handleOrderEvent);
         socket?.off("order.dispatch_verified", handleOrderEvent);
+        socket?.off("order.cancelled", handleOrderEvent);
+        socket?.off("ride.cancelled", handleOrderEvent);
       };
     } catch {}
   }, [order.orderId, stage]);

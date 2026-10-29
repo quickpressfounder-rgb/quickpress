@@ -300,18 +300,12 @@ export function isOrderMatchingTab(order: ManagedOrder, tab: PartnerOrderFilterT
       return stage === "completed" || stage === "delivered";
     case "cancelled": {
       if (stage !== "cancelled") return false;
-      // Partner should only see cancellations where the order was actually accepted by the partner
-      const hasPartnerAccepted = Boolean(
-        order.partnerAcceptedAt ||
-        (order as any).partner_accepted_at ||
-        order.timeline?.some((t) => t.id === "accepted" || t.label?.toLowerCase().includes("accepted"))
-      );
-      // Exclude orders missed by partner SLA timeout or rejected by partner without accepting
+      // Exclude only orders that were missed by partner acceptance SLA timeout
       const wasMissedByPartner =
         order.slaBreached === "partner_acceptance" ||
         order.cancelReason?.toLowerCase().includes("partner did not accept") ||
         (order as any).cancelledReason?.toLowerCase().includes("partner did not accept");
-      return hasPartnerAccepted && !wasMissedByPartner;
+      return !wasMissedByPartner;
     }
     case "refunded":
       return isRefunded;

@@ -19,6 +19,7 @@ import { clearSession, readSession, writeSession } from "@/api/core/session-stor
 import { apiGetJson } from "@/api/core/transport";
 import { initRiderSocket, subscribeRiderStatus } from "@/lib/rider-socket";
 import { onesignalLogin, onesignalLogout } from "@/api/core/onesignal";
+import { setCaptainOnlineStatus, stopFloatingBubble } from "@/lib/captain-device-opt";
 
 type RiderContextValue = {
   session: RiderSession | null;
@@ -168,6 +169,12 @@ export function RiderProvider({ children }: { children: ReactNode }) {
     const unsub = subscribeRiderStatus((data) => {
       if (data && typeof data.isOnline === "boolean") {
         setOnlineState(data.isOnline);
+        if (!data.isOnline) {
+          setCaptainOnlineStatus(false);
+          stopFloatingBubble();
+        } else {
+          setCaptainOnlineStatus(true);
+        }
         try {
           window.localStorage.setItem(ONLINE_STORAGE_KEY, data.isOnline ? "1" : "0");
         } catch {}
@@ -181,6 +188,12 @@ export function RiderProvider({ children }: { children: ReactNode }) {
 
   const setOnlineWithBackend = useCallback(async (next: boolean) => {
     setOnlineState(next);
+    if (!next) {
+      setCaptainOnlineStatus(false);
+      stopFloatingBubble();
+    } else {
+      setCaptainOnlineStatus(true);
+    }
     if (typeof window !== "undefined") {
       try {
         window.localStorage.setItem(ONLINE_STORAGE_KEY, next ? "1" : "0");
@@ -235,6 +248,8 @@ export function RiderProvider({ children }: { children: ReactNode }) {
     [setPhone],
   );
   const signOut = useCallback(() => {
+    setCaptainOnlineStatus(false);
+    stopFloatingBubble();
     setSession(null);
     clearSession("rider");
     clearSession();

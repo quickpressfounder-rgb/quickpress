@@ -105,6 +105,9 @@ export function RiderOrdersScreen() {
         setActiveOrder(e.detail);
         setIsHudMinimized(false);
         setOffers((prev) => prev.filter((o) => o.orderId !== e.detail.orderId && o.id !== e.detail.orderId));
+      } else {
+        setActiveOrder(null);
+        setIsHudMinimized(false);
       }
     };
     window.addEventListener("qp:active_order_updated", handleActiveOrderUpdate);
@@ -355,18 +358,23 @@ export function RiderOrdersScreen() {
         }
       } else if (
         ev === "order.cancelled" ||
+        ev === "ride.cancelled" ||
         ev === "rider.ride_cancelled" ||
         ev === "order.delivered" ||
-        ev === "order.completed"
+        ev === "order.completed" ||
+        String(eventData?.status || "").toLowerCase() === "cancelled"
       ) {
-        if (targetOrderId) {
-          setOffers((prev) => prev.filter((o) => o.orderId !== targetOrderId && o.id !== targetOrderId));
+        const cId = String(targetOrderId || eventData?.id || eventData?._id || "");
+        if (cId) {
+          setOffers((prev) => prev.filter((o) => o.orderId !== cId && o.id !== cId));
           setActiveOrder((prev) => {
-            if (prev && (prev.orderId === targetOrderId || prev.id === targetOrderId)) {
+            if (prev && (prev.orderId === cId || prev.id === cId)) {
               try {
                 localStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
                 localStorage.removeItem("qp_active_delivery_order");
+                window.dispatchEvent(new CustomEvent("qp:active_order_updated", { detail: null }));
               } catch {}
+              setIsHudMinimized(false);
               return null;
             }
             return prev;
@@ -670,8 +678,11 @@ export function RiderOrdersScreen() {
   const handleTripEnd = () => {
     try {
       localStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
+      localStorage.removeItem("qp_active_delivery_order");
+      window.dispatchEvent(new CustomEvent("qp:active_order_updated", { detail: null }));
     } catch {}
     setActiveOrder(null);
+    setIsHudMinimized(false);
   };
 
   // If an active order is in progress and HUD is not minimized, render the GoToPickupHUD screen

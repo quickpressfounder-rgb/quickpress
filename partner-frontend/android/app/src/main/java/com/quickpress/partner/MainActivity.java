@@ -32,13 +32,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends BridgeActivity {
-    private static final int NOTIFICATION_ID_STORE_STATUS = 1001;
-    private static final int NOTIFICATION_ID_URGENT_ORDER = 2001;
+    public static final int NOTIFICATION_ID_STORE_STATUS = 1001;
+    public static final int NOTIFICATION_ID_URGENT_ORDER = 2001;
 
     private long lastBackPressTime = 0;
-    private MediaPlayer backgroundAlarmPlayer = null;
-    private PowerManager.WakeLock orderAlarmWakeLock = null;
-    private boolean isAlarmRinging = false;
+    private static MediaPlayer backgroundAlarmPlayer = null;
+    private static PowerManager.WakeLock orderAlarmWakeLock = null;
+    public static boolean isAlarmRinging = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -69,6 +69,21 @@ public class MainActivity extends BridgeActivity {
         // 3. Request Android 13+ Notification Permission & Urgent Channels
         requestDevicePermissions();
         createNotificationChannels();
+
+        // 4. Initialize FCM Push Registration
+        try {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        String token = task.getResult();
+                        android.util.Log.d("MainActivity", "FCM token retrieved: " + token);
+                        getSharedPreferences("qp_partner_prefs", Context.MODE_PRIVATE)
+                            .edit().putString("fcm_token", token).apply();
+                    }
+                });
+        } catch (Throwable t) {
+            android.util.Log.w("MainActivity", "FCM init notice: " + t.getMessage());
+        }
 
         // 3. Android Back Button Interception with Double-Tap to Exit
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -167,10 +182,73 @@ public class MainActivity extends BridgeActivity {
         }, 300);
     }
 
-    private void stopBackgroundOrderRingNative() {
-        runOnUiThread(() -> {
+    public static synchronized void stopBackgroundOrderRingDirectly(final Context context) {
+        try {
+            isAlarmRinging = false;
+            if (backgroundAlarmPlayer != null) {
+                try {
+                    if (backgroundAlarmPlayer.isPlaying()) {
+                        backgroundAlarmPlayer.stop();
+                    }
+                    backgroundAlarmPlayer.release();
+                } catch (Exception ignored) {}
+                backgroundAlarmPlayer = null;
+            }
+
             try {
-                isAlarmRinging = false;
+                Vibrator v = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+                if (v != null) {
+                    v.cancel();
+                }
+            } catch (Exception ignored) {}
+
+            if (orderAlarmWakeLock != null && orderAlarmWakeLock.isHeld()) {
+                try {
+                    orderAlarmWakeLock.release();
+                } catch (Exception ignored) {}
+                orderAlarmWakeLock = null;
+            }
+
+            NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager != null) {
+                manager.cancel(NOTIFICATION_ID_URGENT_ORDER);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    public static synchronized void startOrderAlarmDirectly(final Context context, final String orderCode, final String amount, final String customerName) {
+        try {
+            if (isAlarmRinging) return;
+            isAlarmRinging = true;
+
+            // 1. Wake screen up and keep active
+            try {
+                PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+                if (pm != null) {
+                    if (orderAlarmWakeLock == null) {
+                        orderAlarmWakeLock = pm.newWakeLock(
+                            PowerManager.SCREEN_BRIGHT_WAKE_LOCK |
+                            PowerManager.ACQUIRE_CAUSES_WAKEUP |
+                            PowerManager.ON_AFTER_RELEASE,
+                            "quickpress:merchant_order_wakeup"
+                        );
+                    }
+                    if (!orderAlarmWakeLock.isHeld()) {
+                        orderAlarmWakeLock.acquire(25000); // 25 seconds bright wakeup
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            // 2. Play continuous loud looping alarm via MediaPlayer on STREAM_ALARM
+            try {
+                Uri alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+                if (alarmUri == null) {
+                    alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+                }
+                if (alarmUri == null) {
+                    alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                }
+
                 if (backgroundAlarmPlayer != null) {
                     try {
                         if (backgroundAlarmPlayer.isPlaying()) {
@@ -181,26 +259,91 @@ public class MainActivity extends BridgeActivity {
                     backgroundAlarmPlayer = null;
                 }
 
-                try {
-                    Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                    if (v != null) {
-                        v.cancel();
-                    }
-                } catch (Exception ignored) {}
-
-                if (orderAlarmWakeLock != null && orderAlarmWakeLock.isHeld()) {
-                    try {
-                        orderAlarmWakeLock.release();
-                    } catch (Exception ignored) {}
-                    orderAlarmWakeLock = null;
+                backgroundAlarmPlayer = new MediaPlayer();
+                backgroundAlarmPlayer.setDataSource(context, alarmUri);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    backgroundAlarmPlayer.setAudioAttributes(
+                        new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    );
+                } else {
+                    backgroundAlarmPlayer.setAudioStreamType(AudioManager.STREAM_ALARM);
                 }
+                backgroundAlarmPlayer.setLooping(true);
+                backgroundAlarmPlayer.prepare();
+                backgroundAlarmPlayer.start();
+            } catch (Exception audioErr) {
+                audioErr.printStackTrace();
+            }
 
-                NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                if (manager != null) {
-                    manager.cancel(NOTIFICATION_ID_URGENT_ORDER);
+            // 3. Continuous repeating vibration
+            try {
+                Vibrator v = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+                if (v != null) {
+                    long[] pattern = new long[]{0, 800, 400, 800, 400};
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        v.vibrate(VibrationEffect.createWaveform(pattern, 0));
+                    } else {
+                        v.vibrate(pattern, 0);
+                    }
                 }
             } catch (Exception ignored) {}
-        });
+
+            // 4. Post Urgent Heads-Up Order Notification over Lockscreen with Action Buttons
+            NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager != null) {
+                int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    flags |= PendingIntent.FLAG_IMMUTABLE;
+                }
+
+                Intent viewIntent = new Intent(context, MainActivity.class);
+                viewIntent.setAction("com.quickpress.partner.ACTION_VIEW_ORDER");
+                viewIntent.putExtra("qp_action", "view_order");
+                viewIntent.putExtra("order_code", orderCode);
+                viewIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                PendingIntent viewPendingIntent = PendingIntent.getActivity(
+                    context, 201, viewIntent, flags
+                );
+
+                Intent acceptIntent = new Intent(context, MainActivity.class);
+                acceptIntent.setAction("com.quickpress.partner.ACTION_ACCEPT_ORDER");
+                acceptIntent.putExtra("qp_action", "accept_order");
+                acceptIntent.putExtra("order_code", orderCode);
+                acceptIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                PendingIntent acceptPendingIntent = PendingIntent.getActivity(
+                    context, 202, acceptIntent, flags
+                );
+
+                String displayCode = (orderCode != null && !orderCode.trim().isEmpty()) ? orderCode.trim() : "NEW";
+                String priceText = (amount != null && !amount.trim().isEmpty()) ? ("₹" + amount.trim() + " · ") : "";
+                String descText = priceText + "Tap to accept within 5 minutes";
+
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "quickpress_urgent_dispatch")
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setContentTitle("🚨 NEW ORDER #" + displayCode + " RECEIVED")
+                    .setContentText(descText)
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
+                    .setCategory(NotificationCompat.CATEGORY_ALARM)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setFullScreenIntent(viewPendingIntent, true)
+                    .setContentIntent(viewPendingIntent)
+                    .setOngoing(true)
+                    .setAutoCancel(false)
+                    .addAction(R.mipmap.ic_launcher, "ACCEPT ORDER", acceptPendingIntent)
+                    .addAction(R.mipmap.ic_launcher, "VIEW", viewPendingIntent);
+
+                manager.notify(NOTIFICATION_ID_URGENT_ORDER, builder.build());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void stopBackgroundOrderRingNative() {
+        runOnUiThread(() -> stopBackgroundOrderRingDirectly(MainActivity.this));
     }
 
     @Override
@@ -639,119 +782,22 @@ public class MainActivity extends BridgeActivity {
 
         @JavascriptInterface
         public void startBackgroundOrderRing(final String orderCode, final String amount, final String customerName) {
-            runOnUiThread(() -> {
-                try {
-                    if (isAlarmRinging) return;
-                    isAlarmRinging = true;
-
-                    // 1. Wake screen up and keep active
-                    wakeScreen();
-
-                    // 2. Play continuous loud looping alarm via MediaPlayer on STREAM_ALARM
-                    try {
-                        Uri alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-                        if (alarmUri == null) {
-                            alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
-                        }
-                        if (alarmUri == null) {
-                            alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-                        }
-
-                        if (backgroundAlarmPlayer != null) {
-                            try {
-                                backgroundAlarmPlayer.stop();
-                                backgroundAlarmPlayer.release();
-                            } catch (Exception ignored) {}
-                            backgroundAlarmPlayer = null;
-                        }
-
-                        backgroundAlarmPlayer = new MediaPlayer();
-                        backgroundAlarmPlayer.setDataSource(MainActivity.this, alarmUri);
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                            backgroundAlarmPlayer.setAudioAttributes(
-                                new AudioAttributes.Builder()
-                                    .setUsage(AudioAttributes.USAGE_ALARM)
-                                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                                    .build()
-                            );
-                        } else {
-                            backgroundAlarmPlayer.setAudioStreamType(AudioManager.STREAM_ALARM);
-                        }
-                        backgroundAlarmPlayer.setLooping(true);
-                        backgroundAlarmPlayer.prepare();
-                        backgroundAlarmPlayer.start();
-                    } catch (Exception audioErr) {
-                        audioErr.printStackTrace();
-                    }
-
-                    // 3. Continuous repeating vibration
-                    try {
-                        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                        if (v != null) {
-                            long[] pattern = new long[]{0, 800, 400, 800, 400};
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                v.vibrate(VibrationEffect.createWaveform(pattern, 0));
-                            } else {
-                                v.vibrate(pattern, 0);
-                            }
-                        }
-                    } catch (Exception ignored) {}
-
-                    // 4. Post Urgent Heads-Up Order Notification over Lockscreen with Action Buttons
-                    NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                    if (manager != null) {
-                        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            flags |= PendingIntent.FLAG_IMMUTABLE;
-                        }
-
-                        Intent viewIntent = new Intent(MainActivity.this, MainActivity.class);
-                        viewIntent.setAction("com.quickpress.partner.ACTION_VIEW_ORDER");
-                        viewIntent.putExtra("qp_action", "view_order");
-                        viewIntent.putExtra("order_code", orderCode);
-                        viewIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        PendingIntent viewPendingIntent = PendingIntent.getActivity(
-                            MainActivity.this, 201, viewIntent, flags
-                        );
-
-                        Intent acceptIntent = new Intent(MainActivity.this, MainActivity.class);
-                        acceptIntent.setAction("com.quickpress.partner.ACTION_ACCEPT_ORDER");
-                        acceptIntent.putExtra("qp_action", "accept_order");
-                        acceptIntent.putExtra("order_code", orderCode);
-                        acceptIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        PendingIntent acceptPendingIntent = PendingIntent.getActivity(
-                            MainActivity.this, 202, acceptIntent, flags
-                        );
-
-                        String displayCode = (orderCode != null && !orderCode.trim().isEmpty()) ? orderCode.trim() : "NEW";
-                        String priceText = (amount != null && !amount.trim().isEmpty()) ? ("₹" + amount.trim() + " · ") : "";
-                        String descText = priceText + "Tap to accept within 5 minutes";
-
-                        NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this, "quickpress_urgent_dispatch")
-                            .setSmallIcon(R.mipmap.ic_launcher)
-                            .setContentTitle("🚨 NEW ORDER #" + displayCode + " RECEIVED")
-                            .setContentText(descText)
-                            .setPriority(NotificationCompat.PRIORITY_MAX)
-                            .setCategory(NotificationCompat.CATEGORY_ALARM)
-                            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                            .setFullScreenIntent(viewPendingIntent, true)
-                            .setContentIntent(viewPendingIntent)
-                            .setOngoing(true)
-                            .setAutoCancel(false)
-                            .addAction(R.mipmap.ic_launcher, "ACCEPT ORDER", acceptPendingIntent)
-                            .addAction(R.mipmap.ic_launcher, "VIEW", viewPendingIntent);
-
-                        manager.notify(NOTIFICATION_ID_URGENT_ORDER, builder.build());
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+            runOnUiThread(() -> startOrderAlarmDirectly(MainActivity.this, orderCode, amount, customerName));
         }
 
         @JavascriptInterface
         public void stopBackgroundOrderRing() {
             stopBackgroundOrderRingNative();
+        }
+
+        @JavascriptInterface
+        public String getNativeFcmToken() {
+            try {
+                return getSharedPreferences("qp_partner_prefs", Context.MODE_PRIVATE)
+                    .getString("fcm_token", "");
+            } catch (Exception e) {
+                return "";
+            }
         }
     }
 }

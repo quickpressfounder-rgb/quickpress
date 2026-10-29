@@ -33,6 +33,64 @@
 
 ## Detailed Log of Work Done Today (29 October 2026)
 
+### 52. Comprehensive Fix for Cross-App Order Cancellation Desync, Rider Resume HUD Touch Freeze, Partner Background Ringing & Rider Bubble Duty Sync
+- **User Request:**
+  1. "resume HUD par tap karte hi Pure rider penal ki screen par tap ka touch hi nahi maan raha hai" (Screen touch freezes on Rider panel when tapping Resume HUD).
+  2. "jab ye order Customer penal me Order cancle ho jaya but rider penal me Resume HUd me trip active hai" (When order is cancelled in Customer panel, trip remains active in Rider HUD instead of closing).
+  3. "or jab partner ne order accept kiya hai ko partner ke Cancle me jana chiye ya order waha bhi nahi hai ye main probole oa teeno apps me record alag laag hai kisi me active kisi me canacle" (When partner accepted order and customer cancelled it, order is missing from Partner Cancelled tab causing desynced records across all 3 apps).
+  4. "partner background me jo Ring banga or or background mr order ka nitficyion bo bahut slow aa raha hai 2-3 sec baad aaya jab partner app open kiya jab aaya but hume bina app open hi aana lana tha" (Partner background ringing/notification is delayed until app is opened; must ring instantly in background without opening app).
+  5. "Rider ka buble bar jo backgound me hai bo tab hi aaye active ho jab rider online ho Offinle hote hi band ho gaye" (Rider floating bubble overlay must only be active when Rider is online; must immediately close when offline).
+- **Architectural & Real-Time Engineering Solutions:**
+  1. **Rider Resume HUD Touch Freeze Fix (`GoToPickupHUD.tsx`):**
+     - Eliminated `window.history.pushState({ hudActive: true }, "")` and manual `popstate` manipulation that corrupted the TanStack Router navigation stack in Capacitor's WebView.
+     - Replaced with native `qp:android-back` event listener that safely collapses the HUD (`isMinimized = true`) on hardware back without altering the browser/router history.
+  2. **Cross-App Order Cancellation Desync Fix (`rider-socket.ts`, `GoToPickupHUD.tsx`, `RiderDashboardScreen.tsx`, `RiderOrdersScreen.tsx`):**
+     - Forwarded `"order.cancelled"`, `"ride.cancelled"`, and `"order.status_changed"` events in `rider-socket.ts`.
+     - In `GoToPickupHUD.tsx`, added real-time listeners for cancellation events and status checks (`stat === "cancelled"`): purges local storage keys (`qp_active_rider_order`, `qp_active_delivery_order`), broadcasts `qp:active_order_updated` with `detail: null`, and terminates the active trip HUD cleanly.
+     - Updated both `RiderDashboardScreen.tsx` and `RiderOrdersScreen.tsx` to handle `detail: null` cancellation events (previously ignored by `if (e?.detail)`), immediately clearing `savedActiveOrder` and `activeOrder` from state.
+  3. **Partner Cancelled Tab & Data Desync Fix (`backend-python/app/models/partner.py`, `partner-orders-mock.ts`, `PartnerOrdersContext.tsx`):**
+     - Added missing fields to `PartnerOrderResponse` Pydantic model (`partnerId`, `partnerAcceptedAt`, `cancelledReason`, `cancellationReason`, `cancelledBy`, `autoCancelled`, `slaBreached`, etc.) so FastAPI `_order_response` no longer strips them from JSON serialization.
+     - Fixed `isOrderMatchingTab(order, "cancelled")` in `partner-orders-mock.ts` so all cancelled partner orders appear in the Partner Cancelled tab (excluding only orders timed out due to partner non-acceptance).
+     - Added real-time socket handling in `PartnerOrdersContext.tsx` for `status === "cancelled"` to update the order stage to `"cancelled"`, clear incoming offer alerts, and stop alarm audio.
+  4. **Native Partner Background Order Ringing without Opening App (`QuickPressFirebaseService.java`, `MainActivity.java`, `build.gradle`, `AndroidManifest.xml`, `firebase-messaging.ts`):**
+     - Created native Android `QuickPressFirebaseService` extending `FirebaseMessagingService`.
+     - In `onMessageReceived`, when a new urgent order FCM push is received (data-message payload with `channel_id: quickpress_urgent_dispatch` or `orderCode`):
+       - Automatically acquires a 25-second `SCREEN_BRIGHT_WAKE_LOCK` with `ACQUIRE_CAUSES_WAKEUP` to immediately wake up sleeping devices.
+       - Initializes native `MediaPlayer` on `STREAM_ALARM` with looping playback and repeating vibration pattern.
+       - Posts a heads-up full-screen priority-max notification over the lockscreen with instant "ACCEPT ORDER" and "VIEW" action buttons.
+       - Ringing starts instantly in native background even when WebView is suspended or app process is killed.
+     - Syncs FCM device token natively to backend `/api/notifications/fcm-token` upon creation and during startup in `firebase-messaging.ts`.
+  5. **Rider Floating Bubble Duty Sync (`RiderDashboardScreen.tsx`, `RiderContext.tsx`):**
+     - Integrated `setCaptainOnlineStatus(false)` and `stopFloatingBubble()` from `@/lib/captain-device-opt`.
+     - In `RiderDashboardScreen.tsx` duty toggle (`handleToggleDuty`), when switching to offline, synchronously invokes `stopFloatingBubble()` to close the floating overlay immediately.
+     - In `RiderContext.tsx`, whenever the rider goes offline or signs out (`signOut()`), explicitly stops the floating bubble overlay and resets device state.
+- **Modified Files:**
+  - `rider-frontend/src/lib/rider-socket.ts`
+  - `rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`
+  - `rider-frontend/src/screens/RiderDashboardScreen.tsx`
+  - `rider-frontend/src/screens/RiderOrdersScreen.tsx`
+  - `rider-frontend/src/context/RiderContext.tsx`
+  - `partner-frontend/android/app/build.gradle`
+  - `partner-frontend/android/app/src/main/AndroidManifest.xml`
+  - `partner-frontend/android/app/src/main/java/com/quickpress/partner/MainActivity.java`
+  - `partner-frontend/android/app/src/main/java/com/quickpress/partner/QuickPressFirebaseService.java`
+  - `partner-frontend/src/api/core/firebase-messaging.ts`
+  - `partner-frontend/src/context/PartnerOrdersContext.tsx`
+  - `partner-frontend/src/data/partner-orders-mock.ts`
+  - `backend-python/app/models/partner.py`
+  - `Memory/WORK_HISTORY.md`
+- **Build Verification:**
+  - `rider-frontend`: `npm run build` succeeded (exit code 0).
+  - `partner-frontend`: `npm run build` succeeded (exit code 0).
+  - `customer-frontend`: `npm run build` succeeded (exit code 0).
+  - `backend-python`: `app/models/partner.py` syntax compiled with `py_compile` (exit code 0).
+  - All Android APKs & Google Play Store AAB bundles compiled and synced:
+    - `QuickPress-Partner.apk` (14MB) & `QuickPress-Partner.aab` (14MB)
+    - `QuickPress-Captain.apk` (17MB) & `QuickPress-Captain.aab` (17MB)
+    - `QuickPress-Customer.apk` (17MB) & `QuickPress-Customer.aab` (17MB)
+
+---
+
 ### 51. Fresh Release & Update of All QuickPress Android APKs & Play Store AAB Bundles
 - **User Request:** "apk update karo" (Compile, update, and release all Android APKs & Google Play Store AAB bundles incorporating all recent fixes).
 - **Execution Details:**

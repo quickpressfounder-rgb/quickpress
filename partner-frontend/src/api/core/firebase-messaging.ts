@@ -80,6 +80,25 @@ export async function requestPushNotificationPermission(): Promise<string | null
       return null;
     }
 
+    // 0. Check for Native Android FCM Token from QuickPressMerchantBridge
+    try {
+      const nativeToken = (window as any).QuickPressMerchantBridge?.getNativeFcmToken?.();
+      if (nativeToken && typeof nativeToken === "string" && nativeToken.length > 10) {
+        currentToken = nativeToken;
+        try {
+          await apiPostJson("/api/notifications/fcm-token", {
+            token: nativeToken,
+            device: "android",
+            deviceType: "android",
+            role: "partner",
+          });
+        } catch (apiErr) {
+          console.debug("[Partner-FCM] Native token sync notice:", apiErr);
+        }
+        return nativeToken;
+      }
+    } catch {}
+
     const messaging = await initFirebaseMessaging();
     if (!messaging) return null;
 

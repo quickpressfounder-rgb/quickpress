@@ -35,6 +35,7 @@ import {
   subscribeRiderOffers,
   subscribeRiderStatus,
   subscribeRiderWallet,
+  subscribeRiderOrders,
 } from "../lib/rider-socket";
 import { riderLocationEngine } from "../lib/rider-location-service";
 import {
@@ -85,9 +86,7 @@ export function RiderDashboardScreen() {
   // Restore saved active order safely and verify live server status
   useEffect(() => {
     const handleActiveUpdate = (e: any) => {
-      if (e?.detail) {
-        setSavedActiveOrder(e.detail);
-      }
+      setSavedActiveOrder(e?.detail || null);
     };
     window.addEventListener("qp:active_order_updated", handleActiveUpdate);
 
@@ -103,6 +102,27 @@ export function RiderDashboardScreen() {
       }
     };
     window.addEventListener("storage", handleStorageChange);
+
+    // Live socket listener for instant order/ride cancellation
+    const unsubOrders = subscribeRiderOrders((eventData: any) => {
+      const evType = eventData?.event || "";
+      const stat = String(eventData?.status || "").toLowerCase();
+      if (evType === "order.cancelled" || evType === "ride.cancelled" || stat === "cancelled") {
+        const cancelledId = String(eventData?.orderId || eventData?.id || eventData?._id || "");
+        setSavedActiveOrder((current: any) => {
+          if (!current) return null;
+          const currentId = String(current.orderId || current.id || "");
+          if (!cancelledId || cancelledId === currentId) {
+            try {
+              localStorage.removeItem("qp_active_rider_order");
+              localStorage.removeItem("qp_active_delivery_order");
+            } catch {}
+            return null;
+          }
+          return current;
+        });
+      }
+    });
 
     try {
       const saved = localStorage.getItem("qp_active_rider_order");
@@ -136,6 +156,7 @@ export function RiderDashboardScreen() {
     return () => {
       window.removeEventListener("qp:active_order_updated", handleActiveUpdate);
       window.removeEventListener("storage", handleStorageChange);
+      unsubOrders();
     };
   }, []);
 
@@ -316,6 +337,17 @@ export function RiderDashboardScreen() {
     playDutyToggleSound(nextState);
     speakDutyStatus(nextState);
     setOnline(nextState);
+
+    // CRITICAL: Immediately update native Android floating bubble overlay
+    if (!nextState) {
+      setCaptainOnlineStatus(false);
+      stopFloatingBubble();
+    } else {
+      setCaptainOnlineStatus(true);
+      if (canDrawOverlays()) {
+        startFloatingBubble();
+      }
+    }
 
     try {
       await updateRiderStatus(nextState);

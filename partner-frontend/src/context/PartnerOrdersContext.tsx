@@ -538,6 +538,13 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
         }
       } else if (orderId) {
         // Lifecycle event (accepted, in transit, ready, delivered, cancelled)
+        if (status === "cancelled") {
+          cancelledOrderIds.current.add(orderId);
+          if (incomingOrderRef.current?.id === orderId || incomingOrderRef.current?.code === code) {
+            stopOrderAlarm();
+            setIncomingOrder(null);
+          }
+        }
         const newStage = STATUS_TO_STAGE[status];
         if (newStage) {
           setOrders((prev) => {
