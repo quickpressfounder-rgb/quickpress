@@ -36,6 +36,30 @@ def run_cmd(cmd, cwd=ROOT_DIR):
     if res.returncode != 0:
         raise RuntimeError(f"Command failed with code {res.returncode}: {cmd}")
 
+def patch_ssr_bundle(app_dir):
+    ssr_dir = os.path.join(app_dir, ".output", "server", "_ssr")
+    if not os.path.exists(ssr_dir):
+        return
+    for fname in os.listdir(ssr_dir):
+        if fname.endswith(".mjs"):
+            fpath = os.path.join(ssr_dir, fname)
+            try:
+                with open(fpath, "r", encoding="utf-8") as f:
+                    content = f.read()
+                modified = False
+                if "var __exportAll = (all, no_symbols) => {" in content:
+                    content = content.replace("var __exportAll = (all, no_symbols) => {", "function __exportAll(all, no_symbols) {")
+                    modified = True
+                if "__defProp(target" in content:
+                    content = content.replace("__defProp(target", "Object.defineProperty(target")
+                    modified = True
+                if modified:
+                    with open(fpath, "w", encoding="utf-8") as f:
+                        f.write(content)
+                    print(f"✓ Patched SSR runtime hoisting in {fname}")
+            except Exception as e:
+                print(f"Warning patching {fname}: {e}")
+
 def generate_index_html(app_dir, port):
     print(f"Generating static index.html via SSR server on port {port}...")
     server_script = os.path.join(app_dir, ".output", "server", "index.mjs")
@@ -52,7 +76,7 @@ def generate_index_html(app_dir, port):
         for _ in range(30):
             time.sleep(0.4)
             res = subprocess.run(f"curl -s http://127.0.0.1:{port}/", shell=True, capture_output=True, text=True)
-            if res.returncode == 0 and "<html" in res.stdout:
+            if res.returncode == 0 and "<html" in res.stdout and "This page didn't load" not in res.stdout:
                 html = res.stdout
                 break
     finally:
@@ -63,7 +87,7 @@ def generate_index_html(app_dir, port):
             proc.kill()
 
     if not html:
-        raise RuntimeError(f"Failed to fetch rendered HTML from http://127.0.0.1:{port}/")
+        raise RuntimeError(f"Failed to fetch valid rendered HTML from http://127.0.0.1:{port}/ (server error or crashed)")
 
     if "<base " not in html and "<head>" in html:
         html = html.replace("<head>", '<head><base href="/" />', 1)
@@ -106,6 +130,7 @@ def build_customer(apks_dir):
     print("\n--- [Customer App] Building Customer App ---")
     run_cmd("NITRO_PRESET=node-server VITE_API_BASE_URL=https://api.withquickpress.com npm run build:customer", ROOT_DIR)
     cust_frontend_dir = os.path.join(ROOT_DIR, "customer-frontend")
+    patch_ssr_bundle(cust_frontend_dir)
     generate_index_html(cust_frontend_dir, 8091)
 
     cust_web_dist = os.path.join(cust_frontend_dir, ".output", "public")
@@ -123,7 +148,7 @@ def build_customer(apks_dir):
             json.dump(cfg, f, indent=2)
 
     cust_android_dir = os.path.join(ROOT_DIR, "customer-frontend", "android")
-    run_cmd("./gradlew assembleDebug", cust_android_dir)
+    run_cmd("./gradlew clean assembleDebug", cust_android_dir)
 
     cust_apk_src = os.path.join(cust_android_dir, "app", "build", "outputs", "apk", "debug", "app-debug.apk")
     if os.path.exists(cust_apk_src):
@@ -154,7 +179,7 @@ def build_partner(apks_dir):
     sync_assets(part_web_dist, part_android_assets)
 
     part_android_dir = os.path.join(ROOT_DIR, "partner-frontend", "android")
-    run_cmd("./gradlew assembleDebug", part_android_dir)
+    run_cmd("./gradlew clean assembleDebug", part_android_dir)
 
     part_apk_src = os.path.join(part_android_dir, "app", "build", "outputs", "apk", "debug", "app-debug.apk")
     if os.path.exists(part_apk_src):
@@ -173,6 +198,7 @@ def build_rider(apks_dir):
     print("\n--- [Rider App] Building Rider / Captain App (APK + Play Store AAB) ---")
     run_cmd("NITRO_PRESET=node-server VITE_API_BASE_URL=https://api.withquickpress.com npm run build:rider", ROOT_DIR)
     rdr_frontend_dir = os.path.join(ROOT_DIR, "rider-frontend")
+    patch_ssr_bundle(rdr_frontend_dir)
     generate_index_html(rdr_frontend_dir, 8092)
 
     rdr_web_dist = os.path.join(rdr_frontend_dir, ".output", "public")
@@ -191,7 +217,7 @@ def build_rider(apks_dir):
 
     rdr_android_dir = os.path.join(ROOT_DIR, "rider-frontend", "android")
     # 1. Build APK (for direct device installation)
-    run_cmd("./gradlew assembleDebug", rdr_android_dir)
+    run_cmd("./gradlew clean assembleDebug", rdr_android_dir)
     rdr_apk_src = os.path.join(rdr_android_dir, "app", "build", "outputs", "apk", "debug", "app-debug.apk")
     if os.path.exists(rdr_apk_src):
         copy_to_artifacts(rdr_apk_src, "QuickPress-Captain.apk", apks_dir)

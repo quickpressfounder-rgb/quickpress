@@ -31,6 +31,30 @@
 
 ---
 
+## Detailed Log of Work Done Today (29 October 2026)
+
+### 49. Clean Build & Release for Customer, Partner, and Captain APKs & Play Store AAB Bundles
+- **User Request:** "apk update andreslese karo" (Build, update, and release all Android APKs & Play Store AAB bundles for QuickPress apps: Customer, Partner, and Captain/Rider).
+- **Key Fixes & Improvements:**
+  1. **Circular Import & SSR Hoisting Fix in Customer App:**
+     - Resolved circular dependency between `transport.ts` and `auth-service.ts` by decoupling `refreshSession` via `registerSessionRefreshHandler()`.
+     - Added automated SSR runtime hoisting patch in `build_all_apks.py` (`patch_ssr_bundle`) to hoist `function __exportAll()` and use `Object.defineProperty()` directly, eliminating `TypeError: __exportAll is not a function`.
+     - Validated pre-rendered static `index.html` generation: eliminates fallback 500 error page (`"This page didn't load"`), producing 100% pre-rendered offline splash screen for native Capacitor app.
+  2. **Clean Gradle Compilation (`./gradlew clean assembleDebug` & `bundleDebug`):**
+     - Updated `build_all_apks.py` to run `clean` prior to `assembleDebug` across all three mobile applications so Gradle never skips compiling fresh native assets.
+  3. **Release Artifacts Built & Mirrored:**
+     - **QuickPress-Customer.apk** (17MB) & **QuickPress-Customer.aab** (16MB)
+     - **QuickPress-Partner.apk** (13MB) & **QuickPress-Partner.aab** (13MB)
+     - **QuickPress-Captain.apk** (17MB) & **QuickPress-Captain.aab** (16MB)
+     - Copied to root `apks/`, mirrored to `website/public/apks/` for web direct downloads at `https://withquickpress.com`, and copied to IDE artifact directory for immediate download.
+- **Files Modified:**
+  - `build_all_apks.py`
+  - `customer-frontend/src/api/core/auth-service.ts`
+  - `customer-frontend/src/api/core/transport.ts`
+  - `Memory/WORK_HISTORY.md`
+
+---
+
 ## Detailed Log of Work Done Today (28 October 2026)
 
 ### 48. Step 1: Critical Financial Security Patches & Anti-Tampering Hardening

@@ -33,6 +33,13 @@ export type RequestOptions = {
 
 export type TransportMode = "http";
 
+export type RefreshHandler = () => Promise<unknown>;
+let sessionRefreshHandler: RefreshHandler | null = null;
+
+export function registerSessionRefreshHandler(handler: RefreshHandler): void {
+  sessionRefreshHandler = handler;
+}
+
 export function transportMode(): TransportMode {
   return "http";
 }
@@ -169,8 +176,7 @@ export async function apiRequest<T>(
         }
         throw error;
       }
-      const { refreshSession } = await import("./auth-service");
-      const refreshed = await refreshSession();
+      const refreshed = sessionRefreshHandler ? await sessionRefreshHandler() : null;
       if (!refreshed) {
         if (typeof window !== "undefined") {
           clearSession(activeSessionRole());

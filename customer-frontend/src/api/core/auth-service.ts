@@ -10,7 +10,7 @@
 import type { AccountRole, AuthSession, RequestOtpResult } from "@/shared/types";
 import { ApiError } from "./errors";
 import { activeSessionRole, clearSession, readSession, writeSession } from "./session-store";
-import { apiGetJson, apiPostJson } from "./transport";
+import { apiGetJson, apiPostJson, registerSessionRefreshHandler } from "./transport";
 import { onesignalLogin, onesignalLogout } from "./onesignal";
 import { clearCache } from "../customer/api/cache";
 import {
@@ -152,6 +152,8 @@ export async function refreshSession(explicitRole?: AccountRole): Promise<AuthSe
 
   return activeRefreshPromise;
 }
+
+registerSessionRefreshHandler(() => refreshSession());
 
 function isExpired(session: AuthSession, skewMs = 60_000): boolean {
   const at = Date.parse(session.expiresAt);
