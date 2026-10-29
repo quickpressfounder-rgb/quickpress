@@ -3464,5 +3464,25 @@ This single command will automatically:
     - `QuickPress-Captain.aab` (17 MB) compiled & verified.
     - Capacitor iOS sync verified (0.72s).
 
-
-
+### 64. Collect from Partner Store Screen Revamp (`stage === ready_pickup_store`) to Pure White Theme
+- **User Request:**
+  - "NEXT" -> Proposed rough visual wireframe with Partner Store collection card, 1-tap Google Maps button, and Slide to Arrive slider.
+  - "FINAL" -> Approved and finalized into production code.
+- **Architectural & Design Principles Applied:**
+  - **Rule 1 (Pure White Theme):** Replaced heavy emerald border container (`border-2 border-[#00C853]`) with pure white card (`bg-white border border-slate-200/90 rounded-3xl p-4 shadow-xs`).
+  - **Rule 2 (Speed-First Usability):** 1-tap `[Navigate to Store with Google Maps]` button, 1-tap store call button, and smooth `[Slide to Arrive at Store]` action slider.
+  - **Rule 3 (Zero Cartoon Emojis):** Removed emojis (🏪, 🧭) and replaced with pure Lucide SVG system icons (`Package`, `CheckCircle2`, `Phone`, `ExternalLink`, `AlertTriangle`).
+  - **Rule 4 (Notch Safe Padding):** Maintained sticky header safe area padding with updated title `"Collect from Partner Store"`.
+  - **Clean Status Badges:** Added subtle soft emerald pill badge (`Clothes Packed & Ready for Delivery`) and `Step 1 of 2` counter.
+- **Code Modifications (`GoToPickupHUD.tsx`):**
+  - Updated screen header title to `"Collect from Partner Store"` when `stage === "ready_pickup_store"`.
+  - Rebuilt container to pure white card with hairline borders.
+  - Embedded clean Partner Store information card with direct 1-tap phone call button.
+  - Added full-width 1-tap Google Maps navigation pill button.
+  - Upgraded action button to `"Slide to Arrive at Store"` slider and clean outline `"Unable to Deliver / Reassign"` emergency button.
+- **Verification & Packaging:**
+  - Built `rider-frontend` (`npm run build`): PASSED (1.28s, 0 errors).
+  - Built Android Captain binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18 MB) compiled, signed & verified.
+    - `QuickPress-Captain.aab` (17 MB) compiled & verified.
+    - Capacitor iOS sync verified (0.68s).

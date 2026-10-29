@@ -1598,7 +1598,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             {stage === "arrived_pickup" && (isDeliveryRide ? "At Partner Store" : isHandoverRide ? "At Handover Point" : "At Customer Doorstep")}
             {stage === "in_trip" && (isDeliveryRide ? "En Route to Delivery" : currentLeg === "pickup_to_store" ? "Heading to Partner Store" : "Heading to Drop Zone")}
             {stage === "store_processing" && "Store Laundry Processing"}
-            {stage === "ready_pickup_store" && "Collect from Store"}
+            {stage === "ready_pickup_store" && "Collect from Partner Store"}
             {stage === "handover_waiting" && "Handover in Progress"}
             {stage === "completed" && (isDeliveryRide ? "Delivery Completed" : "Trip Completed")}
           </h1>
@@ -2543,73 +2543,93 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           </div>
         )}
 
-        {/* STAGE: Ready for Store Pickup -> Captain goes to Store & shows Dispatch OTP */}
+        {/* STAGE: Ready for Store Pickup -> Captain goes to Store & collects package */}
         {stage === "ready_pickup_store" && (
-          <div className="space-y-3 animate-in zoom-in-95 duration-200">
-            <div className="p-4 bg-white rounded-2xl border-2 border-[#00C853] shadow-lg space-y-3">
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <div className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3.5">
+              {/* Header with status pill */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-[#00C853] shadow-xs">
-                    <Package className="w-5 h-5 stroke-[2.5]" />
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-900 shadow-2xs">
+                    <Package className="size-4" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-black tracking-tight">
-                      Clothes Ready at Store! (कपड़े तैयार हैं)
+                    <h3 className="text-xs font-black text-slate-950 tracking-tight leading-tight">
+                      Clothes Ready at Store
                     </h3>
-                    <p className="text-[11px] font-bold text-emerald-700">
+                    <p className="text-[10.5px] font-medium text-slate-500">
                       Go to Partner Store & Collect Package
                     </p>
                   </div>
                 </div>
-                <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-black animate-pulse">
+                <span className="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-black text-emerald-800">
                   READY FOR PICKUP
                 </span>
               </div>
 
-              {/* Partner Store Collection Card */}
-              <div className="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wider">
-                    Collect From Partner Store
-                  </span>
-                  <span className="text-[10px] font-bold text-emerald-600">
-                    Step 1 of 2
+              {/* Status Confirmation Badge */}
+              <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                  <span className="text-xs font-bold text-emerald-950">
+                    Clothes Packed & Ready for Delivery
                   </span>
                 </div>
-                <p className="text-xs font-black text-neutral-900">
-                  {partnerStoreName}
-                </p>
-                <p className="text-[11px] font-semibold text-neutral-600 line-clamp-1">
-                  {partnerStoreAddress}
-                </p>
+                <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                  Step 1 of 2
+                </span>
               </div>
+
+              {/* Partner Store Collection Card */}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Partner Store
+                  </span>
+                  <p className="text-xs font-black text-slate-950 truncate">
+                    {partnerStoreName}
+                  </p>
+                  <p className="text-[11px] font-medium text-slate-600 truncate mt-0.5">
+                    {partnerStoreAddress}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCallModal(true)}
+                  className="size-9 rounded-xl bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 active:scale-95 flex items-center justify-center shrink-0 shadow-2xs cursor-pointer"
+                  aria-label="Call Store"
+                  title="Call Store"
+                >
+                  <Phone className="size-4 text-slate-800" />
+                </button>
+              </div>
+
+              {/* 1-Tap Google Maps Navigation */}
+              <button
+                type="button"
+                onClick={() => launchTurnByTurnGoogleMaps(storeCoords, captainCoords, partnerStoreName)}
+                className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+              >
+                <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
+                <span>Navigate to Store with Google Maps</span>
+              </button>
 
               {/* Action Button: Swipe to Confirm Arrived at Store */}
               <SwipeActionButton
-                label="Swipe: Arrived at Store 🏪"
+                label="Slide to Arrive at Store"
                 hint="पार्टनर स्टोर पहुंचकर स्लाइड करें • Mark Arrived"
                 color="emerald"
                 onConfirm={handleMarkArrivedAtStore}
               />
 
-              {/* In-App Turn-by-Turn GPS to Store */}
-              <button
-                type="button"
-                onClick={handleStartInAppNavigation}
-                className="w-full py-2.5 px-3 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs"
-              >
-                <Navigation className="w-4 h-4 text-emerald-600" />
-                <span>Turn-by-Turn GPS to Store 🧭</span>
-              </button>
-
-              {/* Emergency Exit Gate if still needed */}
+              {/* Emergency Exit Gate */}
               <button
                 type="button"
                 onClick={() => setShowUnableModal(true)}
-                className="w-full py-2 px-3 rounded-xl border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 font-bold text-[11px] flex items-center justify-center gap-1.5 active:scale-98 transition-all"
+                className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
               >
-                <AlertTriangle className="w-3.5 h-3.5 text-neutral-500" />
-                <span>Unable to Deliver / Reassign to Another Captain</span>
+                <AlertTriangle className="size-4 text-amber-600" />
+                <span>Unable to Deliver / Reassign</span>
               </button>
             </div>
           </div>
