@@ -3739,6 +3739,35 @@ This single command will automatically:
     - `QuickPress-Captain.aab` (17.6 MB) compiled & verified.
     - Capacitor iOS synced (0.66s).
 
+### 73. Complete Implementation of QuickPress Captain Fulfillment Flow
+- **User Request:**
+  - Build full step-by-step UI/UX according to the approved roadmap:
+    - Pickup to store leg: `[Handover]` dark navy button -> confirmation modal.
+    - Store Handover Screen (`stage === "arrived_store"`): large printed Handover OTP shown to store staff.
+    - Store Processing Screen (`stage === "store_processing"`): SLA turnaround countdown timer and pickup payout credit confirmation.
+    - Delivery to customer leg (`currentLeg === "store_to_customer"` in `stage === "in_trip"`): locked Map Box with route to customer, bottom dark navy button `[Reached at Customer]`.
+    - Payment screen branching: if already paid (online/prepaid), bypass payment and directly open 4-digit Delivery OTP screen; if unpaid / COD, open Payment screen (with Razorpay Dynamic UPI QR + Cash confirmation) -> proceed to Delivery OTP screen -> on OTP verification -> pure white Success Screen.
+- **Implementation Highlights in `GoToPickupHUD.tsx`:**
+  - Added `"arrived_store"` to `TripStage` type and updated destination routing coords.
+  - Implemented `showHandoverConfirmModal` asking: *"Have you arrived at {store} to handover clothes?"*.
+  - Configured `currentLeg === "pickup_to_store"` bottom action button to dark navy pill `[Handover]`.
+  - Built `stage === "arrived_store"` with 4 large golden monospace digit blocks displaying `Store Handover OTP` (`4821` / `captainDispatchOtp`), sealed bag summary, and `[Partner Accepted • Start Wash Processing]` CTA.
+  - Configured `handleReachedAtCustomer`: checks payment status (`isPaid` / `paymentStatus === "paid"` / `online` / `isPaymentConfirmed`).
+    - If unpaid: opens `showPaymentScreen(true)`.
+    - If already paid: directly opens `showDedicatedOtpScreen(true)` with `dedicatedOtpMode = "delivery"`.
+  - Updated `showPaymentScreen` proceed CTA to transition directly to `dedicatedOtpMode = "delivery"` Delivery OTP screen.
+  - Entering verified delivery OTP transitions directly to `stage = "completed"` pure white Success Screen.
+- **Files Modified:**
+  - `rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Verification & Packaging:**
+  - Built `rider-frontend` (`npm run build`): PASSED (0 errors, 1.18s).
+  - Built Android Captain binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18.4 MB) compiled, signed & verified.
+    - `QuickPress-Captain.aab` (17.6 MB) compiled & verified.
+    - Capacitor iOS synced (0.93s).
+
+
 
 
 
