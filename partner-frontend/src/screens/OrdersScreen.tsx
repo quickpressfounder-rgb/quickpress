@@ -98,22 +98,22 @@ export function OrdersScreen() {
       {/* ========================================================================= */}
       <div className="min-h-screen bg-white pb-28 text-black md:hidden">
         {/* Sticky Filter Header with Search & Horizontal Stage Pills */}
-        <header className="sticky top-0 z-20 bg-white border-b border-zinc-200 px-4 pt-3 pb-2.5 shadow-none">
+        <header className="sticky top-0 z-20 bg-card/95 backdrop-blur-xl border-b border-border/70 px-4 pt-3 pb-2.5 shadow-xs">
           {/* Search Box */}
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
+            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by order ID, customer name or phone..."
-              className="h-10 w-full rounded-2xl border border-zinc-200 bg-white pl-10 pr-4 text-xs font-bold text-black placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
+              className="h-10 w-full rounded-2xl border border-input bg-card pl-10 pr-4 text-xs font-bold text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all"
             />
             {query ? (
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <X className="size-3.5" />
               </button>
@@ -131,14 +131,14 @@ export function OrdersScreen() {
                   onClick={() => setFilterTab(tab.id)}
                   className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
                     isActive
-                      ? "border-2 border-emerald-500 bg-emerald-50 text-emerald-950 font-black shadow-xs"
-                      : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-black"
+                      ? "bg-brand-green text-white shadow-cta font-black"
+                      : "border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:border-border"
                   }`}
                 >
                   <span>{tab.label}</span>
                   <span
                     className={`rounded-full px-1.5 py-0.2 text-[9px] font-black ${
-                      isActive ? "bg-emerald-200/80 text-emerald-900" : "bg-zinc-100 text-zinc-700"
+                      isActive ? "bg-white text-emerald-800" : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {tab.count}
@@ -206,14 +206,14 @@ export function OrdersScreen() {
                     onClick={() => setFilterTab(tab.id)}
                     className={`shrink-0 flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-black transition-all active:scale-95 cursor-pointer ${
                       isActive
-                        ? "border-2 border-emerald-500 bg-emerald-50 text-emerald-950 font-black shadow-xs"
-                        : "border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:text-black"
+                        ? "bg-brand-green text-white shadow-cta font-black"
+                        : "border border-border/70 bg-card text-muted-foreground hover:border-border hover:text-foreground"
                     }`}
                   >
                     <span>{tab.label}</span>
                     <span
                       className={`rounded-full px-1.5 py-0.2 text-[9px] font-black ${
-                        isActive ? "bg-emerald-200/80 text-emerald-900" : "bg-zinc-100 text-zinc-700"
+                        isActive ? "bg-white text-emerald-800" : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {tab.count}

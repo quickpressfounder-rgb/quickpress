@@ -638,26 +638,26 @@ export function PartnerProfileScreen() {
       subtitle={`${storeName} · ID: ${partnerId}`}
     >
       {/* ========================================================================= */}
-      {/* MOBILE DETAILED ZOMATO "EXPLORE MORE" VIEW (< md)                          */}
+      {/* MOBILE DETAILED VIEW (< md)                                               */}
       {/* ========================================================================= */}
-      <div className="min-h-screen bg-[#F4F5F7] pb-32 text-zinc-900 md:hidden">
+      <div className="min-h-screen bg-background pb-32 text-foreground md:hidden">
         {/* Sticky Header */}
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between bg-white px-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+        <header className="sticky top-0 z-20 flex h-14 items-center justify-between bg-card/90 backdrop-blur-xl px-4 border-b border-border/70 shadow-xs">
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => navigate({ to: partnerRoutes.dashboard })}
-              className="text-zinc-800 p-1 active:scale-95"
+              onClick={() => navigate({ to: partnerRoutes.orders })}
+              className="text-foreground p-1 active:scale-95 cursor-pointer"
             >
               <ArrowLeft className="size-5" />
             </button>
-            <h1 className="text-base font-black tracking-tight text-zinc-900">Explore More & Settings</h1>
+            <h1 className="text-base font-black tracking-tight text-foreground">Partner Profile & Store</h1>
           </div>
 
           <div className="flex items-center gap-2">
             <Link
               to={partnerRoutes.notifications}
-              className="flex size-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 active:scale-95"
+              className="flex size-9 items-center justify-center rounded-full bg-muted text-foreground active:scale-95"
             >
               <Bell className="size-4" />
             </Link>
@@ -666,7 +666,7 @@ export function PartnerProfileScreen() {
 
         <div className="space-y-4 p-4">
           {/* 1. Rich Partner Profile Hero Card */}
-          <div className="rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-sm">
+          <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-soft">
             <div className="flex items-start justify-between gap-3">
               {/* Hidden file input for fast logo update */}
               <input
@@ -677,12 +677,12 @@ export function PartnerProfileScreen() {
                 onChange={handleLogoSelect}
               />
 
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-3.5 min-w-0">
                 <div className="relative shrink-0">
                   <button
                     type="button"
                     onClick={() => navigate({ to: partnerRoutes.shop })}
-                    className="group relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-zinc-200/90 bg-amber-400 text-zinc-950 font-black text-xl shadow-xs active:scale-95 transition-transform"
+                    className="group relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/80 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 font-black text-xl shadow-xs active:scale-95 transition-transform cursor-pointer"
                     title="Tap to manage Shop Profile & Photos"
                   >
                     {logoImg && !logoFailed ? (
@@ -695,7 +695,7 @@ export function PartnerProfileScreen() {
                     ) : storeName ? (
                       storeName.slice(0, 2).toUpperCase()
                     ) : (
-                      <Store className="size-6 text-zinc-700" />
+                      <Store className="size-6 text-brand-green" />
                     )}
                   </button>
 
@@ -704,7 +704,7 @@ export function PartnerProfileScreen() {
                     onClick={() => logoInputRef.current?.click()}
                     disabled={uploadingLogo}
                     title="Change Store Logo"
-                    className="absolute -bottom-1 -right-1 flex size-5.5 items-center justify-center rounded-full bg-primary text-white shadow-md ring-2 ring-white transition-all hover:bg-primary-dark active:scale-90 cursor-pointer"
+                    className="absolute -bottom-1 -right-1 flex size-5.5 items-center justify-center rounded-full bg-brand-green text-white shadow-cta ring-2 ring-card transition-all hover:bg-brand-green-dark active:scale-90 cursor-pointer"
                   >
                     {uploadingLogo ? (
                       <Loader2 className="size-3 animate-spin" />
@@ -777,20 +777,20 @@ export function PartnerProfileScreen() {
           {/* ================================================================= */}
           {/* DEDICATED SECTION: Services & Catalog Management                  */}
           {/* ================================================================= */}
-          <div className="rounded-3xl border border-primary/25 bg-gradient-to-br from-primary/10 via-white to-white p-4.5 shadow-sm space-y-3.5">
+          <div className="rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 via-card to-card p-5 shadow-soft space-y-3.5">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex size-11 items-center justify-center rounded-2xl bg-primary text-white shadow-md shadow-primary/30">
+                <div className="flex size-11 items-center justify-center rounded-2xl bg-brand-green text-white shadow-cta">
                   <Sparkles className="size-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-black text-zinc-900">Services & Rate Card</h3>
-                    <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black text-primary">
+                    <h3 className="text-sm font-black text-foreground">Services & Rate Card</h3>
+                    <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-black text-emerald-800 dark:text-emerald-300">
                       {activeServicesCount > 0 ? `${activeServicesCount} Live` : `${services.length} Total`}
                     </span>
                   </div>
-                  <p className="text-[11px] font-medium text-zinc-500">
+                  <p className="text-[11px] font-medium text-muted-foreground">
                     Set laundry prices, add new services & toggle live customer visibility
                   </p>
                 </div>

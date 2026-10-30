@@ -426,10 +426,10 @@ export function EarningsScreen() {
             <button
               type="button"
               onClick={() => setActiveSubTab("passbook")}
-              className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-black transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                 activeSubTab === "passbook"
-                  ? "bg-black text-white shadow-xs"
-                  : "border border-zinc-200 bg-white text-black hover:bg-zinc-100 shadow-2xs"
+                  ? "bg-brand-green text-white shadow-cta font-black"
+                  : "border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:border-border"
               }`}
             >
               <Wallet className="size-3.5" />
@@ -438,10 +438,10 @@ export function EarningsScreen() {
             <button
               type="button"
               onClick={() => setActiveSubTab("trends")}
-              className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-black transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                 activeSubTab === "trends"
-                  ? "bg-black text-white shadow-xs"
-                  : "border border-zinc-200 bg-white text-black hover:bg-zinc-100 shadow-2xs"
+                  ? "bg-brand-green text-white shadow-cta font-black"
+                  : "border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:border-border"
               }`}
             >
               <BarChart2 className="size-3.5" />
@@ -450,10 +450,10 @@ export function EarningsScreen() {
             <button
               type="button"
               onClick={() => setActiveSubTab("invoices")}
-              className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-black transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                 activeSubTab === "invoices"
-                  ? "bg-black text-white shadow-xs"
-                  : "border border-zinc-200 bg-white text-black hover:bg-zinc-100 shadow-2xs"
+                  ? "bg-brand-green text-white shadow-cta font-black"
+                  : "border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:border-border"
               }`}
             >
               <FileText className="size-3.5" />
@@ -464,52 +464,52 @@ export function EarningsScreen() {
 
         {loading ? (
           <div className="flex h-96 flex-col items-center justify-center gap-3">
-            <div className="size-8 animate-spin rounded-full border-2 border-black border-t-transparent" />
-            <p className="text-xs font-bold text-zinc-500">Loading settlement passbook...</p>
+            <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p className="text-xs font-bold text-muted-foreground">Loading settlement passbook...</p>
           </div>
         ) : activeSubTab === "passbook" ? (
           /* Mobile Settlement Passbook Tab */
           <div className="space-y-4 p-4">
-            {/* 1. CURRENT CYCLE HERO CARD (Zomato Style) */}
-            <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
-              <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+            {/* 1. CURRENT CYCLE HERO CARD (Customer Quick Money Style) */}
+            <div className="relative overflow-hidden rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 via-card to-card p-5.5 shadow-soft">
+              <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                    Current Cycle
+                  <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                    Current Cycle Payout
                   </span>
                   <div className="mt-1 flex items-baseline gap-2">
-                    <h3 className="text-3xl font-black tracking-tight text-black">
+                    <h3 className="text-3xl font-black tracking-tight text-foreground font-mono">
                       ₹{currentAccruingBalance.toFixed(2)}
                     </h3>
-                    <span className="text-xs font-semibold text-zinc-500">Est. payout</span>
+                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Est. payout</span>
                   </div>
                 </div>
-                <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-[10px] font-black text-amber-800">
+                <span className="rounded-full bg-amber-50 border border-amber-200/80 px-2.5 py-1 text-[10px] font-black text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800">
                   In Progress ⏳
                 </span>
               </div>
 
               <div className="mt-3 flex items-center justify-between text-xs">
-                <div className="text-zinc-600 font-medium">
-                  <span className="font-bold text-black">{currentCycle?.period || "Current Week"}</span>
-                  <span className="text-zinc-400 mx-1.5">•</span>
+                <div className="text-muted-foreground font-medium">
+                  <span className="font-bold text-foreground">{currentCycle?.period || "Current Week"}</span>
+                  <span className="text-muted-foreground/50 mx-1.5">•</span>
                   <span>{currentCycle?.orders?.length || 0} orders</span>
                 </div>
-                <p className="text-[11px] font-bold text-zinc-500">Bank credit on Monday</p>
+                <p className="text-[11px] font-bold text-muted-foreground">Bank credit on Monday</p>
               </div>
 
-              <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center justify-between">
+              <div className="mt-3 pt-3 border-t border-border/60 flex items-center justify-between">
                 <button
                   type="button"
                   onClick={() => setSelectedCycleForModal("current")}
-                  className="text-xs font-black text-black hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-black text-primary hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <span>View details</span>
+                  <span>View cycle breakdown</span>
                   <span>→</span>
                 </button>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-medium text-zinc-500">Total Settled:</span>
-                  <span className="text-xs font-black text-emerald-700">₹{totalBankSettled.toFixed(2)}</span>
+                  <span className="text-[11px] font-medium text-muted-foreground">Total Settled:</span>
+                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 font-mono">₹{totalBankSettled.toFixed(2)}</span>
                 </div>
               </div>
             </div>

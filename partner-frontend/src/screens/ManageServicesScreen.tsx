@@ -210,7 +210,7 @@ export function ManageServicesScreen() {
             <button
               type="button"
               onClick={() => setCatalogModalOpen(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-amber-400 py-2.5 text-xs font-black text-zinc-950 shadow-sm transition-transform active:scale-95 hover:bg-amber-300"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-brand-green py-2.5 text-xs font-black text-white shadow-cta transition-transform active:scale-95 hover:bg-brand-green-dark cursor-pointer"
             >
               <Plus className="size-4" strokeWidth={2.5} />
               <span>+ Add Service</span>
@@ -219,9 +219,9 @@ export function ManageServicesScreen() {
             <button
               type="button"
               onClick={() => setOfferSheetOpen(true)}
-              className="flex items-center gap-1.5 rounded-2xl border border-zinc-300 bg-white px-3.5 py-2.5 text-xs font-black text-zinc-800 shadow-xs transition-transform active:scale-95 hover:bg-zinc-50"
+              className="flex items-center gap-1.5 rounded-2xl border border-border/70 bg-card px-3.5 py-2.5 text-xs font-black text-foreground shadow-xs transition-transform active:scale-95 hover:bg-muted cursor-pointer"
             >
-              <Percent className="size-3.5 text-amber-600" />
+              <Percent className="size-3.5 text-brand-green" />
               <span>Add Offer</span>
             </button>
           </div>
@@ -235,10 +235,10 @@ export function ManageServicesScreen() {
                   key={cat.id}
                   type="button"
                   onClick={() => setCategoryFilter(cat.id)}
-                  className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-black transition-all active:scale-95 ${
+                  className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-black transition-all active:scale-95 cursor-pointer ${
                     isActive
-                      ? "bg-zinc-950 text-white shadow-sm"
-                      : "border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300"
+                      ? "bg-brand-green text-white shadow-cta font-black"
+                      : "border border-border/70 bg-card text-muted-foreground hover:border-border hover:text-foreground"
                   }`}
                 >
                   {cat.label}

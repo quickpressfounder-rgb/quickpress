@@ -27,22 +27,24 @@ export function ZomatoBottomNav({
   const isStoreActive = activeTab === "more" || activeTab === "profile" || activeTab === "shop";
 
   return (
-    <div className="fixed bottom-3 inset-x-0 z-40 flex items-center justify-center px-2 pointer-events-none md:hidden max-w-md mx-auto">
-      {/* Main Bottom Pill Capsule */}
-      <nav className="pointer-events-auto flex h-12 items-center justify-around w-full rounded-full bg-zinc-950 px-2 py-1 shadow-2xl border border-zinc-800">
+    <div className="fixed bottom-3 inset-x-0 z-40 flex items-center justify-center px-3 pointer-events-none md:hidden max-w-md mx-auto">
+      {/* Main Customer-Theme Bottom Glass Dock */}
+      <nav className="pointer-events-auto flex h-13 items-center justify-around w-full rounded-full bg-card/90 dark:bg-zinc-950/90 backdrop-blur-2xl px-2 py-1 shadow-2xl border border-border/70 dark:border-zinc-800">
         {/* 1. Orders Queue (Primary) */}
         <Link
           to={partnerRoutes.orders}
-          className={`relative flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-black transition-all ${
+          className={`relative flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-all ${
             isOrdersActive
-              ? "bg-zinc-800 text-white shadow-inner"
-              : "text-zinc-400 hover:text-zinc-200"
+              ? "bg-brand-green text-white shadow-cta font-black"
+              : "text-muted-foreground hover:text-foreground active:scale-95"
           }`}
         >
           <ShoppingBag className="size-4" />
           <span>Orders</span>
           {ordersCount > 0 && (
-            <span className="flex size-4 items-center justify-center rounded-full bg-white text-zinc-950 text-[9px] font-black">
+            <span className={`flex size-4.5 items-center justify-center rounded-full text-[9px] font-black ${
+              isOrdersActive ? "bg-white text-emerald-800" : "bg-brand-green text-white"
+            }`}>
               {ordersCount > 9 ? "9+" : ordersCount}
             </span>
           )}
@@ -51,10 +53,10 @@ export function ZomatoBottomNav({
         {/* 2. Services Management */}
         <Link
           to={partnerRoutes.services}
-          className={`flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-black transition-all ${
+          className={`flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-all ${
             isServicesActive
-              ? "bg-zinc-800 text-white shadow-inner"
-              : "text-zinc-400 hover:text-zinc-200"
+              ? "bg-brand-green text-white shadow-cta font-black"
+              : "text-muted-foreground hover:text-foreground active:scale-95"
           }`}
         >
           <Package className="size-4" />
@@ -64,10 +66,10 @@ export function ZomatoBottomNav({
         {/* 3. Analytics & Growth */}
         <Link
           to={partnerRoutes.analytics}
-          className={`flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-black transition-all ${
+          className={`flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-all ${
             isAnalyticsActive
-              ? "bg-zinc-800 text-white shadow-inner"
-              : "text-zinc-400 hover:text-zinc-200"
+              ? "bg-brand-green text-white shadow-cta font-black"
+              : "text-muted-foreground hover:text-foreground active:scale-95"
           }`}
         >
           <TrendingUp className="size-4" />
@@ -77,10 +79,10 @@ export function ZomatoBottomNav({
         {/* 4. Wallet & Settlement */}
         <Link
           to={partnerRoutes.earnings}
-          className={`flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-black transition-all ${
+          className={`flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-all ${
             isWalletActive
-              ? "bg-zinc-800 text-white shadow-inner"
-              : "text-zinc-400 hover:text-zinc-200"
+              ? "bg-brand-green text-white shadow-cta font-black"
+              : "text-muted-foreground hover:text-foreground active:scale-95"
           }`}
         >
           <DollarSign className="size-4" />
@@ -90,10 +92,10 @@ export function ZomatoBottomNav({
         {/* 5. Store & Settings */}
         <Link
           to={partnerRoutes.profile}
-          className={`flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-black transition-all ${
+          className={`flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-all ${
             isStoreActive
-              ? "bg-zinc-800 text-white shadow-inner"
-              : "text-zinc-400 hover:text-zinc-200"
+              ? "bg-brand-green text-white shadow-cta font-black"
+              : "text-muted-foreground hover:text-foreground active:scale-95"
           }`}
         >
           <Store className="size-4" />

@@ -117,16 +117,16 @@ export function PartnerSidebar({
               key={item.id}
               to={item.to}
               title={collapsed ? item.label : undefined}
-              className={`group flex items-center justify-between rounded-lg px-3 py-2.5 text-xs transition-colors cursor-pointer ${
+              className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-xs transition-all cursor-pointer ${
                 active
-                  ? "bg-zinc-100 font-bold text-zinc-950 shadow-2xs"
+                  ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 font-black shadow-xs border border-emerald-200/60 dark:border-emerald-800/60"
                   : "font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
               }`}
             >
               <div className="flex items-center gap-3 min-w-0">
                 <Icon
-                  className={`size-4.5 shrink-0 stroke-[1.8] transition-colors ${
-                    active ? "text-zinc-950" : "text-zinc-500 group-hover:text-zinc-950"
+                  className={`size-4.5 shrink-0 stroke-[2] transition-colors ${
+                    active ? "text-emerald-700 dark:text-emerald-300" : "text-zinc-500 group-hover:text-zinc-950"
                   }`}
                 />
                 {!collapsed && (
