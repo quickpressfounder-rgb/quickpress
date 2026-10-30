@@ -2,15 +2,20 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ChevronDown,
   Clock,
+  FileText,
   IndianRupee,
   MapPin,
+  MoreVertical,
   Package,
+  Phone,
+  Printer,
   Star,
   Timer,
   Wallet,
   Zap,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import {
   STAGE_LABEL,

@@ -33,6 +33,21 @@
 
 ## Detailed Log of Work Done (30 October 2026)
 
+### 80. Fixed ReferenceError: useRef is not defined on Partner Orders Screen
+- **User Request:**
+  - *"ISKO SOLVE KARO"* (with screenshot showing browser console `ReferenceError: useRef is not defined at orders.index-C6FDlj1G.js`).
+- **Root Cause & Fix:**
+  - `OrderCard.tsx` utilized `useRef` for kebab menu outside-click handling, but `useRef` and `useEffect` were missing from the React named imports.
+  - Also imported missing Lucide icons (`MoreVertical`, `FileText`, `Phone`, `Printer`) and `toast` from `sonner`.
+  - In `OrdersScreen.tsx`, replaced undeclared `isOnline` reference with the existing `isOffline` boolean state for store status toggling.
+- **Verification:**
+  - `npm run build` in `partner-frontend`: Passed cleanly in 1.88s (0 errors).
+  - Deployed directly to AWS EC2 (`65.0.127.43`) via PM2 (`quickpress-partner`).
+- **Files Modified:**
+  - `partner-frontend/src/components/orders/OrderCard.tsx`
+  - `partner-frontend/src/screens/OrdersScreen.tsx`
+  - `Memory/WORK_HISTORY.md`
+
 ### 79. Replicated Exact Zomato Merchant Live Orders Queue UI & Order Card Design A-to-Z
 - **User Request:**
   - *"same iske jaisa hi or itne hi bada loyout and deisng bhu iske jasia hi baana hai A to Z same to same"*

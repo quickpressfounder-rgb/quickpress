@@ -105,8 +105,8 @@ export function OrdersScreen() {
             <button
               type="button"
               onClick={() => {
-                const next = !isOnline;
-                toast.success(next ? "Store is now ONLINE & accepting new orders!" : "Store is now OFFLINE");
+                const nextOnline = isOffline;
+                toast.success(nextOnline ? "Store is now ONLINE & accepting new orders!" : "Store is now OFFLINE");
               }}
               className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-black transition-all cursor-pointer shadow-xs ${
                 !isOffline
