@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  ArrowLeft,
   Compass,
   CornerDownLeft,
   CornerDownRight,
@@ -8,27 +7,22 @@ import {
   CornerUpRight,
   Locate,
   MapPin,
-  Mic,
   Navigation,
   Phone,
-  Radio,
   RotateCcw,
-  Sparkles,
   Volume2,
   VolumeX,
   X,
   ZoomIn,
   ZoomOut,
-  Layers,
-  ChevronRight,
   List,
+  Sun,
+  Moon,
   ExternalLink,
-  CheckCircle2,
 } from "lucide-react";
 import {
   voiceNavEngine,
   fetchStreetRoute,
-  getDistanceKm,
   calculateBearing,
   ManeuverType,
   NavigationStep,
@@ -67,9 +61,11 @@ export function InAppVoiceNavigationModal({
   const destMarkerRef = useRef<any>(null);
   const casingPolylineRef = useRef<any>(null);
   const routePolylineRef = useRef<any>(null);
+  const tileLayerRef = useRef<any>(null);
 
   const prevRiderPosRef = useRef<{ lat: number; lng: number } | null>(null);
   const [bearing, setBearing] = useState<number>(0);
+  const [mapTheme, setMapTheme] = useState<"dark" | "light">("dark");
 
   const [isMuted, setIsMuted] = useState(voiceNavEngine.getMuted());
   const [language, setLanguage] = useState<VoiceLanguage>(voiceNavEngine.getLanguage());
@@ -80,14 +76,66 @@ export function InAppVoiceNavigationModal({
   const [distanceMeters, setDistanceMeters] = useState<number>(0);
   const [etaMinutes, setEtaMinutes] = useState<number>(2);
   const [isArrived, setIsArrived] = useState<boolean>(false);
-  const [userSpeedKmh, setUserSpeedKmh] = useState<number>(28);
+  const [userSpeedKmh, setUserSpeedKmh] = useState<number>(32);
 
   const [routeSteps, setRouteSteps] = useState<NavigationStep[]>([]);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
-  const [routeSource, setRouteSource] = useState<string>("google");
-  const [showStepsSheet, setShowStepsSheet] = useState<boolean>(false);
 
-  const currentRiderPos = riderCoords || destinationCoords || { lat: 28.6139, lng: 77.2090 };
+  const currentRiderPos = riderCoords || { lat: 28.6139, lng: 77.2090 };
+
+  // Smooth 60FPS marker position & heading interpolation
+  const animatedPosRef = useRef<{ lat: number; lng: number }>(currentRiderPos);
+  const animatedHeadingRef = useRef<number>(0);
+  const animFrameIdRef = useRef<number | null>(null);
+
+  const smoothlyMoveMarker = useCallback(
+    (targetPos: { lat: number; lng: number }, targetHeading: number, durationMs = 850) => {
+      if (!riderMarkerRef.current) return;
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+      }
+      const startPos = { ...animatedPosRef.current };
+      const startHeading = animatedHeadingRef.current;
+      const startTime = performance.now();
+
+      // Shortest angular difference
+      let diffAngle = (targetHeading - startHeading) % 360;
+      if (diffAngle > 180) diffAngle -= 360;
+      if (diffAngle < -180) diffAngle += 360;
+
+      const step = (now: number) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(1, elapsed / durationMs);
+        const ease = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+
+        const lat = startPos.lat + (targetPos.lat - startPos.lat) * ease;
+        const lng = startPos.lng + (targetPos.lng - startPos.lng) * ease;
+        const heading = startHeading + diffAngle * ease;
+
+        animatedPosRef.current = { lat, lng };
+        animatedHeadingRef.current = heading;
+
+        if (riderMarkerRef.current) {
+          riderMarkerRef.current.setLatLng([lat, lng]);
+          const iconEl = riderMarkerRef.current.getElement();
+          if (iconEl) {
+            const bikeInner = iconEl.querySelector(".nav-captain-bike-inner");
+            if (bikeInner) {
+              bikeInner.style.transform = `rotate(${heading}deg)`;
+            }
+          }
+        }
+
+        if (progress < 1) {
+          animFrameIdRef.current = requestAnimationFrame(step);
+        } else {
+          animFrameIdRef.current = null;
+        }
+      };
+      animFrameIdRef.current = requestAnimationFrame(step);
+    },
+    []
+  );
 
   // Calculate bearing whenever rider moves
   useEffect(() => {
@@ -98,10 +146,15 @@ export function InAppVoiceNavigationModal({
         riderCoords.lat,
         riderCoords.lng
       );
-      if (b !== 0) setBearing(b);
+      if (b !== 0) {
+        setBearing(b);
+        smoothlyMoveMarker(riderCoords, b);
+      } else {
+        smoothlyMoveMarker(riderCoords, bearing);
+      }
     }
     prevRiderPosRef.current = riderCoords || currentRiderPos;
-  }, [riderCoords]);
+  }, [riderCoords, smoothlyMoveMarker, bearing, currentRiderPos]);
 
   // Fetch real street-following route when modal opens or coordinates change
   useEffect(() => {
@@ -115,7 +168,6 @@ export function InAppVoiceNavigationModal({
 
         setRouteCoordinates(routeData.coordinates);
         setRouteSteps(routeData.steps);
-        setRouteSource(routeData.source);
         setDistanceKm(routeData.totalDistanceKm);
         setDistanceMeters(routeData.totalDistanceMeters);
         setEtaMinutes(routeData.totalDurationMins);
@@ -170,19 +222,7 @@ export function InAppVoiceNavigationModal({
     setCurrentInstruction(progress.instruction);
     setCurrentStreet(progress.streetName || targetAddress);
     setIsArrived(progress.isArrived);
-
-    // Update rider marker position & rotation on Leaflet map
-    if (riderMarkerRef.current) {
-      riderMarkerRef.current.setLatLng([currentRiderPos.lat, currentRiderPos.lng]);
-      const iconEl = riderMarkerRef.current.getElement();
-      if (iconEl) {
-        const bikeInner = iconEl.querySelector(".nav-captain-bike-inner");
-        if (bikeInner) {
-          bikeInner.style.transform = `rotate(${bearing}deg)`;
-        }
-      }
-    }
-  }, [riderCoords, isOpen, routeSteps, bearing]);
+  }, [riderCoords, isOpen, routeSteps, currentRiderPos, targetCoords, targetName, targetAddress]);
 
   // Draw or update dual-layer street route on Leaflet Map
   const drawRouteOnMap = async (coords: [number, number][]) => {
@@ -198,35 +238,58 @@ export function InAppVoiceNavigationModal({
         mapInstanceRef.current.removeLayer(routePolylineRef.current);
       }
 
-      // 1. Route Casing (Dark Navy for contrast)
+      // 1. Route Casing (Deep Midnight for maximum contrast)
       const casing = L.polyline(coords, {
-        color: "#032b30",
-        weight: 10,
-        opacity: 0.9,
+        color: "#031e24",
+        weight: 9,
+        opacity: 0.95,
         lineCap: "round",
         lineJoin: "round",
       }).addTo(mapInstanceRef.current);
       casingPolylineRef.current = casing;
 
-      // 2. Core Route Polyline (Luminous Cyan Google Navigation line matching video)
+      // 2. Core Route Polyline (Rapido Neon Cyan line with high visibility)
       const routeLine = L.polyline(coords, {
         color: "#00e5ff",
-        weight: 6,
+        weight: 5.5,
         opacity: 1,
         lineCap: "round",
         lineJoin: "round",
       }).addTo(mapInstanceRef.current);
       routePolylineRef.current = routeLine;
 
-      // Auto fit bounds with comfortable padding
+      // Auto fit bounds with comfortable top and bottom padding
       const bounds = L.latLngBounds(coords);
       mapInstanceRef.current.fitBounds(bounds, {
-        paddingTopLeft: [40, 140],
-        paddingBottomRight: [40, 260],
+        paddingTopLeft: [30, 160],
+        paddingBottomRight: [30, 220],
         maxZoom: 18,
       });
     } catch (err) {
       console.warn("Error drawing route line:", err);
+    }
+  };
+
+  // Toggle Map Theme (Dark / Clean Light)
+  const toggleMapTheme = async () => {
+    triggerHaptic(30);
+    const nextTheme = mapTheme === "dark" ? "light" : "dark";
+    setMapTheme(nextTheme);
+
+    if (mapInstanceRef.current && tileLayerRef.current) {
+      mapInstanceRef.current.removeLayer(tileLayerRef.current);
+      const L = (await import("leaflet")).default;
+      const url =
+        nextTheme === "dark"
+          ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+
+      const newTile = L.tileLayer(url, {
+        maxZoom: 20,
+        subdomains: "abcd",
+      }).addTo(mapInstanceRef.current);
+      newTile.bringToBack();
+      tileLayerRef.current = newTile;
     }
   };
 
@@ -251,25 +314,31 @@ export function InAppVoiceNavigationModal({
           attributionControl: false,
         });
 
-        // Dark Google Navigation Map Tiles matching video Frame 00:32
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        // Clean Rapido Dark/Light Map Tiles (CartoDB zero clutter)
+        const tileUrl =
+          mapTheme === "dark"
+            ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+
+        const tiles = L.tileLayer(tileUrl, {
           maxZoom: 20,
           subdomains: "abcd",
         }).addTo(map);
+        tileLayerRef.current = tiles;
 
-        // Custom Rapido Captain Scooter Marker (Directional Beam + White Navigation Pod)
+        // Custom Rapido Scooter Marker (Directional Beam + Yellow/Emerald Navigation Pod)
         const riderIcon = L.divIcon({
           className: "custom-rapido-captain-marker",
           html: `
             <div class="relative flex items-center justify-center w-14 h-14">
-              <!-- Radar Pulse Ring -->
-              <div class="absolute w-14 h-14 rounded-full bg-emerald-500/20 animate-ping"></div>
-              <div class="absolute w-10 h-10 rounded-full bg-emerald-500/25"></div>
+              <!-- Radar Pulse Wave -->
+              <div class="absolute w-14 h-14 rounded-full bg-cyan-400/20 animate-ping"></div>
+              <div class="absolute w-10 h-10 rounded-full bg-cyan-400/30"></div>
               
-              <!-- Directional Cone / Scooter Body that rotates -->
-              <div class="nav-captain-bike-inner relative w-10 h-10 rounded-full bg-white border-2 border-emerald-600 shadow-xl flex items-center justify-center transition-transform duration-300" style="transform: rotate(${bearing}deg)">
-                <!-- Forward Direction Arrow Pip -->
-                <div class="absolute -top-1 w-2.5 h-2.5 bg-emerald-600 rotate-45 border border-white shadow-xs"></div>
+              <!-- Directional Scooter Pod with Heading Rotation -->
+              <div class="nav-captain-bike-inner relative w-10 h-10 rounded-full bg-zinc-950 border-2 border-cyan-400 shadow-2xl flex items-center justify-center transition-transform duration-75" style="transform: rotate(${bearing}deg)">
+                <!-- Forward Direction Pip -->
+                <div class="absolute -top-1 w-2.5 h-2.5 bg-cyan-400 rotate-45 border border-zinc-950 shadow-xs"></div>
                 <span class="text-base">🛵</span>
               </div>
             </div>
@@ -278,24 +347,24 @@ export function InAppVoiceNavigationModal({
           iconAnchor: [28, 28],
         });
 
-        // Custom Target Destination Pin (White Theme Pin)
+        // Destination Marker (Clean Floating Pin)
         const destIcon = L.divIcon({
           className: "custom-nav-dest-marker",
           html: `
             <div class="relative flex flex-col items-center justify-center">
-              <div class="px-2.5 py-1 rounded-xl bg-white text-neutral-900 font-black text-[11px] shadow-xl border border-neutral-300 whitespace-nowrap mb-1 flex items-center gap-1">
-                <span class="text-rose-500 font-bold">📍</span> ${targetName}
+              <div class="px-2.5 py-1 rounded-xl bg-zinc-900 text-white font-black text-[11px] shadow-2xl border border-zinc-700 whitespace-nowrap mb-1 flex items-center gap-1.5">
+                <span class="text-rose-400 font-bold">📍</span> ${targetName}
               </div>
               <div class="relative flex items-center justify-center w-10 h-10">
-                <div class="absolute w-10 h-10 rounded-full bg-rose-500/25 animate-pulse"></div>
+                <div class="absolute w-10 h-10 rounded-full bg-rose-500/30 animate-pulse"></div>
                 <div class="w-8 h-8 rounded-full bg-rose-600 border-2 border-white shadow-xl flex items-center justify-center text-white text-xs font-black">
                   🎯
                 </div>
               </div>
             </div>
           `,
-          iconSize: [120, 64],
-          iconAnchor: [60, 60],
+          iconSize: [140, 64],
+          iconAnchor: [70, 60],
         });
 
         const rMarker = L.marker([currentRiderPos.lat, currentRiderPos.lng], { icon: riderIcon }).addTo(map);
@@ -306,7 +375,6 @@ export function InAppVoiceNavigationModal({
 
         mapInstanceRef.current = map;
 
-        // If coordinates already loaded, draw immediately
         if (routeCoordinates.length >= 2) {
           drawRouteOnMap(routeCoordinates);
         }
@@ -321,15 +389,6 @@ export function InAppVoiceNavigationModal({
             map.invalidateSize();
           }
         }, 500);
-
-        if (typeof ResizeObserver !== "undefined" && mapContainerRef.current) {
-          const ro = new ResizeObserver(() => {
-            if (isMounted && map) {
-              map.invalidateSize();
-            }
-          });
-          ro.observe(mapContainerRef.current);
-        }
       }
     }
 
@@ -361,12 +420,6 @@ export function InAppVoiceNavigationModal({
     voiceNavEngine.setLanguage(nextLang);
   };
 
-  // Repeat current voice instruction
-  const handleRepeatVoice = () => {
-    triggerHaptic(40);
-    voiceNavEngine.speak(currentInstruction, true);
-  };
-
   // Re-center Map on Rider GPS
   const handleRecenter = () => {
     triggerHaptic(40);
@@ -391,24 +444,13 @@ export function InAppVoiceNavigationModal({
     }
   };
 
-  // Launch native/external Google Maps app
+  // Launch external Google Maps as optional fallback
   const handleLaunchExternalGoogleMaps = () => {
     triggerHaptic(40);
     const origin = currentRiderPos ? `${currentRiderPos.lat},${currentRiderPos.lng}` : "";
     const destination = `${targetCoords.lat},${targetCoords.lng}`;
     const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=two-wheeler`;
     window.open(url, "_blank");
-  };
-
-  // Zoom Controls
-  const handleZoomIn = () => {
-    triggerHaptic(30);
-    mapInstanceRef.current?.zoomIn();
-  };
-
-  const handleZoomOut = () => {
-    triggerHaptic(30);
-    mapInstanceRef.current?.zoomOut();
   };
 
   // Direct Phone Call
@@ -423,214 +465,207 @@ export function InAppVoiceNavigationModal({
   // Render Maneuver Icon
   const renderManeuverIcon = (
     maneuver: ManeuverType = currentManeuver,
-    className = "w-8 h-8 text-emerald-600"
+    className = "size-7 text-cyan-400"
   ) => {
     switch (maneuver) {
       case "turn-right":
-        return <CornerUpRight className={`${className} animate-pulse stroke-[2.75]`} />;
+        return <CornerUpRight className={`${className} animate-pulse stroke-[3]`} />;
       case "turn-left":
-        return <CornerUpLeft className={`${className} animate-pulse stroke-[2.75]`} />;
+        return <CornerUpLeft className={`${className} animate-pulse stroke-[3]`} />;
       case "slight-right":
-        return <CornerDownRight className={`${className} stroke-[2.5]`} />;
+        return <CornerDownRight className={`${className} stroke-[2.75]`} />;
       case "slight-left":
-        return <CornerDownLeft className={`${className} stroke-[2.5]`} />;
+        return <CornerDownLeft className={`${className} stroke-[2.75]`} />;
       case "u-turn":
-        return <RotateCcw className={`${className} text-amber-500 stroke-[2.5]`} />;
+        return <RotateCcw className={`${className} text-amber-400 stroke-[2.75]`} />;
       case "arrived":
-        return <MapPin className={`${className} text-rose-500 animate-bounce stroke-[2.5]`} />;
+        return <MapPin className={`${className} text-rose-500 animate-bounce stroke-[3]`} />;
       case "depart":
       case "straight":
       default:
-        return <Navigation className={`${className} -rotate-45 stroke-[2.5]`} />;
+        return <Navigation className={`${className} -rotate-45 stroke-[3]`} />;
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-[#0A0D10] flex flex-col overflow-hidden text-white font-sans select-none animate-in fade-in duration-200">
-      {/* 1. TOP DARK GREEN GOOGLE NAVIGATION HUD HEADER matching Video Frame 00:32 */}
-      <header className="relative z-30 bg-[#054E3B] text-white px-4 pt-3 pb-3.5 shadow-lg border-b border-[#065F46]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-white/10 text-white shrink-0">
-              {renderManeuverIcon(currentManeuver, "size-6 text-white stroke-[3]")}
+    <div className="fixed inset-0 z-[9999] bg-black flex flex-col overflow-hidden text-white font-sans select-none animate-in fade-in duration-200">
+      {/* ========================================================================= */}
+      {/* 1. FULL BLEED MAP CANVAS (Zero Border Clutter)                             */}
+      {/* ========================================================================= */}
+      <div className="absolute inset-0 z-0">
+        <div ref={mapContainerRef} className="w-full h-full" />
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2. FLOATING TOP RAPIDO-STYLE MANEUVER HUD CAPSULE                         */}
+      {/* ========================================================================= */}
+      <div className="relative z-30 pt-3 px-3 pointer-events-none">
+        <div className="pointer-events-auto rounded-3xl bg-zinc-950/92 backdrop-blur-xl border border-zinc-800 shadow-2xl p-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Glowing Maneuver Icon Container */}
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-cyan-950/80 border border-cyan-800/80 text-cyan-400 shrink-0 shadow-inner">
+              {renderManeuverIcon(currentManeuver, "size-6.5 text-cyan-400 stroke-[3]")}
             </div>
             <div className="min-w-0">
-              <div className="text-[11px] font-black text-emerald-200 uppercase tracking-wider">
-                {distanceMeters > 1000 ? `${distanceKm} km` : `${distanceMeters} m`}
+              <div className="text-xs font-black text-cyan-400 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+                <span>{distanceMeters > 1000 ? `${distanceKm} km` : `${distanceMeters} m`}</span>
+                <span className="text-[10px] text-zinc-500 font-normal">•</span>
+                <span className="text-[10px] text-zinc-400 font-semibold truncate">{phaseLabel}</span>
               </div>
-              <h2 className="text-base sm:text-lg font-black text-white leading-tight truncate">
-                towards {currentStreet || targetName}
+              <h2 className="text-sm sm:text-base font-black text-white leading-tight truncate">
+                {currentInstruction || `Head towards ${currentStreet || targetName}`}
               </h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Quick HUD Controls */}
+          <div className="flex items-center gap-1.5 shrink-0 ml-2">
+            {/* Audio Toggle */}
             <button
               onClick={handleToggleMute}
-              className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white cursor-pointer"
+              className="size-9 rounded-full bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 active:scale-90 transition-all flex items-center justify-center text-white cursor-pointer"
               title={isMuted ? "Unmute Voice" : "Mute Voice"}
             >
-              {isMuted ? <VolumeX className="size-4.5 text-red-400" /> : <Volume2 className="size-4.5 text-white" />}
+              {isMuted ? <VolumeX className="size-4 text-rose-400" /> : <Volume2 className="size-4 text-cyan-400 animate-pulse" />}
             </button>
+
+            {/* Language Switcher */}
+            <button
+              onClick={handleToggleLanguage}
+              className="px-2.5 h-9 rounded-full bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 active:scale-90 transition-all text-[11px] font-black text-white flex items-center justify-center cursor-pointer"
+              title="Toggle Voice Language"
+            >
+              {language.startsWith("hi") ? "हिन्दी" : "EN"}
+            </button>
+
+            {/* Map Theme Toggle */}
+            <button
+              onClick={toggleMapTheme}
+              className="size-9 rounded-full bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 active:scale-90 transition-all flex items-center justify-center text-amber-300 cursor-pointer"
+              title="Toggle Dark/Light Map"
+            >
+              {mapTheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4 text-cyan-400" />}
+            </button>
+
+            {/* Close */}
             <button
               onClick={onClose}
-              className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white cursor-pointer"
-              title="Close Navigation"
+              className="size-9 rounded-full bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 active:scale-90 transition-all flex items-center justify-center text-zinc-300 hover:text-white cursor-pointer"
+              title="Exit Navigation"
             >
               <X className="size-4.5 stroke-[2.5]" />
             </button>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* 2. CENTER MAP CANVAS WITH WHITE/LIGHT THEME CONTROLS */}
-      <main className="relative flex-1 w-full bg-neutral-100 overflow-hidden">
-        <div ref={mapContainerRef} className="w-full h-full" />
-
-        {/* Top-left Speedometer Badge matching video Frame 00:33 & 01:03 */}
-        <div className="absolute left-3.5 top-3.5 z-[400] flex items-center gap-2">
-          <div className="size-13 rounded-full bg-[#facc15] border-2 border-white shadow-xl flex flex-col items-center justify-center text-zinc-950 font-black">
-            <span className="text-sm leading-none">{userSpeedKmh}</span>
-            <span className="text-[8px] tracking-tight uppercase leading-none mt-0.5">km/h</span>
+      {/* ========================================================================= */}
+      {/* 3. FLOATING SPEEDOMETER (Left) & MAP CONTROLS (Right)                      */}
+      {/* ========================================================================= */}
+      <div className="relative flex-1 pointer-events-none">
+        {/* Speedometer Badge (Bottom-Left) */}
+        <div className="absolute left-3.5 bottom-6 pointer-events-auto z-20">
+          <div className="size-14 rounded-full bg-zinc-950/90 backdrop-blur-md border-2 border-amber-400 shadow-2xl flex flex-col items-center justify-center text-amber-400 font-black">
+            <span className="text-base leading-none tracking-tight">{userSpeedKmh}</span>
+            <span className="text-[8px] tracking-tight uppercase leading-none mt-0.5 text-zinc-400">km/h</span>
           </div>
         </div>
 
-        {/* Floating Map Controls (Right Side) */}
-        <div className="absolute right-3.5 bottom-4 z-[400] flex flex-col gap-2">
+        {/* Floating Right Controls (Overview & Recenter) */}
+        <div className="absolute right-3.5 bottom-6 pointer-events-auto z-20 flex flex-col gap-2.5">
           {/* Fit Route Overview */}
           <button
             onClick={handleFitRouteOverview}
-            className="size-10 rounded-xl bg-zinc-900/90 backdrop-blur-md border border-zinc-700 text-white shadow-md flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
-            title="Fit Route Overview"
+            className="size-11 rounded-2xl bg-zinc-950/90 backdrop-blur-md border border-zinc-800 text-white shadow-xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
+            title="Overview Entire Route"
           >
-            <Compass className="size-4.5 text-zinc-300" />
+            <Compass className="size-5 text-zinc-300" />
           </button>
 
-          {/* Zoom In / Out */}
-          <div className="flex flex-col bg-zinc-900/90 backdrop-blur-md border border-zinc-700 rounded-xl shadow-md overflow-hidden">
-            <button
-              onClick={handleZoomIn}
-              className="size-10 flex items-center justify-center text-white hover:bg-zinc-800 active:scale-90 transition-transform border-b border-zinc-800 cursor-pointer"
-              title="Zoom In"
-            >
-              <ZoomIn className="size-4.5" />
-            </button>
-            <button
-              onClick={handleZoomOut}
-              className="size-10 flex items-center justify-center text-white hover:bg-zinc-800 active:scale-90 transition-transform cursor-pointer"
-              title="Zoom Out"
-            >
-              <ZoomOut className="size-4.5" />
-            </button>
-          </div>
-
-          {/* Re-center GPS on Rider */}
+          {/* Recenter on Rider GPS */}
           <button
             onClick={handleRecenter}
-            className="size-11 rounded-2xl bg-zinc-900 text-white border-2 border-cyan-400 shadow-xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
-            title="Recenter GPS Location"
+            className="size-12 rounded-2xl bg-zinc-950 border-2 border-cyan-400 text-cyan-400 shadow-2xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
+            title="Recenter Camera on Rider"
           >
-            <Locate className="size-5 text-cyan-400" />
+            <Locate className="size-5.5 animate-pulse" />
           </button>
         </div>
+      </div>
 
-        {/* Steps Sheet */}
-        {showStepsSheet && (
-          <div className="absolute inset-0 z-[500] bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-200">
-            <div className="w-full max-h-[70vh] bg-zinc-900 border-t border-zinc-800 rounded-t-3xl shadow-2xl flex flex-col overflow-hidden text-white animate-in slide-in-from-bottom duration-300">
-              <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
-                <div className="flex items-center gap-2">
-                  <div className="size-8 rounded-full bg-cyan-950 text-cyan-400 flex items-center justify-center border border-cyan-800">
-                    <List className="size-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-white leading-tight">
-                      Route Directions ({routeSteps.length} Steps)
-                    </h3>
-                    <p className="text-[11px] font-semibold text-zinc-400">
-                      Total: {distanceKm} km · Est. {etaMinutes} mins
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowStepsSheet(false)}
-                  className="size-8 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-300 cursor-pointer"
-                >
-                  <X className="size-4" />
-                </button>
+      {/* ========================================================================= */}
+      {/* 4. FLOATING BOTTOM RAPIDO-STYLE DESTINATION & ARRIVAL CARD                */}
+      {/* ========================================================================= */}
+      <div className="relative z-30 pb-4 px-3 pointer-events-none">
+        <div className="pointer-events-auto rounded-3xl bg-zinc-950/95 backdrop-blur-xl border border-zinc-800 shadow-2xl p-4 flex flex-col gap-3">
+          {/* Top Row: Destination, ETA, and Call Button */}
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-black text-white tracking-tight">
+                  {etaMinutes} min
+                </span>
+                <span className="text-xs font-bold text-zinc-400">
+                  ({distanceKm} km)
+                </span>
+                <span className="size-1.5 rounded-full bg-cyan-400"></span>
+                <span className="text-xs font-semibold text-emerald-400">
+                  Fastest Route
+                </span>
               </div>
-
-              <div className="flex-1 overflow-y-auto p-4 divide-y divide-zinc-800 space-y-1">
-                {routeSteps.map((step, idx) => (
-                  <div key={step.id || idx} className="py-2.5 flex items-start gap-3">
-                    <div className="size-8 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 mt-0.5">
-                      {renderManeuverIcon(step.maneuver, "size-4.5 text-zinc-300")}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-white leading-snug">
-                        {language.startsWith("hi") ? step.instructionHi : step.instructionEn}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] font-bold text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded-md border border-cyan-800 font-mono">
-                          {step.distanceMeters > 1000 ? `${(step.distanceMeters / 1000).toFixed(1)} km` : `${step.distanceMeters} m`}
-                        </span>
-                        {step.streetName && (
-                          <span className="text-[10px] text-zinc-400 truncate">
-                            {step.streetName}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p className="text-xs font-bold text-zinc-300 truncate mt-0.5">
+                📍 {targetName} — {targetAddress}
+              </p>
             </div>
-          </div>
-        )}
-      </main>
 
-      {/* 3. BOTTOM DARK BAR matching Video Frame 00:33 */}
-      <footer className="relative z-30 bg-[#12161A] border-t border-zinc-800 px-4 py-3 text-white flex items-center justify-between shadow-2xl">
-        <div>
-          <div className="text-xl font-black text-white leading-none">
-            {etaMinutes || 6} min
+            {/* Direct Phone Call Button */}
+            {targetPhone && (
+              <button
+                onClick={handleCall}
+                className="ml-3 size-11 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white flex items-center justify-center shadow-lg transition-transform cursor-pointer shrink-0"
+                title="Call Customer/Store"
+              >
+                <Phone className="size-5" />
+              </button>
+            )}
           </div>
-          <div className="text-xs text-zinc-400 font-bold mt-1">
-            {distanceKm} km • {new Date(Date.now() + (etaMinutes || 6) * 60000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+
+          {/* Action Button: I Have Arrived (Rapido Style) */}
+          <div className="flex items-center gap-2">
+            {onArrived ? (
+              <button
+                onClick={() => {
+                  triggerHaptic([100, 50, 100]);
+                  onArrived();
+                  onClose();
+                }}
+                className="flex-1 h-12 rounded-2xl bg-cyan-400 hover:bg-cyan-300 active:scale-98 text-zinc-950 font-black text-sm tracking-wide shadow-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <MapPin className="size-4.5 text-zinc-950 stroke-[3]" />
+                <span>I HAVE ARRIVED AT LOCATION</span>
+              </button>
+            ) : (
+              <button
+                onClick={onClose}
+                className="flex-1 h-12 rounded-2xl bg-zinc-800 hover:bg-zinc-700 active:scale-98 text-white font-bold text-sm tracking-wide shadow-md flex items-center justify-center transition-all cursor-pointer"
+              >
+                CLOSE NAVIGATION
+              </button>
+            )}
+          </div>
+
+          {/* Secondary fallback link to external Google Maps */}
+          <div className="flex items-center justify-center pt-1 border-t border-zinc-900">
+            <button
+              onClick={handleLaunchExternalGoogleMaps}
+              className="text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 flex items-center gap-1 active:scale-95 transition-transform cursor-pointer"
+            >
+              <span>Need satellite preview? Open in Google Maps</span>
+              <ExternalLink className="size-3 text-zinc-400" />
+            </button>
           </div>
         </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={handleRecenter}
-            className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-xs font-bold text-white flex items-center gap-1.5 border border-zinc-700 shadow-sm cursor-pointer"
-          >
-            <Locate className="size-3.5 text-cyan-400" />
-            <span>Re-centre</span>
-          </button>
-
-          {onArrived ? (
-            <button
-              onClick={() => {
-                triggerHaptic([100, 50, 100]);
-                onArrived();
-                onClose();
-              }}
-              className="px-4 py-2 rounded-xl bg-[#00E5FF] hover:bg-cyan-400 active:scale-95 text-zinc-950 font-black text-xs shadow-md transition-all cursor-pointer"
-            >
-              Arrived
-            </button>
-          ) : (
-            <button
-              onClick={onClose}
-              className="size-9 rounded-full bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-white flex items-center justify-center border border-zinc-700 cursor-pointer"
-              title="Close"
-            >
-              <X className="size-4" />
-            </button>
-          )}
-        </div>
-      </footer>
+      </div>
     </div>
   );
 }

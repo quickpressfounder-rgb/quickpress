@@ -33,6 +33,36 @@
 
 ## Detailed Log of Work Done (30 October 2026)
 
+### 77. Upgraded Captain App (Rider) to Smooth Rapido-Style In-App Turn-by-Turn Navigation (Zero Google Maps Redirects)
+- **User Request:**
+  - *"Aap jab chahein, hum Captain App ke map navigation ko is exact Rapido architecture par upgrade kar denge! ek baad yaad rakho clean ui banana hai"*
+  - Implement Rapido's exact in-app turn-by-turn navigation model directly inside the Captain App, keeping the UI ultra-clean and modern, without redirecting captains out to external Google Maps.
+- **Architectural Implementation Details:**
+  1. **100% In-App Full-Bleed Navigation Architecture (`InAppVoiceNavigationModal.tsx`):**
+     - Eliminated external app switching (`androidIntentUrl` / external Google Maps redirects) during active driving. Captain remains 100% inside QuickPress.
+     - Implemented full-bleed zero-clutter map canvas utilizing high-contrast CartoDB tiles with 1-tap Dark Matter / Voyager light theme toggle.
+     - Dual-Layer Street Polylines: Deep Midnight contrast casing (`#031e24`, 9px) and signature Neon Cyan route polyline (`#00e5ff`, 5.5px) for clear daytime and nighttime visibility.
+  2. **Smooth 60 FPS Marker Interpolation & Bearing:**
+     - Replaced abrupt GPS marker jumping with `requestAnimationFrame` cubic ease-out coordinate interpolation (850ms window).
+     - Heading bearing calculation rotates the directional scooter pod icon smoothly to match bike heading.
+     - Directional scooter pod with pulse ring and heading indicator pip.
+  3. **Ultra-Clean Floating Glassmorphic HUDs:**
+     - **Top Maneuver Capsule:** Floating dark glassmorphic capsule (`bg-zinc-950/92 backdrop-blur-xl border border-zinc-800 shadow-2xl`) with glowing cyan maneuver icon (turn right/left, slight turn, u-turn, straight), bold distance in mono, current step street name, voice audio mute toggle, Hindi/English toggle, map theme toggle, and close button.
+     - **Floating Speedometer & Map Controls:** Floating amber speedometer badge (km/h) in bottom-left; floating compass route overview and GPS recenter buttons in bottom-right.
+     - **Bottom Destination Card:** Shows ETA in minutes, distance in km, fastest route badge, target name & address, direct phone call button, and prominent `[ 🎯 I HAVE ARRIVED AT LOCATION ]` action button.
+     - **Satellite Fallback:** Added clean subtle secondary link for captains wanting optional satellite view in external Google Maps.
+  4. **Dynamic Stage-Aware Arrival Handshake:**
+     - Seamlessly integrated with `GoToPickupHUD.tsx`: when captain taps `[ 🎯 I HAVE ARRIVED AT LOCATION ]`, it cleanly triggers `handleArrivalCheck()`, routing correctly for store drop, customer doorstep delivery, or customer pickup without barriers.
+- **Build & Packaging Verification:**
+  - `npm run build` in `rider-frontend`: Succeeded in 958ms with zero errors.
+  - Re-compiled Android Captain APK and Play Store AAB Bundle via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18.5 MB)
+    - `QuickPress-Captain.aab` (17.6 MB)
+- **Files Modified:**
+  - `rider-frontend/src/components/navigation/InAppVoiceNavigationModal.tsx`
+  - `rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`
+  - `Memory/WORK_HISTORY.md`
+
 ### 76. Defused Auto-Cancellation on Accepted/Picked Up Orders, Removed Dashboard Page from Partner Panel (Orders-First Console), and Prepared Order Details Screen Redesign Proposal
 - **User Request:**
   1. Fix critical auto-cancellation bug: orders were auto-cancelling after 2 minutes even when partner had accepted, rider had accepted, and garments were picked up.

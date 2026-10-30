@@ -1327,9 +1327,19 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     }
   };
 
-  // Launch Turn-by-Turn Google Maps Navigation (Native Android Intent + Universal Web Fallback)
-  // Keeps the in-app overlay HUD active and intact in the web application tab
+  // Launch Rapido-Style In-App Turn-by-Turn Voice Navigation (100% In-App, Zero External App Redirects)
   const launchTurnByTurnGoogleMaps = (
+    dest: { lat: number; lng: number },
+    origin?: { lat: number; lng: number },
+    destName?: string
+  ) => {
+    triggerHaptic(40);
+    // ⚡ Rapido-style In-App Turn-by-Turn Navigation directly inside QuickPress (No external Google Maps redirect)
+    handleStartInAppNavigation();
+  };
+
+  // Explicit External Google Maps launcher (Optional fallback if Captain requests external app)
+  const launchExternalGoogleMapsApp = (
     dest: { lat: number; lng: number },
     origin?: { lat: number; lng: number },
     destName?: string
@@ -1340,8 +1350,6 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     const universalUrl = `https://www.google.com/maps/dir/?api=1${originParam}&destination=${destCoords}&travelmode=two_wheeler&dir_action=navigate`;
     const isAndroid = typeof navigator !== "undefined" && /android/i.test(navigator.userAgent || "");
     const androidIntentUrl = `google.navigation:q=${destCoords}&mode=d`;
-
-    toast.info(`🗺️ Launching Turn-by-Turn Navigation to ${destName || "destination"}... HUD remains active.`);
 
     if (isAndroid) {
       try {
@@ -1373,7 +1381,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           : customerCoords
         : customerCoords;
     stopOrderAlertSound();
-    launchTurnByTurnGoogleMaps(dest, captainCoords, activeDestTitle);
+    launchExternalGoogleMapsApp(dest, captainCoords, activeDestTitle);
   };
 
   // In-App GPS Navigation Mode (No External Google Maps Redirect)
@@ -3500,10 +3508,18 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         }
         onArrived={() => {
           setShowVoiceNavModal(false);
-          if (stage === "en_route_pickup") {
-            handleMarkArrived();
-          } else if (stage === "in_trip") {
-            handleCompleteTrip();
+          if (isDeliveryRide) {
+            if (stage === "en_route_pickup") {
+              handleMarkArrivedAtStore();
+            } else {
+              handleReachedAtCustomer();
+            }
+          } else {
+            if (stage === "en_route_pickup") {
+              handleMarkArrived();
+            } else if (stage === "in_trip") {
+              handleCompleteTrip();
+            }
           }
         }}
       />
