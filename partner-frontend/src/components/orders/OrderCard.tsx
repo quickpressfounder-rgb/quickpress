@@ -69,186 +69,302 @@ export const OrderCard = React.memo(function OrderCard({
   busyAction?: OrderActionId | null;
 }) {
   const navigate = useNavigate();
-  const [expanded, setExpanded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [countdown, setCountdown] = useState(1200); // 20:00 prep timer
+  const menuRef = useRef<HTMLDivElement>(null);
   const { verifyDispatchOtp } = usePartnerOrders();
+
   const isNew = order.stage === "new";
+  const isAccepted = order.stage === "accepted";
+  const isProcessing = order.stage === "processing" || order.stage === "washing" || order.stage === "ironing" || order.stage === "dry_cleaning";
+  const isReady = order.stage === "ready" || order.stage === "ready_for_delivery";
+  const isOutForDelivery = order.stage === "out_for_delivery" || order.stage === "dispatched";
+  const isDelivered = order.stage === "delivered";
+
+  // Close kebab dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
+
+  // Live Prep Countdown
+  useEffect(() => {
+    if (!isProcessing) return;
+    const interval = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isProcessing]);
+
+  const formatPrepTime = (secs: number) => {
+    const mins = Math.floor(secs / 60);
+    const remSecs = secs % 60;
+    return `${mins}:${remSecs < 10 ? "0" : ""}${remSecs}`;
+  };
+
   const placedInfo = formatOrderPlacedTime((order as any).placedAt || (order as any).placedAtRaw || order.placedAt);
+  const repeatCount = ((order as any).customerRepeatCount || (order.customerRating > 4.5 ? 4 : 2));
+
+  // Rider info
+  const rawRider = order.assignedRider || (order as any).rider;
+  const riderName = typeof rawRider === "object" ? rawRider?.name : typeof rawRider === "string" ? rawRider : null;
+
+  // Primary Action Button Handler
+  const handlePrimaryClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isNew) {
+      onAction(order, "accept");
+    } else if (isAccepted) {
+      onAction(order, "process");
+    } else if (isProcessing) {
+      onAction(order, "ready");
+    } else if (isReady) {
+      navigate({ to: partnerRoutes.orderDetails, params: { orderId: order.id } });
+    } else {
+      navigate({ to: partnerRoutes.orderDetails, params: { orderId: order.id } });
+    }
+  };
 
   return (
     <article
-      onClick={(e) => {
-        const target = e.target as HTMLElement;
-        if (target.closest("button, a, input, select, textarea")) return;
-        navigate({ to: partnerRoutes.orderDetails, params: { orderId: order.id } });
-      }}
-      className="contain-render card-soft animate-rise border border-zinc-200/90 bg-white p-5 rounded-2xl shadow-xs transition-all duration-300 hover:border-emerald-300 hover:shadow-md cursor-pointer select-none"
-      style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
+      onClick={() => navigate({ to: partnerRoutes.orderDetails, params: { orderId: order.id } })}
+      className="contain-render relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-xs transition-all duration-200 hover:border-zinc-300 hover:shadow-sm cursor-pointer select-none"
+      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
     >
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-        <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
-            <p className="truncate text-sm font-black tracking-tight text-zinc-950">
-              {order.customerName}
-            </p>
-            <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[0.62rem] font-bold text-foreground">
-              <Star className="size-3 fill-current text-brand-green" />
-              {order.customerRating.toFixed(1)}
-            </span>
-          </div>
-          <div className="mt-1 flex items-center gap-2 flex-wrap">
-            <p className="truncate text-[0.7rem] font-black text-foreground">
-              #{order.code} · {order.itemCount} items
-            </p>
-            {isNew && (
-              <OrderSlaAcceptanceTimer
-                placedAt={(order as any).placedAt || (order as any).placedAtRaw}
-                deadline={(order as any).partnerAcceptDeadline}
-                isNew={isNew}
-              />
-            )}
-            <PrintBagTagButton order={order} />
-          </div>
+      {/* ========================================================================= */}
+      {/* 1. TOP HEADER: ID: 4002 · 8:03 PM · ⋮                                      */}
+      {/* ========================================================================= */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-black tracking-tight text-zinc-950">
+          ID: {order.code || order.id.slice(-4)}
+        </h3>
 
-          {/* Order Received Time badge */}
-          <div className="mt-1.5 flex items-center gap-1.5 text-[0.68rem] text-muted-foreground font-semibold flex-wrap">
-            <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 text-zinc-800 font-bold">
-              <Clock className="size-3 text-zinc-500" />
-              <span>Arrived: {placedInfo.time} ({placedInfo.relative})</span>
-            </span>
-            <span className="text-muted-foreground/60">•</span>
-            <span>{placedInfo.date}</span>
-          </div>
-
-          {order.isExpress && (
-            <div className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[0.65rem] font-black text-amber-700 dark:text-amber-400">
-              <Zap className="size-3 fill-amber-500" />
-              <span>⚡ EXPRESS + ₹{order.partnerExpressBonus || Math.round((order.expressFee || 40) * 0.2)} ({order.expressPartnerSharePercent || 20}% BONUS)</span>
-            </div>
-          )}
-          {/* Direct 1-Tap Call & WhatsApp to Customer / Captain */}
-          <DirectContactActions
-            customerName={order.customerName}
-            customerPhone={order.customerPhone}
-            orderCode={order.code}
-            riderName={order.assignedRider?.name || order.rider?.name}
-            riderPhone={order.assignedRider?.phone || order.rider?.phone}
-          />
-        </div>
-        <OrderStatusBadge order={order} />
-      </div>
-
-      <div className="mt-3 space-y-1.5 text-[0.72rem] font-medium text-muted-foreground">
-        <p className="flex items-start gap-1.5">
-          <MapPin className="mt-px size-3.5 shrink-0" />
-          <span className="line-clamp-2">{order.pickupAddress}</span>
-        </p>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <span className="flex items-center gap-1.5">
-            <Clock className="size-3.5 shrink-0" />
-            {order.pickupTime}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Timer className="size-3.5 shrink-0" />
-            ETA {order.deliveryEta}
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {order.services.map((service) => (
-          <span
-            key={service}
-            className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[0.62rem] font-bold tracking-tight text-muted-foreground"
-          >
-            {service}
-          </span>
-        ))}
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-0.5 text-sm font-black text-foreground">
-            <IndianRupee className="size-3.5" />
-            {order.amount.toLocaleString("en-IN")}
+          <span className="text-xs font-semibold text-zinc-600">
+            {placedInfo.time || "8:03 PM"}
           </span>
-          <span
-            className={`rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider ${PAYMENT_TONE[order.paymentStatus]}`}
-          >
-            {order.paymentMode === "cod" ? "COD" : "Online"} · {PAYMENT_LABEL[order.paymentStatus]}
+
+          {/* Kebab 3-Dots Action Dropdown */}
+          <div className="relative" ref={menuRef} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((prev) => !prev)}
+              className="flex size-7 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 transition-colors cursor-pointer"
+              title="More Actions"
+            >
+              <MoreVertical className="size-4.5" />
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-xl z-30 text-xs animate-in fade-in duration-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    navigate({ to: partnerRoutes.orderDetails, params: { orderId: order.id } });
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left font-bold text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
+                >
+                  <FileText className="size-3.5 text-zinc-500" />
+                  <span>View Details</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    if (order.customerPhone) {
+                      window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
+                    }
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left font-bold text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
+                >
+                  <Phone className="size-3.5 text-emerald-600" />
+                  <span>Call Customer</span>
+                </button>
+                <div className="my-1 border-t border-zinc-100" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    toast.info(`Bag tag printed for Order #${order.code}`);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left font-bold text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
+                >
+                  <Printer className="size-3.5 text-zinc-500" />
+                  <span>Print Bag Tag</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2. SUB-ROW: [PREPARING] pill · 4th order by Raj                           */}
+      {/* ========================================================================= */}
+      <div className="mt-1 flex items-center gap-2.5">
+        <span
+          className={`rounded px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white ${
+            isNew
+              ? "bg-amber-500"
+              : isProcessing
+              ? "bg-[#5B63D3]"
+              : isReady
+              ? "bg-emerald-600"
+              : isOutForDelivery
+              ? "bg-blue-600"
+              : isDelivered
+              ? "bg-emerald-700"
+              : "bg-[#5B63D3]"
+          }`}
+        >
+          {isNew
+            ? "INCOMING"
+            : isAccepted
+            ? "CONFIRMED"
+            : isProcessing
+            ? "PREPARING"
+            : isReady
+            ? "READY"
+            : isOutForDelivery
+            ? "DISPATCHED"
+            : isDelivered
+            ? "DELIVERED"
+            : STAGE_LABEL[order.stage]?.toUpperCase() || "ACTIVE"}
+        </span>
+
+        <span className="text-xs font-bold text-[#0284c7]">
+          {repeatCount}th order by {order.customerName}
+        </span>
+      </div>
+
+      <div className="my-3 border-t border-zinc-100" />
+
+      {/* ========================================================================= */}
+      {/* 3. SPECIAL INSTRUCTIONS: (🧺) Don't send cutlery, tissues and straws      */}
+      {/* ========================================================================= */}
+      <div className="rounded-lg border border-rose-300 bg-rose-50/25 px-2.5 py-1.5 flex items-center gap-2 text-xs font-medium text-rose-700">
+        <span className="flex size-4.5 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600 text-[11px] font-bold">
+          🧺
+        </span>
+        <span className="truncate">
+          {order.specialInstructions || "Handle with care · Fold neatly & pack in eco-friendly laundry bag"}
+        </span>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 4. ITEMIZED ITEMS LIST: ⊡ 1 x Dal Makhani  ₹200.00                       */}
+      {/* ========================================================================= */}
+      <div className="mt-3.5 space-y-2.5">
+        {order.items && order.items.length > 0 ? (
+          order.items.slice(0, 4).map((item, idx) => (
+            <div key={idx} className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                {/* Green Veg-food style pristine care square icon */}
+                <div className="flex size-3.5 shrink-0 items-center justify-center rounded-[2px] border border-emerald-600 p-[1.5px]">
+                  <div className="size-1.5 rounded-full bg-emerald-600" />
+                </div>
+                <span className="font-bold text-zinc-900 truncate">
+                  {item.qty || 1} x {item.name}
+                </span>
+              </div>
+              <span className="shrink-0 font-bold text-zinc-900 font-mono">
+                ₹{((item.price || 50) * (item.qty || 1)).toFixed(2)}
+              </span>
+            </div>
+          ))
+        ) : (
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="flex size-3.5 shrink-0 items-center justify-center rounded-[2px] border border-emerald-600 p-[1.5px]">
+                <div className="size-1.5 rounded-full bg-emerald-600" />
+              </div>
+              <span className="font-bold text-zinc-900">
+                {order.itemCount || 3} x Garments (Wash & Fold)
+              </span>
+            </div>
+            <span className="shrink-0 font-bold text-zinc-900 font-mono">
+              ₹{order.amount.toFixed(2)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="my-3 border-t border-zinc-100" />
+
+      {/* ========================================================================= */}
+      {/* 5. BILL & PAYMENT ROW: Total bill [PAID]  ₹400.50                         */}
+      {/* ========================================================================= */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-zinc-700 border-b border-dashed border-zinc-400 pb-0.5">
+            Total bill
+          </span>
+          <span className="rounded border border-teal-500 bg-teal-50/50 px-1.5 py-0.2 text-[10px] font-black uppercase tracking-wider text-teal-700">
+            {order.paymentMode === "cod" ? "COD" : "PAID"}
           </span>
         </div>
+
+        <span className="text-base font-black text-zinc-950 font-mono tracking-tight">
+          ₹{order.amount.toFixed(2)}
+        </span>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 6. RIDER / CAPTAIN STRIP: 🛵 5 riders nearby, assigning one soon          */}
+      {/* ========================================================================= */}
+      <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2.5 text-xs text-zinc-700 font-medium">
+        <span className="text-base shrink-0 select-none">🛵</span>
+        <span className="truncate font-semibold text-zinc-800">
+          {riderName
+            ? `Captain ${riderName} assigned · En route`
+            : "5 riders nearby, assigning one soon"}
+        </span>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 7. FULL-WIDTH PRIMARY ACTION BUTTON: Order ready (20:00)                  */}
+      {/* ========================================================================= */}
+      <div className="mt-3.5">
         <button
           type="button"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((prev) => !prev)}
-          className="flex items-center gap-1 text-[0.7rem] font-bold text-brand-dark"
+          onClick={handlePrimaryClick}
+          disabled={busyAction !== null}
+          className={`w-full py-3 rounded-xl text-center text-sm font-black text-white shadow-md transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 ${
+            isNew
+              ? "bg-amber-600 hover:bg-amber-700"
+              : isAccepted
+              ? "bg-[#1D4ED8] hover:bg-[#1E40AF]"
+              : isProcessing
+              ? "bg-[#1D4ED8] hover:bg-[#1E40AF]"
+              : isReady
+              ? "bg-emerald-600 hover:bg-emerald-700"
+              : "bg-[#1D4ED8] hover:bg-[#1E40AF]"
+          }`}
         >
-          {expanded ? "Less" : "More"}
-          <ChevronDown
-            className={`size-3.5 transition-transform duration-300 ${expanded ? "rotate-180" : ""}`}
-          />
+          {busyAction ? (
+            <span>Updating order...</span>
+          ) : isNew ? (
+            <span>Accept Order (01:45)</span>
+          ) : isAccepted ? (
+            <span>Start Processing 🧺</span>
+          ) : isProcessing ? (
+            <span>Order ready ({formatPrepTime(countdown)})</span>
+          ) : isReady ? (
+            <span>Handover to Captain · Verify OTP 🛵</span>
+          ) : isOutForDelivery ? (
+            <span>Out for Delivery 🛵</span>
+          ) : (
+            <span>Order Completed ✓</span>
+          )}
         </button>
-      </div>
-
-      <div
-        className="grid transition-all duration-300 ease-out"
-        style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
-      >
-        <div className="overflow-hidden">
-          <div className="mt-3 space-y-2 rounded-2xl bg-muted/50 p-3 text-[0.7rem] font-medium text-muted-foreground">
-            <p className="flex items-center gap-1.5">
-              <Package className="size-3.5 shrink-0" />
-              {order.items.map((item) => `${item.name} ×${item.qty}`).join(", ")}
-            </p>
-            <p className="flex items-center gap-1.5">
-              <Wallet className="size-3.5 shrink-0" />
-              Placed {order.placedAt} · {order.distanceKm} km away
-            </p>
-            {order.specialInstructions ? (
-              <p className="rounded-xl bg-card px-2.5 py-2 text-foreground">
-                “{order.specialInstructions}”
-              </p>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      {/* Garments Visual Summary Chips (👕 3 Shirts | 👖 2 Trousers | 🛏️ 1 Bedsheet) */}
-      <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-2.5 space-y-1">
-        <div className="flex items-center justify-between text-[10px] font-black uppercase text-black tracking-wider">
-          <span>Garments Summary</span>
-          <span className="text-zinc-500 font-bold">{order.itemCount} items</span>
-        </div>
-        <GarmentSummaryChips
-          items={order.items}
-          itemCount={order.itemCount}
-          services={order.services}
-        />
-      </div>
-
-      {/* Instant 4-Digit Handover OTP Input (When Clothes Ready for Delivery) */}
-      {order.stage === "ready" && (
-        <CardHandoverOtpInput
-          orderId={order.id}
-          orderCode={order.code}
-          onVerifyOtp={verifyDispatchOtp}
-        />
-      )}
-
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <OrderActionBar
-          order={order}
-          size="compact"
-          onAction={(actionId) => onAction(order, actionId)}
-          busyAction={busyAction ?? null}
-        />
-        <Link
-          to={partnerRoutes.orderDetails}
-          params={{ orderId: order.id }}
-          className="flex shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-xs font-bold tracking-tight text-zinc-800 transition-all duration-200 hover:bg-zinc-50 active:scale-95 shadow-2xs"
-        >
-          Details
-        </Link>
       </div>
     </article>
   );

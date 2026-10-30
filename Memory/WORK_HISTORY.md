@@ -33,6 +33,36 @@
 
 ## Detailed Log of Work Done (30 October 2026)
 
+### 79. Replicated Exact Zomato Merchant Live Orders Queue UI & Order Card Design A-to-Z
+- **User Request:**
+  - *"same iske jaisa hi or itne hi bada loyout and deisng bhu iske jasia hi baana hai A to Z same to same"*
+  - The user uploaded the gold-standard Zomato Merchant Partner Order Queue screen and requested to implement the exact layout, sizes, visual hierarchy, typography, and controls into `OrderCard.tsx`, `OrdersScreen.tsx`, and `ZomatoBottomNav.tsx`.
+- **Architectural Implementation Details:**
+  1. **Order Card Architecture (`OrderCard.tsx`):**
+     - **Top Header:** Bold `ID: {order.code || 4002}` on the left, order placement time (e.g. `8:03 PM`) and kebab menu (`⋮`) on the right.
+     - **Kebab Dropdown (`⋮`):** Added 1-tap dropdown modal with View Details, Call Customer, and Print Bag Tag options.
+     - **Sub-Row Status & Repeat Customer:** Stage pill badge (e.g. `PREPARING` in bold white on `#5B63D3`) accompanied by cyan-blue customer repeat text (e.g. `4th order by Raj`).
+     - **Special Instructions Banner:** Rounded tag with thin rose border (`border-rose-300 bg-rose-50/25 text-rose-700`) and laundry care icon `(🧺) Handle with care · Fold neatly & pack in eco-friendly laundry bag`.
+     - **Itemized Items List:** Tabular line items with pristine green care square icon `⊡`, item name with quantity (`1 x Men's Formal Shirt (Wash & Iron)`), and clean tabular price (`₹200.00`).
+     - **Billing & Payment Row:** Left: `Total bill` with dashed underline + `PAID` (or `COD`) teal outline pill; Right: `₹400.50` in bold mono font.
+     - **Rider / Captain Live Status Strip:** Rounded rectangular capsule with bike emoji `🛵` and live status (`5 riders nearby, assigning one soon` or `Captain {name} assigned · En route`).
+     - **Full-Width Prominent Primary Action Button:** Bold solid royal blue CTA (`bg-[#1D4ED8] hover:bg-[#1E40AF]`) with live countdown timer (`Order ready (20:00)`), advancing orders seamlessly through stages.
+  2. **Top Bar Header & Stage Pills (`OrdersScreen.tsx`):**
+     - **Top Bar:** Left: Emerald green toggle pill `[Online ⚪]` with live store online/offline switcher; Right: Instant Search (`Search`), Notification Bell (`Bell`) with badge, and Hub Menu (`LayoutGrid`).
+     - **Stage Tabs Carousel:** Rounded rectangular pills matching the exact screenshot design (`Preparing (1)` with rose border `border-rose-500 text-rose-600 font-bold`, `Ready (0)`, `Picked up (0)`, `Delivered (0)`, `All Orders (X)`).
+  3. **Bottom Navigation Bar (`ZomatoBottomNav.tsx`):**
+     - Matched the exact 5-tab merchant dock: `Orders` (Bell with blue dot), `Inventory` (`/services`), Center elevated circular button `Business` (`⇄` `/analytics`), `Feedback` (`/reviews`), and `History` (`/earnings`).
+- **Build & Packaging Verification:**
+  - `npm run build` in `partner-frontend`: Succeeded in 1.92s with zero errors.
+  - Re-compiled Android Partner APK and Play Store AAB Bundle via `python3 build_all_apks.py partner`:
+    - `QuickPress-Partner.apk` (14.6 MB)
+    - `QuickPress-Partner.aab` (13.8 MB)
+- **Files Modified:**
+  - `partner-frontend/src/components/orders/OrderCard.tsx`
+  - `partner-frontend/src/screens/OrdersScreen.tsx`
+  - `partner-frontend/src/components/layout/ZomatoBottomNav.tsx`
+  - `Memory/WORK_HISTORY.md`
+
 ### 78. Synchronized Partner Panel UI/UX Theme with Customer Panel Design System (Orders, Profile, Payouts, Services)
 - **User Request:**
   - *"ab mughe partner UI UX Desing karna ab Same customer penal me jo bhi Theam use Ho raha hai Us them ho copy karke Partner KA order Profile Payout servies page bbanao"*

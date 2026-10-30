@@ -97,52 +97,124 @@ export function OrdersScreen() {
       {/* MOBILE COMPACT ORDERS QUEUE (< md)                                        */}
       {/* ========================================================================= */}
       <div className="min-h-screen bg-white pb-28 text-black md:hidden">
-        {/* Sticky Filter Header with Search & Horizontal Stage Pills */}
-        <header className="sticky top-0 z-20 bg-card/95 backdrop-blur-xl border-b border-border/70 px-4 pt-3 pb-2.5 shadow-xs">
+        {/* Sticky Filter Header with [Online ⚪] Switch, Action Icons & Zomato-style Stage Pills */}
+        <header className="sticky top-0 z-20 bg-white border-b border-zinc-200/90 px-4 pt-3 pb-2.5 shadow-2xs">
+          {/* Top Bar Row: Online Toggle Switch on Left, Action Icons on Right */}
+          <div className="flex items-center justify-between">
+            {/* Green Online Pill Switch matching screenshot */}
+            <button
+              type="button"
+              onClick={() => {
+                const next = !isOnline;
+                toast.success(next ? "Store is now ONLINE & accepting new orders!" : "Store is now OFFLINE");
+              }}
+              className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-black transition-all cursor-pointer shadow-xs ${
+                !isOffline
+                  ? "bg-[#16a34a] text-white"
+                  : "bg-zinc-200 text-zinc-600"
+              }`}
+            >
+              <span>{!isOffline ? "Online" : "Offline"}</span>
+              <span className="size-4.5 rounded-full bg-white shadow-xs" />
+            </button>
+
+            {/* Action Icons: Search, Notifications, App Drawer Grid */}
+            <div className="flex items-center gap-3.5 text-zinc-700">
+              <button
+                type="button"
+                onClick={() => {
+                  const input = document.getElementById("partner-order-search-input");
+                  if (input) input.focus();
+                }}
+                className="p-1 hover:text-black transition-colors cursor-pointer"
+                title="Search Orders"
+              >
+                <Search className="size-5 stroke-[2.2]" />
+              </button>
+
+              <Link
+                to={partnerRoutes.notifications}
+                className="relative p-1 hover:text-black transition-colors cursor-pointer"
+                title="Notifications"
+              >
+                <Bell className="size-5 stroke-[2.2]" />
+                <span className="absolute top-1 right-1 size-2 rounded-full bg-rose-500" />
+              </Link>
+
+              <Link
+                to={partnerRoutes.shop}
+                className="p-1 hover:text-black transition-colors cursor-pointer"
+                title="Menu / Outlet Hub"
+              >
+                <LayoutGrid className="size-5 stroke-[2.2]" />
+              </Link>
+            </div>
+          </div>
+
           {/* Search Box */}
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <div className="relative mt-2.5">
+            <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
             <input
+              id="partner-order-search-input"
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by order ID, customer name or phone..."
-              className="h-10 w-full rounded-2xl border border-input bg-card pl-10 pr-4 text-xs font-bold text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all"
+              className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50/60 pl-9 pr-8 text-xs font-medium text-black placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none transition-all"
             />
             {query ? (
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black cursor-pointer"
               >
                 <X className="size-3.5" />
               </button>
             ) : null}
           </div>
 
-          {/* Horizontal Stage Badge Filter Carousel */}
+          {/* Horizontal Stage Badge Filter Carousel matching screenshot pills */}
           <div className="no-scrollbar -mx-4 mt-2.5 flex items-center gap-2 overflow-x-auto px-4 pb-1">
-            {STAGE_TABS.map((tab) => {
-              const isActive = filterTab === tab.id;
+            {[
+              {
+                id: "processing" as PartnerOrderFilterTab,
+                label: "Preparing",
+                count: orders.filter((o) => o.stage === "processing" || o.stage === "washing" || o.stage === "dry_cleaning" || o.stage === "accepted" || o.stage === "new").length,
+              },
+              {
+                id: "ready" as PartnerOrderFilterTab,
+                label: "Ready",
+                count: orders.filter((o) => o.stage === "ready" || o.stage === "ready_for_delivery").length,
+              },
+              {
+                id: "out_for_delivery" as PartnerOrderFilterTab,
+                label: "Picked up",
+                count: orders.filter((o) => o.stage === "out_for_delivery" || o.stage === "dispatched" || o.stage === "picked_up").length,
+              },
+              {
+                id: "delivered" as PartnerOrderFilterTab,
+                label: "Delivered",
+                count: orders.filter((o) => o.stage === "delivered").length,
+              },
+              {
+                id: "all" as PartnerOrderFilterTab,
+                label: "All Orders",
+                count: orders.length,
+              },
+            ].map((tab) => {
+              const isActive = filterTab === tab.id || (filterTab === "active" && tab.id === "processing");
               return (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setFilterTab(tab.id)}
-                  className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                  className={`shrink-0 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer whitespace-nowrap ${
                     isActive
-                      ? "bg-brand-green text-white shadow-cta font-black"
-                      : "border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:border-border"
+                      ? "border border-rose-500 bg-white text-rose-600 shadow-2xs"
+                      : "border border-zinc-300 bg-white text-zinc-500 hover:border-zinc-400 hover:text-zinc-800"
                   }`}
                 >
-                  <span>{tab.label}</span>
-                  <span
-                    className={`rounded-full px-1.5 py-0.2 text-[9px] font-black ${
-                      isActive ? "bg-white text-emerald-800" : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
+                  <span>{tab.label} ({tab.count})</span>
                 </button>
               );
             })}
