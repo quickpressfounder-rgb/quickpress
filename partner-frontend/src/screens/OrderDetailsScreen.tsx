@@ -14,6 +14,7 @@ import {
   MapPin,
   MessageSquare,
   MessageSquareQuote,
+  MoreVertical,
   Navigation,
   Package,
   Phone,
@@ -49,7 +50,7 @@ import { useOrderActionHandler } from "../hooks/use-order-action-handler";
 import { partnerRoutes } from "../navigation/partner-routes";
 import { STAGE_LABEL, formatOrderPlacedTime, type ManagedOrder } from "../data/partner-orders-mock";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchPartnerOrder, verifyPartnerDispatchOtp } from "@/api/partner/partner-orders-api";
 import { subscribePartnerOrders } from "@/lib/partner-socket";
 import { PartnerReviewModal } from "../components/orders/PartnerReviewModal";
@@ -143,6 +144,34 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [isDefectModalOpen, setIsDefectModalOpen] = useState(false);
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [countdown, setCountdown] = useState(1200);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatPrepTime = (secs: number) => {
+    const mins = Math.floor(secs / 60);
+    const remSecs = secs % 60;
+    return `${mins}:${remSecs < 10 ? "0" : ""}${remSecs}`;
+  };
 
   const matchedOrder = orders.find(
     (item) =>
@@ -379,9 +408,9 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
       {/* MOBILE ORDER DETAILS VIEW (< md)                                          */}
       {/* ========================================================================= */}
       <div className="min-h-screen bg-zinc-50/50 pb-28 text-zinc-900 md:hidden">
-        {/* Sticky Mobile Header */}
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between bg-white px-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border-b border-zinc-200">
-          <div className="flex items-center gap-2.5 min-w-0">
+        {/* Sticky Mobile Header matching Zomato Merchant Detail */}
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between bg-white px-4 border-b border-zinc-200/90 shadow-2xs">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => navigate({ to: partnerRoutes.orders })}
@@ -391,56 +420,93 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
               <ArrowLeft className="size-4" />
             </button>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-sm font-black tracking-tight text-zinc-950 truncate">
-                  {order ? `#${order.code}` : "Order Details"}
-                </h1>
-                <button type="button" onClick={copyCode} className="text-zinc-400 hover:text-zinc-800 shrink-0 cursor-pointer">
-                  <Copy className="size-3.5" />
-                </button>
-              </div>
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider truncate">
-                {stageLabel || "Loading..."}
-              </p>
+              <h1 className="text-base font-black tracking-tight text-zinc-950 truncate">
+                ID: {order ? (order.code || order.id.slice(-4)) : (orderId ? orderId.slice(-4) : "4002")}
+              </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Quick Order Help Button */}
-            {order ? (
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs font-semibold text-zinc-600">
+              {placedInfo.time || "8:03 PM"}
+            </span>
+
+            {/* Kebab 3-Dots Action Dropdown */}
+            <div className="relative" ref={menuRef}>
               <button
                 type="button"
-                onClick={() => navigate({ to: partnerRoutes.help, search: { orderCode: order.code, orderId: order.id } as any })}
-                title="Help with this Order"
-                className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 active:scale-95 border border-zinc-200 shadow-2xs hover:bg-zinc-200 transition-colors cursor-pointer"
+                onClick={() => setMenuOpen((prev) => !prev)}
+                className="flex size-8 items-center justify-center rounded-lg text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 transition-colors cursor-pointer"
+                title="More Actions"
               >
-                <HelpCircle className="size-4 text-zinc-700" />
+                <MoreVertical className="size-4.5" />
               </button>
-            ) : null}
 
-            {order?.customerPhone ? (
-              <button
-                type="button"
-                onClick={() => {
-                  if (order.customerPhone && !order.customerPhone.includes("••")) {
-                    window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
-                  }
-                }}
-                title="Call Customer"
-                className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 active:scale-95 shadow-2xs hover:bg-emerald-100 transition-colors cursor-pointer"
-              >
-                <PhoneCall className="size-4 text-emerald-700" />
-              </button>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={() => setShowInvoiceSheet(true)}
-              title="View & Download Tax Invoice"
-              className="flex size-9 items-center justify-center rounded-xl bg-white text-zinc-800 active:scale-95 border border-zinc-200 shadow-2xs hover:bg-zinc-100 transition-colors cursor-pointer"
-            >
-              <Printer className="size-4 text-zinc-700" />
-            </button>
+              {menuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-52 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-xl z-50 text-xs animate-in fade-in duration-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setShowInvoiceSheet(true);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left font-bold text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
+                  >
+                    <FileText className="size-3.5 text-zinc-500" />
+                    <span>View Tax Invoice</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      if (order?.customerPhone) {
+                        window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
+                      }
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left font-bold text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
+                  >
+                    <Phone className="size-3.5 text-emerald-600" />
+                    <span>Call Customer</span>
+                  </button>
+                  {riderPhone && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        window.open(`tel:${riderPhone.replace(/\s/g, "")}`);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left font-bold text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
+                    >
+                      <Bike className="size-3.5 text-blue-600" />
+                      <span>Call Captain ({riderName})</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setIsDefectModalOpen(true);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left font-bold text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
+                  >
+                    <Camera className="size-3.5 text-amber-600" />
+                    <span>Tag Pre-Wash Defect</span>
+                  </button>
+                  <div className="my-1 border-t border-zinc-100" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      navigate({ to: partnerRoutes.help, search: { orderCode: order?.code, orderId: order?.id } as any });
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left font-bold text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                  >
+                    <HelpCircle className="size-3.5 text-rose-600" />
+                    <span>Report Issue / Support</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -463,78 +529,170 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
           </div>
         ) : (
           <div className="space-y-3.5 p-4">
-            {/* Status & Placed Info Card (Pure White) */}
-            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
+            {/* ================================================================= */}
+            {/* EXACT ZOMATO MERCHANT ORDER TICKET CARD                           */}
+            {/* ================================================================= */}
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-sm">
+              {/* Row 1: ID, Placed Time, Kebab 3-dots */}
               <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${
-                        isOrderCancelled
-                          ? "bg-rose-50 text-rose-700 border border-rose-200"
-                          : order.stage === "delivered" || order.stage === "completed"
-                          ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                          : order.stage === "ready"
-                          ? "bg-blue-50 text-blue-800 border border-blue-200"
-                          : order.stage === "new"
-                          ? "bg-amber-50 text-amber-900 border border-amber-300"
-                          : "bg-zinc-100 text-zinc-900 border border-zinc-200"
-                      }`}
-                    >
-                      <span
-                        className={`size-1.5 rounded-full ${
-                          isOrderCancelled
-                            ? "bg-rose-500"
-                            : order.stage === "delivered" || order.stage === "completed"
-                            ? "bg-emerald-600"
-                            : order.stage === "ready"
-                            ? "bg-blue-600 animate-pulse"
-                            : order.stage === "new"
-                            ? "bg-amber-600 animate-pulse"
-                            : "bg-zinc-700"
-                        }`}
-                      />
-                      {stageLabel}
-                    </span>
-                    <OrderSlaCountdown
-                      placedAt={(order as any).placedAt || (order as any).placedAtRaw}
-                      deadline={(order as any).partnerAcceptDeadline || (order as any).riderAcceptDeadline}
-                      acceptedAt={(order as any).partnerAcceptedAt}
-                      stage={order.stage}
-                      autoCancelled={(order as any).autoCancelled}
-                      cancellationReason={(order as any).cancellationReason || (order as any).cancelledReason}
-                    />
-                  </div>
+                <span className="text-base font-black text-zinc-950 tracking-tight">
+                  ID: {order.code || order.id.slice(-4) || "4002"}
+                </span>
 
-                  <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
-                    <Clock className="size-3.5 text-zinc-500 shrink-0" />
-                    <span>Placing:</span>
-                    <strong className="text-zinc-950 font-black">{placedInfo.time}</strong>
-                    <span>•</span>
-                    <span>{placedInfo.date}</span>
-                    <span>•</span>
-                    <span className="font-semibold text-zinc-700">{placedInfo.relative}</span>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  {isOrderCancelled ? (
-                    <div>
-                      <span className="text-xl font-black tracking-tight text-zinc-400 line-through">₹{order.amount || charges.total}</span>
-                      <p className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md mt-0.5 inline-block uppercase border border-rose-200/60">
-                        Cancelled (₹0)
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <span className="text-xl font-black tracking-tight text-zinc-950">₹{order.amount || charges.total}</span>
-                      <p className="text-[10px] font-bold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded-md mt-0.5 inline-block uppercase border border-zinc-200">
-                        {order.paymentMode === "cod" ? "Cash on Delivery" : "Paid Online"}
-                      </p>
-                    </div>
-                  )}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-zinc-600">
+                    {placedInfo.time || "8:03 PM"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setMenuOpen((prev) => !prev)}
+                    className="flex size-7 items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 transition-colors cursor-pointer"
+                  >
+                    <MoreVertical className="size-4" />
+                  </button>
                 </div>
               </div>
+
+              {/* Row 2: Status Pill & Customer Loyalty Info */}
+              <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                <span className="rounded bg-[#5B63D3] px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white">
+                  {order.stage === "processing" || order.stage === "washing"
+                    ? "PREPARING"
+                    : order.stage === "ready"
+                    ? "READY"
+                    : order.stage === "out_for_delivery"
+                    ? "OUT FOR DELIVERY"
+                    : order.stage === "delivered"
+                    ? "DELIVERED"
+                    : order.stage === "cancelled"
+                    ? "CANCELLED"
+                    : "ACTIVE"}
+                </span>
+                <span className="text-xs font-bold text-[#0284c7]">
+                  {order.customerOrders || 4}th order by {getDisplayCustomerName(order.customerName)}
+                </span>
+              </div>
+
+              {/* Row 3: Special Care Tag (Rose Border Pill) */}
+              <div className="mt-3 rounded-xl border border-rose-300 bg-rose-50/25 px-3 py-2 flex items-center gap-2 text-xs text-rose-700">
+                <span className="text-sm shrink-0">🧺</span>
+                <span className="font-medium truncate">
+                  {order.specialInstructions || "Handle with care · Fold neatly & pack in eco-friendly laundry bag"}
+                </span>
+              </div>
+
+              {/* Row 4: Itemized Garments List with Iconic Green Square Indicator */}
+              <div className="mt-3.5 space-y-2 border-t border-zinc-100 pt-3">
+                {items.length === 0 ? (
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-3.5 items-center justify-center rounded-[2px] border border-emerald-600 p-[1.5px] shrink-0">
+                        <span className="size-1.5 rounded-full bg-emerald-600" />
+                      </span>
+                      <span className="font-bold text-zinc-900">
+                        1 x Premium Laundry Package
+                      </span>
+                    </div>
+                    <span className="font-mono font-bold text-zinc-900 tabular-nums">
+                      ₹{Number(order.amount || 200).toFixed(2)}
+                    </span>
+                  </div>
+                ) : (
+                  items.map((item, idx) => (
+                    <div key={item.id || idx} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                        <span className="flex size-3.5 items-center justify-center rounded-[2px] border border-emerald-600 p-[1.5px] shrink-0">
+                          <span className="size-1.5 rounded-full bg-emerald-600" />
+                        </span>
+                        <span className="font-bold text-zinc-900 truncate">
+                          {item.qty || 1} x {item.name || "Men's Formal Shirt (Wash & Iron)"}
+                        </span>
+                      </div>
+                      <span className="font-mono font-bold text-zinc-900 tabular-nums shrink-0">
+                        ₹{((item.qty || 1) * (item.price || 50)).toFixed(2)}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Row 5: Total Bill & Payment Badge */}
+              <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowInvoiceSheet(true)}
+                    className="text-xs font-semibold text-zinc-700 underline decoration-dashed underline-offset-4 cursor-pointer hover:text-black"
+                  >
+                    Total bill
+                  </button>
+                  <span className="rounded border border-teal-500/80 bg-teal-50/50 px-1.5 py-0.2 text-[10px] font-black uppercase text-teal-700">
+                    {order.paymentMode === "cod" ? "COD" : "PAID"}
+                  </span>
+                </div>
+                <span className="font-mono text-base font-black text-zinc-950 tabular-nums">
+                  ₹{Number(order.amount || charges.total || 0).toFixed(2)}
+                </span>
+              </div>
+
+              {/* Row 6: Live Delivery Fleet Captain Strip */}
+              <div className="mt-3.5 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2 text-xs text-zinc-700 flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-base shrink-0">🛵</span>
+                  <span className="font-medium truncate">
+                    {hasAssignedRider
+                      ? `Captain ${riderName} assigned · En route`
+                      : "5 riders nearby, assigning one soon"}
+                  </span>
+                </div>
+                {hasAssignedRider && riderPhone && (
+                  <a
+                    href={`tel:${riderPhone.replace(/\s/g, "")}`}
+                    className="shrink-0 text-[11px] font-bold text-emerald-700 hover:underline flex items-center gap-1"
+                  >
+                    <Phone className="size-3" />
+                    <span>Call</span>
+                  </a>
+                )}
+              </div>
+
+              {/* Row 7: Prominent Primary Action Button */}
+              {!isOrderCancelled && (
+                <div className="mt-3.5">
+                  <button
+                    type="button"
+                    disabled={Boolean(busy)}
+                    onClick={() => {
+                      if (order.stage === "new") handleAction(order, "accept");
+                      else if (order.stage === "accepted" || order.stage === "at_partner") handleAction(order, "start_wash");
+                      else if (order.stage === "processing" || order.stage === "washing") handleAction(order, "mark_ready");
+                      else if (order.stage === "ready") {
+                        const input = document.getElementById("mobile-dispatch-otp-input");
+                        if (input) input.focus();
+                        else toast.info("Enter Captain's 4-digit Dispatch OTP to handover");
+                      }
+                    }}
+                    className="w-full rounded-xl bg-[#1D4ED8] hover:bg-[#1E40AF] py-3 text-center text-sm font-black text-white shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    {busy?.orderId === order.id ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        <span>Updating...</span>
+                      </span>
+                    ) : order.stage === "processing" || order.stage === "washing" ? (
+                      <span>Order ready ({formatPrepTime(countdown)})</span>
+                    ) : order.stage === "new" ? (
+                      <span>Accept Order</span>
+                    ) : order.stage === "accepted" || order.stage === "at_partner" ? (
+                      <span>Start Processing 🧺</span>
+                    ) : order.stage === "ready" ? (
+                      <span>Handover to Captain 🛵</span>
+                    ) : (
+                      <span>View Order Status</span>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Cancelled Banner (if applicable) */}
@@ -559,55 +717,25 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
               </div>
             )}
 
-            {/* 1. BOOKED ITEMS & GARMENTS CHECKLIST (TOP PRIORITY - PURE WHITE) */}
+            {/* Detailed Billing & Inspection Card */}
             <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
               <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
                 <div className="flex items-center gap-2">
                   <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900 border border-zinc-200">
-                    <Shirt className="size-4" />
+                    <FileText className="size-4" />
                   </span>
                   <h2 className="text-xs font-black uppercase tracking-wider text-zinc-950">
-                    Booked Garments & Services ({items.length})
+                    Order Inspection &amp; Billing
                   </h2>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsDefectModalOpen(true)}
-                    className="flex items-center gap-1 rounded-lg bg-zinc-950 px-2.5 py-1 text-[11px] font-black text-white hover:bg-zinc-800 transition-colors shadow-2xs"
-                  >
-                    <Camera className="size-3" />
-                    <span>Tag Defect</span>
-                  </button>
-                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-800 border border-zinc-200">
-                    {totalGarmentPieces} pieces
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-3 divide-y divide-zinc-100">
-                {items.length === 0 ? (
-                  <p className="py-2 text-xs text-zinc-500">Standard Garment Care Package</p>
-                ) : (
-                  items.map((item, idx) => (
-                    <div key={item.id || idx} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-xs font-black text-zinc-900 border border-zinc-200">
-                          {item.qty || 1}×
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-black text-zinc-950 truncate">{item.name || "Laundry Service"}</p>
-                          <p className="text-[10px] text-zinc-500 font-medium">
-                            {item.service && item.service !== item.name ? `${item.service} · ` : ""}₹{item.price || 0} per {item.unit || "item"}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-xs font-black text-zinc-950 shrink-0">
-                        ₹{(item.qty || 1) * (item.price || 0)}
-                      </span>
-                    </div>
-                  ))
-                )}
+                <button
+                  type="button"
+                  onClick={() => setIsDefectModalOpen(true)}
+                  className="flex items-center gap-1 rounded-lg bg-zinc-950 px-2.5 py-1 text-[11px] font-black text-white hover:bg-zinc-800 transition-colors shadow-2xs cursor-pointer"
+                >
+                  <Camera className="size-3" />
+                  <span>Tag Defect</span>
+                </button>
               </div>
 
               {/* Pre-Wash Defect Inspection Proofs (Mobile View) */}

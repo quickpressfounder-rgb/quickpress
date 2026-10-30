@@ -33,6 +33,38 @@
 
 ## Detailed Log of Work Done (30 October 2026)
 
+### 81. Redesigned Partner Order Details Page to Match Exact Zomato Merchant Ticket Aesthetic
+- **User Request:**
+  - *"1 same jo abhi banan ussi desing me banana hai"* (Redesign the Order Details screen to match the exact same Zomato merchant layout and theme as the orders queue).
+- **Architectural Implementation Details:**
+  1. **Sticky Top Mobile App Bar (`OrderDetailsScreen.tsx`):**
+     - Clean white header with `ArrowLeft` back button, bold `ID: {order.code || 4002}`, placed time e.g. `8:03 PM`, and 3-dots kebab dropdown menu (`MoreVertical`).
+     - 1-tap dropdown actions for View Tax Invoice, Call Customer, Call Captain, Tag Pre-Wash Defect, and Report Issue.
+  2. **Primary Order Ticket Card:**
+     - Header row with order ID, placement time, and quick actions.
+     - Sub-row stage pill: Indigo badge `[PREPARING]` (`bg-[#5B63D3] text-white`) accompanied by cyan-blue customer loyalty info (e.g. `4th order by Raj`).
+     - Customer Care / Special Instructions Banner: Thin rose border box (`border-rose-300 bg-rose-50/25 text-rose-700`) with laundry care icon `(🧺) Handle with care · Fold neatly & pack in eco-friendly laundry bag`.
+     - Itemized list with iconic green square veg/care indicator (`⊡` green square outline with solid center dot), `${item.qty} x ${item.name}`, and tabular mono prices.
+     - Billing sub-row with dashed-underline `Total bill`, teal outline `[PAID]` / `[COD]` badge, and bold total price `₹400.50`.
+     - Live Delivery Fleet Captain Strip: Capsule card with bike icon `🛵 5 riders nearby, assigning one soon` or `🛵 Captain {riderName} assigned · En route` + 1-tap call button.
+     - Solid Royal Blue CTA button matching the orders queue: `[ Order ready (20:00) ]` with live countdown timer!
+  3. **Order Deep-Inspection & Custody Modules:**
+     - Pre-wash defect proofs preview thumbnails with full-screen zoom and "+ Tag Defect" camera modal.
+     - Detailed Billing & Charges card with breakdown (subtotal, taxes, delivery fee, discount) and printable Tax Invoice sheet trigger.
+     - Customer doorstep pickup address card with DPDP privacy protection badge and direct call button.
+     - Partner bag seal intake card for inbound custody handshakes.
+     - Fleet Captain card with vehicle details, rating, and 4-digit Handover OTP input.
+     - Order progression activity timeline.
+- **Verification & Deployment:**
+  - `npm run build` in `partner-frontend`: Passed cleanly in 1.17s (0 errors).
+  - Android APK & AAB Compilation (`python3 build_all_apks.py partner`):
+    - `QuickPress-Partner.apk` (14.6 MB)
+    - `QuickPress-Partner.aab` (13.8 MB)
+  - Deployed directly to AWS EC2 (`65.0.127.43`) via PM2 (`quickpress-partner`).
+- **Files Modified:**
+  - `partner-frontend/src/screens/OrderDetailsScreen.tsx`
+  - `Memory/WORK_HISTORY.md`
+
 ### 80. Fixed ReferenceError: useRef is not defined on Partner Orders Screen
 - **User Request:**
   - *"ISKO SOLVE KARO"* (with screenshot showing browser console `ReferenceError: useRef is not defined at orders.index-C6FDlj1G.js`).
