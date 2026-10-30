@@ -22,7 +22,7 @@ export const Route = createFileRoute("/registration")({
       sess.account?.status === "approved"
     );
     if (isVerified) {
-      throw redirect({ to: partnerRoutes.dashboard });
+      throw redirect({ to: partnerRoutes.orders });
     }
     const isOnboarded = sess.isOnboarded ?? sess.account?.isOnboarded;
     // If partner already submitted and neither resubmit nor edit is set, redirect to submitted screen

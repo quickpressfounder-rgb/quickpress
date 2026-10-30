@@ -27,7 +27,7 @@ export const Route = createFileRoute("/otp")({
         } else if (!isVerified) {
           throw redirect({ to: partnerRoutes.registrationSubmitted });
         } else {
-          throw redirect({ to: partnerRoutes.dashboard });
+          throw redirect({ to: partnerRoutes.orders });
         }
       }
     }

@@ -38,8 +38,8 @@ export function PartnerSidebar({
       id: "orders",
       label: "Orders",
       icon: ShoppingBag,
-      to: partnerRoutes.dashboard,
-      isActive: pathname === partnerRoutes.dashboard || pathname === "/",
+      to: partnerRoutes.orders,
+      isActive: pathname === partnerRoutes.orders || pathname.startsWith("/orders/") || pathname === "/",
     },
     {
       id: "services",
@@ -47,13 +47,6 @@ export function PartnerSidebar({
       icon: Layers,
       to: partnerRoutes.services,
       isActive: pathname.startsWith("/services"),
-    },
-    {
-      id: "order_history",
-      label: "Order history",
-      icon: Clock,
-      to: partnerRoutes.orders,
-      isActive: pathname === partnerRoutes.orders || pathname.startsWith("/orders/"),
     },
     {
       id: "reporting",

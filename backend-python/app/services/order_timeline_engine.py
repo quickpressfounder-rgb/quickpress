@@ -194,9 +194,7 @@ class OrderTimelineEngine:
                     order.get("partnerAccepted")
                     or order.get("partnerAcceptedAt")
                     or order.get("partner_accepted_at")
-                    or (isinstance(order.get("partner"), dict) and order.get("partner", {}).get("id"))
-                    or order.get("partnerId")
-                    or order.get("partner_id")
+                    or lifecycle.order_status(order) not in (lifecycle.PLACED, lifecycle.PENDING, "new", "ORDER_CREATED", "order_created")
                 )
                 is_rider_accepted = bool(
                     order.get("riderAccepted")

@@ -606,6 +606,21 @@ async def transition(
     order = await get_order(order_id)
     check_transition(order_status(order), target)
 
+    if target == CANCELLED and actor_role in ("system", "partner"):
+        st = order_status(order)
+        if st not in (PLACED, PENDING, "new", "ORDER_CREATED", "order_created"):
+            raise InvalidTransitionError(
+                f"Cannot cancel order {order_id} via {actor_role}: order is already in stage '{st}'."
+            )
+        if order.get("partnerAccepted") or order.get("partnerAcceptedAt"):
+            raise InvalidTransitionError(
+                f"Cannot cancel order {order_id} via {actor_role}: order was already accepted by partner store."
+            )
+        if order.get("riderAccepted") or order.get("assignedRiderId") or (isinstance(order.get("rider"), dict) and order.get("rider", {}).get("id")):
+            raise InvalidTransitionError(
+                f"Cannot cancel order {order_id} via {actor_role}: order has an active delivery captain assigned."
+            )
+
     at = now_iso()
     embedded = list(order.get("events") or [])
     embedded.append(

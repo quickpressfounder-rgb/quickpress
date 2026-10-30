@@ -49,11 +49,11 @@ export const partnerRoutes = {
 } as const;
 
 /**
- * Mobile bottom navigation tabs (Dashboard, Orders, Analytics, Wallet, Store).
+ * Mobile bottom navigation tabs (Orders, Services, Analytics, Wallet, Store).
  */
 export const partnerTabs = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutGrid, to: partnerRoutes.dashboard },
   { id: "orders", label: "Orders", icon: ShoppingBag, to: partnerRoutes.orders },
+  { id: "services", label: "Services", icon: Sparkles, to: partnerRoutes.services },
   { id: "analytics", label: "Analytics", icon: TrendingUp, to: partnerRoutes.analytics },
   { id: "earnings", label: "Wallet", icon: Wallet, to: partnerRoutes.earnings },
   { id: "profile", label: "Store", icon: Store, to: partnerRoutes.profile },
@@ -63,7 +63,6 @@ export const partnerTabs = [
  * Desktop Left Sidebar Operations navigation links (Live Business Ops).
  */
 export const partnerOperationsLinks = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: partnerRoutes.dashboard },
   { id: "orders", label: "Orders", icon: ListOrdered, to: partnerRoutes.orders },
   { id: "services", label: "Services", icon: Sparkles, to: partnerRoutes.services },
   { id: "payouts", label: "Payouts", icon: BarChart3, to: partnerRoutes.earnings },

@@ -48,8 +48,18 @@ export function IncomingOrderModal({
   const [selectedReason, setSelectedReason] = useState(REJECT_REASONS[0]);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const isAlreadyAccepted =
+    !order ||
+    order.stage !== "new" ||
+    Boolean((order as any).partnerAccepted) ||
+    Boolean((order as any).partnerAcceptedAt) ||
+    ["accepted", "processing", "ready", "dispatch", "out_for_delivery", "delivered", "cancelled", "refunded"].includes(order.stage);
+
   useEffect(() => {
-    if (!order) return;
+    if (!order || isAlreadyAccepted) {
+      stopOrderAlarm();
+      return;
+    }
     setCountdown(computeInitialCountdown());
     setRejecting(false);
 
@@ -57,9 +67,8 @@ export function IncomingOrderModal({
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          // Auto-reject on 2-minute window expiry
+          // Stop siren and dismiss popup on SLA expiry without issuing a destructive server cancel
           stopOrderAlarm();
-          void onReject(order.id, "Auto-rejected: Store acceptance window expired (2 min SLA)");
           onDismiss();
           return 0;
         }
@@ -68,9 +77,9 @@ export function IncomingOrderModal({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [order, onReject, onDismiss]);
+  }, [order, isAlreadyAccepted, onDismiss]);
 
-  if (!order) return null;
+  if (!order || isAlreadyAccepted) return null;
 
   const handleAccept = async () => {
     stopOrderAlarm();

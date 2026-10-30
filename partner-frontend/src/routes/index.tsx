@@ -52,7 +52,7 @@ function computeTargetRoute(sess: any): string {
   if (!isOnboarded) return partnerRoutes.registration;
   if (!isVerified) return partnerRoutes.registrationSubmitted;
 
-  return partnerRoutes.dashboard;
+  return partnerRoutes.orders;
 }
 
 function PartnerSplashScreen() {

@@ -113,7 +113,7 @@ export function PartnerDesktopTopBar({
       {/* Left: QuickPress Partner Brand Logo */}
       <div className="flex items-center gap-3">
         <Link
-          to={partnerRoutes.dashboard}
+          to={partnerRoutes.orders}
           className="flex items-center gap-1.5 transition-opacity hover:opacity-90 cursor-pointer"
         >
           <img

@@ -33,6 +33,32 @@
 
 ## Detailed Log of Work Done (30 October 2026)
 
+### 76. Defused Auto-Cancellation on Accepted/Picked Up Orders, Removed Dashboard Page from Partner Panel (Orders-First Console), and Prepared Order Details Screen Redesign Proposal
+- **User Request:**
+  1. Fix critical auto-cancellation bug: orders were auto-cancelling after 2 minutes even when partner had accepted, rider had accepted, and garments were picked up.
+  2. Remove the separate Dashboard page from the Partner Panel so the Live Orders queue (`/orders`) is the primary landing view.
+  3. Prepare a rough design wireframe proposal for the Partner Order Details screen before building it.
+- **Root Cause & Auto-Cancellation Fix:**
+  - **Frontend Cause:** In `partner-frontend/src/components/orders/IncomingOrderModal.tsx`, an unconditional `setInterval` was firing `void onReject(order.id, "Auto-rejected: Store acceptance window expired (2 min SLA)")` when `prev <= 1`. This was executing destructive server-side rejections even if the order was accepted or already in fulfillment.
+  - **Frontend Fix:** Removed the automatic `onReject` execution. On timer expiration, the modal simply silences the alarm siren and dismisses (`onDismiss()`). Added strict guard: if `order.stage !== "new"` or `order.partnerAccepted`, the modal returns `null` immediately.
+  - **Backend Reject Guard:** In `backend-python/app/db/partner_repositories.py` (`reject()`), added strict status validation: rejection is only permitted if the order is still in `PLACED`/`PENDING`/`new`. If the order is already accepted by partner (`partnerAccepted`) or rider (`riderAccepted`), the reject request is blocked.
+  - **Lifecycle Transition Guard:** In `backend-python/app/services/order_lifecycle.py` (`transition()`), transitions to `CANCELLED` triggered by `"system"` or `"partner"` are strictly blocked if `partnerAccepted` or `riderAccepted` is set.
+  - **Timeline Engine Hardened:** In `backend-python/app/services/order_timeline_engine.py`, refined `is_partner_accepted` to strictly test partner acceptance flags.
+- **Dashboard Removal & Orders-First Partner Console:**
+  - In `partner-frontend/src/routes/dashboard.tsx`: Set route to immediately redirect to `partnerRoutes.orders`.
+  - In `partner-frontend/src/routes/index.tsx`: Updated `computeTargetRoute()` to return `partnerRoutes.orders` as default landing page.
+  - In `partner-frontend/src/navigation/partner-routes.ts`: Removed `dashboard` from `partnerTabs` and `partnerOperationsLinks`. Bottom navigation tabs now: **Orders**, **Services**, **Analytics**, **Wallet**, and **Store**.
+  - In `partner-frontend/src/components/layout/ZomatoBottomNav.tsx`: Cleaned up the bottom navigation capsule, eliminating the "To Hub" toggle and providing direct 1-tap navigation to Orders, Services, Analytics, Wallet, and Store.
+  - In `partner-frontend/src/components/layout/PartnerDesktopTopBar.tsx` & `PartnerSidebar.tsx`: Updated brand logo and sidebar links to route directly to `/orders`.
+  - In `routes/registration.tsx`, `routes/otp.tsx`, and `routes/permissions.tsx`: Updated completion redirects to `partnerRoutes.orders`.
+- **Order Details Page Redesign Proposal:**
+  - Generated visual wireframe mockup `partner_order_details_wireframe_1793372242290.jpg` and structured layout specification in `partner_order_details_redesign_proposal.md` for user approval prior to implementation.
+- **Build Verification:**
+  - `npm run build` in `partner-frontend` succeeded (exit code 0).
+  - `npm run build` in `rider-frontend` succeeded (exit code 0).
+  - Backend tests `venv/bin/pytest tests/test_multi_party_cancellation.py tests/test_zomato_wave_dispatch.py` passed (10/10 tests passed).
+  - Re-compiled Android Partner APK and Google Play Store AAB Bundle via `python3 build_all_apks.py partner`: `QuickPress-Partner.apk` (14.6 MB) and `QuickPress-Partner.aab` (13.8 MB).
+
 ### 75. Four Core Marketplace Fulfillment Logics: Partner Alerts Unification & Persistence, Handover Handshake Protocol, Real-Time SLA Countdown Synchronization, and 2-Minute Auto-Cancellation Immunity
 - **User Request:**
   1. *Logic 1:* Partner dashboard & orders discrepancy: unified order alert stream so that dashboard and orders page alerts match 100%, and once an order is accepted by partner, refreshing the page never causes it to reappear as a new alert or re-sound the alarm.

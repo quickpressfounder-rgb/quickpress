@@ -18,7 +18,7 @@ export const Route = createFileRoute("/permissions")({
         window.location.search.includes("manage=true");
       if (!isManual) {
         if (areAllMerchantPermissionsGranted() || hasCompletedPermissionsOnboarding()) {
-          throw redirect({ to: partnerRoutes.dashboard });
+          throw redirect({ to: partnerRoutes.orders });
         }
       }
     }

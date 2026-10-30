@@ -98,7 +98,6 @@ export function PartnerIncomingOrderAlertModal({
         if (prev <= 1) {
           clearInterval(timer);
           stopPartnerOrderAlertRing();
-          void onReject(order.id, "Auto-rejected: Store acceptance window expired (5 min SLA)");
           return 0;
         }
         return prev - 1;

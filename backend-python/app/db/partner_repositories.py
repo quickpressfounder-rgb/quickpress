@@ -697,6 +697,30 @@ class PartnerOrderRepository:
 
     async def reject(self, partner_id: str, order_id: str, reason: str) -> Dict[str, Any]:
         text = reason or "Rejected by store"
+        order = await lifecycle.find_order(order_id)
+        if not order:
+            raise PartnerNotFoundError("Order not found")
+
+        current_status = lifecycle.order_status(order)
+        if current_status not in (lifecycle.PENDING, lifecycle.PLACED, "new", "ORDER_CREATED", "order_created"):
+            logger.warning(
+                "Blocked partner reject attempt: Order %s is in status '%s' (partnerAccepted=%s, riderAccepted=%s)",
+                order_id, current_status, order.get("partnerAccepted"), order.get("riderAccepted")
+            )
+            raise InvalidTransitionError(
+                f"Cannot reject order {order_id}: order is in status '{current_status}' and is already in fulfillment."
+            )
+
+        if order.get("partnerAccepted") or order.get("partnerAcceptedAt"):
+            raise InvalidTransitionError(
+                f"Cannot reject order {order_id}: order has already been accepted by partner store."
+            )
+
+        if order.get("riderAccepted") or order.get("assignedRiderId") or (isinstance(order.get("rider"), dict) and order.get("rider", {}).get("id")):
+            raise InvalidTransitionError(
+                f"Cannot reject order {order_id}: a delivery captain is already assigned or fulfilling this order."
+            )
+
         res = await self._transition(
             partner_id,
             order_id,
