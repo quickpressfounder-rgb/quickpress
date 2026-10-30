@@ -167,7 +167,9 @@ class OrderTimelineEngine:
             expired_rider_orders: List[str] = []
 
             # =========================================================================
-            # SLA RULE 1: Partner Acceptance Timeout (3 Minutes / 180 Seconds)
+            # SLA RULE 1: Partner Acceptance Timeout (2 Minutes / 120 Seconds)
+            # CRITICAL RULE: If Partner or Rider has accepted, NEVER auto-cancel!
+            # Only manually cancellable once accepted by partner/rider.
             # =========================================================================
             pending_partner_orders = await database.find_many(
                 lifecycle.ORDERS,
@@ -186,6 +188,26 @@ class OrderTimelineEngine:
 
             for order in (pending_partner_orders or []):
                 order_id = lifecycle.order_id_of(order)
+
+                # STRICT RULE: If Partner or Rider has already accepted, DO NOT auto-cancel!
+                is_partner_accepted = bool(
+                    order.get("partnerAccepted")
+                    or order.get("partnerAcceptedAt")
+                    or order.get("partner_accepted_at")
+                    or (isinstance(order.get("partner"), dict) and order.get("partner", {}).get("id"))
+                    or order.get("partnerId")
+                    or order.get("partner_id")
+                )
+                is_rider_accepted = bool(
+                    order.get("riderAccepted")
+                    or order.get("assignedRiderId")
+                    or (isinstance(order.get("rider"), dict) and order.get("rider", {}).get("id"))
+                    or order.get("riderId")
+                )
+                if is_partner_accepted or is_rider_accepted:
+                    logger.info("Order %s already accepted by partner/rider, strictly immune to auto-cancellation", order_id)
+                    continue
+
                 created_dt = _parse_iso_utc(order.get("placedAt") or order.get("createdAt"))
                 if not created_dt:
                     continue
@@ -193,13 +215,13 @@ class OrderTimelineEngine:
                 age_seconds = (now - created_dt).total_seconds()
                 if age_seconds >= lifecycle.PARTNER_ACCEPT_SLA_SECONDS:
                     logger.warning(
-                        "⏰ Partner SLA BREACHED for Order %s (age=%.1fs >= %ds). Executing auto-cancellation.",
+                        "⏰ Partner 2-Minute SLA BREACHED for Order %s (age=%.1fs >= %ds). Executing auto-cancellation.",
                         order_id,
                         age_seconds,
                         lifecycle.PARTNER_ACCEPT_SLA_SECONDS,
                     )
                     try:
-                        reason = "Auto-cancelled: Store did not accept order within 3 minutes SLA"
+                        reason = "Auto-cancelled: Store did not accept order within 2 minutes SLA"
                         updated = await lifecycle.transition(
                             order_id,
                             lifecycle.CANCELLED,
@@ -221,7 +243,7 @@ class OrderTimelineEngine:
                             },
                         )
 
-                        await self._process_auto_refund(updated, "Store did not accept in 3 min")
+                        await self._process_auto_refund(updated, "Store did not accept in 2 min")
                         expired_partner_orders.append(order_id)
 
                         # Broadcast cancellation event via Socket.IO

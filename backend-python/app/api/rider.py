@@ -3887,8 +3887,10 @@ async def get_dispatch_otp(
         "custody": order.get("custody", "partner"),
         "status": order.get("status"),
         "processingEstimateMinutes": order.get("processingEstimateMinutes") or 120,
-        "estimatedReadyAt": order.get("estimatedReadyAt"),
+        "estimatedReadyAt": order.get("estimatedReadyAt") or order.get("expectedReadyAt"),
+        "expectedReadyAt": order.get("expectedReadyAt") or order.get("estimatedReadyAt"),
         "processingStartedAt": order.get("processingStartedAt"),
+        "riderHandoverInitiated": bool(order.get("riderHandoverInitiated") or order.get("droppedAtPartnerAt")),
     }
 
 

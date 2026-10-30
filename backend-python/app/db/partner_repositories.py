@@ -680,6 +680,7 @@ class PartnerOrderRepository:
             "partnerId": partner_id,
             "partner_id": partner_id,
             "store_id": partner_id,
+            "partnerAccepted": True,
             "partnerAcceptedAt": now_iso,
             "riderDispatchStartedAt": now_iso,
             "riderAcceptDeadline": rider_deadline,
@@ -870,8 +871,63 @@ class PartnerOrderRepository:
                 "processingStages": timeline_info.get("stages", []),
                 "currentProcessingStage": timeline_info.get("currentStageId", "sorting"),
                 "expectedReadyAt": timeline_info.get("expectedReadyAt"),
+                "processingStartedAt": timeline_info.get("processingStartedAt") or now,
+                "processingEstimateMinutes": int(timeline_info.get("effectiveDurationHours", 2)) * 60,
+                "riderHandoverComplete": True,
             },
         )
+
+        # Settle Captain 1 pickup leg payout upon store handover / processing start
+        rider_id = order.get("assignedRiderId") or (order.get("rider") or {}).get("id") or order.get("riderId")
+        if rider_id:
+            try:
+                from app.db.rider_repositories import rider_wallet_repository, rider_notification_repository
+                canonical_order_id = lifecycle.order_id_of(order)
+                existing_txns = await database.find_many(
+                    "rider_wallet_transactions",
+                    {"riderId": str(rider_id), "orderId": canonical_order_id, "type": "ORDER_PAYOUT"}
+                )
+                if not existing_txns:
+                    pickup_leg_payout = float(order.get("pickupLegPayout") or 25.0)
+                    await rider_wallet_repository.credit(
+                        str(rider_id),
+                        pickup_leg_payout,
+                        title=f"Pickup leg payout for order #{order.get('code') or canonical_order_id[:8]}",
+                        kind="payout",
+                        order_code=str(order.get("code") or ""),
+                        order_id=canonical_order_id,
+                        reason=f"Pickup leg payout for order #{order.get('code') or canonical_order_id[:8]}",
+                        reference_id=f"payout_pk_{canonical_order_id}_{rider_id}",
+                    )
+                    await rider_notification_repository.push(
+                        str(rider_id),
+                        title="🎉 Handover Complete & Pickup Payout Credited",
+                        message=f"Order #{order.get('code') or canonical_order_id[:8]} handed over to store. ₹{pickup_leg_payout:.2f} credited to your wallet!",
+                        kind="payout",
+                        order_id=canonical_order_id,
+                    )
+            except Exception as e:
+                import logging
+                logging.getLogger("partner_repositories").warning(f"[PartnerRepo] Pickup payout credit note: {e}")
+
+        # Broadcast explicit processing started event to Rider so handover completes immediately
+        try:
+            from app.services.socket_service import broadcast_order_event
+            await broadcast_order_event(
+                "order.processing_started",
+                updated,
+                extra_data={
+                    "status": "processing",
+                    "processingStartedAt": timeline_info.get("processingStartedAt") or now,
+                    "expectedReadyAt": timeline_info.get("expectedReadyAt"),
+                    "estimatedReadyAt": timeline_info.get("expectedReadyAt"),
+                    "processingEstimateMinutes": int(timeline_info.get("effectiveDurationHours", 2)) * 60,
+                    "riderHandoverComplete": True,
+                },
+            )
+        except Exception:
+            pass
+
         return lifecycle.to_partner_order(updated)
 
     async def advance_stage(self, partner_id: str, order_id: str, stage_id: str) -> Dict[str, Any]:
@@ -972,6 +1028,21 @@ class PartnerOrderRepository:
             metadata={"completedAt": now, "dispatchOtpGenerated": True},
             changes=changes,
         )
+
+        try:
+            from app.services.socket_service import broadcast_order_event
+            await broadcast_order_event(
+                "order.ready_for_delivery",
+                updated,
+                extra_data={
+                    "status": "ready_for_delivery",
+                    "dispatchOtp": dispatch_otp_record["code"],
+                    "readyAt": now,
+                },
+            )
+        except Exception:
+            pass
+
         return lifecycle.to_partner_order(updated)
 
     async def history(self, partner_id: str) -> List[Dict[str, Any]]:

@@ -74,6 +74,11 @@ class PartnerOrderResponse(BaseModel):
     isExpress: Optional[bool] = False
     expressFee: Optional[float] = 0.0
     partnerExpressBonus: Optional[float] = 0.0
+    expectedReadyAt: Optional[str] = None
+    processingStartedAt: Optional[str] = None
+    processingEstimateMinutes: Optional[int] = 120
+    riderHandoverInitiated: Optional[bool] = False
+    partnerAccepted: Optional[bool] = False
 
 
 class PartnerBagIntakePayload(BaseModel):

@@ -201,6 +201,42 @@ export function OrderFlowCard({
   const isCancelled = order.stage === "cancelled";
   const timeline = order.timeline || [];
 
+  const computeRemainingSecs = useCallback(() => {
+    const rawExpected = (order as any).expectedReadyAt;
+    if (rawExpected) {
+      const diff = Math.floor((new Date(rawExpected).getTime() - Date.now()) / 1000);
+      return Math.max(0, diff);
+    }
+    const rawStarted = (order as any).processingStartedAt;
+    if (rawStarted) {
+      const mins = Number((order as any).processingEstimateMinutes) || 120;
+      const targetTime = new Date(rawStarted).getTime() + mins * 60 * 1000;
+      const diff = Math.floor((targetTime - Date.now()) / 1000);
+      return Math.max(0, diff);
+    }
+    return 120 * 60;
+  }, [order]);
+
+  const [remainingSecs, setRemainingSecs] = useState<number>(computeRemainingSecs);
+
+  useEffect(() => {
+    setRemainingSecs(computeRemainingSecs());
+    const interval = setInterval(() => {
+      setRemainingSecs(computeRemainingSecs());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [computeRemainingSecs]);
+
+  const formatRemaining = (totalSecs: number) => {
+    const hrs = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    if (hrs > 0) {
+      return `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
   return (
     <div className="rounded-3xl border border-slate-200/90 dark:border-border/80 bg-white dark:bg-card p-4 sm:p-5 shadow-sm space-y-4">
       {/* 1. Header: Live Order Progress Flow */}
@@ -377,7 +413,32 @@ export function OrderFlowCard({
             order.stage === "processing" ||
             order.stage === "dry_cleaning" ||
             order.stage === "ironing") && (
-            <div className="mt-3.5 pt-1 border-t border-emerald-500/15">
+            <div className="mt-3.5 pt-1 border-t border-emerald-500/15 space-y-2.5">
+              {/* Real-time Turnaround Countdown Card */}
+              <div className="flex items-center justify-between rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 px-3.5 py-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex size-7 items-center justify-center rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                    <Clock className="size-4 animate-spin-slow" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300 block">
+                      Target Turnaround SLA
+                    </span>
+                    <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                      Processing in store
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="font-mono text-base font-black text-amber-700 dark:text-amber-400">
+                    {formatRemaining(remainingSecs)}
+                  </span>
+                  <span className="text-[10px] font-bold text-muted-foreground block">
+                    {remainingSecs > 0 ? "Real Time Remaining" : "Ready Now"}
+                  </span>
+                </div>
+              </div>
+
               <button
                 type="button"
                 onClick={() => onAction?.("mark_ready")}

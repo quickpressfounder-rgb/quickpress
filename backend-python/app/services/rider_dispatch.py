@@ -808,6 +808,7 @@ class RiderDispatchEngine:
                 "assignedRiderId": rider_id,
                 "originalRiderId": rider_id,
                 "custody": "partner",
+                "riderHandoverInitiated": True,
             },
         )
 
@@ -827,7 +828,7 @@ class RiderDispatchEngine:
         await broadcast_order_event(
             EVENT_ORDER_AT_PARTNER,
             updated,
-            extra_data={"reachedStoreAt": now},
+            extra_data={"reachedStoreAt": now, "riderHandoverInitiated": True},
         )
 
         return updated

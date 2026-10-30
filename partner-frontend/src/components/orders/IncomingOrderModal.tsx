@@ -18,7 +18,7 @@ const REJECT_REASONS = [
   "Other issue",
 ];
 
-const PARTNER_SLA_SECONDS = 180; // 3 minutes SLA
+const PARTNER_SLA_SECONDS = 120; // 2 minutes SLA (120s)
 
 export function IncomingOrderModal({
   order,
@@ -57,9 +57,9 @@ export function IncomingOrderModal({
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          // Auto-reject on 3-minute window expiry
+          // Auto-reject on 2-minute window expiry
           stopOrderAlarm();
-          void onReject(order.id, "Auto-rejected: Store acceptance window expired (3 min SLA)");
+          void onReject(order.id, "Auto-rejected: Store acceptance window expired (2 min SLA)");
           onDismiss();
           return 0;
         }
@@ -127,7 +127,7 @@ export function IncomingOrderModal({
                   <Clock className="size-3.5" /> {formattedCountdown} left
                 </span>
                 <span className="text-[10px] font-semibold text-emerald-100 mt-0.5">
-                  3 Min Store SLA
+                  2 Min Store SLA
                 </span>
               </div>
 

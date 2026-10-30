@@ -1190,6 +1190,37 @@ def to_partner_order(order: Dict[str, Any]) -> Dict[str, Any]:
         "doorstepPiecesVerified": bool(order.get("doorstepPiecesVerified") or ((order.get("garmentVerification") or {}).get("doorstepPickup") or {}).get("verified")),
         "custodyAudit": order.get("custodyAudit"),
         "isAddressMasked": is_completed_or_cancelled,
+        "expectedReadyAt": order.get("expectedReadyAt") or (order.get("processingTimeline") or {}).get("expectedReadyAt"),
+        "processingStartedAt": order.get("processingStartedAt") or (order.get("processingTimeline") or {}).get("processingStartedAt"),
+        "processingEstimateMinutes": order.get("processingEstimateMinutes") or 120,
+        "riderHandoverInitiated": bool(order.get("riderHandoverInitiated") or status in (AT_STORE, AT_PARTNER, STORE_DROP_CONFIRMED)),
+        "partnerAccepted": bool(
+            order.get("partnerAccepted")
+            or order.get("partnerAcceptedAt")
+            or order.get("partner_accepted_at")
+            or status in (
+                PARTNER_ACCEPTED,
+                RIDER_SEARCHING,
+                RIDER_ASSIGNED,
+                PICKUP_RIDER_ASSIGNED,
+                PICKUP_RIDER_ACCEPTED,
+                RIDER_ACCEPTED,
+                PICKUP_OTP_PENDING,
+                PICKUP_OTP_VERIFIED,
+                PICKED_UP,
+                AT_STORE,
+                AT_PARTNER,
+                STORE_DROP_CONFIRMED,
+                PROCESSING_STARTED,
+                PROCESSING,
+                WASHING,
+                READY,
+                READY_FOR_DELIVERY,
+                OUT_FOR_DELIVERY,
+                DELIVERED,
+                COMPLETED,
+            )
+        ),
     }
 
 
@@ -1336,8 +1367,9 @@ def to_rider_delivery(order: Dict[str, Any]) -> Dict[str, Any]:
         "dispatchOtpVerified": dispatch_verified,
         "deliveryOtpVerified": delivery_verified,
         "processingEstimateMinutes": order.get("processingEstimateMinutes") or 120,
-        "estimatedReadyAt": order.get("estimatedReadyAt"),
-        "processingStartedAt": order.get("processingStartedAt"),
+        "estimatedReadyAt": order.get("estimatedReadyAt") or (order.get("processingTimeline") or {}).get("expectedReadyAt"),
+        "processingStartedAt": order.get("processingStartedAt") or (order.get("processingTimeline") or {}).get("processingStartedAt"),
+        "riderHandoverInitiated": bool(order.get("riderHandoverInitiated") or status in (AT_STORE, AT_PARTNER, STORE_DROP_CONFIRMED)),
         "timeline": _timeline(order, _RIDER_STAGES),
         "garmentDefects": order.get("garment_defects") or order.get("garmentDefects") or [],
         "hasDefectsReported": bool(order.get("hasDefectsReported") or order.get("garment_defects") or order.get("garmentDefects")),

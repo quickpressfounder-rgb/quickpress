@@ -260,17 +260,39 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     return null;
   });
 
+  const [isWaitingPartnerHandoverConfirm, setIsWaitingPartnerHandoverConfirm] = useState<boolean>(() => {
+    const s = String(order.status || "").toLowerCase();
+    const isHandoverInit = Boolean(
+      (order as any).riderHandoverInitiated ||
+      (order as any).droppedAtPartnerAt ||
+      s === "at_partner" ||
+      s === "at-partner" ||
+      s === "at_store"
+    );
+    const isProcessingStarted = Boolean(
+      s === "processing" ||
+      s === "ironing" ||
+      s === "ready_for_delivery" ||
+      s === "ready" ||
+      (order as any).processingStartedAt
+    );
+    return isHandoverInit && !isProcessingStarted;
+  });
+
   const [stage, setStage] = useState<TripStage>(() => {
     const s = String(order.status || "").toLowerCase();
     if (s === "delivery_reassignment_required") return "handover_waiting";
-    if (s === "at_partner" || s === "at-partner" || s === "processing" || s === "ironing") {
-      return "store_processing";
-    }
     if (s === "ready_for_delivery" || s === "ready") {
       return "ready_pickup_store";
     }
     if (s === "out_for_delivery" || s === "ready-for-delivery") {
       return "in_trip";
+    }
+    if (s === "processing" || s === "ironing") {
+      return "store_processing";
+    }
+    if (s === "at_partner" || s === "at-partner" || s === "at_store" || (order as any).riderHandoverInitiated) {
+      return "arrived_store";
     }
     return "en_route_pickup";
   });
@@ -374,10 +396,26 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
-  // SLA Processing Timer for Leg 1 store processing
+  // SLA Processing Timer for Leg 1 store processing (Strict Real-Time Sync)
+  const computeProcessingSecs = useCallback(() => {
+    const readyAt =
+      order.estimatedReadyAt ||
+      order.expectedReadyAt ||
+      (order as any).processingTimeline?.expectedReadyAt;
+    if (readyAt) {
+      const diff = Math.floor((new Date(readyAt).getTime() - Date.now()) / 1000);
+      return Math.max(0, diff);
+    }
+    return null;
+  }, [order.estimatedReadyAt, order.expectedReadyAt, (order as any).processingTimeline?.expectedReadyAt]);
+
   const [processingRemainingSecs, setProcessingRemainingSecs] = useState<number>(() => {
-    if (order.estimatedReadyAt) {
-      const diff = Math.floor((new Date(order.estimatedReadyAt).getTime() - Date.now()) / 1000);
+    const readyAt =
+      order.estimatedReadyAt ||
+      order.expectedReadyAt ||
+      (order as any).processingTimeline?.expectedReadyAt;
+    if (readyAt) {
+      const diff = Math.floor((new Date(readyAt).getTime() - Date.now()) / 1000);
       return Math.max(0, diff);
     }
     const mins = order.processingEstimateMinutes || 120;
@@ -387,6 +425,14 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     const mins = order.processingEstimateMinutes || 120;
     return mins * 60;
   });
+
+  // Keep remaining time real-time in sync with absolute expectedReadyAt
+  useEffect(() => {
+    const realSecs = computeProcessingSecs();
+    if (realSecs !== null) {
+      setProcessingRemainingSecs(realSecs);
+    }
+  }, [computeProcessingSecs]);
 
   // Handle Back to Trips page without cancelling the trip
   const handleBack = useCallback(() => {
@@ -415,14 +461,19 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     };
   }, [onBackToTrips]);
 
-  // Ticking countdown timer when stage === "store_processing"
+  // Ticking countdown timer when stage === "store_processing" (computes against real-time timestamp)
   useEffect(() => {
     if (stage !== "store_processing") return;
     const interval = setInterval(() => {
-      setProcessingRemainingSecs((prev) => Math.max(0, prev - 1));
+      const realSecs = computeProcessingSecs();
+      if (realSecs !== null) {
+        setProcessingRemainingSecs(realSecs);
+      } else {
+        setProcessingRemainingSecs((prev) => Math.max(0, prev - 1));
+      }
     }, 1000);
     return () => clearInterval(interval);
-  }, [stage]);
+  }, [stage, computeProcessingSecs]);
 
   // Format HH:MM:SS for countdown timer
   const formatCountdown = (totalSecs: number) => {
@@ -536,6 +587,50 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     return () => clearInterval(interval);
   }, [stage, isHandoverRide, isStorePickupForDelivery, order.orderId]);
 
+  // Fallback heartbeat poll while in "arrived_store" waiting for partner to confirm handover & start processing
+  useEffect(() => {
+    if (stage !== "arrived_store" || !isWaitingPartnerHandoverConfirm || !order.orderId || order.orderId.startsWith("TEST-")) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetchDispatchOtp(order.orderId);
+        const stat = String(res?.status || "").toLowerCase();
+        if (
+          stat === "processing" ||
+          stat === "ironing" ||
+          stat === "ready_for_delivery" ||
+          stat === "ready" ||
+          res?.processingStartedAt
+        ) {
+          setIsWaitingPartnerHandoverConfirm(false);
+          const isReady = stat === "ready_for_delivery" || stat === "ready";
+          setStage(isReady ? "ready_pickup_store" : "store_processing");
+          setCurrentLeg("store_to_customer");
+          setIsInAppNavActive(false);
+          if (res?.estimatedReadyAt || (res as any)?.expectedReadyAt) {
+            const readyAt = res?.estimatedReadyAt || (res as any)?.expectedReadyAt;
+            const diff = Math.floor((new Date(readyAt).getTime() - Date.now()) / 1000);
+            setProcessingRemainingSecs(Math.max(0, diff));
+          }
+          if (res?.processingEstimateMinutes) {
+            setProcessingTotalSecs(res.processingEstimateMinutes * 60);
+          }
+          unlockAudioContext();
+          playSuccessChime();
+          if (isReady) {
+            playTripAssignedBell();
+            playOrderAlertSound();
+            speakLaundryReadyForDelivery();
+            toast.success("🎉 Order Packed & Ready! Go to Partner Store to collect package.");
+          } else {
+            speakStoreProcessingStarted(res?.processingEstimateMinutes || 120);
+            toast.success("🎉 Partner Confirmed Handover! ₹25 Pickup Payout Credited.");
+          }
+        }
+      } catch {}
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [stage, isWaitingPartnerHandoverConfirm, order.orderId]);
+
   // Fallback heartbeat poll while in "store_processing" waiting for partner to finish cleaning
   useEffect(() => {
     if (stage !== "store_processing" || !order.orderId || order.orderId.startsWith("TEST-")) return;
@@ -605,13 +700,27 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         const stat = String(data?.status || "").toLowerCase();
 
         // 1. Store processing started -> update timer and alert
-        if (stat === "processing") {
+        if (stat === "processing" || data?.event === "order.processing_started" || data?.processingStartedAt) {
+          const readyAt = data?.expectedReadyAt || data?.estimatedReadyAt;
+          if (readyAt) {
+            const diff = Math.floor((new Date(readyAt).getTime() - Date.now()) / 1000);
+            setProcessingRemainingSecs(Math.max(0, diff));
+          }
           if (data.processingEstimateMinutes) {
             setProcessingTotalSecs(data.processingEstimateMinutes * 60);
-            setProcessingRemainingSecs(data.processingEstimateMinutes * 60);
           }
-          if (stage !== "store_processing") {
+          if (isWaitingPartnerHandoverConfirm || stage === "arrived_store") {
+            setIsWaitingPartnerHandoverConfirm(false);
             setStage("store_processing");
+            setCurrentLeg("store_to_customer");
+            setIsInAppNavActive(false);
+            unlockAudioContext();
+            playSuccessChime();
+            speakStoreProcessingStarted(data.processingEstimateMinutes || 120);
+            toast.success("🎉 Partner Confirmed Handover! ₹25 Pickup Payout Credited.");
+          } else if (stage !== "store_processing") {
+            setStage("store_processing");
+            setCurrentLeg("store_to_customer");
             speakStoreProcessingStarted(data.processingEstimateMinutes || 120);
           }
         }
@@ -1411,22 +1520,20 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const handleStoreIntakeVerified = async () => {
     unlockAudioContext();
     triggerHaptic();
-    playSuccessChime();
-    const mins = order.processingEstimateMinutes || Math.round(processingTotalSecs / 60) || 120;
-    speakStoreProcessingStarted(mins);
-    setCurrentLeg("store_to_customer");
-    setStage("store_processing");
+    setStage("arrived_store");
+    setIsWaitingPartnerHandoverConfirm(true);
     setIsInAppNavActive(false);
     toast.success(
-      `🎉 Clothes Handed Over at Store! Pickup payout ₹${(order.pickupLegPayout || safeFare / 2 || 35).toFixed(2)} credited. Processing started!`
+      `📦 Clothes Handed Over to ${partnerStoreName}! Waiting for store to confirm & start processing.`
     );
 
     try {
       const cur = localStorage.getItem("qp_active_rider_order");
       if (cur) {
         const parsed = JSON.parse(cur);
-        parsed.currentLeg = "store_to_customer";
+        parsed.currentLeg = "pickup_to_store";
         parsed.status = "at_partner";
+        parsed.riderHandoverInitiated = true;
         localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
       }
     } catch {}
@@ -1472,22 +1579,19 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     playSuccessChime();
 
     if (currentLeg === "pickup_to_store" && stage === "in_trip") {
-      // --- LEG 1 COMPLETE: Dropped at Partner Store ---
-      const mins = order.processingEstimateMinutes || Math.round(processingTotalSecs / 60) || 120;
-      speakStoreProcessingStarted(mins);
-      setCurrentLeg("store_to_customer");
-      setStage("store_processing");
+      // --- LEG 1 DROPPED AT STORE: Awaiting Partner Processing Start ---
+      setStage("arrived_store");
+      setIsWaitingPartnerHandoverConfirm(true);
       setIsInAppNavActive(false);
       toast.success(
-        `🎉 Clothes Dropped at Store! Pickup payout ₹${(order.pickupLegPayout || safeFare / 2 || 35).toFixed(2)} credited. Turnaround timer active!`
+        `📦 Clothes Handed Over to ${partnerStoreName}! Waiting for partner to confirm & start processing.`
       );
 
-      // Persist transitioned Leg 2 state in localStorage
+      // Persist handover initiated state in localStorage
       const updatedOrder: ActiveOrderData = {
         ...order,
-        currentLeg: "store_to_customer",
-        rideType: "delivery",
         status: "at_partner",
+        riderHandoverInitiated: true,
         pickupAddress: partnerStoreAddress,
         pickupTitle: partnerStoreName,
         dropAddress: order.dropAddress || order.pickupAddress,
@@ -2678,46 +2782,109 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               </button>
             </div>
 
-            {/* 2. Direct Handover Summary Card (No OTP needed for drop-off) */}
-            <div className="p-4 bg-slate-50 rounded-3xl border border-slate-200 text-center space-y-2">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                Store Clothes Drop-Off
-              </span>
-              <h4 className="text-sm font-black text-slate-900">
-                Hand over clothes bag to {partnerStoreName}
-              </h4>
-              <p className="text-[11px] text-slate-600 font-medium max-w-xs mx-auto leading-relaxed">
-                Confirm handover with store staff. Wash processing will start automatically upon handover.
-              </p>
-            </div>
-
-            {/* 3. Sealed Bag & Piece Cross-Check Summary */}
-            <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-2xl">
-              <div className="flex items-center gap-2.5">
-                <Package className="size-4.5 text-emerald-600 shrink-0" />
-                <div className="text-left">
-                  <p className="text-xs font-black text-emerald-950">
-                    Sealed Bag: {bagTagCode || "QP-BAG"}
+            {isWaitingPartnerHandoverConfirm ? (
+              <div className="p-4 bg-amber-500/10 dark:bg-amber-500/15 border-2 border-amber-400 rounded-3xl text-center space-y-3 animate-in fade-in">
+                <div className="size-12 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-amber-300 text-amber-700 dark:text-amber-300 flex items-center justify-center mx-auto shadow-inner">
+                  <Clock className="size-6 animate-spin-slow text-amber-600" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-800 dark:text-amber-300 block">
+                    Handover Initiated • Clothes Dropped
+                  </span>
+                  <h4 className="text-sm font-black text-slate-900">
+                    Waiting for {partnerStoreName} to start processing...
+                  </h4>
+                  <p className="text-[11px] text-slate-600 font-medium max-w-xs mx-auto leading-relaxed">
+                    Aapne kapde dukan par de diye hain. Partner ke console me &ldquo;Start Washing & Processing&rdquo; click karne par ₹25 payout credit hoga aur live turnaround timer shuru hoga.
                   </p>
-                  <span className="text-[10px] font-bold text-emerald-700">
-                    {doorstepPieces} Garments Handed Over
+                </div>
+
+                {/* Sealed Bag Cross-Check Pill */}
+                <div className="flex items-center justify-between p-2.5 bg-white/80 border border-amber-200 rounded-2xl max-w-xs mx-auto">
+                  <div className="flex items-center gap-2">
+                    <Package className="size-4 text-amber-600 shrink-0" />
+                    <span className="text-xs font-black text-slate-900">
+                      Bag: {bagTagCode || "QP-BAG"} ({doorstepPieces} pcs)
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    Awaiting Store
                   </span>
                 </div>
-              </div>
-              <span className="text-[10px] font-black text-emerald-800 bg-white px-2.5 py-1 rounded-full border border-emerald-200 shadow-2xs">
-                Verified ✓
-              </span>
-            </div>
 
-            {/* 4. Action Button: Partner Accepted / Continue */}
-            <button
-              type="button"
-              onClick={handleStoreIntakeVerified}
-              className="w-full h-13 rounded-full bg-slate-950 hover:bg-slate-900 text-white font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md cursor-pointer"
-            >
-              <CheckCircle2 className="size-4.5 text-emerald-400" />
-              <span>Partner Accepted • Start Wash Processing</span>
-            </button>
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      triggerHaptic(20);
+                      if (order.orderId && !order.orderId.startsWith("TEST-")) {
+                        try {
+                          const res = await fetchDispatchOtp(order.orderId);
+                          const stat = String(res?.status || "").toLowerCase();
+                          if (stat === "processing" || stat === "ironing" || res?.processingStartedAt) {
+                            setIsWaitingPartnerHandoverConfirm(false);
+                            setStage("store_processing");
+                            setCurrentLeg("store_to_customer");
+                            unlockAudioContext();
+                            playSuccessChime();
+                            toast.success("🎉 Partner Confirmed Handover! ₹25 Pickup Payout Credited.");
+                          } else {
+                            toast("Partner store hasn't clicked 'Start Processing' yet. Refreshing...", { icon: "⏳" });
+                          }
+                        } catch {}
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-slate-50 text-slate-900 text-xs font-black border border-slate-200 shadow-2xs active:scale-95 transition-all cursor-pointer"
+                  >
+                    <RefreshCw className="size-3.5 text-slate-600 animate-spin-slow" />
+                    <span>Check Store Status</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* 2. Direct Handover Summary Card (No OTP needed for drop-off) */}
+                <div className="p-4 bg-slate-50 rounded-3xl border border-slate-200 text-center space-y-2">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Store Clothes Drop-Off
+                  </span>
+                  <h4 className="text-sm font-black text-slate-900">
+                    Hand over clothes bag to {partnerStoreName}
+                  </h4>
+                  <p className="text-[11px] text-slate-600 font-medium max-w-xs mx-auto leading-relaxed">
+                    Hand over sealed bag to store staff and tap below. Once partner clicks &ldquo;Start Processing&rdquo;, handover completes & ₹25 payout is credited.
+                  </p>
+                </div>
+
+                {/* 3. Sealed Bag & Piece Cross-Check Summary */}
+                <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                  <div className="flex items-center gap-2.5">
+                    <Package className="size-4.5 text-emerald-600 shrink-0" />
+                    <div className="text-left">
+                      <p className="text-xs font-black text-emerald-950">
+                        Sealed Bag: {bagTagCode || "QP-BAG"}
+                      </p>
+                      <span className="text-[10px] font-bold text-emerald-700">
+                        {doorstepPieces} Garments Handed Over
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-black text-emerald-800 bg-white px-2.5 py-1 rounded-full border border-emerald-200 shadow-2xs">
+                    Verified ✓
+                  </span>
+                </div>
+
+                {/* 4. Action Button: Initiate Handover to Store */}
+                <button
+                  type="button"
+                  onClick={handleStoreIntakeVerified}
+                  className="w-full h-13 rounded-full bg-slate-950 hover:bg-slate-900 text-white font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md cursor-pointer"
+                >
+                  <Package className="size-4.5 text-yellow-400" />
+                  <span>Handover Clothes to Store Staff 🧺</span>
+                </button>
+              </>
+            )}
 
             {/* Emergency Help */}
             <button

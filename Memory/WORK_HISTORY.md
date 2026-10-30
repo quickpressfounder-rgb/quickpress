@@ -31,7 +31,61 @@
 
 ---
 
-## Detailed Log of Work Done Today (29 October 2026)
+## Detailed Log of Work Done (30 October 2026)
+
+### 75. Four Core Marketplace Fulfillment Logics: Partner Alerts Unification & Persistence, Handover Handshake Protocol, Real-Time SLA Countdown Synchronization, and 2-Minute Auto-Cancellation Immunity
+- **User Request:**
+  1. *Logic 1:* Partner dashboard & orders discrepancy: unified order alert stream so that dashboard and orders page alerts match 100%, and once an order is accepted by partner, refreshing the page never causes it to reappear as a new alert or re-sound the alarm.
+  2. *Logic 2:* Auto-cancellation prevention & handover handshake: if partner or rider has accepted the order, the order must strictly NEVER auto-cancel (only manual cancellation allowed); strict 2-minute timeout only applies if store does not accept. When rider drops clothes at store and taps handover, the handover must NOT complete until partner clicks "Start Washing & Processing 🧺" in partner console; and the "Start Washing & Processing 🧺" button only appears once rider arrives/initiates handover.
+  3. *Logic 3:* Turnaround SLA timing & dispatch bell/OTP flow: turnaround SLA starts upon handover completion; turnaround countdown in both Rider and Partner panels must match and show REAL TIME (computed from absolute timestamp `expectedReadyAt`), never restarting from the beginning on refresh. When partner marks ready, rider immediately receives audible bell & siren alert; rider shows 4-digit golden Dispatch OTP to partner; partner verifies to dispatch for doorstep delivery.
+  4. *Logic 4:* Strict monotonic progression (no step backs) and deduplication by order ID so duplicate cards never render.
+- **Architectural Implementation Details:**
+  1. **Partner Order Alerts & Persistence Architecture:**
+     - Added `localStorage` persistence helpers (`qp_partner_accepted_orders_v2`, `qp_partner_seen_orders_v2`, etc.) in `partner-frontend/src/context/PartnerOrdersContext.tsx` so memory sets survive browser reloads.
+     - Updated `toManagedOrder` to honor `partnerAccepted` flag: once accepted, orders are mapped to `stage = "accepted"` and strictly skipped by `unacknowledgedNew`.
+     - Removed redundant duplicate modal and audio ringer (`PartnerIncomingOrderAlertModal`) from `partner-frontend/src/screens/PartnerDashboardScreen.tsx` to unify all alerts through `IncomingOrderModal` in `PartnerOrdersContext`.
+     - Updated SLA countdown timer in `IncomingOrderModal.tsx` from 180s to strict 120s (2 minutes).
+  2. **Auto-Cancellation Immunity (Rule 1 & Rule 2):**
+     - In `backend-python/app/services/order_timeline_engine.py`, verified and hardened Rule 1 in `check_and_expire_sla_timeouts`: if `is_partner_accepted` or `is_rider_accepted` is True, order is strictly immune to auto-cancellation and cannot be cancelled automatically by system.
+  3. **Two-Way Handover Handshake Protocol:**
+     - Rider reaches store and taps `[Handover Clothes to Store Staff 🧺]`.
+     - Rider calls `confirmDropAtPartner`, sets `isWaitingPartnerHandoverConfirm = true` and `stage = "arrived_store"`, displaying an active waiting banner: *"Waiting for {partnerStoreName} to start processing..."*.
+     - In Partner console, order moves to `stage: "at_partner"`, which unlocks the button `[Start Washing & Processing 🧺]` (mapped in `order-actions.ts`).
+     - Partner taps `[Start Washing & Processing 🧺]`: backend transitions order to `processing`, computes `expectedReadyAt`, credits ₹25 pickup leg payout to rider wallet, and broadcasts `order.processing_started` with `expectedReadyAt`.
+     - Rider app detects `order.processing_started` via WebSocket/heartbeat poller: exits waiting state, unlocks payout, sets `stage = "store_processing"`, chimes, and starts SLA turnaround countdown.
+  4. **Strict Real-Time Synchronized SLA Turnaround Timer:**
+     - Both Partner (`OrderFlowCard.tsx`) and Rider (`GoToPickupHUD.tsx`) compute remaining seconds as `Math.max(0, Math.floor((new Date(expectedReadyAt).getTime() - Date.now()) / 1000))` on every 1-second interval.
+     - The timer is derived from the server's absolute UTC timestamp and never restarts from 120:00 on page reload or remount.
+  5. **Dispatch Ready Bell, 4-Digit OTP & Doorstep Navigation:**
+     - Partner taps `[Process Complete / Ready for Delivery ✨]`: backend transitions order to `ready_for_delivery`, generates secure 4-digit numeric `dispatchOtp`, and broadcasts `order.ready_for_delivery`.
+     - Rider app rings bell and siren (`playTripAssignedBell()` and `playOrderAlertSound()`), switches to `stage = "ready_pickup_store"`, and presents golden 4-digit Dispatch OTP blocks (`[ 4 ] [ 8 ] [ 2 ] [ 1 ]`).
+     - Partner verifies OTP in console: rider app detects verification and auto-launches customer doorstep navigation.
+  6. **Deduplication & Monotonic Progression:**
+     - `PartnerOrdersContext.tsx` deduplicates incoming orders strictly by ID using `Map<string, ManagedOrder>`.
+     - Enforced monotonic stage progression so orders at `accepted`, `washing`, or `ready` can never be demoted back to `new`.
+- **Files Modified:**
+  - `backend-python/app/api/rider.py`
+  - `backend-python/app/db/partner_repositories.py`
+  - `backend-python/app/models/partner.py`
+  - `backend-python/app/services/order_lifecycle.py`
+  - `backend-python/app/services/order_timeline_engine.py`
+  - `backend-python/app/services/rider_dispatch.py`
+  - `partner-frontend/src/components/orders/IncomingOrderModal.tsx`
+  - `partner-frontend/src/components/orders/OrderFlowCard.tsx`
+  - `partner-frontend/src/components/orders/order-actions.ts`
+  - `partner-frontend/src/context/PartnerOrdersContext.tsx`
+  - `partner-frontend/src/screens/PartnerDashboardScreen.tsx`
+  - `rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build Verification:**
+  - `partner-frontend`: `npm run build` succeeded (exit code 0).
+  - `rider-frontend`: `npm run build` succeeded (exit code 0).
+  - `QuickPress-Captain.apk` & `QuickPress-Captain.aab` generated and verified.
+  - `QuickPress-Partner.apk` & `QuickPress-Partner.aab` generated and verified.
+
+---
+
+## Detailed Log of Work Done Earlier (29 October 2026)
 
 ### 54. Native Android Background Order Delivery (FCM Token Registration Fix), Zero-Latency (0ms) Partner WebSocket Order Broadcast, and Captain Device Permissions with Urgent Siren Test
 - **User Request:**

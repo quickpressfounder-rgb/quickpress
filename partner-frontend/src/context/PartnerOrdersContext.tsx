@@ -170,7 +170,24 @@ function toManagedOrder(order: PartnerOrder | any): ManagedOrder {
     order?.paymentStatus === "refunded"
   );
   const effectiveStatus = (rawStatus === "cancelled" || isCancelledByMeta) ? "cancelled" : rawStatus;
-  const stage: OrderStage = STATUS_TO_STAGE[effectiveStatus] ?? "new";
+
+  const isAcceptedByMeta = Boolean(
+    order?.partnerAccepted ||
+    order?.partnerAcceptedAt ||
+    order?.partner_accepted_at ||
+    (order?.partner && (order?.partner?.id || order?.partner?.name)) ||
+    order?.partnerId ||
+    order?.partner_id ||
+    order?.assignedRider ||
+    order?.rider ||
+    order?.riderName
+  );
+
+  let stage: OrderStage = STATUS_TO_STAGE[effectiveStatus] ?? "new";
+  if (stage === "new" && isAcceptedByMeta) {
+    stage = "accepted";
+  }
+
   const rawAmount = Number(
     order?.amount ??
     order?.payableAmount ??
@@ -254,6 +271,11 @@ function toManagedOrder(order: PartnerOrder | any): ManagedOrder {
     expressFee: Number(order?.expressFee || order?.express_fee) || 0,
     partnerExpressBonus: Number(order?.partnerExpressBonus || order?.partner_express_bonus) || 0,
     expressPartnerSharePercent: Number(order?.expressPartnerSharePercent || order?.express_partner_share_percent) || 20,
+    expectedReadyAt: order?.expectedReadyAt || (order?.processingTimeline || {})?.expectedReadyAt || null,
+    processingStartedAt: order?.processingStartedAt || (order?.processingTimeline || {})?.processingStartedAt || null,
+    processingEstimateMinutes: Number(order?.processingEstimateMinutes) || 120,
+    riderHandoverInitiated: Boolean(order?.riderHandoverInitiated || effectiveStatus === "at_partner" || effectiveStatus === "at_store" || effectiveStatus === "store_received"),
+    partnerAccepted: Boolean(order?.partnerAccepted || isAcceptedByMeta),
     status: effectiveStatus,
   } as any;
 }
@@ -298,6 +320,30 @@ function getCachedOrders(): ManagedOrder[] {
 }
 
 const CACHED_ORDERS_KEY = "quickpress:partner:cached_orders";
+const ACCEPTED_ORDERS_KEY = "qp_partner_accepted_orders_v2";
+const SEEN_ORDERS_KEY = "qp_partner_seen_orders_v2";
+const CANCELLED_ORDERS_KEY = "qp_partner_cancelled_orders_v2";
+const PROCESSING_ORDERS_KEY = "qp_partner_processing_orders_v2";
+const READY_ORDERS_KEY = "qp_partner_ready_orders_v2";
+
+function readPersistedSet(key: string): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr.map(String) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writePersistedSet(key: string, set: Set<string>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(Array.from(set)));
+  } catch {}
+}
 
 function readCachedOrders(): ManagedOrder[] {
   if (typeof window === "undefined") return [];
@@ -323,7 +369,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
   const [isOffline, setIsOffline] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [incomingOrder, setIncomingOrder] = useState<ManagedOrder | null>(null);
-  const [seenOrderIds, setSeenOrderIds] = useState<Set<string>>(() => new Set());
+  const [seenOrderIds, setSeenOrderIds] = useState<Set<string>>(() => readPersistedSet(SEEN_ORDERS_KEY));
 
   // Stable references for state to avoid recreating callbacks
   const incomingOrderRef = useRef<ManagedOrder | null>(null);
@@ -332,11 +378,11 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
   const seenOrderIdsRef = useRef<Set<string>>(seenOrderIds);
   seenOrderIdsRef.current = seenOrderIds;
 
-  // Optimistic tracking sets so background polling never reverts an active partner transition
-  const acceptedOrderIds = useRef<Set<string>>(new Set());
-  const processingOrderIds = useRef<Set<string>>(new Set());
-  const readyOrderIds = useRef<Set<string>>(new Set());
-  const cancelledOrderIds = useRef<Set<string>>(new Set());
+  // Persisted tracking sets so page reloads and background polling NEVER revert an active partner transition or re-ring alarms
+  const acceptedOrderIds = useRef<Set<string>>(readPersistedSet(ACCEPTED_ORDERS_KEY));
+  const processingOrderIds = useRef<Set<string>>(readPersistedSet(PROCESSING_ORDERS_KEY));
+  const readyOrderIds = useRef<Set<string>>(readPersistedSet(READY_ORDERS_KEY));
+  const cancelledOrderIds = useRef<Set<string>>(readPersistedSet(CANCELLED_ORDERS_KEY));
 
   const isOperationalRoute = useCallback(() => {
     if (typeof window === "undefined") return false;
@@ -370,7 +416,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
         const remote = await fetchPartnerOrders();
         const mapped = remote.map(toManagedOrder);
 
-        // Reconcile with optimistic states so background polling NEVER reverts an action
+        // Reconcile with persisted sets so background polling NEVER reverts an action
         const reconciled = mapped.map((o) => {
           if (cancelledOrderIds.current.has(o.id)) {
             return { ...o, stage: "cancelled" as OrderStage };
@@ -381,35 +427,36 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
           if (processingOrderIds.current.has(o.id)) {
             return { ...o, stage: "washing" as OrderStage };
           }
-          if (acceptedOrderIds.current.has(o.id) && o.stage === "new") {
+          if ((acceptedOrderIds.current.has(o.id) || (o as any).partnerAccepted) && o.stage === "new") {
             return { ...o, stage: "accepted" as OrderStage };
           }
           return o;
         });
 
-        // ⚡ Shallow diffing: ONLY update state if orders actually changed!
-        // This eliminates 95% of background re-renders and solves UI page lag!
-        setOrders((prev) => {
-          if (
-            prev.length === reconciled.length &&
-            prev.every(
-              (p, idx) =>
-                p.id === reconciled[idx]?.id &&
-                p.stage === reconciled[idx]?.stage &&
-                p.amount === reconciled[idx]?.amount
-            )
-          ) {
-            return prev; // Same reference -> 0 component re-renders!
+        // ⚡ Deduplicate orders strictly by id (Requirement 4: No duplicate orders)
+        const dedupMap = new Map<string, ManagedOrder>();
+        for (const o of reconciled) {
+          if (!dedupMap.has(o.id)) {
+            dedupMap.set(o.id, o);
           }
-          writeCachedOrders(reconciled);
-          return reconciled;
+        }
+        const deduped = Array.from(dedupMap.values());
+
+        // Monotonic progression rule: Never step back an order that was already accepted/washing/ready
+        setOrders((prev) => {
+          const prevMap = new Map(prev.map((p) => [p.id, p]));
+          const next = deduped.map((item) => {
+            const prevItem = prevMap.get(item.id);
+            if (prevItem && prevItem.stage !== "new" && item.stage === "new") {
+              return { ...item, stage: prevItem.stage };
+            }
+            return item;
+          });
+          writeCachedOrders(next);
+          return next;
         });
 
         if (reconciled.length === 0) {
-          acceptedOrderIds.current.clear();
-          processingOrderIds.current.clear();
-          readyOrderIds.current.clear();
-          cancelledOrderIds.current.clear();
           stopOrderAlarm();
           setIncomingOrder(null);
         }
@@ -422,11 +469,14 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
               !seenOrderIdsRef.current.has(o.id) &&
               !acceptedOrderIds.current.has(o.id) &&
               !cancelledOrderIds.current.has(o.id) &&
+              !(o as any).partnerAccepted &&
+              !(o as any).partnerAcceptedAt &&
               o.amount > 0
           );
 
           if (unacknowledgedNew && !incomingOrderRef.current) {
             seenOrderIdsRef.current.add(unacknowledgedNew.id);
+            writePersistedSet(SEEN_ORDERS_KEY, seenOrderIdsRef.current);
             setSeenOrderIds((prev) => new Set([...prev, unacknowledgedNew.id]));
             setIncomingOrder(unacknowledgedNew);
             startOrderAlarm(unacknowledgedNew.code, unacknowledgedNew.amount, unacknowledgedNew.customerName);
@@ -642,6 +692,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
       stopOrderAlarm();
       setIncomingOrder(null);
       acceptedOrderIds.current.add(orderId);
+      writePersistedSet(ACCEPTED_ORDERS_KEY, acceptedOrderIds.current);
 
       // ⚡ INSTANTANEOUS OPTIMISTIC ACTION (0ms lag):
       // Advances stage immediately in local state so "Accept" disappears instantly
@@ -649,7 +700,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
       setOrders((prev) =>
         prev.map((o) =>
           o.id === orderId
-            ? { ...o, stage: "accepted" as OrderStage }
+            ? { ...o, stage: "accepted" as OrderStage, partnerAccepted: true }
             : o
         )
       );
@@ -669,6 +720,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
       stopOrderAlarm();
       setIncomingOrder(null);
       cancelledOrderIds.current.add(orderId);
+      writePersistedSet(CANCELLED_ORDERS_KEY, cancelledOrderIds.current);
 
       setOrders((prev) =>
         prev.map((o) =>
@@ -747,6 +799,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
   const startProcessing = useCallback(
     async (orderId: string) => {
       processingOrderIds.current.add(orderId);
+      writePersistedSet(PROCESSING_ORDERS_KEY, processingOrderIds.current);
 
       // ⚡ INSTANTANEOUS OPTIMISTIC ACTION (0ms lag):
       // Immediately advances to "washing" so the next step button ("Mark Ready for Delivery") appears!
@@ -771,6 +824,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
   const completeOrder = useCallback(
     async (orderId: string) => {
       readyOrderIds.current.add(orderId);
+      writePersistedSet(READY_ORDERS_KEY, readyOrderIds.current);
 
       // ⚡ INSTANTANEOUS OPTIMISTIC ACTION (0ms lag):
       // Immediately advances to "ready"

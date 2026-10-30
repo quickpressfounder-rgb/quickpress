@@ -61,6 +61,16 @@ export function getOrderActions(stage: OrderStage, isDryClean = false): OrderAct
       // Clothes are being picked up by Captain. Strictly NO processing action until clothes reach store!
       return [];
     case "at_partner":
+      return [
+        {
+          id: "start_washing",
+          label: "Start Washing & Processing 🧺",
+          icon: WashingMachine,
+          intent: "primary",
+          nextStage: "washing",
+          timelineLabel: "Processing started",
+        },
+      ];
     case "washing":
     case "dry_cleaning":
     case "ironing":
