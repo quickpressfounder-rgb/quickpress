@@ -921,6 +921,11 @@ class PartnerOrderRepository:
 
         current_status = lifecycle.order_status(order)
         if current_status not in (
+            lifecycle.AT_PARTNER,
+            "at_partner",
+            "at-partner",
+            lifecycle.AT_STORE,
+            "at_store",
             lifecycle.PROCESSING,
             lifecycle.PROCESSING_STARTED,
             "washing",

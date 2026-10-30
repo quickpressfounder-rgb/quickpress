@@ -3767,6 +3767,55 @@ This single command will automatically:
     - `QuickPress-Captain.aab` (17.6 MB) compiled & verified.
     - Capacitor iOS synced (0.93s).
 
+### 74. Store Processing Map Removal & End-to-End Multi-Leg Fulfillment Flow Alignment
+- **User Request & Flow Correction:**
+  1. **Map Removal on Store Laundry Processing Screen (`stage === "store_processing"`):**
+     - Omit Map completely on the laundry processing screen so it doesn't take up half the viewport while garments are being cleaned in the store.
+     - Shift all processing details to the top (Washing & Steam Ironing status, In Cleaning pill, Pickup Payout Credited ₹25.00, Turnaround SLA Countdown, Partner Store Ram details & call button).
+  2. **Direct Store Handover without OTP Barrier (Leg 1 Drop):**
+     - On arrival at store, rider taps `[Handover]` button -> modal confirms ("Store par kapde handover kar diye?").
+     - On confirmation, handover completes directly without OTP barrier: credits pickup payout to wallet, transitions database order to `processing` / `at_partner`, and immediately starts turnaround countdown in rider app.
+     - Partner console immediately displays "Process Started" and gives partner the primary action: `[Process Complete / Ready for Delivery ✨]`.
+  3. **Loud Siren & Bell Alarm on Order Ready:**
+     - When Partner marks ready (`POST /api/partner/orders/{id}/ready`), rider's app immediately detects it via realtime socket & fast 3s heartbeat poll.
+     - Rings the bell (`playTripAssignedBell`) and loud siren alarm (`playOrderAlertSound`), plus voice announcement: *"कपड़े तैयार हैं! स्टोर से कलेक्ट करें"*.
+     - Transitions rider app to `stage = "ready_pickup_store"` and routes map to the Partner Store.
+  4. **Prominent 4-Digit Dispatch OTP Display on Rider's Screen:**
+     - In `stage === "ready_pickup_store"`, rider's screen displays a high-contrast golden monospace 4-digit Dispatch OTP card (`[ 4 ] [ 8 ] [ 2 ] [ 1 ]`).
+     - Clear instructions: *"Show this 4-Digit Dispatch OTP to Partner. Partner enters this code in their Partner Console to release packed clothes and dispatch the order."*
+     - Partner console enters this OTP via `CardHandoverOtpInput` calling `/api/partner/orders/{id}/verify-dispatch-otp`.
+  5. **Automatic Transition to Customer Navigation (Leg 2 Delivery):**
+     - As soon as partner enters/verifies the Dispatch OTP, rider app automatically switches to `currentLeg = "store_to_customer"` and `stage = "in_trip"`.
+     - Active destination automatically switches to the Customer's Address & Coordinates.
+     - Turn-by-turn navigation starts to Customer doorstep.
+  6. **Customer Doorstep: Reached -> Payment (if COD) -> Delivery OTP -> Pure White Success Screen:**
+     - Rider taps `[Reached at Customer]`.
+     - If unpaid/COD: opens Payment Screen (Dynamic Razorpay UPI QR + Cash confirmation) -> then proceeds to Delivery OTP screen.
+     - If prepaid/online: bypasses payment screen directly to Delivery OTP screen.
+     - Rider enters 4-digit Delivery OTP given by customer -> verified -> pure white Success Screen.
+- **Files Modified:**
+  - `rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`:
+    - Wrapped locked map card with `{stage !== "store_processing" && ( ... )}` to hide map on processing screen.
+    - Updated bottom sheet container to `flex-1 max-h-none overflow-y-auto p-4 space-y-4` and hid duplicate top store card during `store_processing`.
+    - Removed OTP barrier from Leg 1 drop-off in `handleMarkArrivedAtStore` and `showHandoverConfirmModal`, completing handover directly.
+    - Added siren (`playOrderAlertSound`) and bell (`playTripAssignedBell`) when laundry becomes ready.
+    - Built prominent golden monospace Dispatch OTP card in `stage === "ready_pickup_store"`.
+    - Added automatic transition to Customer navigation upon partner OTP verification.
+  - `partner-frontend/src/components/orders/order-actions.ts`:
+    - Added `mark_ready` action directly for `at_partner` stage so partner console shows "Process Started" and gives `[Process Complete / Ready for Delivery ✨]` button immediately upon clothes arrival.
+  - `backend-python/app/services/order_lifecycle.py`:
+    - Added `READY_FOR_DELIVERY` to `AT_STORE` and `AT_PARTNER` valid transitions.
+  - `backend-python/app/db/partner_repositories.py`:
+    - Included `AT_PARTNER` and `AT_STORE` in `complete()` valid current statuses.
+- **Verification & Packaging:**
+  - `rider-frontend` build (`npm run build`): PASSED (0 errors).
+  - `partner-frontend` build (`npm run build`): PASSED (0 errors).
+  - Compiled and verified Android Captain APK & AAB (`python3 build_all_apks.py rider`):
+    - `QuickPress-Captain.apk` (18.4 MB) signed & mirrored to public artifacts.
+    - `QuickPress-Captain.aab` (17.6 MB) built.
+    - Capacitor iOS synced (0.62s).
+
+
 
 
 

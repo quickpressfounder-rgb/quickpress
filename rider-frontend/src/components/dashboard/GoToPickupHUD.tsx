@@ -52,6 +52,8 @@ import { riderLocationEngine } from "../../lib/rider-location-service";
 import {
   playArrivalChime,
   playSuccessChime,
+  playTripAssignedBell,
+  playOrderAlertSound,
   speakArrival,
   speakTripComplete,
   speakText,
@@ -553,13 +555,44 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           res?.isVerified
         ) {
           unlockAudioContext();
+          playTripAssignedBell();
+          playOrderAlertSound();
           playSuccessChime();
           speakLaundryReadyForDelivery();
-          toast.success("🎉 Order Packed & Ready! Go to Store to collect package.");
+          toast.success("🎉 Order Packed & Ready! Go to Partner Store to collect package.");
           setStage("ready_pickup_store");
         }
       } catch {}
-    }, 10000);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [stage, order.orderId]);
+
+  // Polling while in "ready_pickup_store" waiting for partner to verify dispatch OTP
+  useEffect(() => {
+    if (stage !== "ready_pickup_store" || !order.orderId || order.orderId.startsWith("TEST-")) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetchDispatchOtp(order.orderId);
+        if (res?.dispatchOtp) setCaptainDispatchOtp(res.dispatchOtp);
+        if (
+          res?.status === "out_for_delivery" ||
+          res?.status === "OUT_FOR_DELIVERY" ||
+          res?.isVerified
+        ) {
+          unlockAudioContext();
+          playSuccessChime();
+          speakDispatchOtpVerified();
+          toast.success("✓ Dispatch OTP verified by Partner! Navigating to customer.");
+          setCurrentLeg("store_to_customer");
+          setStage("in_trip");
+          setIsInAppNavActive(true);
+          setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+          setTimeout(() => {
+            launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName || "Customer");
+          }, 600);
+        }
+      } catch {}
+    }, 3000);
     return () => clearInterval(interval);
   }, [stage, order.orderId]);
 
@@ -583,17 +616,19 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           }
         }
 
-        // 2. Partner marked ready -> instantly remove timer, play chime & speak voice alert
+        // 2. Partner marked ready -> instantly ring bell & siren alarm, chime & voice alert
         if (stat === "ready_for_delivery" || stat === "ready") {
           if (data?.dispatchOtp) setCaptainDispatchOtp(data.dispatchOtp);
           unlockAudioContext();
+          playTripAssignedBell();
+          playOrderAlertSound();
           playSuccessChime();
           speakLaundryReadyForDelivery();
           toast.success("🎉 Order Packed & Ready! Go to Partner Store to collect package.");
           setStage("ready_pickup_store");
         }
 
-        // 3. Dispatch OTP verified by Partner -> auto-advance to in_trip with voice
+        // 3. Dispatch OTP verified by Partner -> auto-advance to in_trip with voice & customer navigation
         if (stat === "out_for_delivery" || data?.dispatchOtpVerified || data?.dispatchVerified) {
           unlockAudioContext();
           playSuccessChime();
@@ -603,6 +638,9 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           setStage("in_trip");
           setIsInAppNavActive(true);
           setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+          setTimeout(() => {
+            launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName || "Customer");
+          }, 600);
         }
 
         // 4. Order / Ride Cancelled by Customer or Store
@@ -1370,17 +1408,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     }, 600);
   };
 
-  const handleMarkArrivedAtStore = () => {
-    unlockAudioContext();
-    triggerHaptic();
-    playArrivalChime();
-    speakArrival(partnerStoreName || "पार्टनर स्टोर");
-    setStage("arrived_store");
-    setArrivedTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-    toast.info("Arrived at Partner Store! Show Handover OTP to Partner 🏪");
-  };
-
-  const handleStoreIntakeVerified = () => {
+  const handleStoreIntakeVerified = async () => {
     unlockAudioContext();
     triggerHaptic();
     playSuccessChime();
@@ -1390,7 +1418,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     setStage("store_processing");
     setIsInAppNavActive(false);
     toast.success(
-      `🎉 Clothes Handed Over at Store! Pickup payout ₹${(order.pickupLegPayout || safeFare / 2 || 35).toFixed(2)} credited. Turnaround timer active!`
+      `🎉 Clothes Handed Over at Store! Pickup payout ₹${(order.pickupLegPayout || safeFare / 2 || 35).toFixed(2)} credited. Processing started!`
     );
 
     try {
@@ -1402,6 +1430,19 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
       }
     } catch {}
+
+    if (order.orderId && !order.orderId.startsWith("TEST-")) {
+      try {
+        await confirmDropAtPartner(order.orderId, false);
+      } catch (e) {
+        console.warn("confirmDropAtPartner error:", e);
+      }
+    }
+  };
+
+  const handleMarkArrivedAtStore = () => {
+    // Direct Handover at store without OTP barrier
+    handleStoreIntakeVerified();
   };
 
   const handleReachedAtCustomer = () => {
@@ -1517,13 +1558,14 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
   const handleStartCustomerDelivery = async () => {
     unlockAudioContext();
-    triggerHaptic();
+    triggerHaptic(40);
     playSuccessChime();
-    speakText("ग्राहक के लिए इन-ऐप नेविगेशन शुरू हो रहा है।");
+    speakText("डिस्पैच वेरिफाई हुआ। कस्टमर डिलीवरी के लिए नेविगेशन शुरू हो रहा है।");
     setCurrentLeg("store_to_customer");
     setStage("in_trip");
     setIsInAppNavActive(true);
-    toast.success("🛵 Delivery Leg Started! In-App Navigation active to Customer Doorstep.");
+    setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    toast.success("🛵 Package Collected! Heading to Customer Doorstep...");
 
     // Real Google Maps Turn-by-Turn Navigation Intent (keeping overlay HUD screen active)
     setTimeout(() => {
@@ -1548,9 +1590,9 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       localStorage.setItem("qp_active_rider_order", JSON.stringify(updatedOrder));
     } catch {}
 
-    if (order.orderId) {
+    if (order.orderId && !order.orderId.startsWith("TEST-")) {
       try {
-        await startDelivery(order.orderId);
+        await startDelivery(order.orderId, captainDispatchOtp || order.dispatchOtp);
       } catch (e) {
         console.warn("startDelivery error:", e);
       }
@@ -1750,9 +1792,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       </div>
 
       {/* 2. Locked Large Map Box Card */}
-      <div className="relative flex-1 w-full min-h-[350px] p-2.5 sm:p-3 overflow-hidden bg-slate-100 flex flex-col">
-        <div className="relative w-full h-full rounded-3xl overflow-hidden border-2 border-slate-300/80 shadow-md bg-white">
-          <div ref={mapContainerRef} className="w-full h-full z-0" style={{ touchAction: "none" }} />
+      {stage !== "store_processing" && (
+        <div className="relative flex-1 w-full min-h-[350px] p-2.5 sm:p-3 overflow-hidden bg-slate-100 flex flex-col">
+          <div className="relative w-full h-full rounded-3xl overflow-hidden border-2 border-slate-300/80 shadow-md bg-white">
+            <div ref={mapContainerRef} className="w-full h-full z-0" style={{ touchAction: "none" }} />
 
           {/* Top Floating Turn-by-Turn Maneuver Pill with Speedometer */}
           {(stage === "en_route_pickup" || stage === "in_trip") && (
@@ -1861,13 +1904,15 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               <Crosshair className="size-4.5 text-[#00C853]" />
             </button>
           </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 3. Bottom Sheet Card (Locked at bottom, scrollable internally if needed) */}
-      <div className="relative z-20 bg-white border-t border-slate-200/90 shadow-2xl shrink-0 flex flex-col max-h-[46vh] overflow-y-auto">
+      <div className={`relative z-20 bg-white ${stage === "store_processing" ? "flex-1 max-h-none overflow-y-auto p-4 space-y-4" : "border-t border-slate-200/90 shadow-2xl shrink-0 flex flex-col max-h-[46vh] overflow-y-auto"}`}>
         {/* Customer / Store Information Card */}
-        <div className="px-4 py-3 border-b border-zinc-100">
+        {stage !== "store_processing" && (
+          <div className="px-4 py-3 border-b border-zinc-100">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
             {/* Visual Icon Badge */}
@@ -1986,9 +2031,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           </div>
         </div>
       </div>
+    )}
 
-      {/* Bottom Action Controls depending on Stage */}
-      <div className="p-4 pt-2 space-y-2">
+        {/* Bottom Action Controls depending on Stage */}
+        <div className={`p-4 pt-2 space-y-2 ${stage === "store_processing" ? "p-0 pt-0" : ""}`}>
         {/* STAGE 1: Heading to Pickup */}
         {stage === "en_route_pickup" && (
           <div className="space-y-2.5 animate-in fade-in duration-200">
@@ -2632,34 +2678,16 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               </button>
             </div>
 
-            {/* 2. Big Prominently Printed Handover OTP Card */}
-            <div className="p-5 bg-white rounded-3xl border-2 border-slate-950 shadow-md text-center space-y-3.5">
-              <div>
-                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
-                  Store Handover OTP
-                </span>
-                <h4 className="text-sm font-black text-slate-900 mt-0.5">
-                  Show this OTP to Partner Store Staff
-                </h4>
-              </div>
-
-              {/* 4 Large Golden Digit Monospace Blocks */}
-              <div className="flex items-center justify-center gap-2.5 pt-1">
-                {(captainDispatchOtp || order.dispatchOtp || order.handoverOtp || "4821")
-                  .slice(0, 4)
-                  .split("")
-                  .map((digit, idx) => (
-                    <div
-                      key={idx}
-                      className="size-13 flex items-center justify-center text-3xl font-black font-mono text-[#FACC15] bg-slate-950 rounded-2xl border-2 border-yellow-500 shadow-md"
-                    >
-                      {digit}
-                    </div>
-                  ))}
-              </div>
-
-              <p className="text-[11px] text-slate-500 font-medium max-w-xs mx-auto leading-relaxed">
-                Partner will enter this 4-digit code in their Partner Console to verify intake & start wash processing.
+            {/* 2. Direct Handover Summary Card (No OTP needed for drop-off) */}
+            <div className="p-4 bg-slate-50 rounded-3xl border border-slate-200 text-center space-y-2">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                Store Clothes Drop-Off
+              </span>
+              <h4 className="text-sm font-black text-slate-900">
+                Hand over clothes bag to {partnerStoreName}
+              </h4>
+              <p className="text-[11px] text-slate-600 font-medium max-w-xs mx-auto leading-relaxed">
+                Confirm handover with store staff. Wash processing will start automatically upon handover.
               </p>
             </div>
 
@@ -2874,44 +2902,78 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           </div>
         )}
 
-        {/* STAGE: Ready for Store Pickup -> Captain goes to Store & collects package */}
+        {/* STAGE: Ready for Store Pickup -> Captain at Store, Shows Dispatch OTP to Partner */}
         {stage === "ready_pickup_store" && (
           <div className="space-y-3 animate-in fade-in duration-200">
             <div className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3.5">
               {/* Header with status pill */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-900 shadow-2xs">
+                  <div className="size-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shadow-2xs">
                     <Package className="size-4" />
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-slate-950 tracking-tight leading-tight">
-                      Clothes Ready at Store
+                      Clothes Ready • Store Dispatch
                     </h3>
                     <p className="text-[10.5px] font-medium text-slate-500">
-                      Go to Partner Store & Collect Package
+                      Show Dispatch OTP to Store Partner
                     </p>
                   </div>
                 </div>
                 <span className="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-black text-emerald-800">
-                  READY FOR PICKUP
+                  DISPATCH OTP
                 </span>
               </div>
 
-              {/* Status Confirmation Badge */}
-              <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span className="text-xs font-bold text-emerald-950">
-                    Clothes Packed & Ready for Delivery
+              {/* 1. Big Prominent Golden Monospace Dispatch OTP Card */}
+              <div className="p-4 sm:p-5 bg-slate-950 rounded-3xl border-2 border-yellow-500 shadow-lg text-center space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[10px] font-black text-yellow-400 uppercase tracking-widest block">
+                    CAPTAIN DISPATCH OTP
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-300">
+                    Tell to Partner
                   </span>
                 </div>
-                <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
-                  Step 1 of 2
-                </span>
+
+                {/* 4 Large Golden Digit Monospace Blocks */}
+                <div className="flex items-center justify-center gap-2.5 pt-0.5">
+                  {(captainDispatchOtp || order.dispatchOtp || "4821")
+                    .slice(0, 4)
+                    .split("")
+                    .map((digit, idx) => (
+                      <div
+                        key={idx}
+                        className="size-13 flex items-center justify-center text-3xl font-black font-mono text-[#FACC15] bg-slate-900 rounded-2xl border-2 border-yellow-400 shadow-inner"
+                      >
+                        {digit}
+                      </div>
+                    ))}
+                </div>
+
+                <div className="flex items-center justify-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic(20);
+                      const code = (captainDispatchOtp || order.dispatchOtp || "4821").slice(0, 4);
+                      navigator.clipboard.writeText(code);
+                      toast.success(`Copied Dispatch OTP: ${code}`);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-yellow-400 text-xs font-bold border border-yellow-500/40 transition-all cursor-pointer"
+                  >
+                    <Copy className="size-3" />
+                    <span>Copy Code</span>
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-slate-300 font-medium max-w-xs mx-auto leading-relaxed pt-1">
+                  Partner will enter this 4-digit code in their Partner Console to release packed clothes and dispatch the order.
+                </p>
               </div>
 
-              {/* Partner Store Collection Card */}
+              {/* 2. Partner Store Collection Card */}
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
@@ -2935,7 +2997,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 </button>
               </div>
 
-              {/* 1-Tap Google Maps Navigation */}
+              {/* 3. 1-Tap Google Maps Navigation */}
               <button
                 type="button"
                 onClick={() => launchTurnByTurnGoogleMaps(storeCoords, captainCoords, partnerStoreName)}
@@ -2945,12 +3007,22 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 <span>Navigate to Store with Google Maps</span>
               </button>
 
-              {/* Action Button: Swipe to Confirm Arrived at Store */}
+              {/* 4. Action Button: Swipe to Start Delivery to Customer */}
               <SwipeActionButton
-                label="Arrived"
+                label="Dispatch Done • Go to Customer"
                 color="darkNavy"
-                onConfirm={handleMarkArrivedAtStore}
+                onConfirm={handleStartCustomerDelivery}
               />
+
+              {/* Direct button */}
+              <button
+                type="button"
+                onClick={handleStartCustomerDelivery}
+                className="w-full h-11 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer border border-slate-300"
+              >
+                <CheckCircle2 className="size-4 text-emerald-600" />
+                <span>Dispatch Verified • Start Customer Delivery →</span>
+              </button>
 
               {/* Emergency Exit Gate */}
               <button
@@ -3410,11 +3482,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 type="button"
                 onClick={() => {
                   setShowHandoverConfirmModal(false);
-                  handleMarkArrivedAtStore();
+                  handleStoreIntakeVerified();
                 }}
                 className="w-full h-11 bg-[#FACC15] hover:bg-yellow-400 text-slate-950 font-black text-xs rounded-full flex items-center justify-center active:scale-95 transition-all cursor-pointer shadow-md border border-yellow-500"
               >
-                Yes
+                Yes, Handover
               </button>
             </div>
           </div>

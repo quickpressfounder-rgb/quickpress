@@ -61,23 +61,13 @@ export function getOrderActions(stage: OrderStage, isDryClean = false): OrderAct
       // Clothes are being picked up by Captain. Strictly NO processing action until clothes reach store!
       return [];
     case "at_partner":
-      return [
-        {
-          id: "start_washing",
-          label: isDryClean ? "Start Dry Cleaning" : "Start Washing & Processing",
-          icon: PackageCheck,
-          intent: "primary",
-          nextStage: "washing",
-          timelineLabel: "Received at store & washing started",
-        },
-      ];
     case "washing":
     case "dry_cleaning":
     case "ironing":
       return [
         {
           id: "mark_ready",
-          label: "Process Complete / Ready for Delivery",
+          label: "Process Complete / Ready for Delivery ✨",
           icon: BadgeCheck,
           intent: "primary",
           nextStage: "ready",
