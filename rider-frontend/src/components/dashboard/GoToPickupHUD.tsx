@@ -890,10 +890,22 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
       const isStoreDrop = leg === "pickup_to_store" && currentStage === "in_trip";
 
+      // If captain coords are coincident with destination (e.g. initial load or simulation), provide realistic road offset so both pins and route line are visible
+      let startPoint = { ...captainCoords };
+      const isCoincident =
+        Math.abs(startPoint.lat - dest.lat) < 0.00015 &&
+        Math.abs(startPoint.lng - dest.lng) < 0.00015;
+      if (isCoincident) {
+        startPoint = {
+          lat: dest.lat - 0.0035,
+          lng: dest.lng - 0.0028,
+        };
+      }
+
       // 1. Captain Scooter Marker with Signature Icon
       const captainMarker = new google.maps.Marker({
         map,
-        position: { lat: captainCoords.lat, lng: captainCoords.lng },
+        position: { lat: startPoint.lat, lng: startPoint.lng },
         title: "You (Captain)",
         zIndex: 1000,
         icon: {
@@ -931,13 +943,13 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       googleOverlaysRef.current.push(destMarker);
 
       // 3. Real Street-Following Route via backend proxy + OSRM
-      const routeData = await fetchStreetRoute(captainCoords, dest, activeDestTitle);
+      const routeData = await fetchStreetRoute(startPoint, dest, activeDestTitle);
       const points =
         routeData.coordinates.length >= 2
           ? routeData.coordinates
           : [
-              [captainCoords.lat, captainCoords.lng],
-              [(captainCoords.lat + dest.lat) / 2 + 0.0005, (captainCoords.lng + dest.lng) / 2 - 0.0004],
+              [startPoint.lat, startPoint.lng],
+              [(startPoint.lat + dest.lat) / 2 + 0.0005, (startPoint.lng + dest.lng) / 2 - 0.0004],
               [dest.lat, dest.lng],
             ];
 
@@ -1026,6 +1038,18 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
       const isStoreDrop = leg === "pickup_to_store" && currentStage === "in_trip";
 
+      // If captain coords are coincident with destination, provide realistic simulated road offset
+      let startPoint = { ...captainCoords };
+      const isCoincident =
+        Math.abs(startPoint.lat - dest.lat) < 0.00015 &&
+        Math.abs(startPoint.lng - dest.lng) < 0.00015;
+      if (isCoincident) {
+        startPoint = {
+          lat: dest.lat - 0.0035,
+          lng: dest.lng - 0.0028,
+        };
+      }
+
       // 1. Captain Location Marker with rotating bike & directional pip (Rapido Captain Style)
       const captainIcon = L.divIcon({
         className: "custom-rapido-captain-marker",
@@ -1042,32 +1066,32 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         iconAnchor: [24, 24],
       });
 
-      leafletCaptainMarkerRef.current = L.marker([captainCoords.lat, captainCoords.lng], { icon: captainIcon }).addTo(map);
+      leafletCaptainMarkerRef.current = L.marker([startPoint.lat, startPoint.lng], { icon: captainIcon }).addTo(map);
 
-      // 2. Destination Target Pin (High Contrast Pin)
+      // 2. Destination Target Pin (High Contrast Pin with prominent Customer / Store Label)
       const pickupIcon = L.divIcon({
         className: "custom-pickup-icon",
         html: `
           <div style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <div style="padding: 2px 8px; border-radius: 6px; background-color: #0F172A; color: white; font-weight: 900; font-size: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.3); white-space: nowrap; margin-bottom: 2px;">
-              ${isStoreDrop ? partnerStoreName : (order.customerName || "Customer")}
+            <div style="padding: 3px 10px; border-radius: 9999px; background-color: #0F172A; color: white; font-weight: 900; font-size: 11px; box-shadow: 0 2px 10px rgba(0,0,0,0.35); border: 1.5px solid #FACC15; white-space: nowrap; margin-bottom: 2px;">
+              📍 ${isStoreDrop ? partnerStoreName : (order.customerName || "Customer Pickup")}
             </div>
-            <div style="position: relative; display: flex; width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 9999px; background-color: ${isStoreDrop ? "#059669" : "#E11D48"}; color: white; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); border: 2px solid white;">
-              <div style="width: 10px; height: 10px; border-radius: 9999px; background-color: white;"></div>
+            <div style="position: relative; display: flex; width: 38px; height: 38px; align-items: center; justify-content: center; border-radius: 9999px; background-color: ${isStoreDrop ? "#059669" : "#E11D48"}; color: white; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); border: 3px solid white;">
+              <div style="width: 12px; height: 12px; border-radius: 9999px; background-color: white;"></div>
             </div>
           </div>
         `,
-        iconSize: [120, 56],
-        iconAnchor: [60, 50],
+        iconSize: [140, 60],
+        iconAnchor: [70, 52],
       });
 
       leafletDestMarkerRef.current = L.marker([dest.lat, dest.lng], { icon: pickupIcon }).addTo(map);
 
       // 3. Real Street-Following Route Polyline (Dual-Layer: Dark Casing + Solid Route)
-      const routeData = await fetchStreetRoute(captainCoords, dest, activeDestTitle);
+      const routeData = await fetchStreetRoute(startPoint, dest, activeDestTitle);
       const points = routeData.coordinates.length >= 2 ? routeData.coordinates : [
-        [captainCoords.lat, captainCoords.lng],
-        [(captainCoords.lat + dest.lat) / 2 + 0.0005, (captainCoords.lng + dest.lng) / 2 - 0.0004],
+        [startPoint.lat, startPoint.lng],
+        [(startPoint.lat + dest.lat) / 2 + 0.0005, (startPoint.lng + dest.lng) / 2 - 0.0004],
         [dest.lat, dest.lng],
       ];
 
@@ -1237,13 +1261,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         await handleStartTrip(code);
         setShowDedicatedOtpScreen(false);
         setShowPerfectPickupBanner(true);
-        setShowQuickPressMapsModal(true);
       } else if (dedicatedOtpMode === "store_dispatch") {
         setShowDedicatedOtpScreen(false);
         setStage("in_trip");
         toast.success("Custody verified! Navigating to customer drop.");
         setShowPerfectPickupBanner(true);
-        setShowQuickPressMapsModal(true);
       } else {
         await handleCompleteTrip(code);
         setShowDedicatedOtpScreen(false);
@@ -1269,6 +1291,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     setIsWaitingTimerActive(true);
     setArrivedTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
     toast.success("You have arrived at Pickup location! 📍 Customer notified.");
+
+    // Direct transition to Full-Screen 4-Digit OTP Screen
+    setDedicatedOtpMode("pickup");
+    setDedicatedOtpDigits(["", "", "", ""]);
+    setShowDedicatedOtpScreen(true);
 
     // Real backend notification
     if (order.orderId && !order.orderId.startsWith("TEST-")) {
@@ -1593,10 +1620,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const progressPercentage = Math.round(((activeStepIndex - 1) / 5) * 100);
 
   return (
-    <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-white shadow-2xl overflow-y-auto text-neutral-900 select-none pb-24 overscroll-contain">
-      {/* 1. Top Navigation Bar (Back Button + Menu + Title + Call) - Notch Safe */}
+    <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-slate-900 shadow-2xl overflow-hidden text-neutral-900 select-none">
+      {/* 1. Top Navigation Bar (Back Button + Title + Help Button) - Notch Safe */}
       <header
-        className="sticky top-0 z-30 flex items-center justify-between px-3.5 pb-2.5 bg-white/95 backdrop-blur-md border-b border-slate-200/80 text-slate-950 shadow-2xs"
+        className="shrink-0 z-30 flex items-center justify-between px-3.5 pb-2.5 bg-white border-b border-slate-200/80 text-slate-950 shadow-2xs"
         style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
       >
         {stage === "completed" ? (
@@ -1617,92 +1644,52 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             </button>
           </div>
         ) : (
-          <>
-            {/* Back Button (Returns to Trips List while keeping trip active) & Drawer */}
-            <div className="flex items-center gap-1 -ml-1">
-              <button
-                type="button"
-                onClick={handleBack}
-                className="flex items-center justify-center size-9 text-slate-800 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer"
-                aria-label="Back to Trips"
-                title="Back to Trips (Trip Active Rahegi)"
-              >
-                <ArrowLeft className="size-5 stroke-[2.2]" />
-              </button>
-              <button
-                type="button"
-                onClick={onOpenDrawer}
-                className="flex items-center justify-center size-9 text-slate-800 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer"
-                aria-label="Open Navigation Drawer"
-              >
-                <Menu className="size-5 stroke-[2.2]" />
-              </button>
-            </div>
+          <div className="flex items-center justify-between w-full">
+            {/* Back Button */}
+            <button
+              type="button"
+              onClick={handleBack}
+              className="flex items-center justify-center size-9 text-slate-800 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer shrink-0"
+              aria-label="Back to Trips"
+              title="Back to Trips"
+            >
+              <ArrowLeft className="size-5 stroke-[2.2]" />
+            </button>
 
             {/* Screen Title & Live Pulse */}
-            <div className="flex items-center gap-1.5 min-w-0 px-1 text-center">
+            <div className="flex items-center gap-1.5 min-w-0 px-2 text-center">
               <span className="relative flex size-2 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FACC15] opacity-75" />
                 <span className="relative inline-flex rounded-full size-2 bg-yellow-500" />
               </span>
-              <h1 className="text-sm font-black tracking-tight truncate max-w-[190px] sm:max-w-xs text-slate-950">
+              <h1 className="text-sm font-black tracking-tight truncate max-w-[200px] sm:max-w-xs text-slate-950">
                 {stage === "en_route_pickup" && "Inside the Pickup Zone"}
                 {stage === "arrived_pickup" && "Meet the Customer"}
-                {stage === "in_trip" && (currentLeg === "pickup_to_store" ? "Go to drop" : "Go to drop")}
+                {stage === "in_trip" && (currentLeg === "pickup_to_store" ? "Go to Partner Store" : "Go to Customer Drop")}
                 {stage === "store_processing" && "Store Laundry Processing"}
                 {stage === "ready_pickup_store" && "Collect from Partner Store"}
                 {stage === "handover_waiting" && "Handover in Progress"}
               </h1>
             </div>
 
-            <div className="flex items-center gap-1.5 shrink-0">
-              {/* Trip Fare Breakdown & Route Sheet Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic(20);
-                  setShowTripDetailModal(true);
-                }}
-                className="flex items-center justify-center size-9 rounded-xl bg-slate-100 text-slate-800 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer"
-                aria-label="Trip Breakdown"
-                title="View Route & Fare Breakdown"
-              >
-                <Sparkles className="size-4.5" />
-              </button>
-
-              {/* Support / Call Customer Button - Rapido Black Circle with Yellow Phone */}
-              <button
-                type="button"
-                onClick={() => setShowCallModal(true)}
-                className="flex items-center justify-center size-9 rounded-full bg-black text-[#FACC15] hover:bg-neutral-800 active:scale-95 transition-all cursor-pointer font-black shadow-xs"
-                aria-label="Call Customer"
-                title="Call Contact"
-              >
-                <Phone className="size-4 fill-[#FACC15] text-[#FACC15]" />
-              </button>
-
-              {/* Trip Cancellation / Unassign Button before pickup */}
-              {(stage === "en_route_pickup" || stage === "arrived_pickup") && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic(20);
-                    setShowRiderCancelModal(true);
-                  }}
-                  className="flex items-center justify-center size-9 rounded-xl bg-slate-100 text-rose-600 hover:bg-rose-50 active:scale-95 transition-all cursor-pointer"
-                  aria-label="Cancel Trip"
-                  title="Cancel / Unassign Pickup Trip"
-                >
-                  <XCircle className="size-4.5 text-rose-600" />
-                </button>
-              )}
-            </div>
-          </>
+            {/* Help Button */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(20);
+                setShowUnableModal(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-200 transition-all cursor-pointer shadow-2xs shrink-0"
+            >
+              <Headphones className="size-3.5 text-slate-700" />
+              <span>Help</span>
+            </button>
+          </div>
         )}
       </header>
 
       {/* TRIP ROUTE BANNER (Clean White Style: Customer to Store) */}
-      <div className="z-20 bg-white border-b border-slate-200/80 px-4 py-2.5 flex items-center justify-between text-xs font-bold shadow-2xs">
+      <div className="shrink-0 z-20 bg-white border-b border-slate-200/80 px-4 py-2.5 flex items-center justify-between text-xs font-bold shadow-2xs">
         <div className="flex items-center gap-2">
           <div className="size-6 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
             {isDeliveryRide ? <Package className="size-3.5" /> : <Shirt className="size-3.5" />}
@@ -1721,10 +1708,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         </div>
       </div>
 
-      {/* 2. Map Box Card */}
-      <div className="relative w-full px-3 py-2 flex flex-col h-[310px] sm:h-[330px] shrink-0 overflow-hidden bg-slate-50">
-        <div className="relative w-full h-full rounded-3xl overflow-hidden border border-slate-200 shadow-md bg-white">
-          <div ref={mapContainerRef} className="w-full h-full" />
+      {/* 2. Locked Large Map Box Card */}
+      <div className="relative flex-1 w-full min-h-[350px] p-2.5 sm:p-3 overflow-hidden bg-slate-100 flex flex-col">
+        <div className="relative w-full h-full rounded-3xl overflow-hidden border-2 border-slate-300/80 shadow-md bg-white">
+          <div ref={mapContainerRef} className="w-full h-full z-0" style={{ touchAction: "none" }} />
 
           {/* Top Floating Turn-by-Turn Maneuver Pill with Speedometer */}
           {(stage === "en_route_pickup" || stage === "in_trip") && (
@@ -1797,7 +1784,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 onClick={() => {
                   triggerHaptic(20);
                   if (stage === "in_trip") {
-                    setShowQuickPressMapsModal(true);
+                    launchTurnByTurnGoogleMaps(storeCoords, captainCoords, partnerStoreName);
                   } else {
                     launchTurnByTurnGoogleMaps(activeDestCoords, captainCoords, activeDestTitle);
                   }
@@ -1836,8 +1823,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         </div>
       </div>
 
-      {/* 4. Customer / Store Information Card (Zomato/Blinkit Captain Sunlight UI) */}
-      <div className="relative z-20 bg-white px-4 py-3 border-t border-zinc-100 shadow-xs">
+      {/* 3. Bottom Sheet Card (Locked at bottom, scrollable internally if needed) */}
+      <div className="relative z-20 bg-white border-t border-slate-200/90 shadow-2xl shrink-0 flex flex-col max-h-[46vh] overflow-y-auto">
+        {/* Customer / Store Information Card */}
+        <div className="px-4 py-3 border-b border-zinc-100">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
             {/* Visual Icon Badge */}
@@ -1957,33 +1946,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         </div>
       </div>
 
-      {/* 5. Bottom Action Controls depending on Stage */}
-      <div className="relative z-20 bg-white p-4 pt-2 border-t border-neutral-100 space-y-2">
+      {/* Bottom Action Controls depending on Stage */}
+      <div className="p-4 pt-2 space-y-2">
         {/* STAGE 1: Heading to Pickup */}
         {stage === "en_route_pickup" && (
           <div className="space-y-2.5 animate-in fade-in duration-200">
-            {/* Quick Message Bar */}
-            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-[#F8F9FA] rounded-full border border-slate-200">
-              <span className="text-[11px] text-slate-500 font-medium shrink-0">Send message:</span>
-              <input
-                type="text"
-                value={quickMessageText}
-                onChange={(e) => setQuickMessageText(e.target.value)}
-                className="flex-1 bg-transparent text-xs font-bold text-slate-900 focus:outline-none min-w-0"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  handleSendChat(quickMessageText);
-                  toast.success("Message sent to customer!");
-                }}
-                className="size-7 rounded-full bg-slate-950 hover:bg-slate-800 text-white flex items-center justify-center font-black active:scale-90 transition-transform shrink-0 cursor-pointer shadow-xs"
-                title="Send quick message"
-              >
-                <Send className="size-3.5" />
-              </button>
-            </div>
-
             {/* Action Buttons: Message customer button (Video Frame 00:23) */}
             <button
               type="button"
@@ -2004,29 +1971,16 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               <span>Navigate with Google Maps</span>
             </button>
 
-            {/* Solid Blue Swipe to Arrive (triggers Arrived Confirmation Modal) */}
+            {/* Solid Emerald Swipe to Arrive placed at the very bottom (triggers Arrived Confirmation Modal) */}
             <SwipeActionButton
               label="Arrived"
               hint="लोकेशन पहुंचकर स्लाइड करें • Mark Arrived"
-              color="blue"
+              color="emerald"
               onConfirm={() => {
                 triggerHaptic(30);
                 setShowArrivedConfirmModal(true);
               }}
             />
-
-            {/* Quick Cancel / Unassign Pickup Trip */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic("heavy");
-                setShowRiderCancelModal(true);
-              }}
-              className="w-full py-2 px-3 rounded-xl border border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all"
-            >
-              <XCircle className="w-3.5 h-3.5 text-rose-600" />
-              <span>Cancel / Decline Pickup (गाड़ी पंचर / समस्या)</span>
-            </button>
           </div>
         )}
 
@@ -2274,23 +2228,13 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   <span>Navigate to Store with Google Maps</span>
                 </button>
 
-                {/* Solid Red Swipe to Complete Ride (Video Frame 01:14) */}
+                {/* Solid Emerald Swipe to Complete Ride placed at the very bottom */}
                 <SwipeActionButton
                   label="Complete Ride"
                   hint="स्टोर पहुंचकर राइड पूरी करने हेतु स्लाइड करें • Complete Ride"
-                  color="red"
+                  color="emerald"
                   onConfirm={() => setShowCompleteRideConfirmation(true)}
                 />
-
-                {/* Unable to Deliver: Opt-out at store with 25% fee */}
-                <button
-                  type="button"
-                  onClick={() => setShowUnableModal(true)}
-                  className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
-                >
-                  <AlertTriangle className="size-4 text-amber-600" />
-                  <span>Unable to Deliver / Store Issue (25% Fee)</span>
-                </button>
               </>
             ) : isCodOrder && !isPaymentConfirmed ? (
               <div className="space-y-3.5 animate-in fade-in duration-200">
@@ -3001,6 +2945,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           </div>
         )}
       </div>
+      </div>
 
       {/* 6. Quick Chat Slide-Up Modal */}
       {showChatModal && (
@@ -3345,7 +3290,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
       {/* 2. Dedicated 4-Digit OTP Screen (Video Frame 00:54 - 00:55, Screenshot WhatsApp Image 2026-10-30 at 11.06.19.jpeg) */}
       {showDedicatedOtpScreen && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex flex-col bg-white animate-in fade-in duration-200">
           {/* Top Bar matching video: Left "← Start Ride", Right Black circle with Yellow phone */}
           <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white">
             <button

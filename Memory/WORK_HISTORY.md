@@ -3628,4 +3628,51 @@ This single command will automatically:
   - **Git Commit & Push:**
     - Commit `c5f0e2c`: `feat(captain): implement Rapido-style yellow HUD theme with verified live data flow` pushed directly to GitHub `main`.
 
+### 70. Refinement of Customer-to-Store Captain Active HUD (Locked Map, Green Arrived Swipe, OTP Fix & Store Leg Symmetry)
+- **User Request:**
+  - "ab meri baat suno abhi mughe customer to store bale screen me cancale /decilene bale line ho hata do"
+  - "arrived bale swip button ko sabse niche place karo or sand massage i am bali bale ko hata do"
+  - "or map ka size bada karo jaisa mene screen short me diya tha or map ko map box me lock karo map screen me move kar raha hai"
+  - "or jo upar header me menu button hai usko hata do or ai ka button bo bhi hata do call bhi hata do or waha help ka button lagao"
+  - "or map ke ander customer ke pickup loction dikhai de with navigation ke sath arriavl button ka colour ko green karo"
+  - "same aase screen jab pickup complet otp ke baad store ki loction aaye tab bhi eesi ki screen bananai hai same"
+  - "or ek baat otp screen open nahi ho rahi hai is iamge me map lag lag jaa raha map ko ek map box me palce karo only or otp screen ko fix karo"
+- **Root Cause Analysis & Fixes:**
+  1. **Map Lag / Screen Scrolling Issue:**
+     - The root app shell in `GoToPickupHUD.tsx` previously had `overflow-y-auto pb-24`, causing the entire viewport (including header and Leaflet map) to scroll vertically on touch gestures.
+     - Restructured the root container to `h-[100dvh] overflow-hidden flex flex-col`.
+     - Placed the map inside a locked `flex-1 w-full min-h-[350px] overflow-hidden` container with `rounded-3xl border-2 border-slate-300/80` and `touchAction: "none"`.
+     - Docked the bottom information and controls inside a separate `max-h-[46vh] overflow-y-auto` bottom sheet. The map is 100% locked in place and never drags or lags.
+  2. **OTP Screen Opening Bug:**
+     - Previously, clicking "Yes" on the Arrived Confirmation modal (`showArrivedConfirmModal`) only set `stage = "arrived_pickup"` without automatically activating `showDedicatedOtpScreen(true)`.
+     - Updated `handleMarkArrived()` to directly trigger `setDedicatedOtpMode("pickup")`, reset digits `["", "", "", ""]`, and immediately display `setShowDedicatedOtpScreen(true)` with `z-[100]`.
+     - Removed blocking modal `setShowQuickPressMapsModal(true)` from `handleVerifyDedicatedOtp()` so verification transitions cleanly and directly into the Store leg.
+  3. **Header Simplification:**
+     - Removed hamburger Menu (`☰`), AI Sparkles (`✨`), Phone call button (`📞`), and Cancel button (`XCircle`) from the header.
+     - Header now strictly renders: `[← Back Arrow]` + `[Live Pulse · Title]` + `[🎧 Help]` button linked to support and issue reporting modal.
+  4. **Customer-to-Store Actions Cleanup:**
+     - Removed quick message text bar (`Send message: ...`).
+     - Removed `Cancel / Decline Pickup (गाड़ी पंचर / समस्या)` button.
+     - Changed Arrived slider button color to vibrant solid green (`color="emerald"`).
+     - Placed the Arrived swipe slider at the very bottom of the card.
+  5. **Map Markers & Navigation Visibility:**
+     - Added simulated road starting offset (`dest.lat - 0.0035, dest.lng - 0.0028`) when `captainCoords` is coincident with destination, guaranteeing both the Captain marker and Customer/Store marker with live street polyline are immediately visible.
+     - Upgraded destination marker to a prominent high-contrast pill badge (`📍 Zan` / `📍 Partner Store`) with dual-layer polyline (`#0F172A` casing + `#00C853` / `#2563EB` solid core).
+  6. **Identical Screen Architecture on Store Leg (`pickup_to_store` in `stage === "in_trip"`):**
+     - Mirrors the exact same structure: Header with Back + `Go to Partner Store` + Help, locked large Map Box showing Partner Store pin and navigation route, store details card (with sealed bag tag `QP-BAG-XXXX` and pcs count), Google Maps button, and solid emerald swipe action (`Complete Ride`) docked at the very bottom.
+- **Code Modifications:**
+  - `rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`:
+    - Updated `updateGoogleMapLayers` and `updateMapLayers` with `startPoint` offset and prominent destination badge.
+    - Updated `handleVerifyDedicatedOtp` and `handleMarkArrived` to auto-launch dedicated OTP screen.
+    - Restructured layout shell to locked `overflow-hidden` with `flex-1` map box and `max-h-[46vh]` bottom sheet.
+    - Replaced cluttered header with clean Back + Title + Help.
+    - Removed quick message bar and cancel button; set `color="emerald"` on swipe buttons at bottom.
+- **Verification & Packaging:**
+  - Built `rider-frontend` (`npm run build`): PASSED (0 errors, 1.04s).
+  - Built Android binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18.4 MB) compiled & verified.
+    - `QuickPress-Captain.aab` (17.6 MB) compiled & verified.
+    - Capacitor iOS synced (0.74s).
+
+
 
