@@ -3674,5 +3674,43 @@ This single command will automatically:
     - `QuickPress-Captain.aab` (17.6 MB) compiled & verified.
     - Capacitor iOS synced (0.74s).
 
+### 71. Fix "Orders & History Temporarily Unavailable" Runtime Error & Arrived Button Revamp
+- **User Request:**
+  - "is problome ko solve karo or batao kia problome hai ab or arrival bala button haiusko tumko iske jaisa banana hai or ander only arrived likhna hai"
+- **Issue 1 Root Cause Analysis ("Orders & History Temporarily Unavailable"):**
+  1. **Uncaught TypeError in `GoToPickupHUD.tsx`:**
+     - The header fare badge and payout cards directly executed `₹{order.fare.toFixed(2)}`.
+     - When an active order restored from local storage (`qp_active_rider_order`) or fetched from Supabase had missing or null `fare` (e.g., passed as `amount`, `estimatedEarning`, or null), calling `.toFixed(2)` on undefined threw `TypeError: Cannot read properties of undefined (reading 'toFixed')`.
+     - React caught this error and bubbled it up to the `<ScreenErrorBoundary fallbackTitle="Orders & History Temporarily Unavailable">` defined in `routes/orders.tsx`.
+  2. **Error Boundary Recovery Loop:**
+     - In `ScreenErrorBoundary.tsx`, tapping "Reload Section" previously only reset `this.setState({ hasError: false })`.
+     - Because the corrupt active order was still cached in `localStorage`, the HUD immediately remounted, re-executed `undefined.toFixed(2)`, and crashed right back to the error boundary.
+- **Issue 1 Fixes Applied:**
+  - **Safe Fare Fallback:** Added safe numerical fallback at the top of `GoToPickupHUD`:
+    `const safeFare = Number(order.fare ?? (order as any).amount ?? (order as any).estimatedEarning ?? 45) || 45;`
+    Replaced all instances of `order.fare.toFixed(...)` with `safeFare.toFixed(...)` across header badges, completed earning cards, QR code generators, and audio announcements.
+  - **Isolated Error Boundary in `RiderOrdersScreen.tsx`:**
+    Wrapped `<GoToPickupHUD>` with its own dedicated `<ScreenErrorBoundary fallbackTitle="Active Trip Temporarily Unavailable" onReset={handleTripEnd}>` so trip display issues never crash the main `/orders` screen.
+  - **Safe Storage Cleanup in `ScreenErrorBoundary.tsx`:**
+    Updated `handleRetry` to automatically purge corrupted `qp_active_rider_order` and `qp_active_delivery_order` cache and invoke `window.location.reload()` to guarantee complete recovery.
+- **Issue 2: Arrival Button Revamp (Matching User's Reference Image):**
+  - **Pill Shape & Geometry:** Configured `color="darkNavy"` with capsule styling: `rounded-full`, `h-[56px]`, dark navy track `bg-[#09223F] border border-[#123663]`.
+  - **Circular Knob with Straight Arrow:** Knob styled as a perfect circle `w-[44px] rounded-full bg-[#183D68] border border-[#275283]`, replacing `ChevronRight` with clean straight arrow `→` (`ArrowRight` stroke 2.8).
+  - **Clean Centered Label:** Set center text to display strictly **"Arrived"** in Title Case without any `»»` double chevrons, subtexts, or hints.
+  - **Applied on Both Trip Legs:** Integrated into `stage === "en_route_pickup"` (Customer pickup) and `stage === "in_trip"` (Heading to store).
+- **Files Modified:**
+  - `rider-frontend/src/components/common/SwipeActionButton.tsx`
+  - `rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`
+  - `rider-frontend/src/components/common/ScreenErrorBoundary.tsx`
+  - `rider-frontend/src/screens/RiderOrdersScreen.tsx`
+  - `rider-frontend/src/components/wallet/RiderSettlementDetailModal.tsx`
+- **Verification & Packaging:**
+  - Built `rider-frontend` (`npm run build`): PASSED (0 errors, 1.24s).
+  - Built Android Captain binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18.4 MB) compiled, signed & verified.
+    - `QuickPress-Captain.aab` (17.6 MB) compiled & verified.
+    - Capacitor iOS synced (0.70s).
+
+
 
 

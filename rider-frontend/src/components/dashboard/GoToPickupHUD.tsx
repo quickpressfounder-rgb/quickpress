@@ -161,6 +161,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   onBackToTrips,
 }) => {
   const navigate = useNavigate();
+
+  // Guard safe defaults if order is incomplete or missing
+  const safeOrder = order || ({} as ActiveOrderData);
+  const safeFare = Number(safeOrder.fare ?? (safeOrder as any).amount ?? (safeOrder as any).estimatedEarning ?? (safeOrder as any).delivery_fee ?? 45) || 45;
+
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
   const mapEngineRef = useRef<"google" | "leaflet" | null>(null);
@@ -169,7 +174,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
   // Two-Leg State Machine: "pickup_to_store" (Leg 1) vs "store_to_customer" (Leg 2)
   const [currentLeg, setCurrentLeg] = useState<"pickup_to_store" | "store_to_customer">(() => {
-    if (order.currentLeg) return order.currentLeg;
+    if (safeOrder.currentLeg) return safeOrder.currentLeg;
     const s = String(order.status || "").toLowerCase();
     if (
       s === "at_partner" ||
@@ -1398,7 +1403,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       setStage("store_processing");
       setIsInAppNavActive(false);
       toast.success(
-        `🎉 Clothes Dropped at Store! Pickup payout ₹${(order.pickupLegPayout || order.fare / 2 || 35).toFixed(2)} credited. Turnaround timer active!`
+        `🎉 Clothes Dropped at Store! Pickup payout ₹${(order.pickupLegPayout || safeFare / 2 || 35).toFixed(2)} credited. Turnaround timer active!`
       );
 
       // Persist transitioned Leg 2 state in localStorage
@@ -1463,11 +1468,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         }
       }
 
-      speakTripComplete(order.fare);
+      speakTripComplete(safeFare);
       setStage("completed");
       setIsInAppNavActive(false);
       setCompletedTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-      toast.success(`🎉 Delivery Completed! Collected ₹${order.fare.toFixed(2)} — Credited to Wallet`);
+      toast.success(`🎉 Delivery Completed! Collected ₹${safeFare.toFixed(2)} — Credited to Wallet`);
 
       try {
         localStorage.removeItem("qp_active_rider_order");
@@ -1703,7 +1708,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             #{order.orderCode || (order.orderId ? order.orderId.slice(-6).toUpperCase() : "LIVE")}
           </span>
           <span className="text-xs font-black text-emerald-700 font-mono bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-            ₹{order.fare.toFixed(2)}
+            ₹{safeFare.toFixed(2)}
           </span>
         </div>
       </div>
@@ -1971,11 +1976,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               <span>Navigate with Google Maps</span>
             </button>
 
-            {/* Solid Emerald Swipe to Arrive placed at the very bottom (triggers Arrived Confirmation Modal) */}
+            {/* Dark Navy Pill Swipe to Arrive with ArrowRight and only Arrived label */}
             <SwipeActionButton
               label="Arrived"
-              hint="लोकेशन पहुंचकर स्लाइड करें • Mark Arrived"
-              color="emerald"
+              color="darkNavy"
               onConfirm={() => {
                 triggerHaptic(30);
                 setShowArrivedConfirmModal(true);
@@ -2587,7 +2591,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
                   <span className="text-xs font-bold text-emerald-950">
-                    Pickup Payout Credited: ₹{(order.pickupLegPayout || order.fare / 2 || 35).toFixed(2)}
+                    Pickup Payout Credited: ₹{(order.pickupLegPayout || safeFare / 2 || 35).toFixed(2)}
                   </span>
                 </div>
                 <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
@@ -2802,9 +2806,8 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
               {/* Action Button: Swipe to Confirm Arrived at Store */}
               <SwipeActionButton
-                label="Slide to Arrive at Store"
-                hint="पार्टनर स्टोर पहुंचकर स्लाइड करें • Mark Arrived"
-                color="emerald"
+                label="Arrived"
+                color="darkNavy"
                 onConfirm={handleMarkArrivedAtStore}
               />
 
@@ -2846,7 +2849,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   Estimated Earning
                 </span>
                 <div className="text-3xl sm:text-4xl font-black font-mono text-emerald-600 tracking-tight mt-0.5">
-                  ₹{order.fare.toFixed(2)}
+                  ₹{safeFare.toFixed(2)}
                 </div>
                 <p className="text-[11px] font-bold text-slate-600 mt-1">
                   100% Payout Received · No Commission
@@ -3335,7 +3338,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 {/* 1. Black Order ID Bar (Screenshot Reference) */}
                 <div className="flex items-center justify-between px-3.5 py-2.5 bg-black text-white rounded-xl text-xs font-mono font-bold shadow-xs">
                   <span>Order ID: {order.orderCode || (order.orderId ? order.orderId.slice(-6).toUpperCase() : "LIVE")}</span>
-                  <span className="text-[#FACC15] font-black">₹{order.fare.toFixed(2)}</span>
+                  <span className="text-[#FACC15] font-black">₹{safeFare.toFixed(2)}</span>
                 </div>
 
                 {/* 2. Customer Pill (Screenshot Reference: [Auto] 👤 Customer Name) */}
@@ -3524,7 +3527,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   Total Fare to Collect
                 </span>
                 <div className="text-4xl font-black font-mono text-neutral-950">
-                  ₹ {order.fare.toFixed(1)}
+                  ₹ {safeFare.toFixed(1)}
                 </div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
@@ -3541,7 +3544,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   <div className="w-48 h-48 mx-auto bg-white p-2 border border-slate-200 rounded-2xl flex items-center justify-center shadow-inner">
                     <img
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                        `upi://pay?pa=quickpress@icici&pn=QuickPress&am=${order.fare.toFixed(2)}&cu=INR&tn=Order-${order.orderId}`
+                        `upi://pay?pa=quickpress@icici&pn=QuickPress&am=${safeFare.toFixed(2)}&cu=INR&tn=Order-${order.orderId}`
                       )}`}
                       alt="Payment UPI QR"
                       className="w-full h-full object-contain"
@@ -3634,7 +3637,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     Estimated Earning
                   </span>
                   <div className="text-3xl sm:text-4xl font-black font-mono text-emerald-600 tracking-tight mt-0.5">
-                    ₹{order.fare.toFixed(2)}
+                    ₹{safeFare.toFixed(2)}
                   </div>
                   <p className="text-[11px] font-bold text-slate-600 mt-1">
                     100% Payout Received · No Commission

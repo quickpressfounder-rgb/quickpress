@@ -27,10 +27,20 @@ export class ScreenErrorBoundary extends Component<Props, State> {
   }
 
   handleRetry = (): void => {
+    try {
+      if (this.props.onReset) {
+        this.props.onReset();
+      } else {
+        // Clear potential corrupted active order cache and cleanly reload route
+        try {
+          localStorage.removeItem("qp_active_rider_order");
+          localStorage.removeItem("qp_active_delivery_order");
+        } catch {}
+        window.location.reload();
+        return;
+      }
+    } catch {}
     this.setState({ hasError: false, error: null });
-    if (this.props.onReset) {
-      this.props.onReset();
-    }
   };
 
   render() {

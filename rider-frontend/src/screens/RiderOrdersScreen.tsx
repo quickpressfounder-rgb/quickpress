@@ -39,6 +39,7 @@ import {
 import { toast } from "sonner";
 import { GoToPickupHUD, type ActiveOrderData } from "../components/dashboard/GoToPickupHUD";
 import { CaptainSidebarDrawer } from "../components/layout/CaptainSidebarDrawer";
+import { ScreenErrorBoundary } from "../components/common/ScreenErrorBoundary";
 
 export interface OrderOfferItem {
   id: string;
@@ -688,7 +689,10 @@ export function RiderOrdersScreen() {
   // If an active order is in progress and HUD is not minimized, render the GoToPickupHUD screen
   if (activeOrder && !isHudMinimized) {
     return (
-      <>
+      <ScreenErrorBoundary
+        fallbackTitle="Active Trip Temporarily Unavailable"
+        onReset={handleTripEnd}
+      >
         <CaptainSidebarDrawer
           isOpen={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
@@ -703,7 +707,7 @@ export function RiderOrdersScreen() {
           onCancelTrip={handleTripEnd}
           onBackToTrips={() => setIsHudMinimized(true)}
         />
-      </>
+      </ScreenErrorBoundary>
     );
   }
 

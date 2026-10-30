@@ -330,7 +330,7 @@ export const RiderSettlementDetailModal: React.FC<RiderSettlementDetailModalProp
                             </span>
                           </div>
                           <span className="text-xs font-black text-emerald-700">
-                            +₹{t.fare.toFixed(2)}
+                            +₹{(t.fare || 0).toFixed(2)}
                           </span>
                         </div>
 
