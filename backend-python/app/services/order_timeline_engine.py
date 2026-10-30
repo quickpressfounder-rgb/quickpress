@@ -312,94 +312,28 @@ class OrderTimelineEngine:
                 if age_seconds < lifecycle.RIDER_ACCEPT_SLA_SECONDS:
                     continue
 
-                logger.warning(
-                    "⏰ Rider SLA limit reached for Order %s (age=%.1fs >= %ds).",
-                    order_id,
-                    age_seconds,
-                    lifecycle.RIDER_ACCEPT_SLA_SECONDS,
-                )
+                # Partner has already accepted the order. Never auto-cancel the customer order!
+                # Instead, reset expired pending offers and re-broadcast to available nearby riders.
                 try:
-                    sla_mins = max(1, lifecycle.RIDER_ACCEPT_SLA_SECONDS // 60)
-                    reason = f"Auto-cancelled: Delivery captain did not accept within {sla_mins} minutes SLA"
-
-                    # 1. Terminate pending rides in rides collection
+                    from app.services.smart_2ride_engine import smart_2ride_engine
+                    # Reset stale searching rides so other online captains receive the broadcast
                     await database.collection("rides").update_many(
                         {
                             "orderId": order_id,
-                            "status": {
-                                "$in": [
-                                    "SEARCHING_RIDER",
-                                    "OFFER_SENT",
-                                    "ASSIGNED",
-                                    "searching",
-                                    "searching_rider",
-                                    "assigned",
-                                    "pending",
-                                    "created",
-                                ]
-                            },
+                            "status": {"$in": ["OFFER_SENT", "SEARCHING_RIDER", "NO_RIDER_FOUND", "created"]},
                         },
-                        {
-                            "$set": {
-                                "status": "cancelled",
-                                "cancellationReason": reason,
-                                "updatedAt": lifecycle.now_iso(),
-                            }
-                        },
+                        {"$set": {"status": "SEARCHING_RIDER", "attemptedRiderIds": [], "updatedAt": lifecycle.now_iso()}},
                     )
-
-                    # 2. Cancel pending rider offers
                     await database.collection("rider_offers").update_many(
                         {"orderId": order_id, "status": "pending"},
                         {"$set": {"status": "expired", "updatedAt": lifecycle.now_iso()}},
                     )
-
-                    # 3. Transition order to CANCELLED and unassign rider
-                    updated = await lifecycle.transition(
-                        order_id,
-                        lifecycle.CANCELLED,
-                        actor_id="system-sla-engine",
-                        actor_role="system",
-                        metadata={
-                            "reason": reason,
-                            "sla": "rider_acceptance",
-                            "timeoutSeconds": lifecycle.RIDER_ACCEPT_SLA_SECONDS,
-                            "elapsedSeconds": int(age_seconds),
-                        },
-                        changes={
-                            "cancelledReason": reason,
-                            "cancellationReason": reason,
-                            "cancelledBy": "system",
-                            "autoCancelled": True,
-                            "slaBreached": "rider_acceptance",
-                            "refundInitiated": True,
-                            "rider": None,
-                            "assignedRiderId": None,
-                        },
-                    )
-
-                    await self._process_auto_refund(updated, f"No delivery captain in {sla_mins} min")
-                    expired_rider_orders.append(order_id)
-
-                    # Broadcast cancellation event via Socket.IO
-                    await broadcast_order_event(
-                        EVENT_ORDER_CANCELLED,
-                        updated,
-                        extra_data={
-                            "reason": reason,
-                            "slaBreached": "rider_acceptance",
-                            "autoCancelled": True,
-                        },
-                    )
-
-                    # Notify riders channel that ride is cancelled
-                    await sio.emit(
-                        "rider.ride_cancelled",
-                        {"orderId": order_id, "reason": f"{sla_mins}-Minute Rider SLA Expired"},
-                        room="riders",
-                    )
+                    # Trigger next batch dispatch
+                    ride = await database.find_one("rides", {"orderId": order_id})
+                    if ride:
+                        asyncio.create_task(smart_2ride_engine.dispatch_next_offer(ride["_id"]))
                 except Exception as exc:
-                    logger.error("Failed to auto-cancel order %s on rider SLA: %s", order_id, exc)
+                    logger.debug("Continuous rider dispatch re-offer error for %s: %s", order_id, exc)
 
             return {
                 "expiredPartnerOrders": expired_partner_orders,

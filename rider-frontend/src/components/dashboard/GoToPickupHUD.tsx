@@ -2133,7 +2133,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
                 {/* Doorstep Garment Intake & Security Bag Tag Card with Photo Proof */}
                 <RiderDoorstepPickupCard
-                  initialPiecesCount={initialPiecesCount}
+                  initialPiecesCount={initialDoorstepPieces}
                   doorstepPieces={doorstepPieces}
                   setDoorstepPieces={setDoorstepPieces}
                   bagTagCode={bagTagCode}
