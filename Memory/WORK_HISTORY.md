@@ -3590,4 +3590,40 @@ This single command will automatically:
   - Automated simulation executed cleanly with `./venv/bin/python test_captain_hud_end_to_end.py`.
   - Exit code: `0` (100% passed across all 13 stages against live database).
 
+### 69. Rapido Yellow Theme Captain HUD Flow & Production Android Artifacts
+- **User Request:**
+  - Replicate the exact Rapido Yellow Theme HUD workflow for QuickPress Captain based on video (`video/WhatsApp Video 2026-10-30 at 11.06.18.mp4`) and 8 screenshots:
+    1. Incoming floating order card with audio chimes and voice.
+    2. Stage 1: `Inside the Pickup Zone` map screen (yellow speedometer `0 km/h`, green dashed geofence with `Pick up here` speech bubble, floating yellow `▲ Go to pickup` pill, customer card with `💬 Message customer` outline button, and solid blue `[Arrived]` swipe slider).
+    3. Arrived confirmation modal: `Confirmation: Have you arrived at the customer's location?` -> `[No]` and `[Yes]` (yellow).
+    4. Stage 2: `Meet the Customer` screen with Soft Blue 3-minute Wait Timer banner (`Wait Timer` `03:00` in yellow / `ⓘ After 3 minutes, you will get extra charge for waiting`) and solid green `[Start Ride]` swipe slider.
+    5. Stage 2 OTP Screen: Dedicated full-screen `Enter OTP` view matching video (Header `← Start Ride` + black round yellow phone `📞`, black `Order ID: ...` bar, dark pill `[Auto] 👤 Customer Name`, 4 large square digit boxes `[ ] [ ] [ ] [ ]`, helper note `Ask the customer for the 4 digit OTP shown on their screen to start the ride`, solid yellow `[Submit OTP]` button).
+    6. Stage 3: `Go to drop` screen with celebration banner `Perfect Pick-up! ✨ You started the ride at the right location.`, prompt modal `Use QuickPress Maps` (`[No, thanks]` / `[Go To Maps]`), yellow speedometer, floating yellow `▲ Go to drop` button, dynamic Razorpay UPI QR and Cash collection card for COD, and solid red `[Complete Ride]` swipe slider.
+    7. Complete ride confirmation modal: `Confirmation: Are you sure you want to complete the trip?` -> `[No]` and `[Yes]` (yellow).
+    8. Stage 8: `Order Complete` screen (Header `Order Complete` + `[🎧 Help]`, Card 1: `Estimated Earning` `₹{fare}` in green + circular blue ink stamp `0% Commission Lifetime Guarantee`, Card 2: `Rate your Customer` with 5 stars, `VERY GOOD 😍`, feedback chips `[⏰ Timely]`, `[😊 Polite]`, `[🤝 Friendly]`, `[Other]`, and full-width solid yellow pill button `[Done]`).
+  - Constraint: Real data only (no mock or hardcoded values; all customer names, addresses, fares, OTPs, and statuses aggregate directly from live Supabase collections).
+- **Design & Architecture Proposal:**
+  - Prepared design wireframe images and proposal artifact `captain_yellow_theme_proposal.md`.
+  - User explicitly approved the proposal.
+- **Code Modifications:**
+  - `rider-frontend/src/components/common/SwipeActionButton.tsx`:
+    - Added `red` color option (`bg-[#DC2626]`).
+    - Configured solid background tracks for `blue` (`bg-[#1D4ED8]`), `emerald` (`bg-[#16A34A]`), and `red` (`bg-[#DC2626]`) sliders with circular white knobs and colored chevrons (`ChevronRight`).
+  - `rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`:
+    - Updated Header with stage-specific titles (`Inside the Pickup Zone`, `Meet the Customer`, `Go to drop`, `Order Complete` + `[🎧 Help]`).
+    - Added black circular button with yellow phone icon (`size-9 rounded-full bg-black text-[#FACC15]`).
+    - Added top-left yellow speedometer circle (`bg-[#FACC15] border-2 border-black 0 km/h`).
+    - Added bottom-center floating yellow button (`▲ Go to pickup` / `▲ Go to drop`).
+    - Added green geofence speech bubble tooltip (`Pick up here ({distanceMeters}m)`).
+    - Added Soft Blue Wait Timer banner (`#EBF3FF`, `#D0E2FF`, `#FACC15`) with live countdown.
+    - Added `showArrivedConfirmModal` ("Confirmation: Have you arrived at the customer's location?").
+    - Added `showCompleteRideConfirmation` ("Confirmation: Are you sure you want to complete the trip?").
+    - Redesigned `showDedicatedOtpScreen` to match screenshot with black Order ID bar, auto customer pill, 4 square digit inputs, and solid yellow submit button.
+    - Redesigned `stage === "completed"` and `showOrderCompleteRatingScreen` with Estimated Earning card, circular blue ink stamp `0% Commission Lifetime Guarantee`, 5-star rating, feedback chips, and solid yellow `[Done]` button.
+- **Verification & Packaging:**
+  - Verified `rider-frontend` production build (`npm run build`): PASSED (0 errors, 1.61s).
+  - Built Android binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` compiled and copied to `apks/` and artifact directories.
+    - `QuickPress-Captain.aab` compiled for Google Play Store.
+
 

@@ -7,7 +7,7 @@ export interface SwipeActionButtonProps {
   onConfirm: () => void | Promise<void>;
   loading?: boolean;
   disabled?: boolean;
-  color?: "emerald" | "blue" | "zinc" | "amber" | "purple";
+  color?: "emerald" | "blue" | "zinc" | "amber" | "purple" | "red";
   className?: string;
 }
 
@@ -27,20 +27,28 @@ export function SwipeActionButton({
 
   const colorStyles = {
     emerald: {
-      trackBg: "bg-slate-100 border-slate-200 shadow-2xs",
-      fillBg: "bg-emerald-600",
-      thumbBg: "bg-slate-950 text-white shadow-md border border-slate-900",
-      text: "text-slate-900",
-      subtext: "text-slate-500",
-      glow: "shadow-md ring-2 ring-emerald-500/20",
+      trackBg: "bg-[#16A34A] border-[#15803D] shadow-md",
+      fillBg: "bg-[#15803D]",
+      thumbBg: "bg-white text-[#16A34A] shadow-md rounded-full",
+      text: "text-white font-black",
+      subtext: "text-emerald-100",
+      glow: "shadow-md ring-2 ring-emerald-400/40",
     },
     blue: {
-      trackBg: "bg-slate-100 border-slate-200 shadow-2xs",
-      fillBg: "bg-slate-900",
-      thumbBg: "bg-slate-950 text-white shadow-md border border-slate-900",
-      text: "text-slate-900",
-      subtext: "text-slate-500",
-      glow: "shadow-md ring-2 ring-slate-900/20",
+      trackBg: "bg-[#1D4ED8] border-[#1E40AF] shadow-md",
+      fillBg: "bg-[#1E40AF]",
+      thumbBg: "bg-white text-[#1D4ED8] shadow-md rounded-full",
+      text: "text-white font-black",
+      subtext: "text-blue-100",
+      glow: "shadow-md ring-2 ring-blue-400/40",
+    },
+    red: {
+      trackBg: "bg-[#DC2626] border-[#B91C1C] shadow-md",
+      fillBg: "bg-[#B91C1C]",
+      thumbBg: "bg-white text-[#DC2626] shadow-md rounded-full",
+      text: "text-white font-black",
+      subtext: "text-red-100",
+      glow: "shadow-md ring-2 ring-red-400/40",
     },
     zinc: {
       trackBg: "bg-slate-100 border-slate-200 shadow-2xs",
@@ -51,20 +59,20 @@ export function SwipeActionButton({
       glow: "shadow-md ring-2 ring-slate-900/20",
     },
     amber: {
-      trackBg: "bg-slate-100 border-slate-200 shadow-2xs",
-      fillBg: "bg-amber-500",
-      thumbBg: "bg-slate-950 text-white shadow-md border border-slate-900",
-      text: "text-slate-900",
-      subtext: "text-slate-500",
-      glow: "shadow-md ring-2 ring-amber-500/20",
+      trackBg: "bg-amber-500 border-amber-600 shadow-md",
+      fillBg: "bg-amber-600",
+      thumbBg: "bg-white text-amber-600 shadow-md rounded-full",
+      text: "text-white font-black",
+      subtext: "text-amber-100",
+      glow: "shadow-md ring-2 ring-amber-400/40",
     },
     purple: {
-      trackBg: "bg-slate-100 border-slate-200 shadow-2xs",
-      fillBg: "bg-indigo-600",
-      thumbBg: "bg-slate-950 text-white shadow-md border border-slate-900",
-      text: "text-slate-900",
-      subtext: "text-slate-500",
-      glow: "shadow-md ring-2 ring-indigo-500/20",
+      trackBg: "bg-indigo-600 border-indigo-700 shadow-md",
+      fillBg: "bg-indigo-700",
+      thumbBg: "bg-white text-indigo-600 shadow-md rounded-full",
+      text: "text-white font-black",
+      subtext: "text-indigo-100",
+      glow: "shadow-md ring-2 ring-indigo-400/40",
     },
   }[color];
 
@@ -190,12 +198,12 @@ export function SwipeActionButton({
         className={`absolute top-1.5 left-1.5 bottom-1.5 w-[50px] rounded-xl flex items-center justify-center shadow-lg transition-transform ${colorStyles.thumbBg}`}
       >
         {loading ? (
-          <Loader2 className="size-5.5 animate-spin text-white" />
+          <Loader2 className="size-5.5 animate-spin" />
         ) : confirmed ? (
-          <Check className="size-6 stroke-[3.5] text-white" />
+          <Check className="size-6 stroke-[3.5]" />
         ) : (
           <div className="flex items-center justify-center relative">
-            <ChevronRight className="size-6 text-white translate-x-0.5 stroke-[3]" />
+            <ChevronRight className="size-6 translate-x-0.5 stroke-[3]" />
           </div>
         )}
       </div>
