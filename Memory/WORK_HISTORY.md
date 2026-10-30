@@ -3625,5 +3625,7 @@ This single command will automatically:
   - Built Android binaries via `python3 build_all_apks.py rider`:
     - `QuickPress-Captain.apk` compiled and copied to `apks/` and artifact directories.
     - `QuickPress-Captain.aab` compiled for Google Play Store.
+  - **Git Commit & Push:**
+    - Commit `c5f0e2c`: `feat(captain): implement Rapido-style yellow HUD theme with verified live data flow` pushed directly to GitHub `main`.
 
 
