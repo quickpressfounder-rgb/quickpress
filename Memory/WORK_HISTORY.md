@@ -66,7 +66,10 @@
   - `npm run build` in `partner-frontend`: Succeeded in 1.65s (0 errors).
   - Re-compiled Android Partner APK and Play Store AAB Bundle via `python3 build_all_apks.py partner`:
     - `QuickPress-Partner.apk` (14.6 MB)
-    - `QuickPress-Partner.aab` (13.8 MB)
+- **Live EC2 Production Deployment & GitHub Actions Secrets:**
+  - Configured missing GitHub Action repository secrets (`EC2_HOST`, `EC2_USER`, `EC2_KEY`) for `quickpressfounder-rgb/quickpress`.
+  - Connected directly to AWS EC2 instance (`65.0.127.43`), pulled commit `c806eb2`, re-compiled `partner-frontend` using `NITRO_PRESET=node-server npm run build`, and restarted `quickpress-partner` in PM2 (cluster PID 631102).
+  - Verified live endpoint: `https://quickpress.online/dashboard` returns HTTP 307 redirecting to `https://quickpress.online/orders` (HTTP 200 OK).
 - **Files Modified:**
   - `partner-frontend/src/shared/styles/theme.css`
   - `partner-frontend/src/styles.css`
