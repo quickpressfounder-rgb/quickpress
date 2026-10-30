@@ -63,6 +63,7 @@
   6. **Deduplication & Monotonic Progression:**
      - `PartnerOrdersContext.tsx` deduplicates incoming orders strictly by ID using `Map<string, ManagedOrder>`.
      - Enforced monotonic stage progression so orders at `accepted`, `washing`, or `ready` can never be demoted back to `new`.
+- **Commit:** [`ff0079a`](https://github.com/quickpressfounder-rgb/quickpress/commit/ff0079a)
 - **Files Modified:**
   - `backend-python/app/api/rider.py`
   - `backend-python/app/db/partner_repositories.py`
