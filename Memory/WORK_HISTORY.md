@@ -3711,6 +3711,35 @@ This single command will automatically:
     - `QuickPress-Captain.aab` (17.6 MB) compiled & verified.
     - Capacitor iOS synced (0.70s).
 
+### 72. Permanent Resolution of Arrived Confirm Error, 2-Min Partner SLA, and Captain Fulfillment Roadmap
+- **User Request:**
+  - Auto-cancel within 2 minutes ONLY if Partner does NOT accept. If Partner accepts, order must NEVER auto-cancel.
+  - Rider offers dispatch continuously; once a rider accepts, cancel only via manual cancellation.
+  - Permanently solve the "Orders & History Temporarily Unavailable" screen that triggers upon confirming "Arrived".
+  - Build full step-by-step UI/UX design roadmap for Customer to Store (Handover) -> Store Processing (with Partner OTP) -> Delivery to Customer (Reached button -> COD Payment if unpaid -> Delivery OTP -> Success).
+- **Root Cause & Permanent Fix for Arrived Confirm Crash:**
+  - **Root Cause:** In `GoToPickupHUD.tsx` line 2136, `<RiderDoorstepPickupCard initialPiecesCount={initialPiecesCount} ... />` referenced undeclared variable `initialPiecesCount` (the variable was actually declared as `initialDoorstepPieces`).
+  - Because line 2136 only renders when `stage === "arrived_pickup"`, clicking "Yes" on the Arrived Confirmation modal caused an immediate `ReferenceError: initialPiecesCount is not defined`, triggering React's `ScreenErrorBoundary`.
+  - **Fix Applied:** Changed to `initialPiecesCount={initialDoorstepPieces}`. Verified with clean TypeScript compilation and successful build.
+- **Auto-Cancellation Rules Enacted:**
+  - In `backend-python/app/services/order_lifecycle.py`: Updated `PARTNER_ACCEPT_SLA_SECONDS = 120` (2 minutes).
+  - In `backend-python/app/services/order_timeline_engine.py`: Removed auto-cancellation of active orders once a Partner has accepted. Stale pending rider offers are reset and re-broadcast continuously to nearby online Captains without terminating the customer order. Once accepted by a Captain, trips can only be cancelled via manual cancellation.
+- **Architectural Flow Roadmap Documented:**
+  - Generated comprehensive UI/UX design roadmap artifact: `quickpress_captain_fulfillment_flow_roadmap.md`.
+- **Files Modified:**
+  - `rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`
+  - `backend-python/app/services/order_lifecycle.py`
+  - `backend-python/app/services/order_timeline_engine.py`
+  - `quickpress_captain_fulfillment_flow_roadmap.md`
+- **Verification & Packaging:**
+  - Built `rider-frontend` (`npm run build`): PASSED (0 errors, 943ms).
+  - Python compilation: PASSED (0 syntax errors).
+  - Built Android Captain binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18.4 MB) compiled, signed & verified.
+    - `QuickPress-Captain.aab` (17.6 MB) compiled & verified.
+    - Capacitor iOS synced (0.66s).
+
+
 
 
 
