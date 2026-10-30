@@ -236,7 +236,7 @@ export function OrderTimeline({
                           : "text-zinc-950 dark:text-white"
                       }`}
                     >
-                      {item.label}
+                      {isCancelledNode ? "Order Cancelled" : item.label}
                     </p>
                     <span
                       className={`text-[10px] font-semibold shrink-0 ${
@@ -251,21 +251,10 @@ export function OrderTimeline({
                     </span>
                   </div>
 
-                  <p
-                    className={`text-[11px] leading-snug mt-0.5 ${
-                      isCancelledNode
-                        ? "font-semibold text-rose-700 dark:text-rose-300"
-                        : "font-medium text-zinc-500 dark:text-zinc-400"
-                    }`}
-                  >
-                    {item.subtext}
-                  </p>
-
-                  {isCancelledNode && (
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 p-2.5 rounded-xl border border-rose-200 dark:border-rose-900/60">
-                      <ShieldCheck className="size-3.5 text-rose-600 shrink-0" />
-                      <span>Customer automated refund triggered directly to source account · Escrow reversed</span>
-                    </div>
+                  {!isCancelledNode && item.subtext && (
+                    <p className="text-[11px] leading-snug mt-0.5 font-medium text-zinc-500 dark:text-zinc-400">
+                      {item.subtext}
+                    </p>
                   )}
                 </div>
               </li>

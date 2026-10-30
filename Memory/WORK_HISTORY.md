@@ -33,6 +33,35 @@
 
 ## Detailed Log of Work Done (30 October 2026)
 
+### 82. Removed Redundant Order Detail Cards & Redesigned Services Page to Modern Zomato Merchant Menu
+- **User Request:**
+  - *"YE DONO HATAO YE LIKHA YA BHI HATAO / SERVIES PAGE TO MORDAN LAYOUT ME BANAN HAI IS THEAM ME SATH"* (with screenshots highlighting: 1. Garment Intake & Bag Seal card, 2. Order Inspection & Billing card, 3. Cancelled/Escrow reversed banner, and 4. Services page with React hydration error #418).
+- **Architectural Implementation Details:**
+  1. **Order Detail Screen Clean-up (`OrderDetailsScreen.tsx` & `OrderTimeline.tsx`):**
+     - Completely removed the redundant `GARMENT INTAKE & BAG SEAL` (`PartnerBagIntakeCard`) from both mobile and desktop views.
+     - Removed the duplicate `ORDER INSPECTION & BILLING` card from mobile view (itemization and totals are already cleanly surfaced on the primary Zomato Order Ticket Card). Retained pre-wash defect proofs if tagged.
+     - Removed the jarring red auto-cancellation and escrow-reversed banner (`Customer automated refund triggered directly to source account · Escrow reversed`). Cancelled orders now present cleanly with status `Order Cancelled`.
+  2. **Modern Services Screen Redesign (`ManageServicesScreen.tsx`):**
+     - Resolved React SSR Hydration Mismatch Error #418 by adding `mounted` state protection during initial server-client synchronization.
+     - Unified Online/Offline store status toggle directly with `usePartnerContext()`.
+     - Modern Zomato Merchant Menu design:
+       - Sticky Header with store title, city, live pulsating status dot, and Online/Offline toggle pill.
+       - Quick Action Toolbar: Solid Royal Blue `+ Add Service`, `⚡ Catalog Presets`, and `% Offer`.
+       - High-density Category Carousel: `All (N)`, `🧺 Wash & Fold`, `⚡ Steam Iron`, `👔 Dry Clean`, `👟 Shoe Clean`, `🎁 Offers`, `⏸ Paused`.
+       - Pristine Service Cards: Iconic green care indicator `⊡`, bold price `₹79 /kg`, turnaround capsule `⏱ 24h SLA`, active offer badge, and responsive `[ ● LIVE ]` / `[ ○ PAUSED ]` status switch.
+       - Action buttons on card: `[ ✏️ Edit Rate ]`, `[ % Discount ]`, and `[ Details › ]`.
+- **Verification & Deployment:**
+  - `npm run build` in `partner-frontend`: Passed cleanly in 1.18s (0 errors).
+  - Android APK & AAB Compilation (`python3 build_all_apks.py partner`):
+    - `QuickPress-Partner.apk` (14.6 MB)
+    - `QuickPress-Partner.aab` (13.8 MB)
+  - Deployed directly to AWS EC2 (`65.0.127.43`) via PM2 (`quickpress-partner`).
+- **Files Modified:**
+  - `partner-frontend/src/screens/OrderDetailsScreen.tsx`
+  - `partner-frontend/src/components/orders/OrderTimeline.tsx`
+  - `partner-frontend/src/screens/ManageServicesScreen.tsx`
+  - `Memory/WORK_HISTORY.md`
+
 ### 81. Redesigned Partner Order Details Page to Match Exact Zomato Merchant Ticket Aesthetic
 - **User Request:**
   - *"1 same jo abhi banan ussi desing me banana hai"* (Redesign the Order Details screen to match the exact same Zomato merchant layout and theme as the orders queue).

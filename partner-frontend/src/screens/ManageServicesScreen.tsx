@@ -1,6 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
-  Bell,
+  AlertCircle,
+  ArrowRight,
+  Check,
   CheckCircle2,
   ChevronDown,
   Clock,
@@ -22,7 +24,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Toaster } from "@/shared/ui/sonner";
@@ -49,6 +51,7 @@ import {
 import { partnerRoutes } from "../navigation/partner-routes";
 import { fetchPartnerProfile, toggleStoreStatus } from "@/api/partner/partner-profile-api";
 import { usePartnerResource } from "../hooks/use-partner-resource";
+import { usePartnerContext } from "../context/PartnerContext";
 
 function getServiceIcon(name: string, category?: string) {
   const text = (name + " " + (category || "")).toLowerCase();
@@ -62,6 +65,8 @@ function getServiceIcon(name: string, category?: string) {
 
 export function ManageServicesScreen() {
   const navigate = useNavigate();
+  const [mounted, setMounted] = useState(false);
+  const { isOnline, toggleOnline } = usePartnerContext();
   const { data: profile } = usePartnerResource(fetchPartnerProfile);
   const {
     services,
@@ -84,15 +89,16 @@ export function ManageServicesScreen() {
   const [offerSheetOpen, setOfferSheetOpen] = useState(false);
   const [catalogModalOpen, setCatalogModalOpen] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
-  const [isStoreOnline, setIsStoreOnline] = useState(true);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleToggleStore = async () => {
     try {
-      const next = !isStoreOnline;
-      setIsStoreOnline(next);
-      await toggleStoreStatus(next);
+      await toggleOnline();
+      toast.success(isOnline ? "Store is now OFFLINE" : "Store is now ONLINE");
     } catch {
-      setIsStoreOnline(!isStoreOnline);
       toast.error("Failed to update store status");
     }
   };
@@ -110,17 +116,17 @@ export function ManageServicesScreen() {
     [services]
   );
 
-  const CATEGORY_TABS = [
+  const CATEGORY_TABS = useMemo(() => [
     { id: "all", label: `All (${services.length})` },
     ...(pendingCount > 0 ? [{ id: "pending", label: `⏳ Pending (${pendingCount})` }] : []),
-    { id: "wash", label: "Wash & Fold" },
-    { id: "iron", label: "Steam Iron" },
-    { id: "dry", label: "Dry Clean" },
-    { id: "shoe", label: "Shoe Clean" },
-    { id: "offers", label: `Offers (${offers.length})` },
-    { id: "paused", label: `Paused (${services.length - trueLiveCount - pendingCount - rejectedCount})` },
+    { id: "wash", label: "🧺 Wash & Fold" },
+    { id: "iron", label: "⚡ Steam Iron" },
+    { id: "dry", label: "👔 Dry Clean" },
+    { id: "shoe", label: "👟 Shoe Clean" },
+    { id: "offers", label: `🎁 Offers (${offers.length})` },
+    { id: "paused", label: `⏸ Paused (${services.length - trueLiveCount - pendingCount - rejectedCount})` },
     ...(rejectedCount > 0 ? [{ id: "rejected", label: `❌ Rejected (${rejectedCount})` }] : []),
-  ];
+  ], [services.length, pendingCount, rejectedCount, trueLiveCount, offers.length]);
 
   const visible = useMemo(() => {
     let list = services;
@@ -170,81 +176,77 @@ export function ManageServicesScreen() {
       onSearchChange={setQuery}
     >
       {/* ========================================================================= */}
-      {/* MOBILE ZOMATO MENU & SERVICES VIEW (< md)                                 */}
+      {/* MOBILE ZOMATO MERCHANT MENU & SERVICES VIEW (< md)                        */}
       {/* ========================================================================= */}
-      <div className="min-h-screen bg-[#F4F5F7] pb-28 text-zinc-900 md:hidden">
-        {/* Top Header with Store name, Status & Action buttons */}
-        <header className="sticky top-0 z-20 bg-white px-4 pt-3.5 pb-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-          <div className="flex items-start justify-between">
+      <div className="min-h-screen bg-zinc-50/50 pb-28 text-zinc-900 md:hidden">
+        {/* Sticky Top Header matching Zomato Merchant Detail */}
+        <header className="sticky top-0 z-30 bg-white px-4 pt-3.5 pb-3 border-b border-zinc-200/90 shadow-2xs">
+          <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-base font-black tracking-tight text-zinc-900">
-                {profile?.businessName || profile?.ownerName || "QuickPress Partner"}
+              <h1 className="truncate text-base font-black tracking-tight text-zinc-950">
+                {mounted ? (profile?.businessName || profile?.ownerName || "QuickPress Partner") : "QuickPress Partner"}
               </h1>
-              <p className="mt-0.5 truncate text-[11px] font-medium text-zinc-500">
-                {profile?.city ? `${profile.city}` : "Catalog & Pricing"} · {activeCount} Live Services
+              <p className="mt-0.5 truncate text-[11px] font-medium text-zinc-500 flex items-center gap-1.5">
+                <span>{mounted && profile?.city ? `${profile.city}` : "Catalog & Rates"}</span>
+                <span>•</span>
+                <span className="font-bold text-emerald-700">{mounted ? activeCount : services.length} Live Services</span>
               </p>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              {/* Modern Online / Offline Toggle Pill */}
               <button
                 type="button"
                 onClick={handleToggleStore}
-                className="flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-black text-zinc-700 active:scale-95"
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                  isOnline
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                    : "bg-zinc-100 border-zinc-200 text-zinc-700"
+                }`}
               >
-                <span className={`size-2 rounded-full ${isStoreOnline ? "bg-emerald-500 animate-ping" : "bg-zinc-400"}`} />
-                <span>{isStoreOnline ? "Online" : "Offline"}</span>
+                <span className={`size-2 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-zinc-400"}`} />
+                <span>{isOnline ? "Online" : "Offline"}</span>
                 <span className="text-[10px] text-zinc-400">›</span>
               </button>
 
               <Link
                 to={partnerRoutes.profile}
-                className="flex size-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-800"
+                className="flex size-8 items-center justify-center rounded-xl bg-white border border-zinc-200 text-zinc-800 active:scale-95 shadow-2xs cursor-pointer"
+                title="Store Settings"
               >
-                <Menu className="size-5" />
+                <Menu className="size-4.5" />
               </Link>
             </div>
           </div>
 
-          {/* Action Row: Add Service & Create Offer */}
-          <div className="mt-3.5 flex gap-2">
+          {/* Quick Action Toolbar: Custom Service + Catalog Presets + Offer */}
+          <div className="mt-3 grid grid-cols-12 gap-2">
             <button
               type="button"
-              onClick={() => setCatalogModalOpen(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-brand-green py-2.5 text-xs font-black text-white shadow-cta transition-transform active:scale-95 hover:bg-brand-green-dark cursor-pointer"
+              onClick={() => navigate({ to: partnerRoutes.serviceNew })}
+              className="col-span-5 flex items-center justify-center gap-1.5 rounded-xl bg-[#5B63D3] hover:bg-[#4d54bc] py-2.5 px-2 text-xs font-black text-white shadow-sm active:scale-95 transition-all cursor-pointer"
             >
-              <Plus className="size-4" strokeWidth={2.5} />
+              <Plus className="size-3.5" strokeWidth={2.5} />
               <span>+ Add Service</span>
             </button>
 
             <button
               type="button"
-              onClick={() => setOfferSheetOpen(true)}
-              className="flex items-center gap-1.5 rounded-2xl border border-border/70 bg-card px-3.5 py-2.5 text-xs font-black text-foreground shadow-xs transition-transform active:scale-95 hover:bg-muted cursor-pointer"
+              onClick={() => setCatalogModalOpen(true)}
+              className="col-span-4 flex items-center justify-center gap-1 rounded-xl border border-zinc-200 bg-white py-2.5 px-2 text-xs font-bold text-zinc-800 shadow-2xs hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer"
             >
-              <Percent className="size-3.5 text-brand-green" />
-              <span>Add Offer</span>
+              <Sparkles className="size-3.5 text-amber-500" />
+              <span>Catalog</span>
             </button>
-          </div>
 
-          {/* Category Horizontal Filter Carousel */}
-          <div className="no-scrollbar -mx-4 mt-3 flex items-center gap-2 overflow-x-auto px-4 pb-1">
-            {CATEGORY_TABS.map((cat) => {
-              const isActive = categoryFilter === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setCategoryFilter(cat.id)}
-                  className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-black transition-all active:scale-95 cursor-pointer ${
-                    isActive
-                      ? "bg-brand-green text-white shadow-cta font-black"
-                      : "border border-border/70 bg-card text-muted-foreground hover:border-border hover:text-foreground"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              );
-            })}
+            <button
+              type="button"
+              onClick={() => setOfferSheetOpen(true)}
+              className="col-span-3 flex items-center justify-center gap-1 rounded-xl border border-amber-200/80 bg-amber-50 py-2.5 px-2 text-xs font-black text-amber-950 shadow-2xs hover:bg-amber-100 active:scale-95 transition-all cursor-pointer"
+            >
+              <Percent className="size-3.5 text-amber-600" />
+              <span>Offer</span>
+            </button>
           </div>
 
           {/* Search Input Bar */}
@@ -254,32 +256,53 @@ export function ManageServicesScreen() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search service name, type, or price..."
-              className="h-10 w-full rounded-2xl border border-zinc-200 bg-zinc-50 pl-10 pr-4 text-xs font-bold text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none"
+              placeholder="Search laundry service, category, or garment..."
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-10 pr-8 text-xs font-medium text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none transition-colors"
             />
             {query ? (
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer"
               >
                 <X className="size-3.5" />
               </button>
             ) : null}
           </div>
+
+          {/* Category Horizontal Filter Carousel */}
+          <div className="no-scrollbar -mx-4 mt-3 flex items-center gap-1.5 overflow-x-auto px-4 pb-0.5">
+            {CATEGORY_TABS.map((cat) => {
+              const isActive = categoryFilter === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCategoryFilter(cat.id)}
+                  className={`shrink-0 rounded-full px-3.5 py-1 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                    isActive
+                      ? "bg-zinc-950 text-white font-black shadow-2xs"
+                      : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-950"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              );
+            })}
+          </div>
         </header>
 
-        {/* Mobile Services Card List */}
+        {/* Mobile Services Card List (Exact Zomato Menu Aesthetic) */}
         <div className="space-y-3 p-4">
-          {isLoading ? (
+          {!mounted || isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-28 animate-pulse rounded-2xl bg-zinc-200/70" />
+                <div key={i} className="h-32 animate-pulse rounded-2xl bg-white border border-zinc-200 p-4" />
               ))}
             </div>
           ) : visible.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-8 text-center shadow-sm">
-              <Layers className="mx-auto size-10 text-zinc-400" />
+            <div className="rounded-2xl border border-dashed border-zinc-200 bg-white p-8 text-center shadow-2xs">
+              <Layers className="mx-auto size-10 text-zinc-300" />
               <h3 className="mt-3 text-sm font-black text-zinc-900">
                 {isSearching ? "No matching services" : "No services in this category"}
               </h3>
@@ -288,31 +311,36 @@ export function ManageServicesScreen() {
               </p>
               <button
                 type="button"
-                onClick={isSearching ? resetSearch : () => navigate({ to: partnerRoutes.serviceNew })}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-zinc-950 px-4 py-2 text-xs font-black text-white active:scale-95"
+                onClick={isSearching ? resetSearch : () => setCatalogModalOpen(true)}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-zinc-950 px-4 py-2 text-xs font-black text-white active:scale-95 cursor-pointer shadow-2xs"
               >
-                {isSearching ? "Reset filters" : "+ Add Service"}
+                {isSearching ? "Reset filters" : "+ Add from Catalog"}
               </button>
             </div>
           ) : (
             visible.map((svc) => {
               const svcOffers = offersFor(svc.id);
-              const icon = getServiceIcon(svc.name, svc.category);
               return (
                 <div
                   key={svc.id}
-                  className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm transition-all"
+                  className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs hover:shadow-xs transition-all"
                 >
+                  {/* Top Row: Quality Indicator, Title & Live Toggle */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="flex size-7 items-center justify-center rounded-lg bg-amber-100 text-amber-800 text-xs font-black">
-                          {icon}
+                      <div className="flex items-center gap-2">
+                        {/* Iconic Veg / Quality Laundry Dot Indicator */}
+                        <span className="flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-emerald-600 bg-white p-0.5">
+                          <span className="size-2 rounded-full bg-emerald-600" />
                         </span>
-                        <h3 className="truncate text-sm font-black text-zinc-900">{svc.name}</h3>
+
+                        <h3 className="truncate text-sm font-black text-zinc-950 tracking-tight">
+                          {svc.name}
+                        </h3>
+
                         {(svc.pendingApproval || svc.approvalStatus === "pending") && (
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black text-amber-800 shrink-0 border border-amber-300">
-                            ⏳ Pending Approval
+                            ⏳ Under Review
                           </span>
                         )}
                         {svc.approvalStatus === "rejected" && (
@@ -322,40 +350,45 @@ export function ManageServicesScreen() {
                         )}
                       </div>
 
-                      <div className="mt-1.5 flex items-center gap-2">
-                        <span className="text-base font-black text-zinc-900">
-                          ₹{svc.price} <span className="text-[10px] text-zinc-500 font-semibold">/{svc.unit}</span>
+                      {/* Pricing & Turnaround Pill */}
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        <span className="text-base font-black text-zinc-950 tracking-tight">
+                          ₹{svc.price} <span className="text-xs font-semibold text-zinc-500">/{svc.unit}</span>
                         </span>
-                        <span className="flex items-center gap-1 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-600">
-                          <Clock className="size-3" /> {svc.turnaroundHours}h turnaround
+                        <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-600 border border-zinc-200/60">
+                          <Clock className="size-3 text-zinc-500" />
+                          <span>{svc.turnaroundHours ? `${svc.turnaroundHours}h SLA` : "24h turnaround"}</span>
                         </span>
                       </div>
 
+                      {/* Rejection / Note / Description */}
                       {svc.rejectionReason && svc.approvalStatus === "rejected" ? (
-                        <p className="mt-1 line-clamp-2 text-[11px] font-semibold text-rose-600 bg-rose-50 rounded-lg px-2 py-1">
+                        <p className="mt-1 line-clamp-2 text-[11px] font-semibold text-rose-600 bg-rose-50 rounded-lg px-2 py-1 border border-rose-200">
                           Reason: {svc.rejectionReason}
                         </p>
                       ) : svc.description ? (
-                        <p className="mt-1 line-clamp-2 text-xs text-zinc-500 font-medium">
+                        <p className="mt-1 line-clamp-1 text-xs text-zinc-500 font-medium">
                           {svc.description}
                         </p>
                       ) : null}
 
-                      {svcOffers.length > 0 ? (
-                        <div className="mt-2 flex items-center gap-1 text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md inline-flex">
-                          <Percent className="size-3" /> {svcOffers[0].title}
+                      {/* Active Offer Pill */}
+                      {svcOffers.length > 0 && (
+                        <div className="mt-2 inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-black text-indigo-700 border border-indigo-200">
+                          <Percent className="size-3 text-indigo-600" />
+                          <span>{svcOffers[0].title}</span>
                         </div>
-                      ) : null}
+                      )}
                     </div>
 
-                    {/* Live Toggle Switch & Edit */}
-                    <div className="flex flex-col items-end gap-2.5 shrink-0">
+                    {/* Right: Instant In-Stock / Live Switch */}
+                    <div className="shrink-0 flex flex-col items-end gap-2">
                       <button
                         type="button"
                         disabled={Boolean(svc.pendingApproval || svc.approvalStatus === "pending" || svc.approvalStatus === "rejected")}
                         onClick={() => {
                           if (svc.pendingApproval || svc.approvalStatus === "pending") {
-                            toast.error("Yeh service Admin verification ke liye pending hai. Admin approval ke baad hi live hogi!");
+                            toast.error("Yeh service Admin verification ke liye pending hai. Approval ke baad hi live hogi!");
                             return;
                           }
                           if (svc.approvalStatus === "rejected") {
@@ -365,38 +398,33 @@ export function ManageServicesScreen() {
                           const wasEnabled = svc.enabled;
                           void toggleService(svc.id)
                             .then(() => {
-                              toast.success(`${svc.name} ${wasEnabled ? "paused" : "is now live"}`);
+                              toast.success(`${svc.name} ${wasEnabled ? "paused" : "is now LIVE"}`);
                             })
                             .catch((err) => toast.error(err?.message || "Failed to update status"));
                         }}
-                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-black transition-all ${
+                        className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-black shadow-2xs transition-all active:scale-95 cursor-pointer ${
                           svc.pendingApproval || svc.approvalStatus === "pending"
                             ? "bg-amber-100 text-amber-900 border border-amber-300 cursor-not-allowed opacity-90"
                             : svc.approvalStatus === "rejected"
                             ? "bg-rose-100 text-rose-800 border border-rose-300 cursor-not-allowed opacity-90"
                             : svc.enabled
-                            ? "bg-primary text-white shadow-xs"
-                            : "bg-zinc-200 text-zinc-600"
+                            ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                            : "bg-zinc-200 text-zinc-700 hover:bg-zinc-300"
                         }`}
                       >
-                        <span className={`size-2 rounded-full ${
-                          svc.pendingApproval || svc.approvalStatus === "pending"
-                            ? "bg-amber-500 animate-pulse"
-                            : svc.approvalStatus === "rejected"
-                            ? "bg-rose-500"
-                            : "bg-white"
-                        }`} />
-                        <span>
-                          {svc.pendingApproval || svc.approvalStatus === "pending"
-                            ? "PENDING"
-                            : svc.approvalStatus === "rejected"
-                            ? "REJECTED"
-                            : svc.enabled
-                            ? "LIVE"
-                            : "PAUSED"}
-                        </span>
+                        <span
+                          className={`size-2 rounded-full ${
+                            svc.enabled ? "bg-white animate-pulse" : "bg-zinc-400"
+                          }`}
+                        />
+                        <span>{svc.enabled ? "LIVE" : "PAUSED"}</span>
                       </button>
+                    </div>
+                  </div>
 
+                  {/* Card Bottom Row: Action Buttons */}
+                  <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() =>
@@ -405,12 +433,29 @@ export function ManageServicesScreen() {
                             params: { serviceId: svc.id },
                           })
                         }
-                        className="flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-bold text-zinc-700 hover:bg-zinc-100 active:scale-95"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
                       >
-                        <Edit2 className="size-3" />
-                        <span>Edit</span>
+                        <Edit2 className="size-3 text-zinc-600" />
+                        <span>Edit Rate</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setOfferSheetOpen(true)}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-bold text-zinc-700 hover:bg-zinc-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                      >
+                        <Tag className="size-3 text-emerald-600" />
+                        <span>Discount</span>
                       </button>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setDetailsId(svc.id)}
+                      className="text-xs font-bold text-zinc-500 hover:text-zinc-900 px-2 py-1 cursor-pointer"
+                    >
+                      Details ›
+                    </button>
                   </div>
                 </div>
               );
@@ -435,7 +480,7 @@ export function ManageServicesScreen() {
                   onClick={() => setCategoryFilter(tab.id)}
                   className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0 ${
                     isActive
-                      ? "border-2 border-emerald-500 bg-emerald-50 text-emerald-950 font-black shadow-xs"
+                      ? "border-2 border-zinc-950 bg-zinc-950 text-white font-black shadow-xs"
                       : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-950"
                   }`}
                 >
@@ -453,13 +498,13 @@ export function ManageServicesScreen() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search service name, category, or garment..."
-                className="h-11 w-full rounded-2xl border border-zinc-200 bg-zinc-50/70 pl-10 pr-4 text-xs font-medium text-zinc-900 transition-all placeholder:text-zinc-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-2xs"
+                className="h-11 w-full rounded-2xl border border-zinc-200 bg-zinc-50/70 pl-10 pr-4 text-xs font-medium text-zinc-900 transition-all placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none shadow-2xs"
               />
               {query ? (
                 <button
                   type="button"
                   onClick={() => setQuery("")}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 cursor-pointer"
                 >
                   <X className="size-4" />
                 </button>
@@ -485,7 +530,7 @@ export function ManageServicesScreen() {
               </button>
               <Link
                 to={partnerRoutes.serviceNew}
-                className="flex items-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 px-4.5 py-2.5 text-xs font-black tracking-tight text-white shadow-md shadow-emerald-500/20 transition-all active:scale-95 cursor-pointer"
+                className="flex items-center gap-2 rounded-2xl bg-[#5B63D3] hover:bg-[#4d54bc] px-4.5 py-2.5 text-xs font-black tracking-tight text-white shadow-md transition-all active:scale-95 cursor-pointer"
               >
                 <Plus className="size-4" />
                 <span>+ Custom Service</span>
@@ -494,7 +539,7 @@ export function ManageServicesScreen() {
           </div>
 
           <div className="mt-6 pb-12">
-            {isLoading ? (
+            {!mounted || isLoading ? (
               <ServiceGridSkeleton />
             ) : isOffline ? (
               <ServiceEmptyState variant="offline" onAction={() => void refresh()} />

@@ -55,7 +55,6 @@ import { fetchPartnerOrder, verifyPartnerDispatchOtp } from "@/api/partner/partn
 import { subscribePartnerOrders } from "@/lib/partner-socket";
 import { PartnerReviewModal } from "../components/orders/PartnerReviewModal";
 import { PrewashDefectModal } from "../components/orders/PrewashDefectModal";
-import { PartnerBagIntakeCard } from "../components/orders/PartnerBagIntakeCard";
 import type { GarmentDefect } from "@/shared/types/partner";
 
 
@@ -695,162 +694,71 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
               )}
             </div>
 
-            {/* Cancelled Banner (if applicable) */}
-            {isOrderCancelled && (
-              <div className="rounded-2xl border border-rose-200 bg-white p-4 shadow-2xs">
-                <div className="flex items-start gap-3">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 border border-rose-200">
-                    <AlertCircle className="size-4.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-xs font-black text-rose-950 uppercase tracking-wide">
-                      Order Cancelled & Closed
-                    </h3>
-                    <p className="mt-1 text-xs text-rose-800 font-medium leading-relaxed">
-                      {(order as any).cancellationReason || (order as any).cancelledReason || "Auto-cancelled: Store did not accept order within SLA window."}
-                    </p>
-                    <p className="mt-1 text-[11px] text-zinc-500">
-                      No penalties or cancellation fees applied to your account.
-                    </p>
-                  </div>
+            {/* Pre-Wash Defect Inspection Proofs (if reported) */}
+            {order.garmentDefects && order.garmentDefects.length > 0 && (
+              <div className="rounded-2xl border border-amber-200 bg-white p-4 shadow-2xs space-y-2.5">
+                <div className="flex items-center justify-between pb-2 border-b border-amber-100">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                    <AlertCircle className="size-3.5 text-amber-600" />
+                    Pre-Wash Inspection Proofs ({order.garmentDefects.length})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsDefectModalOpen(true)}
+                    className="text-[10px] font-bold text-amber-900 underline hover:text-amber-950 cursor-pointer"
+                  >
+                    + Add Photo
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {order.garmentDefects.map((def) => {
+                    const isApproved = def.customer_status === "proceed_wash";
+                    const isReturn = def.customer_status === "return_unwashed";
+                    return (
+                      <div
+                        key={def.defect_id}
+                        className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50/40 p-2.5 shadow-2xs"
+                      >
+                        <img
+                          src={def.photo_url}
+                          alt={def.item_name}
+                          onClick={() => setViewingPhotoUrl(def.photo_url)}
+                          className="size-14 rounded-lg object-cover border border-zinc-200 shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className="text-xs font-bold text-zinc-950 truncate">{def.item_name}</p>
+                            <span className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-800 border border-zinc-200">
+                              {def.defect_type.replace(/_/g, " ")}
+                            </span>
+                          </div>
+                          {def.description && (
+                            <p className="text-[10px] text-zinc-600 mt-0.5 line-clamp-2">
+                              Note: {def.description}
+                            </p>
+                          )}
+                          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                            {isApproved ? (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                <CheckCircle2 className="size-2.5" /> Wash Approved
+                              </span>
+                            ) : isReturn ? (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-black text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                                <AlertCircle className="size-2.5" /> Return Item As-Is
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-black text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded border border-amber-300/80">
+                                <Clock className="size-2.5" /> Awaiting Customer
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
-
-            {/* Detailed Billing & Inspection Card */}
-            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
-              <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
-                <div className="flex items-center gap-2">
-                  <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900 border border-zinc-200">
-                    <FileText className="size-4" />
-                  </span>
-                  <h2 className="text-xs font-black uppercase tracking-wider text-zinc-950">
-                    Order Inspection &amp; Billing
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsDefectModalOpen(true)}
-                  className="flex items-center gap-1 rounded-lg bg-zinc-950 px-2.5 py-1 text-[11px] font-black text-white hover:bg-zinc-800 transition-colors shadow-2xs cursor-pointer"
-                >
-                  <Camera className="size-3" />
-                  <span>Tag Defect</span>
-                </button>
-              </div>
-
-              {/* Pre-Wash Defect Inspection Proofs (Mobile View) */}
-              {order.garmentDefects && order.garmentDefects.length > 0 && (
-                <div className="mt-4 rounded-xl border border-amber-200/80 bg-amber-50/50 p-3 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
-                      <AlertCircle className="size-3.5 text-amber-600" />
-                      Pre-Wash Inspection Proofs ({order.garmentDefects.length})
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setIsDefectModalOpen(true)}
-                      className="text-[10px] font-bold text-amber-900 underline hover:text-amber-950"
-                    >
-                      + Add Photo
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    {order.garmentDefects.map((def) => {
-                      const isApproved = def.customer_status === "proceed_wash";
-                      const isReturn = def.customer_status === "return_unwashed";
-                      return (
-                        <div
-                          key={def.defect_id}
-                          className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-white p-2.5 shadow-2xs"
-                        >
-                          <img
-                            src={def.photo_url}
-                            alt={def.item_name}
-                            onClick={() => setViewingPhotoUrl(def.photo_url)}
-                            className="size-14 rounded-lg object-cover border border-zinc-200 shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1">
-                              <p className="text-xs font-bold text-zinc-950 truncate">{def.item_name}</p>
-                              <span className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-800 border border-zinc-200">
-                                {def.defect_type.replace(/_/g, " ")}
-                              </span>
-                            </div>
-                            {def.description && (
-                              <p className="text-[10px] text-zinc-600 mt-0.5 line-clamp-2">
-                                Note: {def.description}
-                              </p>
-                            )}
-                            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                              {isApproved ? (
-                                <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                                  <CheckCircle2 className="size-2.5" /> Wash Approved
-                                </span>
-                              ) : isReturn ? (
-                                <span className="inline-flex items-center gap-1 text-[9px] font-black text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
-                                  <AlertCircle className="size-2.5" /> Return Item As-Is
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-[9px] font-black text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded border border-amber-300/80">
-                                  <Clock className="size-2.5" /> Awaiting Customer
-                                </span>
-                              )}
-                              {def.customer_note && (
-                                <span className="text-[9px] text-zinc-500 italic truncate max-w-[150px]">
-                                  "{def.customer_note}"
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Price Breakdown */}
-              <div className="mt-4 space-y-2 border-t border-dashed border-zinc-200 pt-3 text-xs">
-                <div className="flex items-center justify-between text-zinc-600">
-                  <span>Item Subtotal</span>
-                  <span className="font-bold text-zinc-900">₹{charges.subtotal}</span>
-                </div>
-                <div className="flex items-center justify-between text-zinc-600">
-                  <span>Pickup & Delivery Fee</span>
-                  <span className="font-bold text-zinc-900">{charges.pickupFee > 0 ? `₹${charges.pickupFee}` : "FREE"}</span>
-                </div>
-                <div className="flex items-center justify-between text-zinc-600">
-                  <span>Taxes & Platform Fees</span>
-                  <span className="font-bold text-zinc-900">₹{charges.taxes}</span>
-                </div>
-                {charges.discount > 0 && (
-                  <div className="flex items-center justify-between text-emerald-700">
-                    <span>Discount Applied</span>
-                    <span className="font-bold">-₹{charges.discount}</span>
-                  </div>
-                )}
-                <div className="border-t border-zinc-200 pt-2.5 flex items-center justify-between text-sm font-black text-zinc-950">
-                  <span>Total Bill Value</span>
-                  <span className={isOrderCancelled ? "line-through text-zinc-400" : ""}>₹{order.amount || charges.total}</span>
-                </div>
-
-                {/* Tax Invoice View & Download Row */}
-                <div className="mt-3 pt-3 border-t border-dashed border-zinc-200 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs text-zinc-600 font-medium">
-                    <FileText className="size-3.5 text-zinc-700" />
-                    <span>Official Tax Invoice</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowInvoiceSheet(true)}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-950 text-white px-3 py-1.5 text-xs font-black active:scale-95 transition-all shadow-2xs hover:bg-zinc-800 cursor-pointer"
-                  >
-                    <FileText className="size-3.5" />
-                    <span>View Bill</span>
-                  </button>
-                </div>
-              </div>
-            </div>
 
             {/* Special Instructions (if any) */}
             {order.specialInstructions && (
@@ -933,14 +841,6 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                 </div>
               </div>
             </div>
-
-            {/* 3. STORE INTAKE & BAG SEAL TAG VERIFICATION */}
-            <PartnerBagIntakeCard
-              order={order}
-              onIntakeVerified={(updated) => {
-                setOrder((prev) => ({ ...prev, ...updated }));
-              }}
-            />
 
             {/* 4. DELIVERY FLEET CAPTAIN CARD (PURE WHITE) */}
             <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
@@ -1612,14 +1512,6 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                     </div>
                   </div>
                 </section>
-
-                {/* STORE INTAKE & BAG SEAL TAG VERIFICATION (DESKTOP) */}
-                <PartnerBagIntakeCard
-                  order={order}
-                  onIntakeVerified={(updated) => {
-                    setOrder((prev) => ({ ...prev, ...updated }));
-                  }}
-                />
 
                 {/* C. LOGISTICS & DELIVERY CAPTAIN (CLEAN & PROFESSIONAL) */}
                 <section className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs">
