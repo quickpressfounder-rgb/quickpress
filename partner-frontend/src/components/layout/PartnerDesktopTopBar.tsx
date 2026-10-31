@@ -125,7 +125,17 @@ export function PartnerDesktopTopBar({
       </div>
 
       {/* Right: Controls matching Zomato Merchant top bar */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
+        {/* Test Buzzer Chime Button */}
+        <button
+          type="button"
+          onClick={handleTestChime}
+          title="Test Order Alert Buzzer (ऑर्डर बजर टेस्ट)"
+          className="flex size-8 items-center justify-center rounded-full text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 transition-all cursor-pointer"
+        >
+          <Volume2 className="size-4 stroke-[2.2]" />
+        </button>
+
         {/* Notifications Bell with Red Badge */}
         <Link
           to={partnerRoutes.notifications}
