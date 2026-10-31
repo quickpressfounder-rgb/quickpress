@@ -31,6 +31,7 @@
   - Added reactive synchronization effect to synchronize incoming order trip stage, OTP screen mode, and leg details directly from parent order state.
 
 ## Session: 2026-11-01 — Double-Click Payment & Idempotency Hardening
+- **Commit Hash:** `145d9e2`
 - **Customer Checkout & Payments (`customer-frontend/src/routes/checkout.tsx`):**
   - Integrated synchronous in-flight lock (`isPlacingOrderRef`) to block double-clicks in 0ms before React state re-renders.
   - Added unique session `checkoutIdempotencyKeyRef` passed to backend `postOrder` payload and HTTP headers (`Idempotency-Key` / `X-Idempotency-Key`).
