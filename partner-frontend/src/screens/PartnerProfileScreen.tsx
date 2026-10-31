@@ -1111,66 +1111,98 @@ export function PartnerProfileScreen() {
         {showTimingsModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div onClick={() => setShowTimingsModal(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-xs" />
-            <div className="relative w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-black text-zinc-900">Store Timings & Slots</h3>
-                <button type="button" onClick={() => setShowTimingsModal(false)} className="rounded-full bg-zinc-100 p-1.5 text-zinc-500">✕</button>
+            <div className="relative w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                    <Clock className="size-4" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-zinc-950">Shop Timings &amp; Weekly Off</h3>
+                    <p className="text-[10px] text-zinc-500">Customer booking and pickup operating windows</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowTimingsModal(false)}
+                  className="flex size-7 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 hover:text-zinc-950 cursor-pointer"
+                >
+                  <X className="size-4" />
+                </button>
               </div>
 
-              <div className="space-y-3 text-xs">
-                <div>
-                  <label className="font-bold text-zinc-600">Opening Time</label>
-                  <input
-                    type="time"
-                    value={opsConfig.openingTime}
-                    onChange={(e) => setOpsConfig({ ...opsConfig, openingTime: e.target.value })}
-                    className="mt-1 w-full rounded-xl border border-zinc-200 p-2.5 font-bold"
-                  />
+              <div className="space-y-3.5 text-xs">
+                {/* Opening and Closing Hours */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Morning Open</label>
+                    <input
+                      type="time"
+                      value={opsConfig.openingTime}
+                      onChange={(e) => setOpsConfig({ ...opsConfig, openingTime: e.target.value })}
+                      className="mt-1 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 p-2.5 font-bold text-zinc-950 focus:bg-white focus:border-zinc-500 focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Evening Close</label>
+                    <input
+                      type="time"
+                      value={opsConfig.closingTime}
+                      onChange={(e) => setOpsConfig({ ...opsConfig, closingTime: e.target.value })}
+                      className="mt-1 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 p-2.5 font-bold text-zinc-950 focus:bg-white focus:border-zinc-500 focus:outline-hidden"
+                    />
+                  </div>
                 </div>
+
+                {/* Weekly Off Day Select */}
                 <div>
-                  <label className="font-bold text-zinc-600">Closing Time</label>
-                  <input
-                    type="time"
-                    value={opsConfig.closingTime}
-                    onChange={(e) => setOpsConfig({ ...opsConfig, closingTime: e.target.value })}
-                    className="mt-1 w-full rounded-xl border border-zinc-200 p-2.5 font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-zinc-600">Weekly Off Day</label>
+                  <label className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Weekly Holiday / Rest Day</label>
                   <select
                     value={opsConfig.weeklyOff}
                     onChange={(e) => setOpsConfig({ ...opsConfig, weeklyOff: e.target.value })}
-                    className="mt-1 w-full rounded-xl border border-zinc-200 p-2.5 font-bold"
+                    className="mt-1 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 p-2.5 font-bold text-zinc-950 focus:bg-white focus:border-zinc-500 focus:outline-hidden cursor-pointer"
                   >
-                    <option value="None">None (Open 7 Days)</option>
-                    <option value="Sunday">Sunday</option>
-                    <option value="Monday">Monday</option>
-                    <option value="Tuesday">Tuesday</option>
+                    <option value="None">None (Open 7 Days a Week)</option>
+                    <option value="Sunday">Sunday Closed (रविवार अवकाश)</option>
+                    <option value="Monday">Monday Closed (सोमवार अवकाश)</option>
+                    <option value="Tuesday">Tuesday Closed (मंगलवार अवकाश)</option>
+                    <option value="Wednesday">Wednesday Closed (बुधवार अवकाश)</option>
+                    <option value="Thursday">Thursday Closed (गुरुवार अवकाश)</option>
+                    <option value="Friday">Friday Closed (शुक्रवार अवकाश)</option>
+                    <option value="Saturday">Saturday Closed (शनिवार अवकाश)</option>
                   </select>
                 </div>
+
+                {/* Slot Capacity */}
                 <div>
-                  <label className="font-bold text-zinc-600">Slot Order Capacity</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-black uppercase tracking-wider text-zinc-500">2-Hour Slot Order Capacity</label>
+                    <span className="text-[10px] text-zinc-400">Max pickups per window</span>
+                  </div>
                   <input
                     type="number"
+                    min="5"
+                    max="100"
                     value={opsConfig.slotCapacity}
                     onChange={(e) => setOpsConfig({ ...opsConfig, slotCapacity: parseInt(e.target.value, 10) || 20 })}
-                    className="mt-1 w-full rounded-xl border border-zinc-200 p-2.5 font-bold"
+                    className="mt-1 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 p-2.5 font-bold text-zinc-950 focus:bg-white focus:border-zinc-500 focus:outline-hidden"
                   />
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={async () => {
-                  await updateOperationsConfig(opsConfig);
-                  setShowTimingsModal(false);
-                  toast.success("Store timings saved to database!");
-                }}
-                className="w-full rounded-2xl bg-zinc-950 py-3 text-xs font-black text-white active:scale-95"
-              >
-                Save Timings
-              </button>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await updateOperationsConfig(opsConfig);
+                    setShowTimingsModal(false);
+                    toast.success("Store timings & weekly off saved to database!");
+                  }}
+                  className="w-full rounded-2xl bg-zinc-950 py-3 text-xs font-black text-white hover:bg-zinc-800 shadow-md active:scale-98 transition-all cursor-pointer"
+                >
+                  Save Store Timings
+                </button>
+              </div>
             </div>
           </div>
         )}

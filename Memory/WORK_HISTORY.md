@@ -31,7 +31,35 @@
 
 ---
 
-## Detailed Log of Work Done (30 October 2026)
+## Detailed Log of Work Done (31 October 2026)
+
+### 84. Redesigned Partner Wallet & Payouts and Store Profile & Timings to Modern Zomato Merchant Theme
+- **User Request:**
+  - *"Partner Wallet & Payouts (/wallet / /earnings): Payout settlement ledger, bank transfer history, aur daily commission deduction ko is same Zomato Merchant theme me lana hai? Store Profile & Settings (/shop / /profile): Shop timings, operational hours, weekly off toggle, aur. ye sab bhi isse desing mebanano"*
+- **Architectural Implementation Details:**
+  1. **Partner Wallet & Payouts Ledger (`EarningsScreen.tsx`):**
+     - **Hero Bank Reconciliation Banner:** Total Lifetime Settled (`₹{totalBankSettled}`) with `100% Reconciled` verified badge, Accruing Cycle Balance with automated payout schedule (`Every Monday 10:00 AM`), and verified Bank Account pill (`HDFC Bank •••• 4545`) with 1-tap IFSC copy.
+     - **Subtab 1 — Settlement Cycles (Passbook):** Weekly/daily cycles showing Period, Status (`ACCRUING` vs `SETTLED TO BANK`), Gross Billed, QuickPress 15% Platform Commission deduction, 18% GST on Commission, 1% Section 52 TCS deduction, Net Transferred Amount, Bank UTR reference with 1-click copy, and 1-tap `[ Full Double-Entry Breakdown › ]`.
+     - **Subtab 2 — Itemized Order Credits:** Searchable double-entry ledger rows showing Order ID, items summary, customer, gross billing, and net store payout.
+     - **Subtab 3 — Weekly Settlement Trends:** Interactive daily bar columns showing gross sales vs net payout with peak day indicator.
+     - **Subtab 4 — GST Tax Invoices:** 1-Click PDF & Excel downloads for partner B2C GST invoices and QuickPress commission invoices.
+     - **Performance Optimization:** Replaced duplicate desktop & mobile blocks with a unified responsive architecture, reducing code complexity and bundle size from 131 kB to 80.88 kB with 0 hydration errors.
+  2. **Store Profile & Timings Management (`ShopManagementScreen.tsx` & `PartnerProfileScreen.tsx`):**
+     - **Operational Hours & Timings Section:** Directly surfaced `ShopHoursCard` with morning opening time (e.g., `08:00 AM`), evening closing time (e.g., `09:00 PM`), weekly holiday/rest day selector (all 7 days options: `None`, `Sunday Closed`, `Monday Closed`, etc.), planned vacation mode toggle, and emergency temporary closure switch.
+     - **Delivery Coverage Hub:** Integrated `ShopServiceArea` displaying city hub, outlet locality, pickup radius (km), and delivery SLA radius.
+     - **Storefront & Equipment Gallery:** Integrated `ShopGallery` allowing live image uploads and deletions for counter and processing machinery.
+     - **Refined Timings Modal (`PartnerProfileScreen.tsx`):** Upgraded modal to modern Zomato Merchant ticket aesthetic with all 7 day options, 2-hour slot order capacities, and instant database persistence.
+- **Verification & Deployment:**
+  - `npm run build` in `partner-frontend`: Passed cleanly in 1.05s (0 errors).
+  - Android APK & AAB Compilation (`python3 build_all_apks.py partner`):
+    - `QuickPress-Partner.apk` (14.6 MB)
+    - `QuickPress-Partner.aab` (13.8 MB)
+  - Deployed directly to AWS EC2 (`65.0.127.43`) via PM2 (`quickpress-partner`).
+- **Files Modified:**
+  - `partner-frontend/src/screens/EarningsScreen.tsx`
+  - `partner-frontend/src/screens/ShopManagementScreen.tsx`
+  - `partner-frontend/src/screens/PartnerProfileScreen.tsx`
+  - `Memory/WORK_HISTORY.md`
 
 ### 83. Redesigned Partner Analytics Hub to Modern Zomato Merchant Theme with Working Multi-Dimensional Filters
 - **User Request:**

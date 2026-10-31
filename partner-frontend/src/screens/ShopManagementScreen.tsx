@@ -2,7 +2,10 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
   BarChart3,
+  Camera,
   ChevronRight,
+  Clock,
+  MapPin,
   Pencil,
   Sparkles,
   Store,
@@ -18,12 +21,15 @@ import { ShopProfileHeader } from "../components/shop/ShopProfileHeader";
 import { ShopProfileSkeleton } from "../components/shop/ShopSkeletons";
 import { ShopStatsGrid } from "../components/shop/ShopStatsGrid";
 import { ShopStatusSheet } from "../components/shop/ShopStatusSheet";
+import { ShopHoursCard } from "../components/shop/ShopHoursCard";
+import { ShopServiceArea } from "../components/shop/ShopServiceArea";
+import { ShopGallery } from "../components/shop/ShopGallery";
 import { ShopSuccessOverlay } from "../components/shop/ShopSuccessOverlay";
 import { PartnerShopProvider, usePartnerShop } from "../context/PartnerShopContext";
 import { shopStatusMeta } from "../data/partner-shop-mock";
 import { partnerRoutes } from "../navigation/partner-routes";
 
-function SectionIcon({ icon: Icon, color = "bg-emerald-50 text-emerald-700" }: { icon: typeof Store; color?: string }) {
+function SectionIcon({ icon: Icon, color = "bg-emerald-50 text-emerald-700" }: { icon: any; color?: string }) {
   return (
     <span className={`flex size-8 items-center justify-center rounded-xl ${color} shadow-2xs`}>
       <Icon className="size-4 stroke-[2.2]" />
@@ -63,7 +69,7 @@ function ShopManagementContent() {
       subtitle={`${shopStatusMeta(status).label} · ${profile.category || "Laundry Service"}`}
     >
       {/* Mobile Top Sticky Navigation Bar */}
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between bg-white px-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)] md:hidden">
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between bg-white px-4 border-b border-zinc-200/90 shadow-2xs md:hidden">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -78,8 +84,8 @@ function ShopManagementContent() {
           >
             <ArrowLeft className="size-5" />
           </button>
-          <h1 className="text-base font-black tracking-tight text-zinc-900">
-            Manage Shop Profile
+          <h1 className="text-base font-black tracking-tight text-zinc-950">
+            Manage Store Profile
           </h1>
         </div>
 
@@ -109,7 +115,39 @@ function ShopManagementContent() {
                 onChangeStatus={() => setStatusOpen(true)}
               />
 
-              {/* 2. Shop Performance Statistics Grid (100% Real DB Data) */}
+              {/* 2. Operational Hours, Timings & Weekly Off Section */}
+              <section className="rounded-3xl border border-zinc-200/80 bg-white p-4.5 sm:p-6 shadow-sm space-y-4">
+                <SectionHeading
+                  title="Shop Timings & Operational Hours"
+                  action={<SectionIcon icon={Clock} color="bg-emerald-50 text-emerald-700" />}
+                />
+                <ShopHoursCard hours={hours} onSave={updateHours} />
+              </section>
+
+              {/* 3. Delivery Radius & Service Area Section */}
+              <section className="rounded-3xl border border-zinc-200/80 bg-white p-4.5 sm:p-6 shadow-sm space-y-4">
+                <SectionHeading
+                  title="Pickup Radius & Coverage Area"
+                  action={<SectionIcon icon={MapPin} color="bg-purple-50 text-purple-700" />}
+                />
+                <ShopServiceArea area={area} onEdit={() => setEditOpen(true)} />
+              </section>
+
+              {/* 4. Storefront & Interior Gallery Section */}
+              <section className="rounded-3xl border border-zinc-200/80 bg-white p-4.5 sm:p-6 shadow-sm space-y-4">
+                <SectionHeading
+                  title="Storefront & Equipment Photos"
+                  action={<SectionIcon icon={Camera} color="bg-blue-50 text-blue-700" />}
+                />
+                <ShopGallery
+                  images={gallery}
+                  limit={galleryLimit}
+                  onUpload={addImage}
+                  onRemove={removeImage}
+                />
+              </section>
+
+              {/* 5. Shop Performance Statistics Grid */}
               <section className="rounded-3xl border border-zinc-200/80 bg-white p-4.5 sm:p-6 shadow-sm space-y-3.5">
                 <SectionHeading
                   title="Shop Performance & Volume"
@@ -118,7 +156,7 @@ function ShopManagementContent() {
                 <ShopStatsGrid stats={stats} />
               </section>
 
-              {/* 3. Catalog & Services Quick Route Card */}
+              {/* 6. Catalog & Services Quick Route Card */}
               <div className="rounded-3xl border border-emerald-200/80 bg-gradient-to-br from-emerald-500/10 via-white to-white p-4 sm:p-5 shadow-sm">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -127,7 +165,7 @@ function ShopManagementContent() {
                     </div>
                     <div>
                       <h3 className="text-sm font-black text-zinc-900">
-                        Catalog & Services Rate Card ({activeServicesCount} Active)
+                        Catalog &amp; Services Rate Card ({activeServicesCount} Active)
                       </h3>
                       <p className="text-xs font-medium text-zinc-500">
                         Configure pricing, turn on/off wash, iron, and dry clean items
@@ -163,8 +201,6 @@ function ShopManagementContent() {
           }}
         />
       ) : null}
-
-
 
       {/* Status Sheet */}
       {statusOpen ? (
