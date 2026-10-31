@@ -63,6 +63,9 @@ export function EditServiceScreen({ serviceId }: { serviceId: string }) {
     setIsSaving(true);
     try {
       await updateService(service.id, {
+        name: form.name.trim(),
+        category: form.category,
+        unit: form.unit,
         description: form.description.trim(),
         price: Number(form.price),
         estimatedHours: Number(form.estimatedHours),

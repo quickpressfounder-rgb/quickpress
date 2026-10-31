@@ -840,6 +840,55 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
                           </button>
                         )}
                       </div>
+                    ) : req.requestType === "service_create" || req.requestType === "service_update" ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          <div className="bg-white p-3.5 rounded-xl border border-zinc-200/80 shadow-2xs">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Service Name</span>
+                            <span className="text-sm font-black text-zinc-950 mt-1 block">
+                              {changes.serviceName || changes.name || "—"}
+                            </span>
+                          </div>
+
+                          <div className="bg-white p-3.5 rounded-xl border border-zinc-200/80 shadow-2xs">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Category & Unit</span>
+                            <span className="text-xs font-bold text-zinc-800 mt-1 block capitalize">
+                              {changes.category || "Laundry"} · per {changes.unit || "kg"}
+                            </span>
+                          </div>
+
+                          <div className="bg-white p-3.5 rounded-xl border border-zinc-200/80 shadow-2xs">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
+                              {req.requestType === "service_update" && changes.currentPrice !== undefined ? "Price Change" : "Requested Price"}
+                            </span>
+                            <div className="flex items-center gap-2 mt-1">
+                              {req.requestType === "service_update" && changes.currentPrice !== undefined && (
+                                <>
+                                  <span className="text-xs font-bold text-zinc-400 line-through">₹{changes.currentPrice}</span>
+                                  <span className="text-xs font-bold text-zinc-400">→</span>
+                                </>
+                              )}
+                              <span className="text-sm font-black text-emerald-700">
+                                ₹{changes.newPrice ?? changes.price ?? "—"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="bg-white p-3.5 rounded-xl border border-zinc-200/80 shadow-2xs">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Turnaround Time</span>
+                            <span className="text-xs font-bold text-zinc-800 mt-1 block">
+                              {changes.newTurnaround ?? changes.turnaroundHours ?? 24} Hours
+                            </span>
+                          </div>
+                        </div>
+
+                        {changes.description && (
+                          <div className="bg-white p-3.5 rounded-xl border border-zinc-200/80 text-xs text-zinc-600">
+                            <strong className="text-zinc-900 block font-bold mb-1">Service Description:</strong>
+                            {changes.description}
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       /* General Raw Changes Grid */
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">

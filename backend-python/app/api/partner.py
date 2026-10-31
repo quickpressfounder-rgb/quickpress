@@ -1637,12 +1637,21 @@ async def create_service(
     dump["rejectionReason"] = None
     doc = await partner_service_repository.create(partner_id, dump)
     
+    service_name = dump.get("name") or "New Service"
+    payload_ctx = {
+        **dump,
+        "serviceName": service_name,
+        "price": dump.get("price"),
+        "category": dump.get("category"),
+        "unit": dump.get("unit"),
+        "turnaroundHours": dump.get("turnaroundHours"),
+    }
     await approval_engine.submit_change_request(
         partner_id=partner_id,
         request_type="service_create",
-        payload=dump,
+        payload=payload_ctx,
         target_id=str(doc.get("id") or doc.get("_id")),
-        reason=f"Partner added new service: {dump.get('name')}",
+        reason=f"Partner added new service: {service_name} at ₹{dump.get('price')}/{dump.get('unit')}",
     )
     return _service_response(doc)
 
@@ -1673,15 +1682,26 @@ async def update_service(
     except (PartnerNotFoundError, PartnerAccessError) as err:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(err))
 
-    is_sensitive = any(k in dump for k in ("price", "name", "unit", "turnaroundHours", "category"))
+    is_sensitive = any(k in dump for k in ("price", "name", "unit", "turnaroundHours", "category", "description", "enabled"))
     
     if is_sensitive:
+        service_name = existing.get("name") or dump.get("name") or "Service"
+        change_ctx = {
+            **dump,
+            "serviceName": service_name,
+            "currentPrice": existing.get("price"),
+            "newPrice": dump.get("price", existing.get("price")),
+            "currentTurnaround": existing.get("turnaroundHours"),
+            "newTurnaround": dump.get("turnaroundHours", existing.get("turnaroundHours")),
+            "category": dump.get("category", existing.get("category")),
+            "unit": dump.get("unit", existing.get("unit")),
+        }
         await approval_engine.submit_change_request(
             partner_id=partner_id,
             request_type="service_update",
-            payload=dump,
+            payload=change_ctx,
             target_id=service_id,
-            reason=f"Partner requested price/rate change for service {service_id}",
+            reason=f"Partner edited service '{service_name}' (Price: ₹{existing.get('price')} → ₹{dump.get('price', existing.get('price'))})",
         )
         update_data = {
             "pendingApproval": True,

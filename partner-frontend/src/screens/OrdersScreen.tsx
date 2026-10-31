@@ -265,27 +265,12 @@ export function OrdersScreen() {
           {isLoading ? (
             <OrderListSkeleton />
           ) : visible.length === 0 ? (
-            <div className="my-8 rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-xs">
-              <div className="mx-auto size-12 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
-                <ShoppingBag className="size-6 text-emerald-600" />
-              </div>
-              <h3 className="mt-3 text-sm font-black text-black">
-                {isSearching ? `No matching orders for "${query}"` : `No orders in "${ORDER_FILTER_TABS.find((t) => t.id === filterTab)?.label || filterTab}" queue`}
-              </h3>
-              <p className="mt-1 text-xs font-medium text-zinc-600">
-                {isSearching
-                  ? "Check the spelling or try searching by 10-digit phone number or short order code."
-                  : "New orders in this stage will appear here in real-time."}
-              </p>
-              <button
-                type="button"
-                onClick={isSearching ? resetSearch : () => void refresh()}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 px-4 py-2 text-xs font-black text-zinc-900 shadow-xs active:scale-95 transition-all cursor-pointer"
-              >
-                <RotateCcw className="size-3" />
-                <span>{isSearching ? "Clear Search" : "Refresh Orders"}</span>
-              </button>
-            </div>
+            <OrderEmptyState
+              variant={isSearching ? "no-results" : "no-orders"}
+              tab={filterTab}
+              query={query}
+              onAction={isSearching ? resetSearch : () => void refresh()}
+            />
           ) : (
             <div className="space-y-3">
               {visible.map((order, index) => (
@@ -439,6 +424,8 @@ export function OrdersScreen() {
             ) : visible.length === 0 ? (
               <OrderEmptyState
                 variant={isSearching ? "no-results" : "no-orders"}
+                tab={filterTab}
+                query={query}
                 onAction={isSearching ? resetSearch : () => void refresh()}
               />
             ) : orderViewMode === "cards" ? (

@@ -33,6 +33,46 @@
 
 ## Detailed Log of Work Done (31 October 2026)
 
+### 88. Hanging "CLOSED"-Style Watermark for Stage Queues & Services Real Backend Admin Approval Flow
+- **User Request:**
+  - *"ye bala wateramrak lagao jab Teb me kio order nahi jaisa ke active tab me to cleace ke jagha No Active or picked me No picked ect ec lagana hai or services page to bhi realbackendds se connect karo aager kio bhi parner services me kuch edit karte hai admi ke partner requesred tab me phir admi approval or uske baad live changes ya live hogi"*
+- **Architectural Implementation Details:**
+  1. **Hanging Board Watermark (`HangingBoardWatermark.tsx` & `OrderEmptyState.tsx`):**
+     - Transformed the user's uploaded hanging "CLOSED" signboard illustration into a dynamic, pixel-perfect, scalable SVG component matching the red hanging nail, suspension cords, tilted white signboard (-21°), soft drop shadow, and bold gothic typography.
+     - Replaced the word "CLOSED" with stage-aware dynamic labels:
+       - `Active` tab empty: **"NO ACTIVE"**
+       - `Picked` tab empty: **"NO PICKED"**
+       - `Process` tab empty: **"NO PROCESS"**
+       - `Out Of Delivery` tab empty: **"NO OUT FOR DELIVERY"**
+       - `Delivered` tab empty: **"NO DELIVERED"**
+       - `Cancelled` tab empty: **"NO CANCELLED"**
+       - `Search results` empty: **"NO RESULTS"**
+     - Connected across both Mobile and Desktop views in `OrdersScreen.tsx` with contextual descriptions and 1-tap refresh/clear buttons.
+  2. **Services Real Backend Connection & Admin Approval Lifecycle (`approval_engine.py`, `partner.py`, `admin-frontend`):**
+     - When a partner adds a new service (`POST /api/partner/services`) or edits sensitive parameters (price, turnaround time, unit, name, description) in `EditServiceScreen.tsx` (`PUT /api/partner/services/{id}`):
+       - Instead of modifying the live customer catalog directly, it creates a formal change request in `partner_approval_requests` with complete before-and-after metadata.
+       - The service is marked with `pendingApproval: true` and `approvalStatus: "pending"`, displaying a glowing amber `⏳ Pending Approval` badge on the partner console with actions safely disabled.
+     - **Admin Verification Console (`PartnerRequestsBox.tsx`):**
+       - Integrated a dedicated service review card displaying Service Name, Category, Unit, Old Price → Requested Price (with highlighted change arrow), Turnaround Time, and Description.
+       - Admin 1-tap **[Approve & Update Live]** executes `approval_engine.approve_request()`, atomically merging the approved price/details into the live `partner_services` collection, marking it `approved`, enabling it, and notifying the partner.
+       - Admin **[Reject]** modal captures reasons (e.g., above cap rate) and sets `approvalStatus: "rejected"` on the partner's service card with feedback.
+- **Verification & Deployment:**
+  - `npm run build` in `partner-frontend` (Passed with exit 0 in 1.14s).
+  - `npm run build` in `admin-frontend` (Passed with exit 0 in 2.15s).
+  - Backend `pytest` suite: 10/10 tests passed.
+  - Recompiled Partner APK (`QuickPress-Partner.apk` 14.6 MB) and AAB (`QuickPress-Partner.aab` 13.9 MB).
+  - Committed and pushed to GitHub `main`, and deployed to AWS EC2 (`65.0.127.43`).
+- **Files Modified:**
+  - `partner-frontend/src/components/orders/HangingBoardWatermark.tsx`
+  - `partner-frontend/src/components/orders/OrderEmptyState.tsx`
+  - `partner-frontend/src/screens/OrdersScreen.tsx`
+  - `partner-frontend/src/screens/EditServiceScreen.tsx`
+  - `partner-frontend/src/screens/AddServiceScreen.tsx`
+  - `admin-frontend/src/routes/-partner-requests-box.tsx`
+  - `backend-python/app/api/partner.py`
+  - `backend-python/app/services/approval_engine.py`
+  - `Memory/WORK_HISTORY.md`
+
 ### 87. Real Store Online/Offline Toggle, Omni-Search Bar & 6 Canonical Stage Filters on Partner Order Page
 - **User Request:**
   - *"order page me Online finle tongle Real intragtion karo Real connect karo or search barr ko working banano Filter Real working bananao FIlter ne Active ,Picked, Process , Out Of delievy ,Delevered ,canacled ye ye banano or real datda he sath banana hai"*

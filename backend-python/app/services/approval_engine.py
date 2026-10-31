@@ -240,8 +240,14 @@ class PartnerApprovalEngine:
             if target_svc_id:
                 svc_patch = {
                     k: v for k, v in changes.items()
-                    if k in ("name", "price", "unit", "category", "turnaroundHours", "description", "image", "enabled", "isActive", "expressAvailable")
+                    if k in ("name", "price", "unit", "category", "turnaroundHours", "description", "image", "enabled", "isActive", "expressAvailable", "minQuantity")
                 }
+                if "newPrice" in changes and "price" not in svc_patch:
+                    svc_patch["price"] = changes["newPrice"]
+                if "newTurnaround" in changes and "turnaroundHours" not in svc_patch:
+                    svc_patch["turnaroundHours"] = changes["newTurnaround"]
+                if "serviceName" in changes and "name" not in svc_patch:
+                    svc_patch["name"] = changes["serviceName"]
                 svc_patch["pendingApproval"] = False
                 svc_patch["approvalStatus"] = "approved"
                 svc_patch["isApproved"] = True
