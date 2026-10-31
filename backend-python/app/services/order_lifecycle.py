@@ -546,13 +546,15 @@ def assert_customer(order: Dict[str, Any], user_id: str) -> None:
 
 def check_transition(current: str, target: str) -> None:
     current = normalize_status(current)
-    if current == target:
+    norm_target = normalize_status(target)
+    if current == target or current == norm_target:
         raise DuplicateActionError(f"This order is already {target.replace('_', ' ')}")
     if current in TERMINAL:
         raise InvalidTransitionError(
             f"This order is already {current} and can no longer change status"
         )
-    if target not in TRANSITIONS.get(current, ()):  # unknown or illegal target
+    allowed = TRANSITIONS.get(current, ())
+    if target not in allowed and norm_target not in allowed:  # unknown or illegal target
         raise InvalidTransitionError(f"Cannot move an order from {current} to {target}")
 
 

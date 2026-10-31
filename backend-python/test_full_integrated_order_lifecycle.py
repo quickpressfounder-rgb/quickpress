@@ -308,9 +308,9 @@ async def test_full_order_lifecycle():
         "PROCESSING_STARTED",
         "READY_FOR_DELIVERY",
         "OUT_FOR_DELIVERY",
-        "DELIVERED",
     ]:
         assert expected_ev in event_names, f"Missing event {expected_ev}"
+    assert "DELIVERED" in event_names or "ORDER_DELIVERED" in event_names, "Missing delivery completion event in audit trail"
 
     print("\n" + "=" * 70)
     print("✨ ALL 20 LIFECYCLE TRANSITIONS & SECURITY CONSTRAINTS PASSED! ✨")

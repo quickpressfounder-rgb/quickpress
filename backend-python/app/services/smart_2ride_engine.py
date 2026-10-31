@@ -369,23 +369,39 @@ class Smart2RideEngine:
             upsert=True,
         )
 
-        # Update canonical order status
+        # Update canonical order status (protect against race condition if rider already accepted)
+        now_order = await lifecycle.find_order(canonical_id)
+        current_status_now = lifecycle.order_status(now_order)
+        order_set_fields: Dict[str, Any] = {
+            "ride1Id": ride_doc["_id"],
+            "updatedAt": now,
+            "riderDispatchStartedAt": now,
+            "riderAcceptDeadline": ride_doc["riderAcceptDeadline"],
+            "riderSlaSeconds": lifecycle.RIDER_ACCEPT_SLA_SECONDS,
+            "pickupOtp": str(pickup_otp.get("code") if isinstance(pickup_otp, dict) else pickup_otp),
+            "dispatchOtp": str(handover_otp.get("code") if isinstance(handover_otp, dict) else handover_otp),
+            "otp.pickup": pickup_otp,
+            "otp.handover": handover_otp,
+        }
+        if current_status_now not in (
+            lifecycle.PICKUP_RIDER_ACCEPTED,
+            lifecycle.RIDER_ACCEPTED,
+            lifecycle.PICKUP_RIDER_ASSIGNED,
+            lifecycle.RIDER_ASSIGNED,
+            lifecycle.PICKED_UP,
+            lifecycle.AT_PARTNER,
+            lifecycle.PROCESSING,
+            lifecycle.READY,
+            lifecycle.READY_FOR_DELIVERY,
+            lifecycle.OUT_FOR_DELIVERY,
+            lifecycle.DELIVERED,
+            lifecycle.COMPLETED,
+        ):
+            order_set_fields["status"] = lifecycle.RIDER_SEARCHING
+
         await database.collection(ORDERS_COLLECTION).update_one(
             {"_id": canonical_id},
-            {
-                "$set": {
-                    "ride1Id": ride_doc["_id"],
-                    "status": lifecycle.RIDER_SEARCHING,
-                    "updatedAt": now,
-                    "riderDispatchStartedAt": now,
-                    "riderAcceptDeadline": ride_doc["riderAcceptDeadline"],
-                    "riderSlaSeconds": lifecycle.RIDER_ACCEPT_SLA_SECONDS,
-                    "pickupOtp": str(pickup_otp.get("code") if isinstance(pickup_otp, dict) else pickup_otp),
-                    "dispatchOtp": str(handover_otp.get("code") if isinstance(handover_otp, dict) else handover_otp),
-                    "otp.pickup": pickup_otp,
-                    "otp.handover": handover_otp,
-                }
-            },
+            {"$set": order_set_fields},
         )
 
         # Broadcast event to rooms

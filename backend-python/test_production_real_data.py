@@ -162,7 +162,7 @@ async def run_production_e2e_tests():
     current_order = await lifecycle.get_order(order_id)
     p_raw = (current_order.get("otp") or {}).get("pickup")
     pickup_otp = p_raw.get("code") if isinstance(p_raw, dict) else str(p_raw or "")
-    await rider_delivery_repository.pickup(order_id, pickup_otp, rider_id)
+    await rider_delivery_repository.pickup(order_id, rider_id, otp=pickup_otp)
     print(f"  ✓ Rider verified pickup OTP ({pickup_otp}) and picked up items.")
     
     # Rider drops at partner store
@@ -188,7 +188,7 @@ async def run_production_e2e_tests():
     out_order = await lifecycle.get_order(order_id)
     d_raw = (out_order.get("otp") or {}).get("delivery")
     delivery_otp = d_raw.get("code") if isinstance(d_raw, dict) else str(d_raw or "")
-    delivered_order = await rider_delivery_repository.deliver(order_id, delivery_otp, rider_id)
+    delivered_order = await rider_delivery_repository.deliver(order_id, rider_id, otp=delivery_otp)
     print(f"  ✓ Rider verified delivery OTP ({delivery_otp}) and marked [DELIVERED]!")
     
     # -------------------------------------------------------------

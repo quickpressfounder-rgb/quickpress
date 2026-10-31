@@ -386,6 +386,25 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     }
     return "pickup";
   });
+
+  // Synchronize incoming order stage updates from parent / storage
+  useEffect(() => {
+    if (!order) return;
+    const incomingStage = (order as any).stage as TripStage;
+    if (incomingStage && incomingStage !== stage) {
+      setStage(incomingStage);
+    }
+    if ((order as any).showDedicatedOtpScreen !== undefined && (order as any).showDedicatedOtpScreen !== showDedicatedOtpScreen) {
+      setShowDedicatedOtpScreen(Boolean((order as any).showDedicatedOtpScreen));
+    }
+    if ((order as any).dedicatedOtpMode && (order as any).dedicatedOtpMode !== dedicatedOtpMode) {
+      setDedicatedOtpMode((order as any).dedicatedOtpMode);
+    }
+    if ((order as any).currentLeg && (order as any).currentLeg !== currentLeg) {
+      setCurrentLeg((order as any).currentLeg);
+    }
+  }, [order]);
+
   const [dedicatedOtpDigits, setDedicatedOtpDigits] = useState<string[]>(["", "", "", ""]);
   const [isOtpUpdatingStatus, setIsOtpUpdatingStatus] = useState(false);
   const [showQuickPressMapsModal, setShowQuickPressMapsModal] = useState(false);
