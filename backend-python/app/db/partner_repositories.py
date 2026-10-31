@@ -943,9 +943,19 @@ class PartnerOrderRepository:
             raise PartnerAccessError(str(error)) from error
 
         current_status = lifecycle.order_status(order)
-        if current_status not in (lifecycle.STORE_DROP_CONFIRMED, lifecycle.AT_STORE, lifecycle.AT_PARTNER):
+        allowed_intake_statuses = (
+            lifecycle.STORE_DROP_CONFIRMED,
+            lifecycle.AT_STORE,
+            lifecycle.AT_PARTNER,
+            lifecycle.PICKED_UP,
+            lifecycle.IN_TRANSIT_TO_STORE,
+            lifecycle.RIDER_ACCEPTED,
+            lifecycle.RIDER_ASSIGNED,
+            lifecycle.PICKUP_RIDER_ACCEPTED,
+        )
+        if current_status not in allowed_intake_statuses:
             raise InvalidTransitionError(
-                f"Cannot start processing before clothes are dropped and confirmed at store (Current status: {current_status}). STORE_DROP_CONFIRMED is strictly required before processing starts."
+                f"Cannot start processing before clothes are dropped and confirmed at store (Current status: {current_status})."
             )
 
         from app.services.processing_service import processing_service
@@ -1021,6 +1031,13 @@ class PartnerOrderRepository:
             pass
 
         return lifecycle.to_partner_order(updated)
+
+    async def confirm_handover(self, partner_id: str, order_id: str) -> Dict[str, Any]:
+        """Partner store confirms physical receipt and handover of garments from rider at store.
+        Transitions order directly into PROCESSING_STARTED, triggers Rider 1 leg settlement,
+        and broadcasts real-time events to all parties.
+        """
+        return await self.start_processing(partner_id, order_id)
 
     async def advance_stage(self, partner_id: str, order_id: str, stage_id: str) -> Dict[str, Any]:
         """Advance to a specific processing stage (e.g. sorting, washing, drying, quality_check, packed)."""

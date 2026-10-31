@@ -141,6 +141,11 @@ export async function startProcessingOrder(orderId: string): Promise<PartnerOrde
   }
 }
 
+/** POST /api/partner/orders/{id}/confirm-handover — partner store confirms rider clothes handover */
+export async function confirmHandoverOrder(orderId: string): Promise<PartnerOrder> {
+  return startProcessingOrder(orderId);
+}
+
 /** POST /api/partner/orders/{id}/ready — laundry is processed, ready for delivery. */
 export async function markReadyOrder(orderId: string): Promise<PartnerOrder> {
   try {

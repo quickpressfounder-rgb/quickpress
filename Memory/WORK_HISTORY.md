@@ -4314,6 +4314,69 @@ This single command will automatically:
     - `QuickPress-Captain.aab` (17.6 MB) built.
     - Capacitor iOS synced (0.62s).
 
+### 75. Multi-Party Order Auto-Cancellation Hardening (2-Min Timer Protection) & Partner Panel Direct Orders Landing
+- **User Problem & Requirements:**
+  1. *2-Minute Auto-Cancellation Bug*: Order was auto-cancelling 2 minutes after placement even after Partner had accepted, Rider had accepted, and garments were picked up from customer doorstep.
+  2. *Partner Panel Dashboard Removal*: Remove the `/dashboard` page and tab from Partner Panel. Partner must land directly on `/orders` (Live Orders Queue) upon login.
+  3. *Order Detail Redesign Request*: Redesign proposal requested; user requested to provide their own UI assets before implementation.
+- **Root Cause Analysis:**
+  - `IncomingOrderModal.tsx` and `PartnerIncomingOrderAlertModal.tsx` in `partner-frontend` had an unconditional `setInterval` calling `void onReject(...)` when the 120s timer reached 0.
+  - This sent an HTTP POST request to `/api/partner/orders/{id}/reject`.
+  - Backend `reject()` lacked checks verifying whether the order was already accepted or in-flight, causing orders in `ACCEPTED`, `PICKED_UP`, or `IN_TRANSIT` to transition to `CANCELLED`.
+- **Architectural Implementation:**
+  - **1. Timer Expiry Hardening in Partner Modals:**
+    - `IncomingOrderModal.tsx`: Removed destructive `onReject(...)` call on 120s timer expiry. Added stage guard `if (!order || order.stage !== "new" || order.partnerAccepted) return null;`.
+    - `PartnerIncomingOrderAlertModal.tsx`: Removed `onReject` on timer expiry; simply closes or marks expired without sending cancellation commands.
+  - **2. Backend Rejection & Lifecycle Guardrails:**
+    - In `backend-python/app/db/partner_repositories.py`: Added strict validation preventing rejection of accepted, picked-up, in-transit, or completed orders.
+    - In `backend-python/app/services/order_lifecycle.py`: Added guard in `transition()` blocking partner/system cancellation requests on accepted orders.
+    - In `backend-python/app/services/order_timeline_engine.py`: Refined `is_partner_accepted` logic to safeguard multi-party fulfillment.
+  - **3. Partner Navigation Direct Orders Landing:**
+    - `partner-frontend/src/routes/dashboard.tsx`: Redirects immediately to `partnerRoutes.orders`.
+    - `partner-frontend/src/routes/index.tsx`: Sets `partnerRoutes.orders` as default target in `computeTargetRoute()`.
+    - `partner-frontend/src/navigation/partner-routes.ts`: Removed `dashboard` from `partnerTabs` and `partnerOperationsLinks`. Tabs now: Orders, Services, Analytics, Wallet, Store.
+    - `partner-frontend/src/components/layout/ZomatoBottomNav.tsx`: Clean 5 direct tabs without "To Hub" toggle.
+    - `partner-frontend/src/components/layout/PartnerDesktopTopBar.tsx` & `PartnerSidebar.tsx`: Brand logo and sidebar items point directly to `/orders`.
+- **Files Modified:**
+  - `partner-frontend/src/components/orders/IncomingOrderModal.tsx`
+  - `partner-frontend/src/components/alerts/PartnerIncomingOrderAlertModal.tsx`
+  - `backend-python/app/db/partner_repositories.py`
+  - `backend-python/app/services/order_lifecycle.py`
+  - `backend-python/app/services/order_timeline_engine.py`
+  - `partner-frontend/src/routes/dashboard.tsx`
+  - `partner-frontend/src/routes/index.tsx`
+  - `partner-frontend/src/navigation/partner-routes.ts`
+  - `partner-frontend/src/components/layout/ZomatoBottomNav.tsx`
+  - `partner-frontend/src/components/layout/PartnerDesktopTopBar.tsx`
+  - `partner-frontend/src/components/layout/PartnerSidebar.tsx`
+- **Verification:**
+  - `backend-python/venv/bin/pytest tests/test_multi_party_cancellation.py tests/test_zomato_wave_dispatch.py`: 10/10 tests PASSED.
+  - `partner-frontend` build (`npm run build`): PASSED (0 errors).
+
+### 76. Rapido-Style Ultra-Smooth In-App Turn-By-Turn Navigation & Handover Synchronization
+- **User Requirement & Architecture:**
+  1. *Rapido Navigation Model*: User asked how to achieve smooth in-app navigation like Rapido without kicking the rider out to the external Google Maps application ("ek baad yaad rakho clean ui banana hai").
+  2. *In-App Turn-by-Turn Experience*: Full-screen responsive vector map with CartoDB Voyager / Dark Matter tiles, 60 FPS LERP coordinate interpolation to prevent GPS jumps, shortest-angle heading rotation for bike marker, floating dark glassmorphic maneuver HUD, and Web Speech API voice guidance.
+  3. *Seamless Handover & Arrival APIs*:
+     - Added `/orders/{order_id}/arrived-store` and `/orders/{order_id}/arrived-customer` endpoints to `rider.py`.
+     - Added `confirmArrivalAtStore` and `confirmArrivalAtCustomer` in `rider-orders-api.ts`.
+     - Added `/orders/{order_id}/confirm-handover` and `confirmHandoverOrder` in `partner.py` and `partner-orders-api.ts`.
+- **Files Modified:**
+  - `rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`
+  - `rider-frontend/src/components/navigation/InAppVoiceNavigationModal.tsx`
+  - `rider-frontend/src/api/rider/rider-orders-api.ts`
+  - `backend-python/app/api/rider.py`
+  - `backend-python/app/api/partner.py`
+  - `backend-python/app/db/partner_repositories.py`
+  - `backend-python/app/services/order_lifecycle.py`
+  - `partner-frontend/src/api/partner/partner-orders-api.ts`
+  - `Memory/WORK_HISTORY.md`
+- **Verification:**
+  - `rider-frontend` build (`npm run build`): PASSED (0 errors).
+  - `partner-frontend` build (`npm run build`): PASSED (0 errors).
+  - Android Captain APK & AAB packaging (`python3 build_all_apks.py rider`): PASSED (QuickPress-Captain.apk 18.4 MB, QuickPress-Captain.aab 17.6 MB).
+
+
 
 
 

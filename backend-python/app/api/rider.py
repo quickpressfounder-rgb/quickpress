@@ -3895,6 +3895,7 @@ async def get_dispatch_otp(
 
 
 @router.post("/orders/{order_id}/arrived")
+@router.post("/orders/{order_id}/arrived-pickup")
 async def arrived_at_pickup(order_id: str, user: User = Depends(current_user)) -> dict:
     rider_id = await _rider_id(user)
     from app.services.smart_2ride_engine import RIDES_COLLECTION
@@ -3906,12 +3907,87 @@ async def arrived_at_pickup(order_id: str, user: User = Depends(current_user)) -
             {"_id": ride["_id"]},
             {"$set": {"status": "ARRIVED", "arrivedAt": now_iso}}
         )
-    await database.update(
-        "customer_orders",
-        {"_id": target_order_id},
-        {"riderArrivedAt": now_iso, "updatedAt": now_iso}
-    )
+    patch = {"riderArrivedAt": now_iso, "riderArrived": True, "updatedAt": now_iso}
+    await database.update("orders", {"id": target_order_id}, patch, upsert=False)
+    await database.update("orders", {"_id": target_order_id}, patch, upsert=False)
+    await database.update("customer_orders", {"_id": target_order_id}, patch, upsert=False)
+    try:
+        from app.services.socket_service import broadcast_order_event
+        order_doc = await lifecycle.find_order(target_order_id)
+        if order_doc:
+            await broadcast_order_event("order.rider_arrived", order_doc, extra_data={"arrivedAt": now_iso})
+    except Exception:
+        pass
     return {"ok": True, "status": "ARRIVED", "arrivedAt": now_iso, "orderId": target_order_id}
+
+
+@router.post("/orders/{order_id}/arrived-store")
+async def arrived_at_store(order_id: str, user: User = Depends(current_user)) -> dict:
+    """Captain reports arrival at the Partner Store to hand over customer clothes (Leg 1)
+    or collect packed clean laundry for delivery (Leg 2).
+    """
+    rider_id = await _rider_id(user)
+    from app.services.smart_2ride_engine import RIDES_COLLECTION
+    ride = await database.find_one(RIDES_COLLECTION, {"_id": order_id})
+    target_order_id = ride.get("orderId") if ride else order_id
+    now_iso = lifecycle.now_iso()
+    if ride:
+        await database.collection(RIDES_COLLECTION).update_one(
+            {"_id": ride["_id"]},
+            {"$set": {"arrivedStoreAt": now_iso, "status": "ARRIVED_AT_STORE"}}
+        )
+    patch = {
+        "riderArrivedAtStore": True,
+        "riderArrivedAtStoreAt": now_iso,
+        "riderHandoverInitiated": True,
+        "status": lifecycle.AT_STORE,
+        "updatedAt": now_iso,
+    }
+    await database.update("orders", {"id": target_order_id}, patch, upsert=False)
+    await database.update("orders", {"_id": target_order_id}, patch, upsert=False)
+    await database.update("customer_orders", {"_id": target_order_id}, patch, upsert=False)
+
+    try:
+        from app.services.socket_service import broadcast_order_event
+        order_doc = await lifecycle.find_order(target_order_id)
+        if order_doc:
+            await broadcast_order_event("order.rider_arrived_store", order_doc, extra_data={"riderArrivedAtStore": True})
+            await broadcast_order_event(lifecycle.AT_STORE, order_doc)
+    except Exception:
+        pass
+    return {"ok": True, "status": "ARRIVED_AT_STORE", "orderId": target_order_id, "arrivedAtStoreAt": now_iso}
+
+
+@router.post("/orders/{order_id}/arrived-customer")
+async def arrived_at_customer(order_id: str, user: User = Depends(current_user)) -> dict:
+    """Delivery Captain reports arrival at Customer Doorstep for final delivery."""
+    rider_id = await _rider_id(user)
+    from app.services.smart_2ride_engine import RIDES_COLLECTION
+    ride = await database.find_one(RIDES_COLLECTION, {"_id": order_id})
+    target_order_id = ride.get("orderId") if ride else order_id
+    now_iso = lifecycle.now_iso()
+    if ride:
+        await database.collection(RIDES_COLLECTION).update_one(
+            {"_id": ride["_id"]},
+            {"$set": {"arrivedCustomerAt": now_iso, "status": "ARRIVED_AT_CUSTOMER"}}
+        )
+    patch = {
+        "riderArrivedAtCustomer": True,
+        "riderArrivedAtCustomerAt": now_iso,
+        "updatedAt": now_iso,
+    }
+    await database.update("orders", {"id": target_order_id}, patch, upsert=False)
+    await database.update("orders", {"_id": target_order_id}, patch, upsert=False)
+    await database.update("customer_orders", {"_id": target_order_id}, patch, upsert=False)
+
+    try:
+        from app.services.socket_service import broadcast_order_event
+        order_doc = await lifecycle.find_order(target_order_id)
+        if order_doc:
+            await broadcast_order_event("order.rider_arrived_customer", order_doc, extra_data={"riderArrivedAtCustomer": True})
+    except Exception:
+        pass
+    return {"ok": True, "status": "ARRIVED_AT_CUSTOMER", "orderId": target_order_id}
 
 
 @router.post("/orders/{order_id}/collect-cash")

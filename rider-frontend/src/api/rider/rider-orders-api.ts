@@ -445,6 +445,16 @@ export async function confirmArrivalAtPickup(orderId: string) {
   return apiPostJson<{ ok: boolean; status: string; orderId: string }>(`/api/rider/orders/${orderId}/arrived`);
 }
 
+/** POST /api/rider/orders/{id}/arrived-store — rider reached partner store */
+export async function confirmArrivalAtStore(orderId: string) {
+  return apiPostJson<{ ok: boolean; status: string; orderId: string }>(`/api/rider/orders/${orderId}/arrived-store`);
+}
+
+/** POST /api/rider/orders/{id}/arrived-customer — rider reached customer delivery location */
+export async function confirmArrivalAtCustomer(orderId: string) {
+  return apiPostJson<{ ok: boolean; status: string; orderId: string }>(`/api/rider/orders/${orderId}/arrived-customer`);
+}
+
 /** POST /api/rider/orders/{id}/collect-cash — rider confirmed cash collection */
 export async function collectCashPayment(orderId: string) {
   return apiPostJson<{ ok: boolean; message: string; orderId: string }>(`/api/rider/orders/${orderId}/collect-cash`);
