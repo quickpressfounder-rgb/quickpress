@@ -1467,6 +1467,8 @@ async def reject_order(
 
 
 @router.post("/orders/{order_id}/receive-laundry", response_model=PartnerOrderResponse)
+@router.post("/orders/{order_id}/confirm-handover", response_model=PartnerOrderResponse)
+@router.post("/orders/{order_id}/handover-complete", response_model=PartnerOrderResponse)
 async def receive_laundry(order_id: str, partner_id: str = Depends(_verified_partner_id)) -> PartnerOrderResponse:
     try:
         doc = await partner_order_repository.receive_laundry(partner_id, order_id)
@@ -1533,8 +1535,6 @@ async def verify_bag_intake(
 
 @router.post("/orders/{order_id}/start-processing", response_model=PartnerOrderResponse)
 @router.post("/orders/{order_id}/process", response_model=PartnerOrderResponse)
-@router.post("/orders/{order_id}/confirm-handover", response_model=PartnerOrderResponse)
-@router.post("/orders/{order_id}/handover-complete", response_model=PartnerOrderResponse)
 async def start_processing(order_id: str, partner_id: str = Depends(_verified_partner_id)) -> PartnerOrderResponse:
     try:
         doc = await partner_order_repository.start_processing(partner_id, order_id)

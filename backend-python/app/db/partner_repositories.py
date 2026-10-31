@@ -844,20 +844,47 @@ class PartnerOrderRepository:
         except lifecycle.OrderAuthorizationError as error:
             raise PartnerAccessError(str(error)) from error
 
-        current_status = lifecycle.order_status(order)
-        if current_status not in (lifecycle.PICKED_UP, lifecycle.RIDER_ACCEPTED, lifecycle.RIDER_ASSIGNED):
-            if current_status == lifecycle.AT_PARTNER:
-                return lifecycle.to_partner_order(order)
+        now = lifecycle.now_iso()
+        if current_status in (lifecycle.AT_PARTNER, lifecycle.STORE_DROP_CONFIRMED):
+            await database.collection(lifecycle.ORDERS).update_one(
+                {"_id": lifecycle.order_id_of(order)},
+                {
+                    "$set": {
+                        "partnerHandoverConfirmed": True,
+                        "partnerHandoverConfirmedAt": now,
+                        "custody": "partner",
+                        "updatedAt": now,
+                    }
+                },
+            )
+            order["partnerHandoverConfirmed"] = True
+            order["partnerHandoverConfirmedAt"] = now
+            order["custody"] = "partner"
+            return lifecycle.to_partner_order(order)
+
+        allowed_pickup_statuses = (
+            lifecycle.PICKED_UP,
+            lifecycle.IN_TRANSIT_TO_STORE,
+            lifecycle.RIDER_ACCEPTED,
+            lifecycle.RIDER_ASSIGNED,
+            lifecycle.PICKUP_RIDER_ACCEPTED,
+        )
+        if current_status not in allowed_pickup_statuses:
             raise InvalidTransitionError(f"Cannot receive laundry when order status is {current_status}. Order must be picked up first.")
 
-        now = lifecycle.now_iso()
         updated = await lifecycle.transition(
             order_id,
             lifecycle.AT_PARTNER,
             actor_id=partner_id,
             actor_role="partner",
-            metadata={"receivedAtStoreAt": now},
-            changes={"receivedAtStoreAt": now, "droppedAtPartnerAt": now},
+            metadata={"receivedAtStoreAt": now, "partnerHandoverConfirmedAt": now},
+            changes={
+                "receivedAtStoreAt": now,
+                "droppedAtPartnerAt": now,
+                "partnerHandoverConfirmed": True,
+                "partnerHandoverConfirmedAt": now,
+                "custody": "partner",
+            },
         )
         return lifecycle.to_partner_order(updated)
 

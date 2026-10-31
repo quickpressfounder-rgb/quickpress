@@ -5,12 +5,14 @@ import type { PartnerOrder, PartnerOrderStatus } from "@/shared/types/partner";
 import {
   acceptPartnerOrder,
   completePartnerOrder,
+  confirmHandoverOrder,
   extendOrderPrepTime,
   fetchPartnerOrders,
   rejectPartnerOrder,
   startProcessingOrder,
   verifyPartnerDispatchOtp,
 } from "@/api/partner/partner-orders-api";
+import { toast } from "sonner";
 
 import { HIGH_VALUE_THRESHOLD, type ManagedOrder, type OrderStage } from "../data/partner-orders-mock";
 import { rebindPartnerSocket, subscribePartnerOrders } from "@/lib/partner-socket";
@@ -331,7 +333,6 @@ function toManagedOrder(order: PartnerOrder | any): ManagedOrder {
 /* Store                                                               */
 /* ------------------------------------------------------------------ */
 
-import { IncomingOrderModal } from "../components/orders/IncomingOrderModal";
 import { startOrderAlarm, stopOrderAlarm } from "../lib/order-alarm";
 import {
   acquirePartnerWakeLock,
@@ -350,6 +351,8 @@ type OrdersStore = {
   acceptOrder: (orderId: string, prepTimeMinutes?: number) => Promise<void>;
   extendOrderTime: (orderId: string, additionalMinutes?: number, reason?: string) => Promise<void>;
   rejectOrder: (orderId: string, reason: string) => Promise<void>;
+  confirmHandover: (orderId: string) => Promise<void>;
+  confirmedHandoverIds: Set<string>;
   startProcessing: (orderId: string) => Promise<void>;
   completeOrder: (orderId: string) => Promise<void>;
   verifyDispatchOtp: (orderId: string, otp: string) => Promise<void>;
@@ -373,6 +376,7 @@ const SEEN_ORDERS_KEY = "qp_partner_seen_orders_v2";
 const CANCELLED_ORDERS_KEY = "qp_partner_cancelled_orders_v2";
 const PROCESSING_ORDERS_KEY = "qp_partner_processing_orders_v2";
 const READY_ORDERS_KEY = "qp_partner_ready_orders_v2";
+const HANDOVER_CONFIRMED_ORDERS_KEY = "qp_partner_handover_confirmed_orders_v2";
 
 function readPersistedSet(key: string): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -426,11 +430,19 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
   const seenOrderIdsRef = useRef<Set<string>>(seenOrderIds);
   seenOrderIdsRef.current = seenOrderIds;
 
-  // Persisted tracking sets so page reloads and background polling NEVER revert an active partner transition or re-ring alarms
   const acceptedOrderIds = useRef<Set<string>>(readPersistedSet(ACCEPTED_ORDERS_KEY));
   const processingOrderIds = useRef<Set<string>>(readPersistedSet(PROCESSING_ORDERS_KEY));
   const readyOrderIds = useRef<Set<string>>(readPersistedSet(READY_ORDERS_KEY));
   const cancelledOrderIds = useRef<Set<string>>(readPersistedSet(CANCELLED_ORDERS_KEY));
+  const confirmedHandoverIds = useRef<Set<string>>(readPersistedSet(HANDOVER_CONFIRMED_ORDERS_KEY));
+  const [confirmedHandoverIdsState, setConfirmedHandoverIdsState] = useState<Set<string>>(
+    () => readPersistedSet(HANDOVER_CONFIRMED_ORDERS_KEY)
+  );
+
+  // Stop any lingering alarm sirens immediately on mount
+  useEffect(() => {
+    stopOrderAlarm();
+  }, []);
 
   const isOperationalRoute = useCallback(() => {
     if (typeof window === "undefined") return false;
@@ -522,12 +534,10 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
               o.amount > 0
           );
 
-          if (unacknowledgedNew && !incomingOrderRef.current) {
+          if (unacknowledgedNew) {
             seenOrderIdsRef.current.add(unacknowledgedNew.id);
             writePersistedSet(SEEN_ORDERS_KEY, seenOrderIdsRef.current);
             setSeenOrderIds((prev) => new Set([...prev, unacknowledgedNew.id]));
-            setIncomingOrder(unacknowledgedNew);
-            startOrderAlarm(unacknowledgedNew.code, unacknowledgedNew.amount, unacknowledgedNew.customerName);
           }
         }
       } catch (err: any) {
@@ -614,10 +624,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
           if (payloadAmount > 0) managed.amount = payloadAmount;
           managed.stage = "new";
 
-          // ⚡ TRIGGER ORDER ALARM BELL INSTANTANEOUSLY (<0.010s) + Native Android Background Siren
-          startOrderAlarm(managed.code, managed.amount, managed.customerName);
-
-          setIncomingOrder(managed);
+          // Order arrives cleanly in queue without disruptive modal popups or alarm sirens per merchant setting
           setOrders((prev) => {
             const existingIdx = prev.findIndex((o) => o.id === managed.id || o.code === managed.code);
             let next: ManagedOrder[];
@@ -875,6 +882,37 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
     };
   }, [acceptOrder]);
 
+  const confirmHandover = useCallback(
+    async (orderId: string) => {
+      confirmedHandoverIds.current.add(orderId);
+      writePersistedSet(HANDOVER_CONFIRMED_ORDERS_KEY, confirmedHandoverIds.current);
+      setConfirmedHandoverIdsState(new Set(confirmedHandoverIds.current));
+
+      // ⚡ INSTANTANEOUS OPTIMISTIC ACTION:
+      // Mark handover confirmed and keep at store so "Start Processing" button displays immediately
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId
+            ? {
+                ...o,
+                stage: "at_partner" as OrderStage,
+                partnerHandoverConfirmed: true,
+              }
+            : o
+        )
+      );
+
+      try {
+        await confirmHandoverOrder(orderId);
+        toast.success("📦 Laundry Handover Confirmed! Received from Captain.");
+      } catch (err) {
+        console.error("[PartnerOrdersContext] confirmHandover error:", err);
+      }
+      void load({ refreshing: true });
+    },
+    [load],
+  );
+
   const startProcessing = useCallback(
     async (orderId: string) => {
       processingOrderIds.current.add(orderId);
@@ -975,7 +1013,10 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
       incomingOrder,
       refresh,
       acceptOrder,
+      extendOrderTime,
       rejectOrder,
+      confirmHandover,
+      confirmedHandoverIds: confirmedHandoverIdsState,
       startProcessing,
       completeOrder,
       verifyDispatchOtp,
@@ -993,6 +1034,8 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
       acceptOrder,
       extendOrderTime,
       rejectOrder,
+      confirmHandover,
+      confirmedHandoverIdsState,
       startProcessing,
       completeOrder,
       verifyDispatchOtp,
@@ -1004,17 +1047,6 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
   return (
     <PartnerOrdersContext.Provider value={value}>
       {children}
-      {incomingOrder ? (
-        <IncomingOrderModal
-          order={incomingOrder}
-          onAccept={acceptOrder}
-          onReject={rejectOrder}
-          onDismiss={() => {
-            stopOrderAlarm();
-            setIncomingOrder(null);
-          }}
-        />
-      ) : null}
     </PartnerOrdersContext.Provider>
   );
 }

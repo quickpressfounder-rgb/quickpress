@@ -110,31 +110,13 @@ import {
  * plus Web Audio and HTML5 audio fallbacks.
  */
 export function startOrderAlarm(
-  orderCode?: string,
-  amount?: number | string,
-  customerName?: string
+  _orderCode?: string,
+  _amount?: number | string,
+  _customerName?: string
 ) {
-  if (isRinging) return;
-  isRinging = true;
-
-  // 1. Android Native Background Ring (Plays loud on STREAM_ALARM + wake screen + heads-up notification)
-  if (typeof window !== "undefined" && (window as any).QuickPressNativeBridge?.startBackgroundOrderRing) {
-    try {
-      (window as any).QuickPressNativeBridge.startBackgroundOrderRing(
-        orderCode || "",
-        amount != null ? String(amount) : "",
-        customerName || ""
-      );
-    } catch (e) {
-      console.warn("[order-alarm] Native startBackgroundOrderRing error:", e);
-    }
-  }
-
-  // 2. High-Priority Web Audio & HTML5 fallback
-  startPartnerOrderAlertRing();
-
-  // 3. Desktop / Mobile Browser Notification
-  triggerDesktopNotification(orderCode, amount, customerName);
+  // Alarm siren disabled per merchant directive
+  stopOrderAlarm();
+  return;
 }
 
 /**

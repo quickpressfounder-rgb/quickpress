@@ -17,6 +17,7 @@ import type { OrderStage } from "../../data/partner-orders-mock";
 export type OrderActionId =
   | "accept"
   | "reject"
+  | "confirm_handover"
   | "start_pickup"
   | "picked_up"
   | "start_washing"
@@ -42,7 +43,11 @@ export type OrderAction = {
  * Stage → available partner actions. Pure data so the same map drives both
  * the compact card actions and the full order details action bar.
  */
-export function getOrderActions(stage: OrderStage, isDryClean = false): OrderAction[] {
+export function getOrderActions(
+  stage: OrderStage,
+  isDryClean = false,
+  partnerHandoverConfirmed = false,
+): OrderAction[] {
   switch (stage) {
     case "new":
       return [
@@ -61,10 +66,22 @@ export function getOrderActions(stage: OrderStage, isDryClean = false): OrderAct
       // Clothes are being picked up by Captain. Strictly NO processing action until clothes reach store!
       return [];
     case "at_partner":
+      if (!partnerHandoverConfirmed) {
+        return [
+          {
+            id: "confirm_handover",
+            label: "Confirm Handover from Captain 📦",
+            icon: PackageCheck,
+            intent: "primary",
+            nextStage: "at_partner",
+            timelineLabel: "Handover confirmed by store",
+          },
+        ];
+      }
       return [
         {
           id: "start_washing",
-          label: "Start Washing & Processing 🧺",
+          label: isDryClean ? "Start Dry Cleaning 🧺" : "Start Washing & Processing 🧺",
           icon: WashingMachine,
           intent: "primary",
           nextStage: "washing",

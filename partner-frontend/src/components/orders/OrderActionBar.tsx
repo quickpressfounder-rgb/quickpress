@@ -18,7 +18,8 @@ export function OrderActionBar({
   busyAction?: OrderActionId | null;
 }) {
   const isDryClean = order.services?.some((service) => service.toLowerCase().includes("dry"));
-  const actions = getOrderActions(order.stage, isDryClean);
+  const isPartnerHandoverConfirmed = Boolean((order as any).partnerHandoverConfirmed);
+  const actions = getOrderActions(order.stage, isDryClean, isPartnerHandoverConfirmed);
 
   if (!actions.length) {
     if (order.stage === "accepted" || order.stage === "pickup_pending") {
@@ -83,7 +84,9 @@ export function OrderActionBar({
 
     if (primaryAction) {
       const swipeLabel =
-        primaryAction.id === "start_washing" || primaryAction.id === "processing" || primaryAction.id === "wash" || primaryAction.id === "dry_clean"
+        primaryAction.id === "confirm_handover"
+          ? "Swipe to Confirm Handover 📦"
+          : primaryAction.id === "start_washing" || primaryAction.id === "processing" || primaryAction.id === "wash" || primaryAction.id === "dry_clean"
           ? "Swipe to Start Processing 🧺"
           : primaryAction.id === "mark_ready" || primaryAction.id === "ready"
           ? "Swipe: Process Complete ✨"

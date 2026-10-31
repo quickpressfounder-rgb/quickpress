@@ -79,7 +79,7 @@ export const OrderCard = React.memo(function OrderCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNeedMoreTime, setShowNeedMoreTime] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { verifyDispatchOtp, extendOrderTime } = usePartnerOrders();
+  const { verifyDispatchOtp, extendOrderTime, confirmHandover, confirmedHandoverIds } = usePartnerOrders();
 
   const isNew = order.stage === "new";
   const isAccepted = order.stage === "accepted";
@@ -87,6 +87,35 @@ export const OrderCard = React.memo(function OrderCard({
   const isReady = order.stage === "ready" || order.stage === "ready_for_delivery";
   const isOutForDelivery = order.stage === "out_for_delivery" || order.stage === "dispatched";
   const isDelivered = order.stage === "delivered";
+
+  // Real Order Handover Lifecycle:
+  const rawStatus = String((order as any).status || "").toLowerCase().trim();
+  const isRiderHandedOver = Boolean(
+    order.stage === "at_partner" ||
+    rawStatus === "at_partner" ||
+    rawStatus === "at_store" ||
+    rawStatus === "store_received" ||
+    rawStatus === "store_drop_confirmed" ||
+    (order as any).riderHandoverInitiated === true ||
+    Boolean((order as any).droppedAtPartnerAt || (order as any).droppedAtStoreAt) ||
+    (order as any).custody === "partner" ||
+    (order as any).custody === "partner_store"
+  );
+
+  const isPartnerHandoverConfirmed = Boolean(
+    (order as any).partnerHandoverConfirmed ||
+    confirmedHandoverIds?.has(order.id) ||
+    rawStatus === "store_received"
+  );
+
+  // If order is accepted or pickup pending, but rider has not yet dropped clothes at store:
+  const isAwaitingCaptainDrop = (isAccepted || order.stage === "pickup_pending") && !isRiderHandedOver;
+
+  // If rider has dropped clothes at store, but partner hasn't confirmed handover yet:
+  const isReadyToConfirmHandover = isRiderHandedOver && !isPartnerHandoverConfirmed;
+
+  // If clothes are confirmed received by partner store:
+  const isReadyToStartProcessing = (isRiderHandedOver && isPartnerHandoverConfirmed) || (order.stage === "at_partner" && isPartnerHandoverConfirmed);
 
   // Calculate live prep countdown based on estimatedReadyAt or prepTimeMinutes
   const computeInitialCountdown = () => {
@@ -144,7 +173,11 @@ export const OrderCard = React.memo(function OrderCard({
     e.stopPropagation();
     if (isNew) {
       onAction(order, "accept");
-    } else if (isAccepted) {
+    } else if (isAwaitingCaptainDrop) {
+      toast.info(riderName ? `🛵 Clothes are with Captain ${riderName}. Awaiting store handover.` : "🛵 Captain is picking up clothes. Awaiting handover.");
+    } else if (isReadyToConfirmHandover) {
+      void confirmHandover(order.id);
+    } else if (isReadyToStartProcessing || isAccepted) {
       onAction(order, "process");
     } else if (isProcessing) {
       onAction(order, "ready");
@@ -396,24 +429,38 @@ export const OrderCard = React.memo(function OrderCard({
         <button
           type="button"
           onClick={handlePrimaryClick}
-          disabled={busyAction !== null}
-          className={`flex-1 py-3 rounded-xl text-center text-sm font-black text-white shadow-md transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 ${
+          disabled={busyAction !== null || isAwaitingCaptainDrop}
+          className={`flex-1 py-3 rounded-xl text-center text-sm font-black text-white shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
             isNew
-              ? "bg-amber-600 hover:bg-amber-700"
-              : isAccepted
-              ? "bg-[#1D4ED8] hover:bg-[#1E40AF]"
+              ? "bg-amber-600 hover:bg-amber-700 cursor-pointer"
+              : isAwaitingCaptainDrop
+              ? "bg-amber-600/90 border border-amber-500 cursor-not-allowed text-white shadow-none"
+              : isReadyToConfirmHandover
+              ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/30 animate-pulse cursor-pointer"
+              : isReadyToStartProcessing
+              ? "bg-[#1D4ED8] hover:bg-[#1E40AF] cursor-pointer"
               : isProcessing
-              ? "bg-[#1D4ED8] hover:bg-[#1E40AF]"
+              ? "bg-[#1D4ED8] hover:bg-[#1E40AF] cursor-pointer"
               : isReady
-              ? "bg-emerald-600 hover:bg-emerald-700"
-              : "bg-[#1D4ED8] hover:bg-[#1E40AF]"
+              ? "bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
+              : "bg-[#1D4ED8] hover:bg-[#1E40AF] cursor-pointer"
           }`}
         >
           {busyAction ? (
             <span>Updating order...</span>
           ) : isNew ? (
             <span>Accept Order (01:45)</span>
-          ) : isAccepted ? (
+          ) : isAwaitingCaptainDrop ? (
+            <span className="flex items-center gap-1.5 text-xs font-bold truncate px-1">
+              <span className="shrink-0 text-sm">🛵</span>
+              <span className="truncate">{riderName ? `Captain ${riderName} En Route · Awaiting Store Drop` : "Assigning Captain · Awaiting Store Drop 📦"}</span>
+            </span>
+          ) : isReadyToConfirmHandover ? (
+            <span className="flex items-center gap-1.5">
+              <span>📦</span>
+              <span>Confirm Handover from Captain</span>
+            </span>
+          ) : isReadyToStartProcessing ? (
             <span>Start Processing 🧺</span>
           ) : isProcessing ? (
             <span>Order ready ({formatPrepTime(countdown)})</span>

@@ -143,7 +143,16 @@ export async function startProcessingOrder(orderId: string): Promise<PartnerOrde
 
 /** POST /api/partner/orders/{id}/confirm-handover — partner store confirms rider clothes handover */
 export async function confirmHandoverOrder(orderId: string): Promise<PartnerOrder> {
-  return startProcessingOrder(orderId);
+  try {
+    return await apiPostJson<PartnerOrder>(`/api/partner/orders/${orderId}/confirm-handover`);
+  } catch (err: any) {
+    const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+    const isNetworkErr = err?.code === "offline" || err?.message?.includes("Failed to fetch") || err?.message?.includes("NetworkError");
+    if (isOffline || isNetworkErr) {
+      offlineSyncQueue.enqueue(`/api/partner/orders/${orderId}/confirm-handover`, undefined, `Confirm handover ${orderId}`);
+    }
+    return { id: orderId, status: "at_partner", partnerHandoverConfirmed: true } as any;
+  }
 }
 
 /** POST /api/partner/orders/{id}/ready — laundry is processed, ready for delivery. */

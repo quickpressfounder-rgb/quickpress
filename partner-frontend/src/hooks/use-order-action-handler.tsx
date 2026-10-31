@@ -18,7 +18,7 @@ type SheetState =
 
 /** Central handler for every stage action — talks to the real partner API. */
 export function useOrderActionHandler() {
-  const { acceptOrder, rejectOrder, startProcessing, completeOrder } = usePartnerOrders();
+  const { acceptOrder, rejectOrder, confirmHandover, startProcessing, completeOrder } = usePartnerOrders();
   const [sheet, setSheet] = useState<SheetState>(null);
   const [busy, setBusy] = useState<{ orderId: string; actionId: OrderActionId } | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -46,6 +46,9 @@ export function useOrderActionHandler() {
           break;
         case "reject":
           setSheet({ kind: "reject", order });
+          break;
+        case "confirm_handover":
+          void run(order, actionId, "📦 Laundry Handover Confirmed! Received from Captain.", () => confirmHandover(order.id));
           break;
         case "start_pickup":
         case "picked_up":

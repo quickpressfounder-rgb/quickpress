@@ -135,7 +135,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
   const navigate = useNavigate();
   const routeParams = (useParams({ strict: false }) as { orderId?: string }) || {};
   const orderId = propOrderId || routeParams?.orderId;
-  const { orders, isLoading } = usePartnerOrders();
+  const { orders, isLoading, confirmHandover, confirmedHandoverIds } = usePartnerOrders();
   const { handleAction, sheetNode, overlay, busy } = useOrderActionHandler();
   const [fetchedOrder, setFetchedOrder] = useState<ManagedOrder | null>(null);
   const [fetchLoading, setFetchLoading] = useState(false);
@@ -357,6 +357,29 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
     riderObj?.avatar ||
     (order as any)?.riderImage ||
     "";
+
+  const rawStatus = String((order as any)?.status || (order as any)?.canonicalStatus || "").toLowerCase().trim();
+  const isRiderHandedOver = Boolean(
+    order?.stage === "at_partner" ||
+    rawStatus === "at_partner" ||
+    rawStatus === "at_store" ||
+    rawStatus === "store_received" ||
+    rawStatus === "store_drop_confirmed" ||
+    (order as any)?.riderHandoverInitiated === true ||
+    Boolean((order as any)?.droppedAtPartnerAt || (order as any)?.droppedAtStoreAt) ||
+    (order as any)?.custody === "partner" ||
+    (order as any)?.custody === "partner_store"
+  );
+
+  const isPartnerHandoverConfirmed = Boolean(
+    (order as any)?.partnerHandoverConfirmed ||
+    (order && confirmedHandoverIds?.has(order.id)) ||
+    rawStatus === "store_received"
+  );
+
+  const isAwaitingCaptainDrop = Boolean(order && (order.stage === "accepted" || order.stage === "pickup_pending") && !isRiderHandedOver);
+  const isReadyToConfirmHandover = Boolean(order && isRiderHandedOver && !isPartnerHandoverConfirmed);
+  const isReadyToStartProcessing = Boolean(order && ((isRiderHandedOver && isPartnerHandoverConfirmed) || (order.stage === "at_partner" && isPartnerHandoverConfirmed)));
 
   const riderRating =
     riderObj?.rating ? Number(riderObj.rating) : null;
@@ -660,30 +683,52 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                 <div className="mt-3.5">
                   <button
                     type="button"
-                    disabled={Boolean(busy)}
+                    disabled={Boolean(busy) || isAwaitingCaptainDrop}
                     onClick={() => {
                       if (order.stage === "new") handleAction(order, "accept");
-                      else if (order.stage === "accepted" || order.stage === "at_partner") handleAction(order, "start_wash");
-                      else if (order.stage === "processing" || order.stage === "washing") handleAction(order, "mark_ready");
-                      else if (order.stage === "ready") {
+                      else if (isAwaitingCaptainDrop) {
+                        toast.info(riderName ? `🛵 Clothes are with Captain ${riderName}. Awaiting store drop.` : "🛵 Captain is picking up clothes. Awaiting drop.");
+                      } else if (isReadyToConfirmHandover) {
+                        void confirmHandover(order.id);
+                      } else if (isReadyToStartProcessing || order.stage === "accepted" || order.stage === "at_partner") {
+                        handleAction(order, "start_wash");
+                      } else if (order.stage === "processing" || order.stage === "washing") {
+                        handleAction(order, "mark_ready");
+                      } else if (order.stage === "ready") {
                         const input = document.getElementById("mobile-dispatch-otp-input");
                         if (input) input.focus();
                         else toast.info("Enter Captain's 4-digit Dispatch OTP to handover");
                       }
                     }}
-                    className="w-full rounded-xl bg-[#1D4ED8] hover:bg-[#1E40AF] py-3 text-center text-sm font-black text-white shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                    className={`w-full rounded-xl py-3 text-center text-sm font-black text-white shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
+                      isAwaitingCaptainDrop
+                        ? "bg-amber-600/90 border border-amber-500 cursor-not-allowed shadow-none"
+                        : isReadyToConfirmHandover
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/30 animate-pulse cursor-pointer"
+                        : "bg-[#1D4ED8] hover:bg-[#1E40AF] cursor-pointer"
+                    }`}
                   >
                     {busy?.orderId === order.id ? (
                       <span className="inline-flex items-center gap-2">
                         <span className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                         <span>Updating...</span>
                       </span>
-                    ) : order.stage === "processing" || order.stage === "washing" ? (
-                      <span>Order ready ({formatPrepTime(countdown)})</span>
                     ) : order.stage === "new" ? (
                       <span>Accept Order</span>
-                    ) : order.stage === "accepted" || order.stage === "at_partner" ? (
+                    ) : isAwaitingCaptainDrop ? (
+                      <span className="flex items-center justify-center gap-1.5 text-xs font-bold truncate px-1">
+                        <span className="shrink-0 text-sm">🛵</span>
+                        <span className="truncate">{riderName ? `Captain ${riderName} En Route · Awaiting Store Drop` : "Assigning Captain · Awaiting Store Drop 📦"}</span>
+                      </span>
+                    ) : isReadyToConfirmHandover ? (
+                      <span className="flex items-center justify-center gap-1.5">
+                        <span>📦</span>
+                        <span>Confirm Handover from Captain</span>
+                      </span>
+                    ) : isReadyToStartProcessing || order.stage === "accepted" || order.stage === "at_partner" ? (
                       <span>Start Processing 🧺</span>
+                    ) : order.stage === "processing" || order.stage === "washing" ? (
+                      <span>Order ready ({formatPrepTime(countdown)})</span>
                     ) : order.stage === "ready" ? (
                       <span>Handover to Captain 🛵</span>
                     ) : (
