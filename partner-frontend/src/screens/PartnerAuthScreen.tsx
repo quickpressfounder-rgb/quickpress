@@ -3,10 +3,8 @@ import {
   AlertCircle,
   ArrowLeft,
   ChevronDown,
-  Globe,
   Headphones,
   Loader2,
-  Mail,
   MessageSquare,
   Phone,
   ShieldCheck,
@@ -61,17 +59,14 @@ export function PartnerAuthScreen() {
   const navigate = useNavigate();
   const { setPhone, signIn, session, hydrating } = usePartnerContext();
 
-  // Auth steps: "intro" (welcome carousel) | "phone" (mobile login) | "email"
-  const [step, setStep] = useState<"intro" | "phone" | "email">("intro");
+  // Auth steps: "intro" (welcome carousel) | "phone" (mobile login)
+  const [step, setStep] = useState<"intro" | "phone">("intro");
   const [phoneVal, setPhoneVal] = useState("");
-  const [emailVal, setEmailVal] = useState("");
-  const [emailPassword, setEmailPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notRegistered, setNotRegistered] = useState(false);
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
   const [sent, setSent] = useState(false);
-  const [lang, setLang] = useState<"en" | "hi">("en");
   const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Auto-detect mode from URL params if direct login requested
@@ -126,9 +121,7 @@ export function PartnerAuthScreen() {
 
       if (!check.isRegistered || !check.isOnboarded) {
         const notRegMsg =
-          lang === "hi"
-            ? "यह मोबाइल नंबर पार्टनर स्टोर के रूप में पंजीकृत नहीं है। कृपया पहले नया स्टोर पंजीकृत करें।"
-            : "This mobile number is not registered as a Partner Store. Please register your store first.";
+          "This mobile number is not registered as a Partner Store. Please register your store first.";
         setError(notRegMsg);
         setNotRegistered(true);
         setBusy(false);
@@ -202,32 +195,18 @@ export function PartnerAuthScreen() {
       <Toaster richColors position="top-center" />
 
       {/* ========================================================================= */}
-      {/* STEP 1: WELCOME CAROUSEL (HOME / FEATURE INTRODUCTION SCREEN)            */}
-      {/* Matches user screenshot media_1793434774143.png                           */}
+      {/* STEP 1: WELCOME CAROUSEL (FULL SCREEN - MATCHES IMAGE 1 & 2)              */}
       {/* ========================================================================= */}
       {step === "intro" ? (
-        <div className="animate-in fade-in duration-300">
-          {/* Top Bar with Language Selector */}
-          <header className="max-w-sm sm:max-w-md mx-auto w-full px-4 pt-3 flex justify-end">
-            <button
-              type="button"
-              onClick={() => setLang(lang === "en" ? "hi" : "en")}
-              className="flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-700 shadow-2xs hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer"
-            >
-              <Globe className="size-3.5 text-zinc-500" />
-              <span>{lang === "en" ? "English" : "हिंदी"}</span>
-            </button>
-          </header>
-
+        <div className="w-full h-full animate-in fade-in duration-300">
           <PartnerIntroCarousel
             onLoginClick={() => setStep("phone")}
             onSignUpClick={() => navigate({ to: partnerRoutes.registration })}
           />
         </div>
-      ) : step === "phone" ? (
+      ) : (
         /* ======================================================================= */
-        /* STEP 2: PHONE NUMBER LOGIN SCREEN                                       */
-        /* Matches user screenshot media_1793434820554.png                         */
+        /* STEP 2: PHONE NUMBER LOGIN SCREEN (EMAIL LOGIN REMOVED)                 */
         /* ======================================================================= */
         <div className="min-h-screen flex flex-col justify-between max-w-sm sm:max-w-md mx-auto w-full px-5 py-4 animate-in fade-in duration-200">
           {/* Top Navigation Bar */}
@@ -241,25 +220,15 @@ export function PartnerAuthScreen() {
               >
                 <ArrowLeft className="size-4" />
               </button>
-
-              <button
-                type="button"
-                onClick={() => setLang(lang === "en" ? "hi" : "en")}
-                className="flex items-center gap-1 rounded-full border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 cursor-pointer"
-              >
-                <Globe className="size-3 text-zinc-400" />
-                <span>{lang === "en" ? "EN" : "HI"}</span>
-              </button>
             </div>
 
-            {/* Brand Header */}
-            <div className="text-center pt-8 pb-5">
-              <h1 className="text-3xl font-black italic tracking-tight text-zinc-950 font-sans">
-                quick<span className="text-[#2563eb]">press</span>
-              </h1>
-              <p className="text-[11.5px] font-semibold tracking-wider text-zinc-500 uppercase mt-0.5">
-                — laundry partner —
-              </p>
+            {/* Brand Header with Exact Logo from Image 2 */}
+            <div className="flex flex-col items-center justify-center pt-8 pb-5">
+              <img
+                src="/quickpress-partner-onboarding-logo.png"
+                alt="QuickPress Partner Onboarding"
+                className="h-12 w-auto object-contain mx-auto"
+              />
             </div>
 
             {/* Instruction Prompt */}
@@ -374,15 +343,6 @@ export function PartnerAuthScreen() {
             <div className="space-y-3">
               <button
                 type="button"
-                onClick={() => setStep("email")}
-                className="w-full h-12 rounded-xl border border-zinc-300 hover:bg-zinc-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 text-zinc-800 font-semibold text-sm cursor-pointer shadow-2xs"
-              >
-                <Mail className="w-4 h-4 text-zinc-600" />
-                <span>Login with Email</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={handleGoogle}
                 disabled={googleBusy}
                 className="w-full h-12 rounded-xl border border-zinc-300 hover:bg-zinc-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 text-zinc-800 font-semibold text-sm cursor-pointer shadow-2xs"
@@ -413,97 +373,6 @@ export function PartnerAuthScreen() {
             <p className="text-[11px] text-zinc-400 flex items-center justify-center gap-1.5 font-medium">
               <ShieldCheck className="size-3.5 text-emerald-600" />
               QuickPress Partner Portal · Secure 256-bit Login
-            </p>
-          </div>
-        </div>
-      ) : (
-        /* ======================================================================= */
-        /* STEP 3: EMAIL LOGIN SCREEN (ALTERNATIVE OPTION)                         */
-        /* ======================================================================= */
-        <div className="min-h-screen flex flex-col justify-between max-w-sm sm:max-w-md mx-auto w-full px-5 py-4 animate-in fade-in duration-200">
-          <div>
-            <div className="flex items-center justify-between pt-1">
-              <button
-                type="button"
-                onClick={() => setStep("phone")}
-                className="size-9 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 flex items-center justify-center transition-all cursor-pointer active:scale-95"
-                aria-label="Back to phone login"
-              >
-                <ArrowLeft className="size-4" />
-              </button>
-              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                Email Sign In
-              </span>
-            </div>
-
-            <div className="text-center pt-8 pb-5">
-              <h1 className="text-3xl font-black italic tracking-tight text-zinc-950 font-sans">
-                quick<span className="text-[#2563eb]">press</span>
-              </h1>
-              <p className="text-[11.5px] font-semibold tracking-wider text-zinc-500 uppercase mt-0.5">
-                — laundry partner —
-              </p>
-            </div>
-
-            <p className="text-center text-sm font-medium text-zinc-600 mb-6">
-              Sign in with your registered store email address
-            </p>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                toast.info("Please use Phone + OTP for primary partner store access.");
-                setStep("phone");
-              }}
-              className="space-y-4"
-            >
-              <div>
-                <label className="block text-xs font-semibold text-zinc-700 mb-1">
-                  Store Email
-                </label>
-                <input
-                  type="email"
-                  value={emailVal}
-                  onChange={(e) => setEmailVal(e.target.value)}
-                  placeholder="laundry@quickpress.online"
-                  className="w-full h-12 rounded-xl border border-zinc-300 px-3.5 text-sm font-medium focus:border-[#2563eb] focus:ring-2 focus:ring-blue-100 outline-none"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-700 mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={emailPassword}
-                  onChange={(e) => setEmailPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full h-12 rounded-xl border border-zinc-300 px-3.5 text-sm font-medium focus:border-[#2563eb] focus:ring-2 focus:ring-blue-100 outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full h-12 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-sm shadow-sm transition-all cursor-pointer"
-              >
-                Login with Email
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStep("phone")}
-                className="w-full py-2 text-xs font-semibold text-zinc-500 hover:text-zinc-800 text-center block cursor-pointer"
-              >
-                ← Back to Phone Number Login
-              </button>
-            </form>
-          </div>
-
-          <div className="text-center pt-8 pb-3">
-            <p className="text-[11px] text-zinc-400 font-medium">
-              QuickPress Laundry Network
             </p>
           </div>
         </div>

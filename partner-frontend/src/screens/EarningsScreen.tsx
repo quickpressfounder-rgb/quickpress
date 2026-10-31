@@ -368,7 +368,7 @@ export function EarningsScreen() {
       <div className="mx-auto w-full max-w-7xl px-3.5 sm:px-6 py-4 sm:py-6 space-y-4">
 
         {/* ========================================================================= */}
-        {/* HEADER BAR: STORE TITLE, LIVE IMPS DISBURSAL BADGE & ACTION TOOLS         */}
+        {/* HEADER BAR: STORE TITLE & ACTION TOOLS                                    */}
         {/* ========================================================================= */}
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-1">
           <div>
@@ -376,10 +376,6 @@ export function EarningsScreen() {
               <h1 className="text-xl sm:text-2xl font-black text-zinc-950 tracking-tight">
                 Partner Wallet &amp; Payouts
               </h1>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 text-[11px] font-black text-emerald-800 shadow-2xs">
-                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>NPCI IMPS Auto-Credit</span>
-              </span>
             </div>
             <p className="mt-0.5 text-xs font-semibold text-zinc-500">
               Double-entry settlement ledger, verified bank transfers, and platform fee breakdown
@@ -424,9 +420,6 @@ export function EarningsScreen() {
                 </span>
                 <span className="text-xs font-black uppercase tracking-wider text-zinc-500">
                   Total Bank Settled · Lifetime
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-black text-emerald-800">
-                  <CheckCircle2 className="size-3" /> 100% Reconciled
                 </span>
               </div>
               <div className="flex items-baseline gap-3">

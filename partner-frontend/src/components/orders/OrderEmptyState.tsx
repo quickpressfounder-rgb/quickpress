@@ -1,5 +1,4 @@
-import { RotateCcw, SearchX, WifiOff } from "lucide-react";
-import { HangingBoardWatermark } from "./HangingBoardWatermark";
+import { Inbox, RotateCcw, SearchX, WifiOff } from "lucide-react";
 
 export type EmptyVariant = "no-orders" | "no-results" | "offline";
 
@@ -39,51 +38,42 @@ export function OrderEmptyState({
     );
   }
 
-  // Determine dynamic board text and user-facing messages based on active tab
-  let boardLabel = "NO ORDERS";
+  // Determine user-facing messages based on active tab
   let title = "No Orders";
   let description = "New customer orders will appear here automatically.";
   let ctaText = "Refresh Queue";
 
   if (variant === "no-results" || query.trim().length > 0) {
-    boardLabel = "NO RESULTS";
     title = query ? `No matching orders for "${query}"` : "No matching orders";
     description = "Check the spelling or try searching by 10-digit phone number or order code.";
     ctaText = "Clear Search";
   } else {
     switch (tab) {
       case "active":
-        boardLabel = "NO ACTIVE";
         title = "No Active Orders";
         description = "New customer laundry bookings will appear here the moment they are placed.";
         break;
       case "picked":
-        boardLabel = "NO PICKED";
         title = "No Picked Orders";
         description = "Orders picked up by Captains en route to your laundromat will appear here.";
         break;
       case "process":
-        boardLabel = "NO PROCESS";
         title = "No Orders in Process";
         description = "No garments are currently in washing, drying, or iron processing.";
         break;
       case "out_for_delivery":
-        boardLabel = "NO OUT FOR DELIVERY";
         title = "No Out of Delivery Orders";
         description = "Orders packed and dispatched with delivery captains will be tracked here.";
         break;
       case "delivered":
-        boardLabel = "NO DELIVERED";
         title = "No Delivered Orders";
         description = "Completed and successfully delivered customer orders will show here.";
         break;
       case "cancelled":
-        boardLabel = "NO CANCELLED";
         title = "No Cancelled Orders";
         description = "Zero cancellations! All received orders are being processed smoothly.";
         break;
       default:
-        boardLabel = "NO ORDERS";
         title = "No orders in this stage";
         description = "Incoming laundry orders will appear here in real-time.";
         break;
@@ -91,9 +81,15 @@ export function OrderEmptyState({
   }
 
   return (
-    <div className="my-4 flex flex-col items-center justify-center rounded-2xl border border-zinc-200/90 bg-white p-6 sm:p-10 text-center shadow-xs">
-      {/* Exact hanging "CLOSED" style signboard with dynamic stage text */}
-      <HangingBoardWatermark label={boardLabel} />
+    <div className="my-4 flex flex-col items-center justify-center rounded-2xl border border-zinc-200/90 bg-white p-8 sm:p-12 text-center shadow-xs">
+      {/* Clean modern icon placeholder */}
+      <div className="flex size-16 items-center justify-center rounded-2xl bg-zinc-100/80 border border-zinc-200/80 text-zinc-400">
+        {variant === "no-results" || query.trim().length > 0 ? (
+          <SearchX className="size-8 text-zinc-400" />
+        ) : (
+          <Inbox className="size-8 text-zinc-400" />
+        )}
+      </div>
 
       <h3 className="mt-4 text-base font-black tracking-tight text-zinc-950">
         {title}

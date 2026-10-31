@@ -119,15 +119,24 @@ function PartnerSplashScreen() {
           transform: mounted && !closing ? "scale(1)" : "scale(0.96)",
         }}
       >
-        {/* QuickPress Brand Name in Pure White Only */}
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight text-white drop-shadow-md font-sans select-none">
-          QuickPress
-        </h1>
+        {/* QuickPress Brand Name matching Image 2 */}
+        <div className="flex items-center gap-0.5 justify-center">
+          <span className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight text-white drop-shadow-md font-sans select-none">
+            Quick
+          </span>
+          <span className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight text-[#10b981] drop-shadow-md font-sans select-none">
+            Press
+          </span>
+        </div>
 
-        {/* Clean Partner Subtitle in Pure White Only */}
-        <p className="mt-3 sm:mt-4 text-xs sm:text-sm font-black uppercase tracking-[0.28em] text-white/90 select-none">
-          PARTNER
-        </p>
+        {/* Clean Partner Subtitle with Divider Lines */}
+        <div className="flex items-center gap-2.5 mt-3 sm:mt-4">
+          <span className="h-[2px] w-6 bg-[#10b981]" />
+          <p className="text-xs sm:text-sm font-black uppercase tracking-[0.25em] text-white/95 select-none">
+            PARTNER ONBOARDING
+          </p>
+          <span className="h-[2px] w-6 bg-[#10b981]" />
+        </div>
       </div>
     </main>
   );

@@ -88,10 +88,10 @@ export function PartnerIntroCarousel({
   const currentSlide = INTRO_SLIDES[currentIndex];
 
   return (
-    <div className="relative flex flex-col justify-between min-h-[92vh] max-w-sm sm:max-w-md mx-auto w-full px-4 pt-3 pb-6 selection:bg-blue-500/20">
-      {/* Visual Carousel Card */}
+    <div className="min-h-[100dvh] h-[100dvh] w-full flex flex-col justify-between bg-white max-w-md mx-auto overflow-hidden select-none selection:bg-blue-500/20">
+      {/* Top Visual Slide Section (Occupies available space like native app in Image 1) */}
       <div
-        className="relative w-full aspect-[9/13] max-h-[580px] rounded-3xl overflow-hidden border border-zinc-200/90 shadow-lg shadow-zinc-900/5 select-none bg-zinc-900 cursor-grab active:cursor-grabbing"
+        className="relative flex-1 w-full overflow-hidden bg-zinc-950 cursor-grab active:cursor-grabbing"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -112,32 +112,41 @@ export function PartnerIntroCarousel({
           </div>
         ))}
 
-        {/* Ambient Top Vignette for Mobile Notch / Bar */}
-        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/40 via-transparent to-transparent z-20 pointer-events-none" />
+        {/* Top subtle vignette */}
+        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/40 to-transparent z-20 pointer-events-none" />
 
-        {/* Bottom Gradient Overlay for Typography */}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent pt-36 pb-6 px-6 z-20 flex flex-col justify-end">
-          {/* QuickPress Brand Lockup */}
-          <div className="mb-2">
-            <h1 className="text-2xl sm:text-3xl font-black italic tracking-tight text-white drop-shadow-sm font-sans">
-              quick<span className="text-blue-400">press</span>
-            </h1>
-            <p className="text-[10.5px] font-bold tracking-wider text-white/80 uppercase mt-0.5">
-              — laundry partner —
-            </p>
+        {/* Bottom Dark Gradient Overlay for Brand & Typography */}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/75 to-transparent pt-32 pb-6 px-6 z-20 flex flex-col justify-end">
+          {/* QuickPress Partner Onboarding Brand Lockup (Matches User Image 2) */}
+          <div className="mb-3">
+            <div className="flex items-center gap-0.5">
+              <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white drop-shadow-md">
+                Quick
+              </span>
+              <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#059669] drop-shadow-md">
+                Press
+              </span>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="h-[2px] w-5 bg-[#059669]" />
+              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/90">
+                PARTNER ONBOARDING
+              </span>
+              <span className="h-[2px] w-5 bg-[#059669]" />
+            </div>
           </div>
 
           {/* Slide Heading */}
-          <h2 className="text-xl sm:text-2xl font-black text-white leading-tight mb-2 drop-shadow-sm">
+          <h2 className="text-2xl sm:text-[26px] font-black text-white leading-tight mb-2 drop-shadow-md">
             {currentSlide.title}
           </h2>
 
           {/* Slide Subtitle */}
-          <p className="text-xs text-white/80 line-clamp-2 leading-relaxed mb-4">
+          <p className="text-xs sm:text-sm text-white/80 line-clamp-2 leading-relaxed mb-4">
             {currentSlide.subtitle}
           </p>
 
-          {/* Carousel Pagination Dots */}
+          {/* Carousel Pagination Dots (Exact 3-dot style in Image 1) */}
           <div className="flex items-center gap-1.5 pt-1">
             {INTRO_SLIDES.map((_, i) => (
               <button
@@ -149,8 +158,8 @@ export function PartnerIntroCarousel({
                 }}
                 className={`transition-all duration-300 rounded-full cursor-pointer ${
                   currentIndex === i
-                    ? "w-6 h-1.5 bg-white shadow-xs"
-                    : "w-1.5 h-1.5 bg-white/40 hover:bg-white/70"
+                    ? "w-4 h-1.5 bg-white shadow-xs"
+                    : "size-1.5 bg-white/40 hover:bg-white/70"
                 }`}
                 aria-label={`Go to slide ${i + 1}`}
               />
@@ -165,10 +174,10 @@ export function PartnerIntroCarousel({
             setCurrentIndex((prev) => (prev - 1 + INTRO_SLIDES.length) % INTRO_SLIDES.length);
             resetTimer();
           }}
-          className="hidden sm:flex absolute left-2.5 top-1/2 -translate-y-1/2 z-30 size-8 items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-xs transition-all cursor-pointer opacity-0 hover:opacity-100"
+          className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-30 size-9 items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-xs transition-all cursor-pointer opacity-0 hover:opacity-100"
           aria-label="Previous slide"
         >
-          <ChevronLeft className="size-4" />
+          <ChevronLeft className="size-5" />
         </button>
 
         <button
@@ -177,19 +186,19 @@ export function PartnerIntroCarousel({
             setCurrentIndex((prev) => (prev + 1) % INTRO_SLIDES.length);
             resetTimer();
           }}
-          className="hidden sm:flex absolute right-2.5 top-1/2 -translate-y-1/2 z-30 size-8 items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-xs transition-all cursor-pointer opacity-0 hover:opacity-100"
+          className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-30 size-9 items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-xs transition-all cursor-pointer opacity-0 hover:opacity-100"
           aria-label="Next slide"
         >
-          <ChevronRight className="size-4" />
+          <ChevronRight className="size-5" />
         </button>
       </div>
 
-      {/* Bottom Action Buttons (Exact Match to Screenshot) */}
-      <div className="w-full pt-4 space-y-2.5">
+      {/* Bottom Action Buttons (Exact Match to Screenshot in Image 1) */}
+      <div className="w-full px-5 pt-3.5 pb-6 space-y-2.5 bg-white shrink-0">
         <button
           type="button"
           onClick={onLoginClick}
-          className="w-full py-3.5 px-4 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] active:scale-[0.99] text-white font-bold text-sm sm:text-base shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
+          className="w-full py-3.5 px-4 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] active:scale-[0.99] text-white font-bold text-base shadow-sm transition-all cursor-pointer flex items-center justify-center"
         >
           Login
         </button>
@@ -197,14 +206,10 @@ export function PartnerIntroCarousel({
         <button
           type="button"
           onClick={onSignUpClick}
-          className="w-full py-3.5 px-4 rounded-xl bg-white border border-[#2563eb] hover:bg-blue-50/50 active:scale-[0.99] text-[#2563eb] font-bold text-sm sm:text-base transition-all cursor-pointer flex items-center justify-center gap-2"
+          className="w-full py-3.5 px-4 rounded-xl bg-white border border-[#2563eb] hover:bg-blue-50/50 active:scale-[0.99] text-[#2563eb] font-bold text-base transition-all cursor-pointer flex items-center justify-center"
         >
           Sign up
         </button>
-
-        <p className="text-[10px] text-zinc-400 text-center pt-1 font-medium">
-          QuickPress Laundry & Dry Cleaning Partner Network
-        </p>
       </div>
     </div>
   );

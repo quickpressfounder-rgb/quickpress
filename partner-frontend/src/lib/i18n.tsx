@@ -2702,10 +2702,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       if (saved && TRANSLATIONS[saved]) {
         setLangState(saved);
       }
-      const alreadyChosen = window.localStorage.getItem(FIRST_TIME_KEY);
-      if (!alreadyChosen) {
-        setIsLanguageModalOpen(true);
-      }
+      // Keep language modal closed by default to let user proceed straight to onboarding
+      setIsLanguageModalOpen(false);
     } catch {
       /* ignore */
     }

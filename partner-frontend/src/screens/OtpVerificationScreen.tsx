@@ -152,14 +152,13 @@ export function OtpVerificationScreen() {
             </button>
           </div>
 
-          {/* QuickPress Laundry Partner Header */}
-          <div className="text-center pt-8 pb-5">
-            <h1 className="text-3xl font-black italic tracking-tight text-zinc-950 font-sans">
-              quick<span className="text-[#2563eb]">press</span>
-            </h1>
-            <p className="text-[11.5px] font-semibold tracking-wider text-zinc-500 uppercase mt-0.5">
-              — laundry partner —
-            </p>
+          {/* Brand Header with Exact Logo from Image 2 */}
+          <div className="flex flex-col items-center justify-center pt-8 pb-5">
+            <img
+              src="/quickpress-partner-onboarding-logo.png"
+              alt="QuickPress Partner Onboarding"
+              className="h-12 w-auto object-contain mx-auto"
+            />
           </div>
 
           <h2 className="text-xl font-black text-center text-zinc-900 tracking-tight">
