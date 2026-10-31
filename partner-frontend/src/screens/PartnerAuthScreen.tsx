@@ -233,9 +233,7 @@ export function PartnerAuthScreen() {
 
             {/* Instruction Prompt */}
             <p className="text-center text-sm font-medium text-zinc-600 mb-6 px-4 leading-relaxed">
-              {lang === "hi"
-                ? "अपना मोबाइल नंबर दर्ज करें, हम जारी रखने के लिए एक OTP भेजेंगे"
-                : "Enter your phone number and we will send an OTP to continue"}
+              Enter your phone number and we will send an OTP to continue
             </p>
 
             {/* Phone Form */}
@@ -269,7 +267,7 @@ export function PartnerAuthScreen() {
                       setNotRegistered(false);
                     }
                   }}
-                  placeholder={lang === "hi" ? "10 अंकों का मोबाइल नंबर" : "Enter phone number"}
+                  placeholder="Enter phone number"
                   className="w-full pl-3 text-base font-semibold text-zinc-950 placeholder:text-zinc-400 placeholder:font-normal outline-none bg-transparent"
                   autoFocus
                 />
@@ -297,7 +295,7 @@ export function PartnerAuthScreen() {
                     onClick={() => navigate({ to: partnerRoutes.registration })}
                     className="w-full py-2 px-3 rounded-lg bg-amber-600 text-white font-bold text-xs hover:bg-amber-700 transition-colors shadow-2xs cursor-pointer text-center block"
                   >
-                    {lang === "hi" ? "नया पार्टनर स्टोर जोड़ें →" : "Register as New Partner Store →"}
+                    Register as New Partner Store →
                   </button>
                 </div>
               ) : error ? (
@@ -319,7 +317,7 @@ export function PartnerAuthScreen() {
                 {busy ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>{lang === "hi" ? "OTP भेजा जा रहा है..." : "Sending OTP..."}</span>
+                    <span>Sending OTP...</span>
                   </>
                 ) : (
                   <span>Send OTP</span>

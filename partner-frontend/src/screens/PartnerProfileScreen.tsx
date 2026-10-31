@@ -656,10 +656,11 @@ export function PartnerProfileScreen() {
 
           <div className="flex items-center gap-2">
             <Link
-              to={partnerRoutes.notifications}
-              className="flex size-9 items-center justify-center rounded-full bg-muted text-foreground active:scale-95"
+              to={partnerRoutes.settings}
+              aria-label="Settings"
+              className="flex size-9 items-center justify-center rounded-full bg-muted text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer"
             >
-              <Bell className="size-4" />
+              <Settings className="size-4.5" />
             </Link>
           </div>
         </header>
