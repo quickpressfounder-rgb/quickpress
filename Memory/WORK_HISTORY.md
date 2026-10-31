@@ -33,6 +33,20 @@
 
 ## Detailed Log of Work Done (31 October 2026)
 
+### 86. Removed Redundant "Services & Rate Card" Banner Card from Partner Profile Screen
+- **User Request:**
+  - Provided screenshot of "Services & Rate Card (7 Live)" card with request: *"isko hata do"* (Remove this).
+- **Architectural Implementation Details:**
+  - Removed redundant `Services & Rate Card` card from `partner-frontend/src/screens/PartnerProfileScreen.tsx`.
+  - Services management is already cleanly and directly accessible via the primary `Services` tab (`/services`) in the bottom navigation bar and desktop sidebar.
+- **Verification & Deployment:**
+  - Verified `npm run build` in `partner-frontend` (Passed in 5.76s).
+  - Recompiled Android APK & AAB (`QuickPress-Partner.apk` 14.6 MB, `QuickPress-Partner.aab` 13.8 MB).
+  - Pushed to GitHub `main` and deployed to EC2 production server.
+- **Files Modified:**
+  - `partner-frontend/src/screens/PartnerProfileScreen.tsx`
+  - `Memory/WORK_HISTORY.md`
+
 ### 85. Redesigned Partner Navigation Bars (TopBar, Sidebar & BottomNav) to Modern Zomato Merchant Theme
 - **User Request:**
   - *"navbar bhi banana hai"* (Redesign the navigation bar as well to match the clean modern Zomato Merchant theme).
