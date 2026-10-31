@@ -4407,3 +4407,36 @@ This single command will automatically:
     - `QuickPress-Partner.apk` (14.6 MB) built & mirrored to artifacts.
     - `QuickPress-Partner.aab` (13.8 MB) built & copied to artifacts.
   - Git Commit: `309e6d4` (pushed to `origin/main`).
+
+### 79. Production EC2 Server Full Update & Deployment Alignment (Docker, PM2, Rider, APKs & CI/CD Pipeline)
+- **User Requirement:**
+  - "ec2 update" — synchronize all recent backend architectural enhancements, partner portal updates, rider console navigation, and compiled mobile APKs to the live AWS EC2 production environment (`65.0.127.43`).
+- **Production Audit & Execution:**
+  - **1. Python FastAPI Backend Container Rebuild & Startup (`quickpress-backend`):**
+    - Built new Docker image (`quickpress-api:latest`) from current repository root containing all latest order lifecycle transitions, store arrival endpoints (`/api/rider/orders/{id}/arrived-store`), customer arrival, store handover confirmation, multi-party cancellation guards, and partner online availability endpoints.
+    - Successfully stopped, removed legacy container, and launched new container `4e58099a052c` with `.env` and Firebase Service Account mounted on port `127.0.0.1:8000`.
+    - Verified live endpoint responsiveness via `curl -s -X POST https://api.withquickpress.com/api/rider/orders/test-order/arrived-store` returning HTTP 401 Unauthorized (properly authenticated endpoint).
+  - **2. Rider Web Console Compilation & Deployment (`/var/www/quickpress/rider`):**
+    - Compiled `rider-frontend` Nitro SSR/static client assets (`.output/public`) on EC2.
+    - Synchronized files to `/var/www/quickpress/rider/` with `www-data:www-data` permissions, bringing live the smooth Rapido-style turn-by-turn navigation engine.
+  - **3. Production Android APK Sync (`https://withquickpress.com/apks/`):**
+    - Created dedicated `/var/www/quickpress/website/apks/` directory on EC2.
+    - Uploaded all 3 production APKs:
+      - `QuickPress-Captain.apk` (18.4 MB)
+      - `QuickPress-Partner.apk` (18.4 MB)
+      - `QuickPress-Customer.apk` (17.2 MB)
+    - Verified download links via Cloudflare edge: `curl -I https://withquickpress.com/apks/QuickPress-Partner.apk` and `https://withquickpress.com/apks/QuickPress-Captain.apk` returning `HTTP/2 200 OK`.
+  - **4. GitHub Actions CI/CD Pipeline Hardening (`.github/workflows/deploy.yml`):**
+    - Upgraded continuous deployment workflow into a full 6-step automated pipeline:
+      - Preserves `/var/www/quickpress/website/apks/` directory during website builds.
+      - Rebuilds and restarts the Python FastAPI Docker backend container on every push.
+      - Deploys static Rider console assets from `.output/public`.
+      - Automatically restarts PM2 instances (`quickpress-partner` on 8082, `quickpress-admin` on 8084).
+      - Reloads Nginx reverse proxy.
+  - **5. Production Services Health Status:**
+    - `api.withquickpress.com`: HEALTHY (HTTP 200 via Docker).
+    - `quickpress-partner`: ONLINE (HTTP 200, PM2 cluster mode, port 8082).
+    - `quickpress-admin`: ONLINE (HTTP 307 -> /auth, PM2 fork mode, port 8084).
+    - `withquickpress.com`: HEALTHY (Website + Direct APK downloads).
+    - `withquickpress.com/rider`: HEALTHY (Rider web app with Rapido navigation).
+

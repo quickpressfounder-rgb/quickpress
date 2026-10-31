@@ -18,27 +18,57 @@ jobs:
           port: 22
           script: |
             set -e
-            echo "🚀 [1/3] Pulling latest changes from GitHub..."
+            echo "🚀 [1/6] Pulling latest changes from GitHub..."
             cd ~/quickpress
             git pull origin main
 
-            echo "🔨 [2/3] Building Website & updating /var/www/quickpress/website..."
+            echo "🔨 [2/6] Building Website & updating /var/www/quickpress/website (preserving APKs)..."
             cd ~/quickpress/website
             npm run build
-            sudo rm -rf /var/www/quickpress/website/*
+            sudo mkdir -p /var/www/quickpress/website/apks
+            sudo find /var/www/quickpress/website -mindepth 1 -maxdepth 1 ! -name 'apks' -exec rm -rf {} +
             sudo cp -r dist/* /var/www/quickpress/website/
 
-            echo "🏬 [3/4] Building Partner Portal & restarting PM2..."
+            echo "🏬 [3/6] Building Partner Portal & restarting PM2..."
             cd ~/quickpress/partner-frontend
             NITRO_PRESET=node-server npm run build
             pm2 restart quickpress-partner || (PORT=8082 pm2 start .output/server/index.mjs --name quickpress-partner && pm2 save)
 
-            echo "🛡️ [4/4] Building Ops / Admin Console & restarting PM2..."
+            echo "🛡️ [4/6] Building Ops / Admin Console & restarting PM2..."
             cd ~/quickpress/admin-frontend
             NITRO_PRESET=node-server npm run build
             pm2 restart quickpress-admin || (PORT=8084 pm2 start .output/server/index.mjs --name quickpress-admin && pm2 save)
 
+            echo "🛵 [5/6] Building Rider Console & updating static files..."
+            cd ~/quickpress/rider-frontend
+            npm run build
+            sudo mkdir -p /var/www/quickpress/rider
+            sudo rm -rf /var/www/quickpress/rider/*
+            if [ -d ".output/public" ]; then
+              sudo cp -r .output/public/* /var/www/quickpress/rider/
+            elif [ -d "dist" ]; then
+              sudo cp -r dist/* /var/www/quickpress/rider/
+            fi
+            sudo chown -R www-data:www-data /var/www/quickpress/rider
+
+            echo "🐳 [6/6] Rebuilding & restarting Python FastAPI Backend Container..."
+            cd ~/quickpress
+            sudo docker build -t quickpress-api .
+            sudo docker stop quickpress-backend 2>/dev/null || true
+            sudo docker rm quickpress-backend 2>/dev/null || true
+            FIREBASE_MOUNT=""
+            if [ -f "/home/ubuntu/quickpress/quickpress-firebase-service-account.json" ]; then
+              FIREBASE_MOUNT="-v /home/ubuntu/quickpress/quickpress-firebase-service-account.json:/app/quickpress-firebase-service-account.json"
+            fi
+            sudo docker run -d \
+              --name quickpress-backend \
+              --restart always \
+              --env-file .env \
+              $FIREBASE_MOUNT \
+              -p 127.0.0.1:8000:8000 \
+              quickpress-api
+
             echo "🌐 Syncing Nginx configuration..."
             sudo cp ~/quickpress/scripts/quickpress_nginx.conf /etc/nginx/sites-available/quickpress.conf
             sudo nginx -t && sudo systemctl reload nginx
-            echo "✅ QuickPress Auto-Deployment Finished Successfully!"
+            echo "✅ QuickPress Full Auto-Deployment Finished Successfully!"
