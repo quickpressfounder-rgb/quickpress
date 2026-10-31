@@ -4406,3 +4406,4 @@ This single command will automatically:
   - Compiled and verified Android Partner APK & AAB (`python3 build_all_apks.py partner`):
     - `QuickPress-Partner.apk` (14.6 MB) built & mirrored to artifacts.
     - `QuickPress-Partner.aab` (13.8 MB) built & copied to artifacts.
+  - Git Commit: `309e6d4` (pushed to `origin/main`).
