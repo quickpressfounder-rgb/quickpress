@@ -4375,6 +4375,7 @@ This single command will automatically:
   - `rider-frontend` build (`npm run build`): PASSED (0 errors).
   - `partner-frontend` build (`npm run build`): PASSED (0 errors).
   - Android Captain APK & AAB packaging (`python3 build_all_apks.py rider`): PASSED (QuickPress-Captain.apk 18.4 MB, QuickPress-Captain.aab 17.6 MB).
+  - Git Commit: `f11b5ae` (pushed to `origin/main`).
 
 
 
