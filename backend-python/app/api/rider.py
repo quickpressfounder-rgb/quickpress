@@ -3014,20 +3014,47 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
         if str(real_order.get("code") or "").upper() in ("QP-8BD3", "MOCK_DEMO"):
             continue
 
-        # Strictly ignore orders that are terminal or already collected
-        if order_status in (
-            "delivered",
-            "completed",
-            "cancelled",
-            "rejected",
+        # Strictly ignore orders that are terminal or already collected/dropped
+        terminal_statuses = ("delivered", "completed", "cancelled", "rejected", "failed")
+        if order_status in terminal_statuses:
+            continue
+
+        picked_or_store_statuses = (
+            "picked",
             "picked_up",
+            "pickup_otp_verified",
+            "in_transit_to_store",
             "at_partner",
+            "at_store",
+            "store_drop_confirmed",
+            "store_received",
+            "store_processing",
+            "processing_started",
             "processing",
+            "sorting",
             "washing",
+            "drying",
             "ironing",
             "dry_cleaning",
-        ):
-            continue
+            "quality_check",
+            "packed",
+            "processing_completed",
+            "ready",
+            "ready_for_delivery",
+        )
+        # If this is a pickup offer, but order is already picked up, at store, or in processing:
+        is_delivery_ride = str(off.get("rideType") or real_order.get("rideType") or "").lower() == "delivery"
+        if not is_delivery_ride:
+            if (
+                order_status in picked_or_store_statuses
+                or any(kw in order_status for kw in ("picked", "store", "partner", "process", "wash", "iron", "dry", "pack"))
+                or bool(real_order.get("pickedUpAt"))
+                or bool(real_order.get("pickupCompletedAt"))
+                or bool(real_order.get("riderHandoverInitiated"))
+                or bool(real_order.get("droppedAtPartnerAt"))
+                or bool(real_order.get("droppedAtStoreAt"))
+            ):
+                continue
 
         # Territory / City Match check against real customer order
         cust_addr = real_order.get("address") or {}
@@ -3041,6 +3068,9 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
         if ord_rider_id and not is_assigned_to_this_rider:
             continue
         if order_status in ("pickup_rider_accepted", "rider_accepted", "rider_assigned") and not is_assigned_to_this_rider:
+            continue
+        # If already assigned to this rider, do not offer as a new unaccepted trip
+        if is_assigned_to_this_rider and off.get("rideType") != "delivery":
             continue
 
         if is_assigned_to_this_rider:
@@ -3412,11 +3442,19 @@ async def accept_order(order_id: str, user: User = Depends(current_user)) -> dic
             "orderId": canonical_ord_id,
             "status": {"$in": ["OFFER_SENT", "SEARCHING_RIDER", "NO_RIDER_FOUND", "PENDING_ACCEPTANCE"]},
         })
+    is_already_collected_or_at_store = (
+        order_status in ("picked", "picked_up", "at_partner", "at_store", "store_drop_confirmed", "store_received", "store_processing", "processing", "washing", "drying", "ironing", "ready_for_delivery")
+        or any(kw in order_status for kw in ("store", "partner", "process", "wash", "iron"))
+        or bool((customer_order or {}).get("riderHandoverInitiated"))
+        or bool((customer_order or {}).get("droppedAtStoreAt"))
+        or bool((customer_order or {}).get("droppedAtPartnerAt"))
+    )
+
     if not ride and is_delivery_phase:
         ride = await database.find_one(RIDES_COLLECTION, {"_id": f"ride-dl-{canonical_ord_id}"})
         if not ride and canonical_ord_id:
             ride = await smart_2ride_engine.create_ride_2_delivery(canonical_ord_id)
-    if not ride and not is_delivery_phase:
+    if not ride and not is_delivery_phase and not is_already_collected_or_at_store:
         ride = await database.find_one(RIDES_COLLECTION, {"_id": f"ride-pk-{canonical_ord_id}"})
         if not ride and canonical_ord_id:
             ride = await smart_2ride_engine.create_ride_1_pickup(canonical_ord_id)
@@ -3626,6 +3664,14 @@ async def drop_at_partner(
                 }
             }
         )
+    try:
+        from app.services.smart_2ride_engine import OFFERS_COLLECTION
+        await database.collection(OFFERS_COLLECTION).update_many(
+            {"$or": [{"orderId": target_order_id}, {"rideId": target_order_id}, {"orderId": order_id}]},
+            {"$set": {"status": "dropped_at_partner", "updatedAt": lifecycle.now_iso()}}
+        )
+    except Exception:
+        pass
     result = await _rider_action(rider_delivery_repository.drop_at_partner, target_order_id, user)
 
     # Immediately credit pickup payout to rider's wallet

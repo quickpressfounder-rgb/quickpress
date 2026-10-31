@@ -280,6 +280,22 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   });
 
   const [stage, setStage] = useState<TripStage>(() => {
+    const savedStage = (order as any).stage as TripStage;
+    if (
+      savedStage &&
+      [
+        "en_route_pickup",
+        "arrived_pickup",
+        "in_trip",
+        "arrived_store",
+        "store_processing",
+        "ready_pickup_store",
+        "handover_waiting",
+        "completed",
+      ].includes(savedStage)
+    ) {
+      return savedStage;
+    }
     const s = String(order.status || "").toLowerCase();
     if (s === "delivery_reassignment_required") return "handover_waiting";
     if (s === "ready_for_delivery" || s === "ready") {
@@ -294,6 +310,12 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     if (s === "at_partner" || s === "at-partner" || s === "at_store" || (order as any).riderHandoverInitiated) {
       return "arrived_store";
     }
+    if (s === "in_trip" || s === "picked_up" || s === "picked" || (order as any).pickupCompletedAt) {
+      return "in_trip";
+    }
+    if (s === "arrived_pickup" || (order as any).arrivedAtPickupAt) {
+      return "arrived_pickup";
+    }
     return "en_route_pickup";
   });
   const [distanceMeters, setDistanceMeters] = useState(order.distanceMeters || 258);
@@ -305,8 +327,8 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [showTripDetailModal, setShowTripDetailModal] = useState(false);
   const [acceptedTime] = useState(() => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-  const [arrivedTime, setArrivedTime] = useState<string | null>(null);
-  const [startTime, setStartTime] = useState<string | null>(null);
+  const [arrivedTime, setArrivedTime] = useState<string | null>(() => (order as any).arrivedTime || null);
+  const [startTime, setStartTime] = useState<string | null>(() => (order as any).startTime || null);
   const [completedTime, setCompletedTime] = useState<string | null>(null);
   const [showVoiceNavModal, setShowVoiceNavModal] = useState(false);
   const captainBearingRef = useRef<number>(0);
@@ -343,8 +365,27 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [showArrivedConfirmModal, setShowArrivedConfirmModal] = useState(false);
   const [showHandoverConfirmModal, setShowHandoverConfirmModal] = useState(false);
   const [showProximityWarningModal, setShowProximityWarningModal] = useState(false);
-  const [showDedicatedOtpScreen, setShowDedicatedOtpScreen] = useState(false);
-  const [dedicatedOtpMode, setDedicatedOtpMode] = useState<"pickup" | "delivery" | "store_dispatch">("pickup");
+  const [showDedicatedOtpScreen, setShowDedicatedOtpScreen] = useState<boolean>(() => {
+    if ((order as any).showDedicatedOtpScreen !== undefined) {
+      return Boolean((order as any).showDedicatedOtpScreen);
+    }
+    const s = String(order.status || "").toLowerCase();
+    const savedStage = (order as any).stage;
+    return savedStage === "arrived_pickup" || s === "arrived_pickup";
+  });
+  const [dedicatedOtpMode, setDedicatedOtpMode] = useState<"pickup" | "delivery" | "store_dispatch">(() => {
+    if ((order as any).dedicatedOtpMode) {
+      return (order as any).dedicatedOtpMode;
+    }
+    const s = String(order.status || "").toLowerCase();
+    if (s === "ready_for_delivery" || s === "ready" || s === "ready_pickup_store") {
+      return "store_dispatch";
+    }
+    if (currentLeg === "store_to_customer" || order.rideType === "delivery") {
+      return "delivery";
+    }
+    return "pickup";
+  });
   const [dedicatedOtpDigits, setDedicatedOtpDigits] = useState<string[]>(["", "", "", ""]);
   const [isOtpUpdatingStatus, setIsOtpUpdatingStatus] = useState(false);
   const [showQuickPressMapsModal, setShowQuickPressMapsModal] = useState(false);
@@ -437,29 +478,101 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   // Handle Back to Trips page without cancelling the trip
   const handleBack = useCallback(() => {
     triggerHaptic(40);
+    if (stage === "arrived_pickup" || showDedicatedOtpScreen) {
+      toast.info("📍 Arrived at location. Please verify OTP to proceed with the trip.");
+      return;
+    }
     if (onBackToTrips) {
       onBackToTrips();
     } else {
       navigate({ to: "/orders" });
     }
-  }, [onBackToTrips, navigate]);
+  }, [stage, showDedicatedOtpScreen, onBackToTrips, navigate]);
 
+  // Keep active order and stage persisted to localStorage on every state change
   useEffect(() => {
-    // Intercept native Android back button without corrupting browser history stack
-    const onAndroidBack = (e: any) => {
-      try {
-        if (typeof e?.preventDefault === "function") e.preventDefault();
-      } catch {}
-      if (onBackToTrips) {
-        onBackToTrips();
+    if (!order.orderId) return;
+    try {
+      const cur = localStorage.getItem("qp_active_rider_order");
+      const parsed = cur ? JSON.parse(cur) : { ...order };
+      let changed = false;
+      if (parsed.stage !== stage) {
+        parsed.stage = stage;
+        changed = true;
       }
-    };
+      if (parsed.currentLeg !== currentLeg) {
+        parsed.currentLeg = currentLeg;
+        changed = true;
+      }
+      if (parsed.showDedicatedOtpScreen !== showDedicatedOtpScreen) {
+        parsed.showDedicatedOtpScreen = showDedicatedOtpScreen;
+        changed = true;
+      }
+      if (parsed.dedicatedOtpMode !== dedicatedOtpMode) {
+        parsed.dedicatedOtpMode = dedicatedOtpMode;
+        changed = true;
+      }
+      if (parsed.isWaitingPartnerHandoverConfirm !== isWaitingPartnerHandoverConfirm) {
+        parsed.isWaitingPartnerHandoverConfirm = isWaitingPartnerHandoverConfirm;
+        changed = true;
+      }
+      if (arrivedTime && parsed.arrivedTime !== arrivedTime) {
+        parsed.arrivedTime = arrivedTime;
+        changed = true;
+      }
+      if (startTime && parsed.startTime !== startTime) {
+        parsed.startTime = startTime;
+        changed = true;
+      }
+      if (changed) {
+        localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
+        localStorage.setItem("qp_active_delivery_order", JSON.stringify(parsed));
+      }
+    } catch {}
+  }, [stage, currentLeg, showDedicatedOtpScreen, dedicatedOtpMode, isWaitingPartnerHandoverConfirm, arrivedTime, startTime, order.orderId]);
 
-    window.addEventListener("qp:android-back", onAndroidBack);
-    return () => {
-      window.removeEventListener("qp:android-back", onAndroidBack);
-    };
-  }, [onBackToTrips]);
+  // Anti-Back Interceptor: Once arrived or in dedicated OTP screen, strictly prevent accidental back exits
+  useEffect(() => {
+    const isLocked = stage === "arrived_pickup" || showDedicatedOtpScreen;
+    if (isLocked) {
+      window.history.pushState({ qp_locked_stage: stage }, "", window.location.href);
+
+      const handlePopState = () => {
+        window.history.pushState({ qp_locked_stage: stage }, "", window.location.href);
+        triggerHaptic(40);
+        toast.info("📍 Arrived at pickup. Please enter the 4-digit code given by customer to start ride.", { id: "arrived-lock-toast" });
+      };
+
+      const handleAndroidBack = (e: any) => {
+        try {
+          if (typeof e?.preventDefault === "function") e.preventDefault();
+        } catch {}
+        toast.info("📍 Arrived at pickup. Please enter the 4-digit code given by customer to start ride.", { id: "arrived-lock-toast" });
+      };
+
+      window.addEventListener("popstate", handlePopState);
+      window.addEventListener("qp:android-back", handleAndroidBack);
+      return () => {
+        window.removeEventListener("popstate", handlePopState);
+        window.removeEventListener("qp:android-back", handleAndroidBack);
+      };
+    } else {
+      // Normal Android back handler
+      const onAndroidBack = (e: any) => {
+        try {
+          if (typeof e?.preventDefault === "function") e.preventDefault();
+        } catch {}
+        if (onBackToTrips) {
+          onBackToTrips();
+        }
+      };
+
+      window.addEventListener("qp:android-back", onAndroidBack);
+      return () => {
+        window.removeEventListener("qp:android-back", onAndroidBack);
+      };
+    }
+  }, [stage, showDedicatedOtpScreen, onBackToTrips]);
 
   // Ticking countdown timer when stage === "store_processing" (computes against real-time timestamp)
   useEffect(() => {
@@ -1450,13 +1563,27 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     setStage("arrived_pickup");
     setWaitingSeconds(180);
     setIsWaitingTimerActive(true);
-    setArrivedTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    const nowTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    setArrivedTime(nowTime);
     toast.success("You have arrived at Pickup location! 📍 Customer notified.");
 
     // Direct transition to Full-Screen 4-Digit OTP Screen
     setDedicatedOtpMode("pickup");
     setDedicatedOtpDigits(["", "", "", ""]);
     setShowDedicatedOtpScreen(true);
+
+    try {
+      const cur = localStorage.getItem("qp_active_rider_order");
+      const parsed = cur ? JSON.parse(cur) : { ...order };
+      parsed.stage = "arrived_pickup";
+      parsed.status = "arrived_pickup";
+      parsed.showDedicatedOtpScreen = true;
+      parsed.dedicatedOtpMode = "pickup";
+      parsed.arrivedTime = nowTime;
+      parsed.arrivedAtPickupAt = new Date().toISOString();
+      localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
+      localStorage.setItem("qp_active_delivery_order", JSON.stringify(parsed));
+    } catch {}
 
     // Real backend notification
     if (order.orderId && !order.orderId.startsWith("TEST-")) {
@@ -1514,10 +1641,26 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     playSuccessChime();
     speakText("पिकअप पूरा हुआ। स्टोर के लिए इन-ऐप नेविगेशन शुरू हो रहा है।");
     setStage("in_trip");
+    setCurrentLeg("pickup_to_store");
+    setShowDedicatedOtpScreen(false);
     setIsWaitingTimerActive(false);
     setIsInAppNavActive(true);
-    setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    const sTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    setStartTime(sTime);
     toast.success("Pickup Done! 🛵 In-App Navigation active to Partner Store...");
+
+    try {
+      const cur = localStorage.getItem("qp_active_rider_order");
+      const parsed = cur ? JSON.parse(cur) : { ...order };
+      parsed.stage = "in_trip";
+      parsed.currentLeg = "pickup_to_store";
+      parsed.status = "picked_up";
+      parsed.showDedicatedOtpScreen = false;
+      parsed.startTime = sTime;
+      parsed.pickupCompletedAt = new Date().toISOString();
+      localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
+      localStorage.setItem("qp_active_delivery_order", JSON.stringify(parsed));
+    } catch {}
 
     // Real Google Maps Turn-by-Turn Navigation Intent (keeping overlay HUD screen active)
     setTimeout(() => {
@@ -1537,13 +1680,15 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
     try {
       const cur = localStorage.getItem("qp_active_rider_order");
-      if (cur) {
-        const parsed = JSON.parse(cur);
-        parsed.currentLeg = "pickup_to_store";
-        parsed.status = "at_partner";
-        parsed.riderHandoverInitiated = true;
-        localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
-      }
+      const parsed = cur ? JSON.parse(cur) : { ...order };
+      parsed.stage = "arrived_store";
+      parsed.currentLeg = "pickup_to_store";
+      parsed.status = "at_partner";
+      parsed.riderHandoverInitiated = true;
+      parsed.isWaitingPartnerHandoverConfirm = true;
+      parsed.droppedAtStoreAt = new Date().toISOString();
+      localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
+      localStorage.setItem("qp_active_delivery_order", JSON.stringify(parsed));
     } catch {}
 
     if (order.orderId && !order.orderId.startsWith("TEST-")) {
@@ -3732,7 +3877,16 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white">
             <button
               type="button"
-              onClick={() => setShowDedicatedOtpScreen(false)}
+              onClick={() => {
+                triggerHaptic(30);
+                if (stage === "arrived_pickup") {
+                  toast.info("📍 Aap pickup location par hain. Customer se OTP lekar ride start karein.");
+                } else if (dedicatedOtpMode === "delivery") {
+                  toast.info("📍 Aap delivery location par hain. OTP verify karke ride complete karein.");
+                } else {
+                  setShowDedicatedOtpScreen(false);
+                }
+              }}
               className="flex items-center gap-2 text-slate-900 font-black text-sm active:scale-95 cursor-pointer"
             >
               <ArrowLeft className="size-5 stroke-[2.5]" />

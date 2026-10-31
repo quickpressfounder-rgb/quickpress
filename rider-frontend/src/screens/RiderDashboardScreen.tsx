@@ -420,57 +420,6 @@ export function RiderDashboardScreen() {
         />
       )}
 
-      {/* Active Trip Floating Pill (if order is active) */}
-      {savedActiveOrder && (
-        <div className="absolute bottom-20 left-4 right-4 z-40 animate-in slide-in-from-bottom-2 duration-200">
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => {
-              try {
-                void navigate({ to: "/orders" });
-              } catch {
-                window.location.href = "/orders";
-              }
-            }}
-            className="w-full flex items-center justify-between p-3.5 bg-white/95 backdrop-blur-md text-zinc-900 rounded-2xl shadow-lg border border-emerald-300 active:scale-98 transition-all cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5 text-left">
-              <div className="flex items-center justify-center size-8 rounded-xl bg-emerald-600 text-white font-black text-xs shadow-xs">
-                🛵
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-black text-zinc-900">Active Trip: {savedActiveOrder.customerName || "Customer"}</p>
-                <p className="text-[10px] text-zinc-500 truncate max-w-[180px] sm:max-w-[220px]">{savedActiveOrder.pickupTitle || savedActiveOrder.pickupAddress}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  try {
-                    localStorage.removeItem("qp_active_rider_order");
-                    localStorage.removeItem("qp_active_delivery_order");
-                  } catch {}
-                  setSavedActiveOrder(null);
-                }}
-                className="flex items-center justify-center size-7 rounded-lg bg-zinc-100 hover:bg-rose-100 text-zinc-500 hover:text-rose-700 active:scale-95 transition-all text-xs font-bold cursor-pointer"
-                title="Dismiss Stale Trip"
-              >
-                ✕
-              </button>
-              <div className="flex items-center gap-1 text-xs font-black text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-                <span>Resume HUD</span>
-                <span>➔</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-
       {/* 4. 2-Tab Rapido Captain Bottom Navigation with live badge count on Orders */}
       <RiderBottomNav active="dashboard" ordersBadgeCount={pendingOrdersCount} />
 

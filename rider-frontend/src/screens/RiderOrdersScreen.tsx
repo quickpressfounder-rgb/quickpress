@@ -189,8 +189,54 @@ export function RiderOrdersScreen() {
     try {
       const rawOffers = await fetchRiderOffers();
       if (Array.isArray(rawOffers) && rawOffers.length > 0) {
+        // Read active order id from state or localStorage
+        let currentActiveId = activeOrder?.orderId || activeOrder?.id;
+        if (!currentActiveId && typeof window !== "undefined") {
+          try {
+            const saved = localStorage.getItem(ACTIVE_ORDER_STORAGE_KEY);
+            if (saved) {
+              const p = JSON.parse(saved);
+              currentActiveId = p?.orderId || p?.id;
+            }
+          } catch {}
+        }
+
         const validRawOffers = rawOffers.filter((r: any) => {
-          return !r.is_demo && !r.isDemo && String(r.orderCode || r.code || "").toUpperCase() !== "MOCK_DEMO";
+          if (r.is_demo || r.isDemo || String(r.orderCode || r.code || "").toUpperCase() === "MOCK_DEMO") {
+            return false;
+          }
+          const tId = String(r.orderId || r.rideId || r.id || "");
+          const tCode = String(r.orderCode || r.code || "").toUpperCase();
+          if (currentActiveId && (tId === currentActiveId || (activeOrder?.orderCode && tCode === activeOrder.orderCode.toUpperCase()))) {
+            return false;
+          }
+          // Do not offer pickup if order is already picked up, at store, handed over, or processing
+          const st = String(r.status || r.orderStatus || "").toLowerCase();
+          const isDelivery = r.rideType === "delivery" || r.type === "delivery" || r.type === "handover_delivery";
+          const pickedStatuses = [
+            "picked",
+            "picked_up",
+            "pickup_otp_verified",
+            "in_transit_to_store",
+            "at_partner",
+            "at_store",
+            "store_drop_confirmed",
+            "store_received",
+            "store_processing",
+            "processing",
+            "washing",
+            "drying",
+            "ironing",
+            "packed",
+            "ready_for_delivery",
+            "delivered",
+            "completed",
+            "cancelled"
+          ];
+          if (!isDelivery && (pickedStatuses.includes(st) || r.riderHandoverInitiated || r.droppedAtStoreAt || r.droppedAtPartnerAt || r.pickedUpAt)) {
+            return false;
+          }
+          return true;
         });
         const formatted: OrderOfferItem[] = validRawOffers.map((r: any) => {
           const c_lat = r.customerCoords?.lat ?? r.pickupCoords?.lat ?? r.pickupLocation?.latitude ?? r.pickupLocation?.lat ?? r.customerLocation?.lat;
@@ -488,6 +534,26 @@ export function RiderOrdersScreen() {
       };
 
       // Add offer to Live Queue instantly with deduplication (GlobalOrderDispatchListener handles modal & siren)
+      const targetId = String(newOffer.orderId || newOffer.id || "");
+      let currentActiveId = activeOrder?.orderId || activeOrder?.id;
+      if (!currentActiveId && typeof window !== "undefined") {
+        try {
+          const saved = localStorage.getItem(ACTIVE_ORDER_STORAGE_KEY);
+          if (saved) {
+            const p = JSON.parse(saved);
+            currentActiveId = p?.orderId || p?.id;
+          }
+        } catch {}
+      }
+      if (currentActiveId && (targetId === currentActiveId || (activeOrder?.orderCode && newOffer.orderCode === activeOrder.orderCode))) {
+        return;
+      }
+      const st = String(rawOffer.status || rawOffer.orderStatus || "").toLowerCase();
+      const isDelivery = newOffer.rideType === "delivery";
+      if (!isDelivery && ["picked", "picked_up", "at_partner", "at_store", "store_drop_confirmed", "store_received", "store_processing", "processing", "washing", "ironing", "ready_for_delivery", "completed", "cancelled"].includes(st)) {
+        return;
+      }
+
       setOffers((prev) => {
         const exists = prev.some((o) => o.orderId === newOffer.orderId || o.id === newOffer.id);
         if (exists) {
@@ -737,15 +803,15 @@ export function RiderOrdersScreen() {
         </div>
       </div>
 
-      {/* 2. Top Action Pills (Go To + Route Batch & Bags) */}
-      <div className="px-5 pt-3 pb-1 flex items-center gap-2">
+      {/* 2. Top Action Pills (Go To + Route Batch & Bags + Active Trip) */}
+      <div className="px-5 pt-3 pb-1 flex items-center gap-2 overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => {
             triggerHaptic(20);
             toast.info("Set Preferred Destination: Receive rides on your route home 🛵");
           }}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-zinc-50 border border-zinc-200/90 shadow-2xs text-xs font-bold text-zinc-800 active:scale-95 transition-all cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-zinc-50 border border-zinc-200/90 shadow-2xs text-xs font-bold text-zinc-800 active:scale-95 transition-all cursor-pointer shrink-0"
         >
           <MapPin className="size-3.5 fill-zinc-900 text-zinc-900" />
           <span>Go To</span>
@@ -757,11 +823,25 @@ export function RiderOrdersScreen() {
             triggerHaptic(20);
             setIsBatchModalOpen(true);
           }}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-zinc-50 border border-zinc-200/90 shadow-2xs text-xs font-bold text-zinc-800 active:scale-95 transition-all cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-zinc-50 border border-zinc-200/90 shadow-2xs text-xs font-bold text-zinc-800 active:scale-95 transition-all cursor-pointer shrink-0"
         >
           <Bike className="size-3.5 text-zinc-900" />
           <span>Route Batch & Bags</span>
         </button>
+
+        {activeOrder && (
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(20);
+              setIsHudMinimized(false);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs text-xs font-black active:scale-95 transition-all cursor-pointer shrink-0 animate-pulse"
+          >
+            <span className="size-2 rounded-full bg-white animate-ping" />
+            <span>Active Trip #{activeOrder.orderCode || activeOrder.orderId?.slice(-6)?.toUpperCase()} 🛵</span>
+          </button>
+        )}
       </div>
 
       {/* 3. Active Trip In-Progress Card (Shown when HUD is minimized) */}
