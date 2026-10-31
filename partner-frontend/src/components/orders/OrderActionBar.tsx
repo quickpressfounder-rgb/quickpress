@@ -130,9 +130,11 @@ export function OrderActionBar({
           <button
             key={action.id}
             type="button"
-            disabled={busy}
+            disabled={busy || Boolean(busyAction)}
             onClick={() => onAction(action.id)}
             className={`flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl font-black tracking-tight transition-all duration-200 active:scale-[0.98] ${sizeClass} ${
+              busy || Boolean(busyAction) ? "pointer-events-none opacity-60 cursor-not-allowed" : ""
+            } ${
               isPrimary
                 ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
                 : action.intent === "danger"

@@ -29,3 +29,18 @@
   - Corrected parameter order in `rider_delivery_repository.pickup` and `deliver` calls to match repository signatures `(order_id, rider_id, otp=...)`.
 - **`rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`:**
   - Added reactive synchronization effect to synchronize incoming order trip stage, OTP screen mode, and leg details directly from parent order state.
+
+## Session: 2026-11-01 — Double-Click Payment & Idempotency Hardening
+- **Customer Checkout & Payments (`customer-frontend/src/routes/checkout.tsx`):**
+  - Integrated synchronous in-flight lock (`isPlacingOrderRef`) to block double-clicks in 0ms before React state re-renders.
+  - Added unique session `checkoutIdempotencyKeyRef` passed to backend `postOrder` payload and HTTP headers (`Idempotency-Key` / `X-Idempotency-Key`).
+- **Payment Gateway Drawer (`customer-frontend/src/components/payment/BlinkitPaymentDrawer.tsx`):**
+  - Added `isProcessingRef` synchronous mutex guard across Razorpay trigger, Wallet payment, and Cash on Delivery.
+  - Added `pointer-events-none opacity-90` to drawer container during in-flight payment execution.
+- **Data Layer Transport (`customer-frontend/src/api/customer/cart-api.ts`):**
+  - Added `idempotencyKey` field to `PostOrderPayload` and mapped to `Idempotency-Key` request headers.
+- **Partner Action Bar & Handlers (`partner-frontend/src/hooks/use-order-action-handler.tsx` & `OrderActionBar.tsx`):**
+  - Added `busyActionRef` synchronous mutex to prevent duplicate order accept/reject/ready mutations.
+  - Attached `pointer-events-none opacity-60 cursor-not-allowed` on busy buttons.
+- **Rider OTP Verification (`rider-frontend/src/components/dashboard/RiderOtpCard.tsx`):**
+  - Added `isSubmittingRef` guard on `triggerAutoAccept` to prevent duplicate concurrent OTP submissions.

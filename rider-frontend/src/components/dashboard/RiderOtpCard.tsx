@@ -32,6 +32,7 @@ export const RiderCustomerOtpInput: React.FC<RiderCustomerOtpInputProps> = ({
   const displaySubtitle = subtitle || hint || "Ask 4-digit PIN from customer (कस्टमर से 4-अंक का पिन पूछें)";
 
   const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
+  const isSubmittingRef = useRef<boolean>(false);
 
   const inputRefs = [
     useRef<HTMLInputElement | null>(null),
@@ -47,11 +48,16 @@ export const RiderCustomerOtpInput: React.FC<RiderCustomerOtpInputProps> = ({
 
   const triggerAutoAccept = (code: string) => {
     if (code.length === 4 && onAutoSubmit) {
+      if (isSubmittingRef.current || isAutoSubmitting) return;
+      isSubmittingRef.current = true;
       setIsAutoSubmitting(true);
       triggerHaptic([40, 60, 40]);
       setTimeout(() => {
         onAutoSubmit(code);
-        setTimeout(() => setIsAutoSubmitting(false), 1200);
+        setTimeout(() => {
+          isSubmittingRef.current = false;
+          setIsAutoSubmitting(false);
+        }, 1200);
       }, 250);
     }
   };

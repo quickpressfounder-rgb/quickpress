@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef } from "react";
 import { toast } from "sonner";
 
 import {
@@ -21,10 +21,14 @@ export function useOrderActionHandler() {
   const { acceptOrder, rejectOrder, confirmHandover, startProcessing, completeOrder } = usePartnerOrders();
   const [sheet, setSheet] = useState<SheetState>(null);
   const [busy, setBusy] = useState<{ orderId: string; actionId: OrderActionId } | null>(null);
+  const busyActionRef = useRef<boolean>(false);
   const [success, setSuccess] = useState<string | null>(null);
 
   const run = useCallback(
     async (order: ManagedOrder, actionId: OrderActionId, message: string, mutate: () => Promise<void>) => {
+      // 🛑 Synchronous Mutex Lock: Prevent double-click partner actions
+      if (busyActionRef.current) return;
+      busyActionRef.current = true;
       setBusy({ orderId: order.id, actionId });
       try {
         await mutate();
@@ -32,6 +36,7 @@ export function useOrderActionHandler() {
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       } finally {
+        busyActionRef.current = false;
         setBusy(null);
       }
     },

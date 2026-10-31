@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -247,6 +247,7 @@ export function BlinkitPaymentDrawer({
 }: BlinkitPaymentDrawerProps) {
   const [currentView, setCurrentView] = useState<PaymentView>("main");
   const [busyMethod, setBusyMethod] = useState<string | null>(null);
+  const isProcessingRef = useRef<boolean>(false);
   const [installedUpiApps, setInstalledUpiApps] = useState<InstalledUpiApp[]>([]);
   const [hasNativeBridge, setHasNativeBridge] = useState<boolean>(false);
   const [paymentFailure, setPaymentFailure] = useState<{
@@ -329,12 +330,15 @@ export function BlinkitPaymentDrawer({
     upiAppPackage?: string,
     wallet?: string
   ) => {
-    if (busyMethod) return;
+    // 🛑 Synchronous Mutex Lock: Prevent double click gateway triggers
+    if (isProcessingRef.current || busyMethod) return;
+    isProcessingRef.current = true;
 
     if (grandTotal <= 0) {
       toast.success("100% Promo discount applied! Placing your free order... 🎉");
       await onPaymentSuccess("free_promo", `promo_free_${Date.now()}`);
       onClose();
+      isProcessingRef.current = false;
       return;
     }
 
@@ -388,6 +392,7 @@ export function BlinkitPaymentDrawer({
         isUserCancelled: false,
       });
     } finally {
+      isProcessingRef.current = false;
       setBusyMethod(null);
     }
   };
@@ -600,6 +605,9 @@ export function BlinkitPaymentDrawer({
       return;
     }
 
+    if (isProcessingRef.current || busyMethod) return;
+    isProcessingRef.current = true;
+
     setBusyMethod("QuickPress Wallet");
     setPaymentFailure(null);
     try {
@@ -616,23 +624,27 @@ export function BlinkitPaymentDrawer({
         isUserCancelled: false,
       });
     } finally {
+      isProcessingRef.current = false;
       setBusyMethod(null);
     }
   };
 
   // Cash on Delivery
   const handleCodPay = async () => {
-    if (busyMethod) return;
+    if (isProcessingRef.current || busyMethod) return;
+    isProcessingRef.current = true;
 
     if (grandTotal <= 0) {
       toast.success("100% Promo discount applied! Placing your free order... 🎉");
       await onPaymentSuccess("free_promo", `promo_free_${Date.now()}`);
       onClose();
+      isProcessingRef.current = false;
       return;
     }
 
     if (grandTotal < 50) {
       toast.error("Cash on delivery is not available for orders below ₹50.");
+      isProcessingRef.current = false;
       return;
     }
 
@@ -644,6 +656,7 @@ export function BlinkitPaymentDrawer({
     } catch (err: any) {
       toast.error(err?.message || "Failed to place COD order.");
     } finally {
+      isProcessingRef.current = false;
       setBusyMethod(null);
     }
   };
@@ -660,7 +673,7 @@ export function BlinkitPaymentDrawer({
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
     >
       {/* Drawer Container */}
-      <div className="w-full sm:max-w-md max-h-[92dvh] bg-[#f4f6fb] text-zinc-900 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-250 select-none">
+      <div className={`w-full sm:max-w-md max-h-[92dvh] bg-[#f4f6fb] text-zinc-900 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-250 select-none ${busyMethod ? "pointer-events-none opacity-90" : ""}`}>
         {/* Top Header */}
         <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-3.5 bg-white border-b border-zinc-200/90 shadow-2xs">
           <div className="flex items-center gap-3">

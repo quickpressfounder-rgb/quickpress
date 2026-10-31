@@ -26,7 +26,7 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 
 import { useCart } from "@/hooks/useCart";
@@ -138,6 +138,8 @@ export function CheckoutPage() {
   // Background refresh status (does NOT block initial screen paint)
   const [isRefreshing, setIsRefreshing] = useState<boolean>(() => cachedAddrs.length === 0);
   const [placingOrder, setPlacingOrder] = useState<boolean>(false);
+  const isPlacingOrderRef = useRef<boolean>(false);
+  const checkoutIdempotencyKeyRef = useRef<string>(`idem-cart-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
 
   // Membership & 1-Click Upsell Hook
   const [membership, setMembership] = useState<Membership | null>(() => readStaleCache<Membership>(CACHE_KEYS.membership) || null);
@@ -352,10 +354,13 @@ export function CheckoutPage() {
 
   // Called ONLY when Online Payment (UPI / Card / Netbanking / Wallet) is 100% verified
   const handlePaymentSuccess = async (method: string, paymentId: string) => {
+    // 🛑 Double-click protection: Drop instant duplicate requests
+    if (isPlacingOrderRef.current || placingOrder) return;
     if (!selectedPickup) {
       toast.error("Please select a pickup address.");
       return;
     }
+    isPlacingOrderRef.current = true;
     setPlacingOrder(true);
     try {
       const cleanPhone = normalizeIndianPhone(customerPhone);
@@ -369,6 +374,7 @@ export function CheckoutPage() {
           image: l.image || "",
           description: l.description || "",
         })),
+        idempotencyKey: checkoutIdempotencyKeyRef.current,
         addressId: selectedPickup.id,
         address: selectedPickup,
         deliveryAddress: selectedDelivery,
@@ -407,18 +413,24 @@ export function CheckoutPage() {
         params: { orderId: result.orderId || `ord-${Date.now()}` },
       });
     } catch (err: any) {
+      // Rotate idempotency key on failure to allow clean retry
+      checkoutIdempotencyKeyRef.current = `idem-cart-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
       toast.error(err?.message || "Failed to place order. Please try again.");
     } finally {
+      isPlacingOrderRef.current = false;
       setPlacingOrder(false);
     }
   };
 
   // Called when Customer explicitly selects Pay on Delivery (COD)
   const handleSelectCod = async () => {
+    // 🛑 Double-click protection: Drop instant duplicate requests
+    if (isPlacingOrderRef.current || placingOrder) return;
     if (!selectedPickup) {
       toast.error("Please select a pickup address.");
       return;
     }
+    isPlacingOrderRef.current = true;
     setPlacingOrder(true);
     try {
       const cleanPhone = normalizeIndianPhone(customerPhone);
@@ -432,6 +444,7 @@ export function CheckoutPage() {
           image: l.image || "",
           description: l.description || "",
         })),
+        idempotencyKey: checkoutIdempotencyKeyRef.current,
         addressId: selectedPickup.id,
         address: selectedPickup,
         deliveryAddress: selectedDelivery,
@@ -470,8 +483,11 @@ export function CheckoutPage() {
         params: { orderId: result.orderId || `ord-${Date.now()}` },
       });
     } catch (err: any) {
+      // Rotate idempotency key on failure to allow clean retry
+      checkoutIdempotencyKeyRef.current = `idem-cart-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
       toast.error(err?.message || "Failed to place COD order. Please try again.");
     } finally {
+      isPlacingOrderRef.current = false;
       setPlacingOrder(false);
     }
   };

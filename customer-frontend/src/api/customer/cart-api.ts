@@ -380,6 +380,7 @@ export type PostOrderPayload = {
   cardId?: string | null | undefined;
   instructions?: string | undefined;
   couponCode?: string | null | undefined;
+  idempotencyKey?: string | undefined;
   total: number;
 };
 
@@ -408,42 +409,53 @@ export async function postOrder(payload: PostOrderPayload): Promise<{ ok: true; 
           : "UPI";
 
   const isExpressSelected = Boolean(payload.isExpress ?? payload.pickup?.express ?? false);
+  const idempotencyKey = payload.idempotencyKey || `idem-ord-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
   try {
-    const res = await apiPostJson<any>("/api/orders", {
-      serviceLabel: payload.items[0]?.name ?? "Laundry",
-      items: payload.items.map((item) => ({
-        id: item.id,
-        name: item.name,
-        qty: item.qty,
-        price: item.price,
-      })),
-      totals: { grandTotal: payload.total },
-      address: {
-        label: address.label || "Home",
-        line: address.line || "Main Road",
-        city: address.city || readLocation()?.city || "",
-        phone: payload.customerPhone || address.phone || "9876543210",
+    const res = await apiPostJson<any>(
+      "/api/orders",
+      {
+        serviceLabel: payload.items[0]?.name ?? "Laundry",
+        idempotencyKey,
+        items: payload.items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          qty: item.qty,
+          price: item.price,
+        })),
+        totals: { grandTotal: payload.total },
+        address: {
+          label: address.label || "Home",
+          line: address.line || "Main Road",
+          city: address.city || readLocation()?.city || "",
+          phone: payload.customerPhone || address.phone || "9876543210",
+        },
+        pickup: {
+          date: payload.pickup?.day || "Today",
+          slot: payload.pickup?.slot || (isExpressSelected ? "⚡ 15-Min Express Pickup" : "15-30 mins"),
+          express: isExpressSelected,
+        },
+        isExpress: isExpressSelected,
+        expressFee: isExpressSelected ? (payload.expressFee ?? 40) : 0,
+        surgeFee: payload.surgeFee || 0,
+        isSurgeWaived: Boolean(payload.isSurgeWaived),
+        instructions: payload.instructions || getCartState().instructions || "",
+        couponCode: payload.couponCode ?? getCartState().couponCode ?? undefined,
+        payment: {
+          mode: paymentMode,
+          label: paymentLabel,
+          note: isCod ? "Pay on delivery" : isWallet ? "Paid via QuickPress Wallet" : "Paid online",
+          paymentId: payload.paymentId || (isWallet ? "wallet" : isCod ? "cod" : undefined),
+          gatewayPaymentId: payload.paymentId || undefined,
+        },
+      } as any,
+      {
+        headers: {
+          "Idempotency-Key": idempotencyKey,
+          "X-Idempotency-Key": idempotencyKey,
+        },
       },
-      pickup: {
-        date: payload.pickup?.day || "Today",
-        slot: payload.pickup?.slot || (isExpressSelected ? "⚡ 15-Min Express Pickup" : "15-30 mins"),
-        express: isExpressSelected,
-      },
-      isExpress: isExpressSelected,
-      expressFee: isExpressSelected ? (payload.expressFee ?? 40) : 0,
-      surgeFee: payload.surgeFee || 0,
-      isSurgeWaived: Boolean(payload.isSurgeWaived),
-      instructions: payload.instructions || getCartState().instructions || "",
-      couponCode: payload.couponCode ?? getCartState().couponCode ?? undefined,
-      payment: {
-        mode: paymentMode,
-        label: paymentLabel,
-        note: isCod ? "Pay on delivery" : isWallet ? "Paid via QuickPress Wallet" : "Paid online",
-        paymentId: payload.paymentId || (isWallet ? "wallet" : isCod ? "cod" : undefined),
-        gatewayPaymentId: payload.paymentId || undefined,
-      },
-    } as any);
+    );
 
     const confirmedOrder = res?.order || res;
     const orderId = res?.orderId || res?.order?.id || res?.id || res?.code;
