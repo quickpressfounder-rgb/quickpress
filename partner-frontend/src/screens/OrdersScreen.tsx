@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { Toaster } from "@/shared/ui/sonner";
 
 import { PartnerLayout } from "../components/layout/PartnerLayout";
+import { PartnerOnlineToggle } from "../components/layout/PartnerOnlineToggle";
 import { PullToRefresh } from "../components/dashboard/PullToRefresh";
 import { OrderCard } from "../components/orders/OrderCard";
 import { OrderEmptyState } from "../components/orders/OrderEmptyState";
@@ -128,36 +129,8 @@ export function OrdersScreen() {
         <header className="sticky top-0 z-20 bg-white border-b border-zinc-200/90 px-4 pt-3 pb-2.5 shadow-2xs">
           {/* Top Bar Row: Real Online Toggle Switch on Left, Action Icons on Right */}
           <div className="flex items-center justify-between">
-            {/* Real Store Online Pill Switch */}
-            <button
-              type="button"
-              disabled={isTogglingStatus}
-              onClick={handleToggleStoreStatus}
-              className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95 ${
-                isOnline
-                  ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
-                  : "bg-zinc-200 hover:bg-zinc-300 text-zinc-700"
-              }`}
-              title={isOnline ? "Store is ONLINE — Tap to go Offline" : "Store is OFFLINE — Tap to go Online"}
-            >
-              <span className="flex items-center gap-1.5">
-                <span
-                  className={`size-2 rounded-full ${
-                    isOnline ? "bg-white animate-pulse" : "bg-zinc-400"
-                  }`}
-                />
-                <span>{isOnline ? "Online" : "Offline"}</span>
-              </span>
-              <span
-                className={`flex size-4 items-center justify-center rounded-full bg-white text-zinc-900 shadow-xs transition-transform duration-200 ${
-                  isOnline ? "translate-x-0" : "-translate-x-0"
-                }`}
-              >
-                {isTogglingStatus ? (
-                  <span className="size-2.5 animate-spin rounded-full border-2 border-zinc-900 border-t-transparent" />
-                ) : null}
-              </span>
-            </button>
+            {/* Real Store Online Pill Switch matching Image 4 */}
+            <PartnerOnlineToggle showScheduleHint />
 
             {/* Action Icons: Search, Notifications, App Drawer Grid */}
             <div className="flex items-center gap-3.5 text-zinc-700">
@@ -324,24 +297,8 @@ export function OrdersScreen() {
 
             {/* Right Controls: Real Store Online Toggle + View Mode Switcher */}
             <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-              {/* Real Online Switch for Desktop */}
-              <button
-                type="button"
-                disabled={isTogglingStatus}
-                onClick={handleToggleStoreStatus}
-                className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-black transition-all cursor-pointer shadow-2xs active:scale-95 ${
-                  isOnline
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-                    : "border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                }`}
-                title={isOnline ? "Store is Online — Click to switch Offline" : "Store is Offline — Click to switch Online"}
-              >
-                <span className={`size-2 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
-                <span>{isOnline ? "Online (Accepting Orders)" : "Offline (Paused)"}</span>
-                {isTogglingStatus ? (
-                  <span className="size-2.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                ) : null}
-              </button>
+              {/* Real Online Switch for Desktop matching Image 4 */}
+              <PartnerOnlineToggle showScheduleHint />
 
               {/* View Switcher: Cards vs Table Layout */}
               <div className="flex items-center gap-1 rounded-xl bg-zinc-100 p-1 border border-zinc-200/80">

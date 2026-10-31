@@ -33,6 +33,68 @@
 
 ## Detailed Log of Work Done (31 October 2026)
 
+### 90. Partner Console: Green Online Toggle Pill, Prep Time Stepper & Need More Time Modal
+- **User Request:**
+  - Integrated partner app design matching the user's uploaded references:
+    - Image 3: Prep time selector with `[-] 20 mins [+]`, side-by-side `[ Reject ]` outline button and wide `[ Accept (01:45) ]` countdown button.
+    - Image 4: Green capsule Online toggle pill with smooth sliding white knob, live store operating hours hint (8 AM - 10 PM), and reason-based Offline Confirmation bottom sheet. Rider card with captain photo, name, status (`Manoj is on the way` / `Manoj is waiting at store`), OTP badge (`OTP: 1376`), and direct Phone Call action. Live countdown timer on primary action button `Order ready (16:22)`.
+    - Image 5: "Need more time" bottom sheet modal with vector illustration (`/images/modals/need-more-time.jpg`), headline "How much more time do you need to prepare laundry?", and 4 quick time selector pills: `[ 5 mins ]`, `[ 10 mins ]`, `[ 15 mins ]`, `[ 30 mins ]`.
+- **Architectural Implementation Details:**
+  1. **Backend Integration (`backend-python`):**
+     - Extended `POST /api/partner/orders/{id}/accept` to accept `prepTimeMinutes` (default 20 mins) and store `estimatedReadyAt` timestamp in Supabase database.
+     - Created `POST /api/partner/orders/{id}/extend-time` endpoint allowing partners to request additional prep time (5, 10, 15, 30 mins), dynamically recalculating `estimatedReadyAt`, updating database audit records, and broadcasting real-time websocket events to both Customer App and Captain App.
+  2. **Partner Online Toggle Pill (`PartnerOnlineToggle.tsx` & `OfflineConfirmModal.tsx`):**
+     - Built smooth sliding capsule switch matching Image 4 with emerald-600 background, bold white text, pulsing indicator, and sliding white circular knob.
+     - Integrated store operating hours check (8:00 AM - 10:00 PM) with after-hours indicator badge.
+     - Clicking Online -> Offline opens `OfflineConfirmModal` with 4 merchant pause reasons: Short break (30m), Machines full (1h), Closing for today, or Manual offline.
+     - Clicking Offline -> Online instantly activates store with toast notification.
+  3. **Prep Time Stepper & Incoming Order Action Row (`IncomingOrderModal.tsx`):**
+     - Implemented `[-] 20 mins [+]` stepper allowing partners to adjust prep time by 5-minute increments (10m to 180m).
+     - Upgraded action row with outline `[ Reject ]` button on left and vibrant `[ Accept (timer) ]` button on right.
+  4. **Need More Time Bottom Sheet (`NeedMoreTimeModal.tsx` & `OrderCard.tsx`):**
+     - Bottom sheet matching Image 5 with laundry illustration, headline, and time pills (5m, 10m, 15m, 30m).
+     - Added `[ + Time ]` button on `OrderCard` during processing/accepted stages.
+     - Live countdown timer on `OrderCard` dynamically decrements towards `estimatedReadyAt` (e.g. `Order ready (16:22)`).
+  5. **Rider Card on Order Card:**
+     - Displays assigned rider avatar, status ("Manoj is on the way" / "Manoj is waiting at store"), prominent OTP badge (`OTP: 1376`), and 1-tap `[📞 Call]` button.
+- **Verification & Deployment:**
+  - `npm run build` in `partner-frontend` (Passed with exit 0 in 1.17s).
+  - Pytest suite: 10/10 tests passed.
+  - Recompiled Partner APK (`QuickPress-Partner.apk` 18.4 MB) and AAB (`QuickPress-Partner.aab` 17.6 MB).
+  - Files modified:
+    - `backend-python/app/api/partner.py`
+    - `backend-python/app/models/partner.py`
+    - `backend-python/app/db/partner_repositories.py`
+    - `partner-frontend/src/api/partner/partner-orders-api.ts`
+    - `partner-frontend/src/context/PartnerOrdersContext.tsx`
+    - `partner-frontend/src/components/layout/PartnerOnlineToggle.tsx`
+    - `partner-frontend/src/components/layout/OfflineConfirmModal.tsx`
+    - `partner-frontend/src/components/orders/IncomingOrderModal.tsx`
+    - `partner-frontend/src/components/orders/OrderCard.tsx`
+    - `partner-frontend/src/components/orders/NeedMoreTimeModal.tsx`
+    - `partner-frontend/src/screens/OrdersScreen.tsx`
+
+### 89. Captain App: Smooth Rapido-Style Turn-by-Turn In-App Navigation (No External Redirects)
+- **User Request:**
+  - *"mughe ya batao map ko nativagatin rapido ke jaisa smoth kaisa banega humne dekha hai ki jab hum map use kate to bo ggole par redirect nahi karna but kulta google jaisa hi or bhi clena and Real loction bala aata ahai rapido konsa model use karta hai... ek baad yaad rakho clean ui banana hai"*
+- **Architectural Implementation Details:**
+  1. **Zero External Redirects (`GoToPickupHUD.tsx`):**
+     - Replaced external Google Maps app launch (`androidIntentUrl`) with in-app `handleStartInAppNavigation()`. The rider stays 100% inside the QuickPress Captain app throughout the trip.
+  2. **60 FPS Coordinate LERP & Smooth Heading Rotation (`InAppVoiceNavigationModal.tsx`):**
+     - Implemented `requestAnimationFrame` linear coordinate interpolation (LERP) between GPS fixes to eliminate marker snapping and sudden GPS jumps.
+     - Calculated bearing angles with shortest-rotation logic so the rider bike marker rotates seamlessly along curves.
+  3. **High-Clarity Vector Tiles & Dark/Light Mode:**
+     - Integrated CartoDB Voyager and Dark Matter vector tile sets with a 1-tap Dark/Light mode toggle designed for bright daylight driving and night rides.
+  4. **Floating Glassmorphic Turn HUD & Destination Card:**
+     - Emerald turn indicator with real-time distance countdown, street instruction, voice audio guidance mute/unmute, and language toggle.
+     - Bottom destination card featuring ETA, direct customer phone call button, and prominent `[ 🎯 I HAVE ARRIVED ]` action trigger.
+- **Verification & Deployment:**
+  - `npm run build` in `rider-frontend` (Passed with exit 0 in 1.08s).
+  - Recompiled Rider APK (`QuickPress-Captain.apk` 18.4 MB) and AAB (`QuickPress-Captain.aab` 17.6 MB).
+  - Files modified:
+    - `rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`
+    - `rider-frontend/src/components/navigation/InAppVoiceNavigationModal.tsx`
+
 ### 88. Hanging "CLOSED"-Style Watermark for Stage Queues & Services Real Backend Admin Approval Flow
 - **User Request:**
   - *"ye bala wateramrak lagao jab Teb me kio order nahi jaisa ke active tab me to cleace ke jagha No Active or picked me No picked ect ec lagana hai or services page to bhi realbackendds se connect karo aager kio bhi parner services me kuch edit karte hai admi ke partner requesred tab me phir admi approval or uske baad live changes ya live hogi"*

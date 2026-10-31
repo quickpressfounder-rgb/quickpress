@@ -115,6 +115,15 @@ class RejectOrderPayload(BaseModel):
     reason: str = ""
 
 
+class AcceptOrderPayload(BaseModel):
+    prepTimeMinutes: int = 20
+
+
+class ExtendTimePayload(BaseModel):
+    additionalMinutes: int = 10
+    reason: str = "Laundry processing requires extra time"
+
+
 
 class PartnerProfileResponse(BaseModel):
     partnerId: str

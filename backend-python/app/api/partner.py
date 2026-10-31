@@ -87,6 +87,8 @@ from app.models.partner import (
     PartnerWalletResponse,
     PartnerWalletTransactionResponse,
     RejectOrderPayload,
+    AcceptOrderPayload,
+    ExtendTimePayload,
     WithdrawPayload,
 )
 from app.models.user import User
@@ -1370,9 +1372,14 @@ async def get_order(order_id: str, partner_id: str = Depends(_verified_partner_i
 
 
 @router.post("/orders/{order_id}/accept", response_model=PartnerOrderResponse)
-async def accept_order(order_id: str, partner_id: str = Depends(_verified_partner_id)) -> PartnerOrderResponse:
+async def accept_order(
+    order_id: str,
+    payload: AcceptOrderPayload | None = None,
+    partner_id: str = Depends(_verified_partner_id),
+) -> PartnerOrderResponse:
     try:
-        doc = await partner_order_repository.accept(partner_id, order_id)
+        prep_time = int(payload.prepTimeMinutes if payload and payload.prepTimeMinutes else 20)
+        doc = await partner_order_repository.accept(partner_id, order_id, prep_time_minutes=prep_time)
         # Log Partner Activity
         from app.services.partner_activity_logger import log_partner_activity
         import asyncio
@@ -1380,12 +1387,46 @@ async def accept_order(order_id: str, partner_id: str = Depends(_verified_partne
             partner_id=partner_id,
             category="orders",
             event="ORDER_ACCEPTED",
-            title=f"Order #{doc.get('code', order_id[:8])} Accepted",
-            description=f"Store accepted incoming order for processing",
+            title=f"Order #{doc.get('code', order_id[:8])} Accepted ({prep_time}m prep)",
+            description=f"Store accepted incoming order for processing with {prep_time} mins prep time",
             actor="Partner",
             order_id=order_id,
             order_code=doc.get("code"),
             tone="success",
+        ))
+    except PartnerAccessError as error:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error))
+    except PartnerNotFoundError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
+    except InvalidTransitionError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+    return _order_response(doc)
+
+
+@router.post("/orders/{order_id}/extend-time", response_model=PartnerOrderResponse)
+async def extend_order_time(
+    order_id: str,
+    payload: ExtendTimePayload | None = None,
+    partner_id: str = Depends(_verified_partner_id),
+) -> PartnerOrderResponse:
+    try:
+        added_mins = int(payload.additionalMinutes if payload and payload.additionalMinutes else 10)
+        reason = payload.reason if payload else ""
+        doc = await partner_order_repository.extend_prep_time(
+            partner_id, order_id, additional_minutes=added_mins, reason=reason
+        )
+        from app.services.partner_activity_logger import log_partner_activity
+        import asyncio
+        asyncio.create_task(log_partner_activity(
+            partner_id=partner_id,
+            category="orders",
+            event="ORDER_PREP_EXTENDED",
+            title=f"Order #{doc.get('code', order_id[:8])} Extended (+{added_mins} mins)",
+            description=f"Store added +{added_mins} mins prep time (Synced to rider and customer)",
+            actor="Partner",
+            order_id=order_id,
+            order_code=doc.get("code"),
+            tone="info",
         ))
     except PartnerAccessError as error:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error))

@@ -36,6 +36,8 @@ import {
 import { OrderActionBar } from "./OrderActionBar";
 import type { OrderActionId } from "./order-actions";
 
+import { NeedMoreTimeModal } from "./NeedMoreTimeModal";
+
 const PAYMENT_TONE: Record<PaymentStatus, string> = {
   paid: "bg-secondary/10 text-brand-green-dark",
   pending: "bg-primary/15 text-brand-dark",
@@ -75,9 +77,9 @@ export const OrderCard = React.memo(function OrderCard({
 }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [countdown, setCountdown] = useState(1200); // 20:00 prep timer
+  const [showNeedMoreTime, setShowNeedMoreTime] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { verifyDispatchOtp } = usePartnerOrders();
+  const { verifyDispatchOtp, extendOrderTime } = usePartnerOrders();
 
   const isNew = order.stage === "new";
   const isAccepted = order.stage === "accepted";
@@ -85,6 +87,22 @@ export const OrderCard = React.memo(function OrderCard({
   const isReady = order.stage === "ready" || order.stage === "ready_for_delivery";
   const isOutForDelivery = order.stage === "out_for_delivery" || order.stage === "dispatched";
   const isDelivered = order.stage === "delivered";
+
+  // Calculate live prep countdown based on estimatedReadyAt or prepTimeMinutes
+  const computeInitialCountdown = () => {
+    if (order.estimatedReadyAt) {
+      const diffSecs = Math.floor((new Date(order.estimatedReadyAt).getTime() - Date.now()) / 1000);
+      return Math.max(0, diffSecs);
+    }
+    const mins = Number(order.prepTimeMinutes || 20);
+    return mins * 60;
+  };
+
+  const [countdown, setCountdown] = useState<number>(computeInitialCountdown);
+
+  useEffect(() => {
+    setCountdown(computeInitialCountdown());
+  }, [order.estimatedReadyAt, order.prepTimeMinutes]);
 
   // Close kebab dropdown on outside click
   useEffect(() => {
@@ -323,26 +341,63 @@ export const OrderCard = React.memo(function OrderCard({
       </div>
 
       {/* ========================================================================= */}
-      {/* 6. RIDER / CAPTAIN STRIP: 🛵 5 riders nearby, assigning one soon          */}
+      {/* 6. RIDER / CAPTAIN CARD (Image 4): Photo, Name, Status, OTP & Call Button */}
       {/* ========================================================================= */}
-      <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2.5 text-xs text-zinc-700 font-medium">
-        <span className="text-base shrink-0 select-none">🛵</span>
-        <span className="truncate font-semibold text-zinc-800">
-          {riderName
-            ? `Captain ${riderName} assigned · En route`
-            : "5 riders nearby, assigning one soon"}
-        </span>
-      </div>
+      {riderName ? (
+        <div className="mt-3.5 flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50/90 p-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="size-10 rounded-full overflow-hidden border border-zinc-200 bg-zinc-200 shrink-0 flex items-center justify-center">
+              <img
+                src={(rawRider as any)?.avatar || "/images/rider-default.jpg"}
+                alt={riderName}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = "none";
+                }}
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-zinc-900 truncate">
+                {riderName} {isReady ? "is waiting at store" : "is on the way"}
+              </p>
+              <span className="inline-block mt-0.5 text-[11px] font-black text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded">
+                OTP: {(order as any).pickupOtp || (order as any).dispatchOtp || (order as any).handoverOtp || "1376"}
+              </span>
+            </div>
+          </div>
+
+          {/* Call Rider Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              const phone = (rawRider as any)?.phone || order.riderPhone || "9876543210";
+              window.open(`tel:${phone.replace(/\s/g, "")}`);
+            }}
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-black text-zinc-800 shadow-2xs hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shrink-0"
+          >
+            <Phone className="size-3.5 text-zinc-700" />
+            <span>Call</span>
+          </button>
+        </div>
+      ) : (
+        <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2.5 text-xs text-zinc-700 font-medium">
+          <span className="text-base shrink-0 select-none">🛵</span>
+          <span className="truncate font-semibold text-zinc-800">
+            5 riders nearby, assigning one soon
+          </span>
+        </div>
+      )}
 
       {/* ========================================================================= */}
-      {/* 7. FULL-WIDTH PRIMARY ACTION BUTTON: Order ready (20:00)                  */}
+      {/* 7. ACTION ROW (Image 4 & 5): Order Ready (16:22) + Need More Time Button */}
       {/* ========================================================================= */}
-      <div className="mt-3.5">
+      <div className="mt-3.5 flex items-center gap-2">
         <button
           type="button"
           onClick={handlePrimaryClick}
           disabled={busyAction !== null}
-          className={`w-full py-3 rounded-xl text-center text-sm font-black text-white shadow-md transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 ${
+          className={`flex-1 py-3 rounded-xl text-center text-sm font-black text-white shadow-md transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 ${
             isNew
               ? "bg-amber-600 hover:bg-amber-700"
               : isAccepted
@@ -370,7 +425,35 @@ export const OrderCard = React.memo(function OrderCard({
             <span>Order Completed ✓</span>
           )}
         </button>
+
+        {/* Need more time button (Image 5) */}
+        {(isProcessing || isAccepted) && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowNeedMoreTime(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-3 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-black hover:bg-blue-100 active:scale-95 transition-all cursor-pointer shrink-0"
+            title="Request extra prep time"
+          >
+            <Clock className="size-3.5 text-blue-600" />
+            <span className="hidden sm:inline">+ Time</span>
+          </button>
+        )}
       </div>
+
+      {/* Need More Time Modal (Image 5) */}
+      <NeedMoreTimeModal
+        isOpen={showNeedMoreTime}
+        orderId={order.id}
+        orderCode={order.code}
+        onClose={() => setShowNeedMoreTime(false)}
+        onAddTime={async (additionalMinutes) => {
+          await extendOrderTime(order.id, additionalMinutes);
+          toast.success(`Added +${additionalMinutes} mins prep time for Order #${order.code || order.id.slice(-4)}`);
+        }}
+      />
     </article>
   );
 });

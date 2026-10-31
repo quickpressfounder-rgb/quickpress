@@ -61,22 +61,55 @@ export async function fetchPartnerOrder(orderId: string): Promise<PartnerOrder> 
   }
 }
 
-/** POST /api/partner/orders/{id}/accept with optimistic update and offline queue fallback */
-export async function acceptPartnerOrder(orderId: string): Promise<PartnerOrder> {
+/** POST /api/partner/orders/{id}/accept with optimistic update and prep time */
+export async function acceptPartnerOrder(orderId: string, prepTimeMinutes: number = 20): Promise<PartnerOrder> {
   try {
-    const res = await apiPostJson<PartnerOrder>(`/api/partner/orders/${orderId}/accept`);
+    const res = await apiPostJson<PartnerOrder>(`/api/partner/orders/${orderId}/accept`, {
+      prepTimeMinutes,
+    });
     return res;
   } catch (err: any) {
     const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
     const isNetworkErr = err?.code === "offline" || err?.message?.includes("Failed to fetch") || err?.message?.includes("NetworkError");
     if (isOffline || isNetworkErr) {
-      offlineSyncQueue.enqueue(`/api/partner/orders/${orderId}/accept`, undefined, `Accept order ${orderId}`);
+      offlineSyncQueue.enqueue(`/api/partner/orders/${orderId}/accept`, { prepTimeMinutes }, `Accept order ${orderId}`);
     }
     const cached = readCachedOrders().find((o) => o.id === orderId || (o as any).orderId === orderId);
     if (cached) {
-      return { ...cached, status: "accepted" as any };
+      return { ...cached, status: "accepted" as any, prepTimeMinutes } as any;
     }
-    return { id: orderId, status: "accepted" } as any;
+    return { id: orderId, status: "accepted", prepTimeMinutes } as any;
+  }
+}
+
+/** POST /api/partner/orders/{id}/extend-time */
+export async function extendOrderPrepTime(
+  orderId: string,
+  additionalMinutes: number = 10,
+  reason: string = "Laundry processing requires extra time"
+): Promise<PartnerOrder> {
+  try {
+    const res = await apiPostJson<PartnerOrder>(`/api/partner/orders/${orderId}/extend-time`, {
+      additionalMinutes,
+      reason,
+    });
+    return res;
+  } catch (err: any) {
+    const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+    const isNetworkErr = err?.code === "offline" || err?.message?.includes("Failed to fetch") || err?.message?.includes("NetworkError");
+    if (isOffline || isNetworkErr) {
+      offlineSyncQueue.enqueue(
+        `/api/partner/orders/${orderId}/extend-time`,
+        { additionalMinutes, reason },
+        `Extend order ${orderId} prep time +${additionalMinutes}m`
+      );
+    }
+    const cached = readCachedOrders().find((o) => o.id === orderId || (o as any).orderId === orderId);
+    if (cached) {
+      const cur = Number((cached as any).prepTimeMinutes || 20);
+      return { ...cached, prepTimeMinutes: cur + additionalMinutes } as any;
+    }
+    return { id: orderId, prepTimeMinutes: 20 + additionalMinutes } as any;
   }
 }
 

@@ -646,7 +646,7 @@ class PartnerOrderRepository:
             raise InvalidTransitionError(str(error)) from error
         return lifecycle.to_partner_order(updated)
 
-    async def accept(self, partner_id: str, order_id: str) -> Dict[str, Any]:
+    async def accept(self, partner_id: str, order_id: str, prep_time_minutes: int = 20) -> Dict[str, Any]:
         profile = await database.find_one(PROFILES, {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
         partner_name = (profile.get("businessName") or profile.get("name") or "Partner Store") if profile else "Partner Store"
         partner_phone = profile.get("phone", "") if profile else ""
@@ -664,13 +664,23 @@ class PartnerOrderRepository:
         if existing_pid and existing_pid != partner_id and existing_pid.lower() != partner_id.lower():
             raise PartnerAccessError("This order is already accepted by another partner store.")
 
+        now_dt = datetime.now(timezone.utc)
         now_iso = lifecycle.now_iso()
         rider_deadline = (
-            (datetime.now(timezone.utc) + timedelta(seconds=lifecycle.RIDER_ACCEPT_SLA_SECONDS))
+            (now_dt + timedelta(seconds=lifecycle.RIDER_ACCEPT_SLA_SECONDS))
             .replace(microsecond=0)
             .isoformat()
             .replace("+00:00", "Z")
         )
+        
+        valid_prep_mins = max(10, min(180, int(prep_time_minutes or 20)))
+        est_ready_iso = (
+            (now_dt + timedelta(minutes=valid_prep_mins))
+            .replace(microsecond=0)
+            .isoformat()
+            .replace("+00:00", "Z")
+        )
+
         changes = {
             "partner": {
                 "id": partner_id,
@@ -682,6 +692,9 @@ class PartnerOrderRepository:
             "store_id": partner_id,
             "partnerAccepted": True,
             "partnerAcceptedAt": now_iso,
+            "prepTimeMinutes": valid_prep_mins,
+            "prepTimeSelected": valid_prep_mins,
+            "estimatedReadyAt": est_ready_iso,
             "riderDispatchStartedAt": now_iso,
             "riderAcceptDeadline": rider_deadline,
             "riderSlaSeconds": lifecycle.RIDER_ACCEPT_SLA_SECONDS,
@@ -765,6 +778,61 @@ class PartnerOrderRepository:
             logger.warning("Error processing partner rejection refund for %s: %s", order_id, e)
 
         return res
+
+    async def extend_prep_time(
+        self, partner_id: str, order_id: str, additional_minutes: int, reason: str = ""
+    ) -> Dict[str, Any]:
+        """Partner store requests more prep time, updating estimated ready time for rider and customer."""
+        order = await lifecycle.find_order(order_id)
+        if not order:
+            raise PartnerNotFoundError("Order not found")
+        try:
+            lifecycle.assert_partner(order, partner_id)
+        except lifecycle.OrderAuthorizationError as error:
+            raise PartnerAccessError(str(error)) from error
+
+        now_dt = datetime.now(timezone.utc)
+        current_prep = int(order.get("prepTimeMinutes") or 20)
+        valid_addition = max(5, min(120, int(additional_minutes or 10)))
+        new_prep = current_prep + valid_addition
+
+        existing_ready = order.get("estimatedReadyAt")
+        if existing_ready:
+            try:
+                base_dt = datetime.fromisoformat(str(existing_ready).replace("Z", "+00:00"))
+                new_ready_dt = max(base_dt, now_dt) + timedelta(minutes=valid_addition)
+            except Exception:
+                new_ready_dt = now_dt + timedelta(minutes=valid_addition)
+        else:
+            new_ready_dt = now_dt + timedelta(minutes=valid_addition)
+
+        new_ready_iso = new_ready_dt.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+        patch = {
+            "prepTimeMinutes": new_prep,
+            "estimatedReadyAt": new_ready_iso,
+            "prepTimeExtendedAt": lifecycle.now_iso(),
+            "lastPrepExtension": valid_addition,
+            "prepExtensionReason": reason or f"+{valid_addition} mins needed by store",
+        }
+        await database.update("orders", {"id": order_id}, patch, upsert=False)
+        await database.update("orders", {"_id": order_id}, patch, upsert=False)
+
+        # Broadcast real-time update to rider and customer
+        try:
+            from app.services.realtime_pubsub import realtime_bus
+            await realtime_bus.publish(f"order:{order_id}", {
+                "event": "ORDER_PREP_EXTENDED",
+                "orderId": order_id,
+                "prepTimeMinutes": new_prep,
+                "additionalMinutes": valid_addition,
+                "estimatedReadyAt": new_ready_iso,
+            })
+        except Exception:
+            pass
+
+        updated = await lifecycle.find_order(order_id)
+        return lifecycle.to_partner_order(updated or order)
 
     async def receive_laundry(self, partner_id: str, order_id: str) -> Dict[str, Any]:
         """Partner store confirms receipt of laundry dropped by rider or customer."""

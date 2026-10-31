@@ -5,7 +5,7 @@ import { stopOrderAlarm } from "../../lib/order-alarm";
 
 type IncomingOrderModalProps = {
   order: ManagedOrder | null;
-  onAccept: (orderId: string) => Promise<void>;
+  onAccept: (orderId: string, prepTimeMinutes?: number) => Promise<void>;
   onReject: (orderId: string, reason: string) => Promise<void>;
   onDismiss: () => void;
 };
@@ -44,6 +44,7 @@ export function IncomingOrderModal({
   };
 
   const [countdown, setCountdown] = useState<number>(computeInitialCountdown);
+  const [prepTime, setPrepTime] = useState<number>(20);
   const [rejecting, setRejecting] = useState(false);
   const [selectedReason, setSelectedReason] = useState(REJECT_REASONS[0]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -85,7 +86,7 @@ export function IncomingOrderModal({
     stopOrderAlarm();
     onDismiss();
     try {
-      await onAccept(order.id);
+      await onAccept(order.id, prepTime);
     } catch {
       // Handled in caller
     }
@@ -304,38 +305,54 @@ export function IncomingOrderModal({
           ) : null}
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons matching Image 3 */}
         {!rejecting ? (
-          <div className="border-t border-border/80 bg-card p-4 sm:p-6 space-y-2.5">
-            <button
-              type="button"
-              onClick={() => void handleAccept()}
-              disabled={isProcessing}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 text-base font-black text-white shadow-lg shadow-emerald-600/30 transition-all hover:bg-emerald-500 active:scale-[0.98] cursor-pointer"
-            >
-              <Check className="size-5 stroke-[3]" />
-              {isProcessing ? "Accepting..." : "ACCEPT ORDER"}
-            </button>
+          <div className="border-t border-border/80 bg-white p-4 sm:p-5 space-y-3.5">
+            {/* Prep Time Stepper: [-] 20 mins [+] */}
+            <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-2.5">
+              <span className="text-xs font-bold text-zinc-600">Prep / Processing Time</span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPrepTime((p) => Math.max(10, p - 5))}
+                  className="flex size-7 items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 text-sm font-black hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer select-none"
+                  title="Decrease 5 mins"
+                >
+                  -
+                </button>
+                <span className="min-w-[70px] text-center text-sm font-black text-zinc-950 font-mono">
+                  {prepTime} mins
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPrepTime((p) => Math.min(180, p + 5))}
+                  className="flex size-7 items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 text-sm font-black hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer select-none"
+                  title="Increase 5 mins"
+                >
+                  +
+                </button>
+              </div>
+            </div>
 
-            <div className="flex gap-2.5">
-              <button
-                type="button"
-                onClick={() => {
-                  stopOrderAlarm();
-                  onDismiss();
-                }}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-muted/60 py-3 text-xs font-bold text-foreground transition-colors hover:bg-muted active:scale-[0.98] cursor-pointer"
-              >
-                <ArrowLeft className="size-3.5" /> Back to Dashboard
-              </button>
-
+            {/* Bottom Row: [ Reject ]  [ Accept (01:45) ] */}
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setRejecting(true)}
                 disabled={isProcessing}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl border border-destructive/30 bg-destructive/10 py-3 text-xs font-bold text-destructive transition-colors hover:bg-destructive/20 active:scale-[0.98] cursor-pointer"
+                className="w-1/3 rounded-xl border border-rose-300 bg-white py-3 text-center text-xs font-black text-rose-600 shadow-2xs hover:bg-rose-50 active:scale-[0.98] transition-all cursor-pointer"
               >
-                <X className="size-3.5" /> Reject Order
+                Reject
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void handleAccept()}
+                disabled={isProcessing}
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-center text-xs sm:text-sm font-black text-white shadow-md shadow-emerald-600/25 hover:bg-emerald-700 active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <Check className="size-4 stroke-[3]" />
+                <span>{isProcessing ? "Accepting..." : `Accept (${formattedCountdown})`}</span>
               </button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import type { PartnerOrder, PartnerOrderStatus } from "@/shared/types/partner";
 import {
   acceptPartnerOrder,
   completePartnerOrder,
+  extendOrderPrepTime,
   fetchPartnerOrders,
   rejectPartnerOrder,
   startProcessingOrder,
@@ -346,7 +347,8 @@ type OrdersStore = {
   error: string | null;
   incomingOrder: ManagedOrder | null;
   refresh: () => Promise<void>;
-  acceptOrder: (orderId: string) => Promise<void>;
+  acceptOrder: (orderId: string, prepTimeMinutes?: number) => Promise<void>;
+  extendOrderTime: (orderId: string, additionalMinutes?: number, reason?: string) => Promise<void>;
   rejectOrder: (orderId: string, reason: string) => Promise<void>;
   startProcessing: (orderId: string) => Promise<void>;
   completeOrder: (orderId: string) => Promise<void>;
@@ -734,27 +736,58 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(() => load({ refreshing: true }), [load]);
 
   const acceptOrder = useCallback(
-    async (orderId: string) => {
+    async (orderId: string, prepTimeMinutes: number = 20) => {
       stopOrderAlarm();
       setIncomingOrder(null);
       acceptedOrderIds.current.add(orderId);
       writePersistedSet(ACCEPTED_ORDERS_KEY, acceptedOrderIds.current);
 
       // ⚡ INSTANTANEOUS OPTIMISTIC ACTION (0ms lag):
-      // Advances stage immediately in local state so "Accept" disappears instantly
-      // and the next step button appears right away!
       setOrders((prev) =>
         prev.map((o) =>
           o.id === orderId
-            ? { ...o, stage: "accepted" as OrderStage, partnerAccepted: true }
+            ? {
+                ...o,
+                stage: "accepted" as OrderStage,
+                partnerAccepted: true,
+                prepTimeMinutes,
+                estimatedReadyAt: new Date(Date.now() + prepTimeMinutes * 60000).toISOString(),
+              }
             : o
         )
       );
 
       try {
-        await acceptPartnerOrder(orderId);
+        await acceptPartnerOrder(orderId, prepTimeMinutes);
       } catch (err) {
         console.error("[PartnerOrdersContext] accept error:", err);
+      }
+      void load({ refreshing: true });
+    },
+    [load],
+  );
+
+  const extendOrderTime = useCallback(
+    async (orderId: string, additionalMinutes: number = 10, reason: string = "") => {
+      setOrders((prev) =>
+        prev.map((o) => {
+          if (o.id !== orderId) return o;
+          const currentPrep = Number(o.prepTimeMinutes || 20);
+          const newPrep = currentPrep + additionalMinutes;
+          const prevReady = o.estimatedReadyAt ? new Date(o.estimatedReadyAt).getTime() : Date.now();
+          const newReadyTime = Math.max(prevReady, Date.now()) + additionalMinutes * 60000;
+          return {
+            ...o,
+            prepTimeMinutes: newPrep,
+            estimatedReadyAt: new Date(newReadyTime).toISOString(),
+          };
+        })
+      );
+
+      try {
+        await extendOrderPrepTime(orderId, additionalMinutes, reason);
+      } catch (err) {
+        console.error("[PartnerOrdersContext] extend prep time error:", err);
       }
       void load({ refreshing: true });
     },
@@ -958,6 +991,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
       incomingOrder,
       refresh,
       acceptOrder,
+      extendOrderTime,
       rejectOrder,
       startProcessing,
       completeOrder,
