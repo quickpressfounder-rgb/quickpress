@@ -81,16 +81,62 @@ export function matchesFilter(order: ManagedOrder, filter: OrderFilterId) {
   }
 }
 
-export function matchesQuery(order: ManagedOrder, rawQuery: string) {
+export function matchesQuery(order: ManagedOrder, rawQuery: string): boolean {
   const q = rawQuery.trim().toLowerCase();
   if (!q) return true;
+
+  // Clean alphanumeric and digits
+  const qClean = q.replace(/^[#\s]+/, "");
   const digits = q.replace(/\D/g, "");
-  return (
-    order.code.toLowerCase().includes(q) ||
-    order.id.toLowerCase().includes(q) ||
-    order.customerName.toLowerCase().includes(q) ||
-    (digits.length >= 3 && order.customerPhone.replace(/\D/g, "").includes(digits))
-  );
+
+  // Match order code or ID (with or without #)
+  const code = (order.code || "").toLowerCase();
+  const id = (order.id || "").toLowerCase();
+  if (code.includes(q) || code.includes(qClean) || id.includes(q) || id.includes(qClean)) {
+    return true;
+  }
+
+  // Match customer name
+  const custName = (order.customerName || "").toLowerCase();
+  if (custName.includes(q) || custName.includes(qClean)) {
+    return true;
+  }
+
+  // Match customer phone (3+ digits)
+  const custPhone = (order.customerPhone || "").replace(/\D/g, "");
+  if (digits.length >= 3 && custPhone.includes(digits)) {
+    return true;
+  }
+
+  // Match item names or services
+  if (Array.isArray(order.items)) {
+    const hasMatchingItem = order.items.some((it) => {
+      const itName = (it.name || "").toLowerCase();
+      const itService = (it.service || "").toLowerCase();
+      return itName.includes(q) || itService.includes(q);
+    });
+    if (hasMatchingItem) return true;
+  }
+
+  if (Array.isArray(order.services)) {
+    const hasMatchingService = order.services.some((s) => (s || "").toLowerCase().includes(q));
+    if (hasMatchingService) return true;
+  }
+
+  // Match pickup/delivery address
+  const pickupAddr = (order.pickupAddress || "").toLowerCase();
+  const deliveryAddr = (order.deliveryAddress || "").toLowerCase();
+  if (pickupAddr.includes(q) || deliveryAddr.includes(q)) {
+    return true;
+  }
+
+  // Match rider name
+  const riderName = String(order.assignedRider || (order as any).rider?.name || "").toLowerCase();
+  if (riderName && riderName.includes(q)) {
+    return true;
+  }
+
+  return false;
 }
 
 export function sortOrders(list: ManagedOrder[], sort: OrderSortId) {

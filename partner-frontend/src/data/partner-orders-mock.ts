@@ -200,13 +200,16 @@ export const STAGE_TIMELINE_INDEX: Record<string, number> = {
 
 export type PartnerOrderFilterTab =
   | "active"
+  | "picked"
+  | "process"
+  | "out_for_delivery"
+  | "delivered"
+  | "cancelled"
+  | "all"
   | "pickup"
   | "processing"
   | "ready"
   | "dispatch"
-  | "out_for_delivery"
-  | "delivered"
-  | "cancelled"
   | "refunded";
 
 export function formatOrderPlacedTime(placedAt?: string): { time: string; date: string; relative: string } {
@@ -250,9 +253,13 @@ export function formatOrderPlacedTime(placedAt?: string): { time: string; date: 
 }
 
 export function isOrderMatchingTab(order: ManagedOrder, tab: PartnerOrderFilterTab): boolean {
-  const stage = (order.stage || "") as string;
+  const stage = String(order.stage || "").toLowerCase().trim();
+  const rawStatus = String((order as any).status || "").toLowerCase().trim();
+  const cancelReason = String(order.cancelReason || (order as any).cancelledReason || "").toLowerCase();
+
   const isRefunded =
     stage === "refunded" ||
+    rawStatus === "refunded" ||
     order.paymentStatus === "refunded" ||
     (order as any).refund_status === "completed" ||
     (order as any).refund_status === "processed" ||
@@ -261,57 +268,111 @@ export function isOrderMatchingTab(order: ManagedOrder, tab: PartnerOrderFilterT
     Boolean((order as any).refundAmount && (order as any).refundAmount > 0) ||
     Boolean((order as any).refundStatus && (order as any).refundStatus !== "none");
 
-  switch (tab) {
-    case "active":
-      return stage !== "completed" && stage !== "delivered" && stage !== "cancelled" && !isRefunded;
-    case "pickup":
-      if (stage === "cancelled" || isRefunded) return false;
-      return (
-        stage === "new" ||
-        stage === "placed" ||
-        stage === "accepted" ||
-        stage === "pickup_pending" ||
-        stage === "pickup_rider_assigned" ||
-        stage === "pickup_rider_accepted" ||
-        stage === "picked" ||
-        stage === "picked_up"
-      );
-    case "processing":
-      return (
-        stage === "processing" ||
-        stage === "washing" ||
-        stage === "dry_cleaning" ||
-        stage === "ironing" ||
-        stage === "at_partner"
-      );
-    case "ready":
-      return stage === "ready" || stage === "ready_for_delivery";
-    case "dispatch":
-      return (
-        stage === "delivery_assigned" ||
-        stage === "delivery_rider_assigned" ||
-        stage === "delivery_rider_accepted" ||
-        stage === "dispatch_otp_pending" ||
-        stage === "dispatch"
-      );
-    case "out_for_delivery":
-      return stage === "out_for_delivery" || stage === "delivery_otp_pending";
-    case "delivered":
-      return stage === "completed" || stage === "delivered";
-    case "cancelled": {
-      if (stage !== "cancelled") return false;
-      // Exclude only orders that were missed by partner acceptance SLA timeout
-      const wasMissedByPartner =
-        order.slaBreached === "partner_acceptance" ||
-        order.cancelReason?.toLowerCase().includes("partner did not accept") ||
-        (order as any).cancelledReason?.toLowerCase().includes("partner did not accept");
-      return !wasMissedByPartner;
-    }
-    case "refunded":
-      return isRefunded;
-    default:
-      return true;
+  const isCancelled =
+    stage === "cancelled" ||
+    rawStatus === "cancelled" ||
+    rawStatus === "rejected" ||
+    rawStatus === "store_rejected" ||
+    rawStatus === "pickup_failed" ||
+    rawStatus === "delivery_failed" ||
+    Boolean(order.cancelledBy) ||
+    Boolean(order.cancelReason) ||
+    cancelReason.length > 0 ||
+    isRefunded;
+
+  if (tab === "all") return true;
+
+  if (tab === "cancelled" || tab === "refunded") {
+    return isCancelled;
   }
+
+  // Non-cancelled tabs should NEVER show cancelled orders
+  if (isCancelled) return false;
+
+  if (tab === "delivered") {
+    return (
+      stage === "completed" ||
+      stage === "delivered" ||
+      rawStatus === "delivered" ||
+      rawStatus === "completed"
+    );
+  }
+
+  if (tab === "out_for_delivery" || tab === "ready" || tab === "dispatch") {
+    return (
+      stage === "ready" ||
+      rawStatus === "ready" ||
+      rawStatus === "ready_for_delivery" ||
+      rawStatus === "delivery_rider_assigning" ||
+      rawStatus === "delivery_rider_assigned" ||
+      rawStatus === "delivery_rider_2_assigned" ||
+      rawStatus === "delivery_rider_accepted" ||
+      rawStatus === "dispatch_otp_pending" ||
+      rawStatus === "dispatch_otp_verified" ||
+      rawStatus === "dispatched" ||
+      rawStatus === "out_for_delivery" ||
+      rawStatus === "delivery_otp_pending" ||
+      rawStatus === "delivery_otp_verified"
+    );
+  }
+
+  if (tab === "process" || tab === "processing") {
+    return (
+      stage === "processing" ||
+      stage === "washing" ||
+      stage === "dry_cleaning" ||
+      stage === "ironing" ||
+      stage === "at_partner" ||
+      rawStatus === "processing" ||
+      rawStatus === "processing_started" ||
+      rawStatus === "washing" ||
+      rawStatus === "sorting" ||
+      rawStatus === "drying" ||
+      rawStatus === "dry_cleaning" ||
+      rawStatus === "ironing" ||
+      rawStatus === "quality_check" ||
+      rawStatus === "packed" ||
+      rawStatus === "processing_completed" ||
+      rawStatus === "at_partner" ||
+      rawStatus === "at_store" ||
+      rawStatus === "store_received" ||
+      rawStatus === "store_drop_confirmed"
+    );
+  }
+
+  if (tab === "picked" || tab === "pickup") {
+    return (
+      rawStatus === "picked" ||
+      rawStatus === "picked_up" ||
+      rawStatus === "in_transit_to_store" ||
+      rawStatus === "pickup_otp_verified" ||
+      (stage === "pickup_pending" && Boolean((order as any).riderHandoverInitiated))
+    );
+  }
+
+  if (tab === "active") {
+    return (
+      stage === "new" ||
+      stage === "placed" ||
+      stage === "accepted" ||
+      (stage === "pickup_pending" && !(order as any).riderHandoverInitiated && rawStatus !== "picked" && rawStatus !== "picked_up" && rawStatus !== "in_transit_to_store") ||
+      rawStatus === "new" ||
+      rawStatus === "placed" ||
+      rawStatus === "pending_partner_acceptance" ||
+      rawStatus === "partner_accepted" ||
+      rawStatus === "accepted" ||
+      rawStatus === "rider_pickup_assigning" ||
+      rawStatus === "rider_searching" ||
+      rawStatus === "pickup_rider_assigned" ||
+      rawStatus === "rider_assigned" ||
+      rawStatus === "pickup_rider_accepted" ||
+      rawStatus === "rider_accepted" ||
+      rawStatus === "rider_going_to_pickup" ||
+      rawStatus === "pickup_otp_pending"
+    );
+  }
+
+  return true;
 }
 
 export const HIGH_VALUE_THRESHOLD = 1500;

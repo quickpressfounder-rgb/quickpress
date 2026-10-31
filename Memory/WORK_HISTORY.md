@@ -33,6 +33,38 @@
 
 ## Detailed Log of Work Done (31 October 2026)
 
+### 87. Real Store Online/Offline Toggle, Omni-Search Bar & 6 Canonical Stage Filters on Partner Order Page
+- **User Request:**
+  - *"order page me Online finle tongle Real intragtion karo Real connect karo or search barr ko working banano Filter Real working bananao FIlter ne Active ,Picked, Process , Out Of delievy ,Delevered ,canacled ye ye banano or real datda he sath banana hai"*
+- **Architectural Implementation Details:**
+  1. **Real Store Online/Offline Toggle (`OrdersScreen.tsx` & `PartnerDesktopTopBar.tsx`):**
+     - Connected directly to `usePartnerContext()` (`isOnline`, `toggleOnline`), which calls `PATCH /api/partner/store/status` on the backend FastAPI server and updates Supabase collections (`partner_profiles`, `partner_settings`, `partners`, `catalog_partners`, `live_locations`).
+     - Added optimistic state updates, loading state spinners during transitions, and toast status notifications.
+     - Implemented on both Mobile (interactive sliding pill switch) and Desktop (status button with live pulsating indicator).
+  2. **Omni-Search Bar Working with Real Data:**
+     - Upgraded `matchesQuery` in `PartnerOrdersContext.tsx` to search across all order fields: order code/ID (with or without `#`), customer name, customer phone number (digits extraction), garment items, service categories, customer addresses, and captain/rider names.
+     - Added instant search input with clear (X) button on both Mobile and Desktop, and integrated with `PartnerDesktopTopBar`.
+     - Added search results counter feedback chip (`Found X orders matching "..."`) with a 1-tap clear button.
+  3. **6 Canonical Filter Tabs (`isOrderMatchingTab` in `partner-orders-mock.ts`):**
+     - Exact 6 pipeline tabs:
+       - `Active`: New, placed, accepted, and awaiting rider pickup.
+       - `Picked`: Picked up by rider & in transit to store.
+       - `Process`: At partner laundromat, washing, drying, dry cleaning, ironing, quality check, packed.
+       - `Out Of Delivery`: Ready for delivery, delivery rider assigned/accepted, dispatched, out for delivery.
+       - `Delivered`: Completed / delivered to customer doorstep.
+       - `Cancelled`: Cancelled, rejected, or refunded.
+     - Live count badges computed directly from active Supabase `orders` list.
+- **Verification & Deployment:**
+  - `npm run build` in `partner-frontend` (Passed with exit 0 in 1.34s).
+  - Recompiled Android APK & AAB (`QuickPress-Partner.apk` 14.6 MB, `QuickPress-Partner.aab` 13.8 MB).
+  - Pushed to GitHub `main` and deployed to EC2 production server.
+- **Files Modified:**
+  - `partner-frontend/src/screens/OrdersScreen.tsx`
+  - `partner-frontend/src/data/partner-orders-mock.ts`
+  - `partner-frontend/src/context/PartnerOrdersContext.tsx`
+  - `partner-frontend/src/components/layout/PartnerDesktopTopBar.tsx`
+  - `Memory/WORK_HISTORY.md`
+
 ### 86. Removed Redundant "Services & Rate Card" Banner Card from Partner Profile Screen
 - **User Request:**
   - Provided screenshot of "Services & Rate Card (7 Live)" card with request: *"isko hata do"* (Remove this).

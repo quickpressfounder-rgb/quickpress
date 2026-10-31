@@ -14,6 +14,7 @@ import {
   TrendingUp,
   UserRound,
   Volume2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -123,6 +124,31 @@ export function PartnerDesktopTopBar({
           />
         </Link>
       </div>
+
+      {/* Center: Global Search Bar if onSearchChange provided */}
+      {onSearchChange ? (
+        <div className="relative mx-4 flex-1 max-w-md">
+          <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search orders by ID, customer name or phone..."
+            className="h-9 w-full rounded-full border border-zinc-200 bg-zinc-50/80 pl-10 pr-8 text-xs font-medium text-black placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none transition-all shadow-2xs"
+          />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => onSearchChange("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black cursor-pointer"
+            >
+              <X className="size-3.5" />
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <div className="flex-1" />
+      )}
 
       {/* Right: Controls matching Zomato Merchant top bar */}
       <div className="flex items-center gap-2.5">
