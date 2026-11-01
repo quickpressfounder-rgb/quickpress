@@ -78,3 +78,28 @@
   - `./venv/bin/python test_full_integrated_order_lifecycle.py`: 20/20 transitions & security constraints passed.
   - `./venv/bin/python test_commission_engine.py`: Passed (0% commission deduction, balanced double-entry ledger).
 
+## Session: 2026-11-01 (Part 3) — Production APK & Google Play AAB Release Automation
+- **Artifacts Built & Released:**
+  - **Customer App:**
+    - APK: `apks/QuickPress-Customer.apk` (17MB)
+    - AAB: `apks/QuickPress-Customer.aab` (16MB)
+    - Website Download: `website/public/apks/QuickPress-Customer.apk`
+  - **Partner App:**
+    - APK: `apks/QuickPress-Partner.apk` (18MB)
+    - AAB: `apks/QuickPress-Partner.aab` (17MB)
+    - Website Download: `website/public/apks/QuickPress-Partner.apk`
+  - **Rider / Captain App:**
+    - APK: `apks/QuickPress-Captain.apk` (18MB)
+    - AAB: `apks/QuickPress-Captain.aab` (17MB)
+    - Website Download: `website/public/apks/QuickPress-Captain.apk`
+- **Build Verification:**
+  - Vite production bundles compiled across all client applications.
+  - SSR runtime hoisting patched and static index.html generated.
+  - Native assets synced to Android Capacitor public asset trees.
+  - Capacitor configurations sanitized of external server dependencies.
+  - Android Gradle `clean`, `assembleDebug` (APK), and `bundleDebug` (Play Store AAB) executed with exit code 0.
+  - iOS Capacitor projects synced.
+- **Artifact Persistence:**
+  - Generated APK and AAB binaries mirrored to active IDE artifact directory: `/Users/himanshupal/.gemini/antigravity-ide/brain/17c1b311-1a3b-46d8-8900-f8a81280aa57/`.
+
+

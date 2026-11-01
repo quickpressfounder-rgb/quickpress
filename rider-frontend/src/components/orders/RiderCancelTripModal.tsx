@@ -153,11 +153,10 @@ export const RiderCancelTripModal: React.FC<RiderCancelTripModalProps> = ({
                     triggerHaptic("selection");
                     setSelectedReason(r.label);
                   }}
-                  className={`w-full text-left p-3 rounded-2xl border transition-all flex items-center gap-3 ${
-                    isSelected
+                  className={`w-full text-left p-3 rounded-2xl border transition-all flex items-center gap-3 ${isSelected
                       ? "border-rose-500 bg-rose-50/40 ring-1 ring-rose-500"
                       : "border-zinc-200 hover:border-zinc-300 bg-white"
-                  }`}
+                    }`}
                 >
                   <div
                     className={`size-9 rounded-xl flex items-center justify-center shrink-0 border ${r.badgeColor}`}
@@ -169,11 +168,10 @@ export const RiderCancelTripModal: React.FC<RiderCancelTripModalProps> = ({
                     <p className="text-[11px] text-zinc-500 truncate">{r.desc}</p>
                   </div>
                   <div
-                    className={`size-4 rounded-full border flex items-center justify-center ${
-                      isSelected
+                    className={`size-4 rounded-full border flex items-center justify-center ${isSelected
                         ? "border-rose-600 bg-rose-600"
                         : "border-zinc-300 bg-white"
-                    }`}
+                      }`}
                   >
                     {isSelected && <span className="size-1.5 rounded-full bg-white" />}
                   </div>

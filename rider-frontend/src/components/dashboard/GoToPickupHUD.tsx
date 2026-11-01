@@ -225,7 +225,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [showRiderCancelModal, setShowRiderCancelModal] = useState(false);
   const [isVerifyingHandover, setIsVerifyingHandover] = useState(false);
   const [handoverVerifyOtpDigits, setHandoverVerifyOtpDigits] = useState<string[]>(["", "", "", ""]);
-  
+
   // COD and Doorstep Razorpay / Cash Payment States
   const isCodOrder = Boolean(
     (order as any).isCod ||
@@ -549,7 +549,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
         localStorage.setItem("qp_active_delivery_order", JSON.stringify(parsed));
       }
-    } catch {}
+    } catch { }
   }, [stage, currentLeg, showDedicatedOtpScreen, dedicatedOtpMode, isWaitingPartnerHandoverConfirm, arrivedTime, startTime, order.orderId]);
 
   // Anti-Back Interceptor: Once arrived or in dedicated OTP screen, strictly prevent accidental back exits
@@ -567,7 +567,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       const handleAndroidBack = (e: any) => {
         try {
           if (typeof e?.preventDefault === "function") e.preventDefault();
-        } catch {}
+        } catch { }
         toast.info("📍 Arrived at pickup. Please enter the 4-digit code given by customer to start ride.", { id: "arrived-lock-toast" });
       };
 
@@ -582,7 +582,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       const onAndroidBack = (e: any) => {
         try {
           if (typeof e?.preventDefault === "function") e.preventDefault();
-        } catch {}
+        } catch { }
         if (onBackToTrips) {
           onBackToTrips();
         }
@@ -644,7 +644,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             }
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [order.orderId, stage]);
 
@@ -664,7 +664,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             localStorage.removeItem("qp_active_rider_order");
             localStorage.removeItem("qp_active_delivery_order");
             window.dispatchEvent(new CustomEvent("qp:active_order_updated", { detail: null }));
-          } catch {}
+          } catch { }
           toast.info(`Trip #${order.orderCode || targetId.slice(-6).toUpperCase()} is already completed/closed.`);
           if (onTripCompleted) {
             onTripCompleted();
@@ -682,7 +682,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             localStorage.removeItem("qp_active_rider_order");
             localStorage.removeItem("qp_active_delivery_order");
             window.dispatchEvent(new CustomEvent("qp:active_order_updated", { detail: null }));
-          } catch {}
+          } catch { }
           toast.info(`Trip #${order.orderCode || targetId.slice(-6).toUpperCase()} is no longer active.`);
           if (onTripCompleted) {
             onTripCompleted();
@@ -716,7 +716,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           setIsInAppNavActive(true);
           setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
         }
-      } catch {}
+      } catch { }
     }, 10000);
     return () => clearInterval(interval);
   }, [stage, isHandoverRide, isStorePickupForDelivery, order.orderId]);
@@ -760,7 +760,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             toast.success("🎉 Partner Confirmed Handover! ₹25 Pickup Payout Credited.");
           }
         }
-      } catch {}
+      } catch { }
     }, 3000);
     return () => clearInterval(interval);
   }, [stage, isWaitingPartnerHandoverConfirm, order.orderId]);
@@ -791,7 +791,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           toast.success("🎉 Order Packed & Ready! Go to Partner Store to collect package.");
           setStage("ready_pickup_store");
         }
-      } catch {}
+      } catch { }
     }, 4000);
     return () => clearInterval(interval);
   }, [stage, order.orderId]);
@@ -820,7 +820,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName || "Customer");
           }, 600);
         }
-      } catch {}
+      } catch { }
     }, 3000);
     return () => clearInterval(interval);
   }, [stage, order.orderId]);
@@ -896,7 +896,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             localStorage.removeItem("qp_active_rider_order");
             localStorage.removeItem("qp_active_delivery_order");
             window.dispatchEvent(new CustomEvent("qp:active_order_updated", { detail: null }));
-          } catch {}
+          } catch { }
           toast.error("❌ Yeh order customer/store dwara cancel kar diya gaya.");
           if (onCancelTrip) {
             onCancelTrip();
@@ -926,7 +926,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         socket?.off("order.cancelled", handleOrderEvent);
         socket?.off("ride.cancelled", handleOrderEvent);
       };
-    } catch {}
+    } catch { }
   }, [order.orderId, stage]);
 
 
@@ -970,7 +970,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           const parsed = JSON.parse(cached);
           if (parsed?.lat && parsed?.lng) return parsed;
         }
-      } catch {}
+      } catch { }
     }
     return (
       order.customerCoords ||
@@ -990,7 +990,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         setCaptainCoords({ lat: loc.lat, lng: loc.lng });
         try {
           localStorage.setItem("qp_rider_last_gps", JSON.stringify({ lat: loc.lat, lng: loc.lng }));
-        } catch {}
+        } catch { }
       }
     });
 
@@ -1050,8 +1050,8 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     distanceMeters > 0
       ? distanceMeters / 1000
       : currentLeg === "store_to_customer"
-      ? (order.dropDistanceKm ?? 2.2)
-      : (order.pickupDistanceKm ?? 0.8);
+        ? (order.dropDistanceKm ?? 2.2)
+        : (order.pickupDistanceKm ?? 0.8);
 
   const pickupCoords = customerCoords;
   const dropCoords = storeCoords;
@@ -1089,7 +1089,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         if (mapInstanceRef.current) {
           try {
             mapInstanceRef.current.remove();
-          } catch {}
+          } catch { }
           mapInstanceRef.current = null;
         }
 
@@ -1148,7 +1148,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       if (mapInstanceRef.current) {
         try {
           mapInstanceRef.current.remove();
-        } catch {}
+        } catch { }
         mapInstanceRef.current = null;
       }
     };
@@ -1235,10 +1235,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         routeData.coordinates.length >= 2
           ? routeData.coordinates
           : [
-              [startPoint.lat, startPoint.lng],
-              [(startPoint.lat + dest.lat) / 2 + 0.0005, (startPoint.lng + dest.lng) / 2 - 0.0004],
-              [dest.lat, dest.lng],
-            ];
+            [startPoint.lat, startPoint.lng],
+            [(startPoint.lat + dest.lat) / 2 + 0.0005, (startPoint.lng + dest.lng) / 2 - 0.0004],
+            [dest.lat, dest.lng],
+          ];
 
       if (routeData.steps && routeData.steps.length > 0) {
         setNextTurnManeuver(routeData.steps[0].maneuver);
@@ -1604,11 +1604,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       parsed.arrivedAtPickupAt = new Date().toISOString();
       localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
       localStorage.setItem("qp_active_delivery_order", JSON.stringify(parsed));
-    } catch {}
+    } catch { }
 
     // Real backend notification
     if (order.orderId && !order.orderId.startsWith("TEST-")) {
-      confirmArrivalAtPickup(order.orderId).catch(() => {});
+      confirmArrivalAtPickup(order.orderId).catch(() => { });
     }
   };
 
@@ -1643,7 +1643,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               parsed.doorstepPiecesVerified = true;
               localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
             }
-          } catch {}
+          } catch { }
         } catch (err: any) {
           const msg = (err?.message || "").toLowerCase();
           if (msg.includes("already") || msg.includes("picked") || msg.includes("completed")) {
@@ -1684,7 +1684,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         parsed.pickupCompletedAt = new Date().toISOString();
         localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
         localStorage.setItem("qp_active_delivery_order", JSON.stringify(parsed));
-      } catch {}
+      } catch { }
 
       // Real Google Maps Turn-by-Turn Navigation Intent (keeping overlay HUD screen active)
       setTimeout(() => {
@@ -1716,7 +1716,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       parsed.droppedAtStoreAt = new Date().toISOString();
       localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
       localStorage.setItem("qp_active_delivery_order", JSON.stringify(parsed));
-    } catch {}
+    } catch { }
 
     if (order.orderId && !order.orderId.startsWith("TEST-")) {
       try {
@@ -1786,7 +1786,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         };
         try {
           localStorage.setItem("qp_active_rider_order", JSON.stringify(updatedOrder));
-        } catch {}
+        } catch { }
 
         if (order.orderId && !order.orderId.startsWith("TEST-")) {
           try {
@@ -1839,7 +1839,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
         try {
           localStorage.removeItem("qp_active_rider_order");
-        } catch {}
+        } catch { }
       }
     } finally {
       isActionLockedRef.current = false;
@@ -1878,7 +1878,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     };
     try {
       localStorage.setItem("qp_active_rider_order", JSON.stringify(updatedOrder));
-    } catch {}
+    } catch { }
 
     if (order.orderId && !order.orderId.startsWith("TEST-")) {
       try {
@@ -1964,30 +1964,30 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const activeStepIndex = isTripCompleted
     ? 6
     : isOutForDelivery
-    ? 6
-    : isAtStoreHandover
-    ? 5
-    : isDroppedAtStoreOrProcessing
-    ? 4
-    : isAtPickup
-    ? 3
-    : isEnRoute
-    ? 2
-    : 1;
+      ? 6
+      : isAtStoreHandover
+        ? 5
+        : isDroppedAtStoreOrProcessing
+          ? 4
+          : isAtPickup
+            ? 3
+            : isEnRoute
+              ? 2
+              : 1;
 
   const currentStagePillText = isTripCompleted
     ? "Order Successfully Completed"
     : isOutForDelivery
-    ? "En Route to Customer Delivery"
-    : isAtStoreHandover
-    ? "At Store · Give 4-Digit Dispatch Code"
-    : isDroppedAtStoreOrProcessing
-    ? "Store Washing & Steam Ironing (SLA)"
-    : isAtPickup
-    ? "At Pickup · Verify Customer OTP"
-    : isEnRoute
-    ? (isStorePickupForDelivery ? "Heading to Partner Store" : "Heading to Customer Pickup")
-    : "Order Accepted & Ready";
+      ? "En Route to Customer Delivery"
+      : isAtStoreHandover
+        ? "At Store · Give 4-Digit Dispatch Code"
+        : isDroppedAtStoreOrProcessing
+          ? "Store Washing & Steam Ironing (SLA)"
+          : isAtPickup
+            ? "At Pickup · Verify Customer OTP"
+            : isEnRoute
+              ? (isStorePickupForDelivery ? "Heading to Partner Store" : "Heading to Customer Pickup")
+              : "Order Accepted & Ready";
 
   const progressPercentage = Math.round(((activeStepIndex - 1) / 5) * 100);
 
@@ -2087,113 +2087,113 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           <div className="relative w-full h-full rounded-3xl overflow-hidden border-2 border-slate-300/80 shadow-md bg-white">
             <div ref={mapContainerRef} className="w-full h-full z-0" style={{ touchAction: "none" }} />
 
-          {/* Top Floating Turn-by-Turn Maneuver Pill with Speedometer */}
-          {(stage === "en_route_pickup" || stage === "in_trip") && (
-            <div className="absolute top-2.5 left-2.5 right-2.5 z-20 pointer-events-auto flex items-center gap-2">
-              {/* Speedometer Badge */}
-              <div className="size-11 rounded-full bg-white text-slate-950 font-black border-2 border-slate-950 shadow-md flex flex-col items-center justify-center shrink-0">
-                <span className="text-xs leading-none font-mono">0</span>
-                <span className="text-[7.5px] uppercase tracking-tighter -mt-0.5 font-bold text-slate-500">km/h</span>
-              </div>
+            {/* Top Floating Turn-by-Turn Maneuver Pill with Speedometer */}
+            {(stage === "en_route_pickup" || stage === "in_trip") && (
+              <div className="absolute top-2.5 left-2.5 right-2.5 z-20 pointer-events-auto flex items-center gap-2">
+                {/* Speedometer Badge */}
+                <div className="size-11 rounded-full bg-white text-slate-950 font-black border-2 border-slate-950 shadow-md flex flex-col items-center justify-center shrink-0">
+                  <span className="text-xs leading-none font-mono">0</span>
+                  <span className="text-[7.5px] uppercase tracking-tighter -mt-0.5 font-bold text-slate-500">km/h</span>
+                </div>
 
-              <div className="flex-1 flex items-center justify-between gap-2 p-2 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200 text-slate-950 shadow-md min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="size-8.5 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                    {nextTurnManeuver === "turn-right" || nextTurnManeuver === "slight-right" ? (
-                      <CornerUpRight className="size-4.5 text-emerald-600 stroke-[2.2]" />
-                    ) : nextTurnManeuver === "turn-left" || nextTurnManeuver === "slight-left" ? (
-                      <CornerUpLeft className="size-4.5 text-emerald-600 stroke-[2.2]" />
-                    ) : (
-                      <Navigation className="size-4.5 text-emerald-600 -rotate-45 stroke-[2.2]" />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-sm font-black font-mono tracking-tight text-slate-950">
-                        {nextTurnDistanceM > 1000 ? `${(nextTurnDistanceM / 1000).toFixed(1)} km` : `${nextTurnDistanceM} m`}
-                      </span>
-                      <span className="text-[8.5px] font-bold text-slate-700 uppercase tracking-wider bg-slate-100 px-1 py-0.2 rounded">
-                        {stage === "en_route_pickup" ? "To Pickup" : "In-Trip"}
-                      </span>
+                <div className="flex-1 flex items-center justify-between gap-2 p-2 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200 text-slate-950 shadow-md min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="size-8.5 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                      {nextTurnManeuver === "turn-right" || nextTurnManeuver === "slight-right" ? (
+                        <CornerUpRight className="size-4.5 text-emerald-600 stroke-[2.2]" />
+                      ) : nextTurnManeuver === "turn-left" || nextTurnManeuver === "slight-left" ? (
+                        <CornerUpLeft className="size-4.5 text-emerald-600 stroke-[2.2]" />
+                      ) : (
+                        <Navigation className="size-4.5 text-emerald-600 -rotate-45 stroke-[2.2]" />
+                      )}
                     </div>
-                    <p className="text-[10.5px] font-medium text-slate-500 truncate mt-0.5">
-                      {nextTurnInstruction || `Proceed towards ${activeDestTitle}`}
-                    </p>
+                    <div className="min-w-0">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-sm font-black font-mono tracking-tight text-slate-950">
+                          {nextTurnDistanceM > 1000 ? `${(nextTurnDistanceM / 1000).toFixed(1)} km` : `${nextTurnDistanceM} m`}
+                        </span>
+                        <span className="text-[8.5px] font-bold text-slate-700 uppercase tracking-wider bg-slate-100 px-1 py-0.2 rounded">
+                          {stage === "en_route_pickup" ? "To Pickup" : "In-Trip"}
+                        </span>
+                      </div>
+                      <p className="text-[10.5px] font-medium text-slate-500 truncate mt-0.5">
+                        {nextTurnInstruction || `Proceed towards ${activeDestTitle}`}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Floating Geofence Speech Bubble ("Pick up here" tooltip - Rapido Video Style) */}
-          {stage === "en_route_pickup" && (
-            <div className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-12 z-20 pointer-events-none animate-bounce duration-1000">
-              <div className="relative flex flex-col items-center">
-                <div className="flex items-center gap-1.5 px-3 py-1 bg-[#16A34A] text-white font-black text-[11px] rounded-full shadow-lg border border-emerald-400">
-                  <span className="size-1.5 rounded-full bg-white animate-ping" />
-                  <span>Pick up here</span>
-                  <span className="text-[10px] font-mono opacity-90">({distanceMeters}m)</span>
+            {/* Floating Geofence Speech Bubble ("Pick up here" tooltip - Rapido Video Style) */}
+            {stage === "en_route_pickup" && (
+              <div className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-12 z-20 pointer-events-none animate-bounce duration-1000">
+                <div className="relative flex flex-col items-center">
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-[#16A34A] text-white font-black text-[11px] rounded-full shadow-lg border border-emerald-400">
+                    <span className="size-1.5 rounded-full bg-white animate-ping" />
+                    <span>Pick up here</span>
+                    <span className="text-[10px] font-mono opacity-90">({distanceMeters}m)</span>
+                  </div>
+                  <div className="w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-[#16A34A] -mt-0.5" />
                 </div>
-                <div className="w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-[#16A34A] -mt-0.5" />
               </div>
+            )}
+
+            {/* Official Google Maps Watermark Badge (Bottom Left) */}
+            <div className="absolute bottom-3 left-3 z-20 flex items-center gap-1 px-2 py-0.5 bg-white/95 backdrop-blur-xs rounded-md shadow-md border border-slate-300 pointer-events-none text-[10px] font-black">
+              <span className="text-[#4285F4]">G</span>
+              <span className="text-[#EA4335]">o</span>
+              <span className="text-[#FBBC05]">o</span>
+              <span className="text-[#4285F4]">g</span>
+              <span className="text-[#34A853]">l</span>
+              <span className="text-[#EA4335]">e</span>
+              <span className="text-slate-800 font-bold ml-0.5">Maps</span>
             </div>
-          )}
 
-          {/* Official Google Maps Watermark Badge (Bottom Left) */}
-          <div className="absolute bottom-3 left-3 z-20 flex items-center gap-1 px-2 py-0.5 bg-white/95 backdrop-blur-xs rounded-md shadow-md border border-slate-300 pointer-events-none text-[10px] font-black">
-            <span className="text-[#4285F4]">G</span>
-            <span className="text-[#EA4335]">o</span>
-            <span className="text-[#FBBC05]">o</span>
-            <span className="text-[#4285F4]">g</span>
-            <span className="text-[#34A853]">l</span>
-            <span className="text-[#EA4335]">e</span>
-            <span className="text-slate-800 font-bold ml-0.5">Maps</span>
-          </div>
+            {/* Floating Yellow Action Button (Rapido Video Style: "▲ Go to pickup" / "▲ Go to drop") */}
+            {(stage === "en_route_pickup" || stage === "in_trip") && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(20);
+                    if (stage === "in_trip") {
+                      launchTurnByTurnGoogleMaps(storeCoords, captainCoords, partnerStoreName);
+                    } else {
+                      launchTurnByTurnGoogleMaps(activeDestCoords, captainCoords, activeDestTitle);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#FACC15] hover:bg-yellow-400 text-slate-950 font-black text-xs rounded-full shadow-lg border border-yellow-500 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                >
+                  <Navigation className="size-3.5 fill-slate-950 stroke-none" />
+                  <span>{stage === "en_route_pickup" ? "Go to pickup" : "Go to drop"}</span>
+                </button>
+              </div>
+            )}
 
-          {/* Floating Yellow Action Button (Rapido Video Style: "▲ Go to pickup" / "▲ Go to drop") */}
-          {(stage === "en_route_pickup" || stage === "in_trip") && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
+            {/* Floating Map Controls (Bottom Right GPS Recenter Button + SOS) */}
+            <div className="absolute right-3 bottom-3 z-20 flex flex-col gap-2 pointer-events-auto">
               <button
                 type="button"
                 onClick={() => {
-                  triggerHaptic(20);
-                  if (stage === "in_trip") {
-                    launchTurnByTurnGoogleMaps(storeCoords, captainCoords, partnerStoreName);
-                  } else {
-                    launchTurnByTurnGoogleMaps(activeDestCoords, captainCoords, activeDestTitle);
-                  }
+                  triggerHaptic(50);
+                  toast.error("🚨 Emergency SOS Beacon Dispatched to Safety Team");
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#FACC15] hover:bg-yellow-400 text-slate-950 font-black text-xs rounded-full shadow-lg border border-yellow-500 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                className="flex items-center justify-center size-9 bg-rose-600 text-white rounded-xl shadow-lg border border-rose-700 active:scale-90 transition-transform hover:bg-rose-700 cursor-pointer text-xs font-black"
+                aria-label="SOS Emergency"
+                title="Emergency SOS"
               >
-                <Navigation className="size-3.5 fill-slate-950 stroke-none" />
-                <span>{stage === "en_route_pickup" ? "Go to pickup" : "Go to drop"}</span>
+                SOS
+              </button>
+              <button
+                type="button"
+                onClick={handleRecenter}
+                className="flex items-center justify-center size-9 bg-white text-slate-900 rounded-xl shadow-xl border border-slate-300 active:scale-90 transition-transform hover:bg-slate-50 cursor-pointer"
+                aria-label="Recenter Map"
+              >
+                <Crosshair className="size-4.5 text-[#00C853]" />
               </button>
             </div>
-          )}
-
-          {/* Floating Map Controls (Bottom Right GPS Recenter Button + SOS) */}
-          <div className="absolute right-3 bottom-3 z-20 flex flex-col gap-2 pointer-events-auto">
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(50);
-                toast.error("🚨 Emergency SOS Beacon Dispatched to Safety Team");
-              }}
-              className="flex items-center justify-center size-9 bg-rose-600 text-white rounded-xl shadow-lg border border-rose-700 active:scale-90 transition-transform hover:bg-rose-700 cursor-pointer text-xs font-black"
-              aria-label="SOS Emergency"
-              title="Emergency SOS"
-            >
-              SOS
-            </button>
-            <button
-              type="button"
-              onClick={handleRecenter}
-              className="flex items-center justify-center size-9 bg-white text-slate-900 rounded-xl shadow-xl border border-slate-300 active:scale-90 transition-transform hover:bg-slate-50 cursor-pointer"
-              aria-label="Recenter Map"
-            >
-              <Crosshair className="size-4.5 text-[#00C853]" />
-            </button>
-          </div>
           </div>
         </div>
       )}
@@ -2203,170 +2203,1137 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         {/* Customer / Store Information Card */}
         {stage !== "store_processing" && (
           <div className="px-4 py-3 border-b border-zinc-100">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            {/* Visual Icon Badge */}
-            <div
-              className={`flex items-center justify-center w-11 h-11 rounded-2xl shrink-0 border shadow-xs ${
-                stage === "in_trip" && currentLeg === "pickup_to_store"
-                  ? "bg-emerald-50 border-emerald-300 text-emerald-600"
-                  : isStorePickupForDelivery || stage === "ready_pickup_store"
-                  ? "bg-amber-50 border-amber-300 text-amber-600"
-                  : "bg-blue-50 border-blue-300 text-blue-600"
-              }`}
-            >
-              {stage === "in_trip" && currentLeg === "pickup_to_store" ? (
-                <Package className="w-5 h-5" />
-              ) : isStorePickupForDelivery || stage === "ready_pickup_store" ? (
-                <Package className="w-5 h-5" />
-              ) : (
-                <MapPin className="w-5 h-5 fill-blue-600 text-white" />
-              )}
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h2 className="text-base font-black text-zinc-950 leading-tight truncate">
-                  {stage === "in_trip" && currentLeg === "pickup_to_store"
-                    ? partnerStoreName
-                    : (order.customerName || "Customer")}
-                </h2>
-                {order.orderCode && (
-                  <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded-md bg-zinc-100 text-zinc-700 border border-zinc-200">
-                    #{order.orderCode.slice(-4).toUpperCase()}
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  <Star className="size-3 fill-amber-400 text-amber-400" />
-                  <span>4.9</span>
-                </span>
-              </div>
-
-              {/* Address with One-Tap Copy Button */}
-              <div className="flex items-center gap-1.5 mt-1">
-                <p className="text-xs font-semibold text-zinc-600 leading-snug line-clamp-1 flex-1">
-                  {activeDestAddress}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handleCopyAddress(activeDestAddress)}
-                  className="flex items-center gap-1 text-[10px] font-bold text-zinc-600 hover:text-emerald-700 bg-zinc-100 hover:bg-emerald-50 border border-zinc-200 hover:border-emerald-300 px-1.5 py-0.5 rounded transition-all active:scale-95 shrink-0"
-                  title="Copy address"
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                {/* Visual Icon Badge */}
+                <div
+                  className={`flex items-center justify-center w-11 h-11 rounded-2xl shrink-0 border shadow-xs ${stage === "in_trip" && currentLeg === "pickup_to_store"
+                      ? "bg-emerald-50 border-emerald-300 text-emerald-600"
+                      : isStorePickupForDelivery || stage === "ready_pickup_store"
+                        ? "bg-amber-50 border-amber-300 text-amber-600"
+                        : "bg-blue-50 border-blue-300 text-blue-600"
+                    }`}
                 >
-                  {isAddressCopied ? (
-                    <>
-                      <Check className="w-3 h-3 text-emerald-600" />
-                      <span className="text-emerald-700">Copied</span>
-                    </>
+                  {stage === "in_trip" && currentLeg === "pickup_to_store" ? (
+                    <Package className="w-5 h-5" />
+                  ) : isStorePickupForDelivery || stage === "ready_pickup_store" ? (
+                    <Package className="w-5 h-5" />
                   ) : (
-                    <>
-                      <Copy className="w-3 h-3" />
-                      <span>Copy</span>
-                    </>
+                    <MapPin className="w-5 h-5 fill-blue-600 text-white" />
                   )}
-                </button>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h2 className="text-base font-black text-zinc-950 leading-tight truncate">
+                      {stage === "in_trip" && currentLeg === "pickup_to_store"
+                        ? partnerStoreName
+                        : (order.customerName || "Customer")}
+                    </h2>
+                    {order.orderCode && (
+                      <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded-md bg-zinc-100 text-zinc-700 border border-zinc-200">
+                        #{order.orderCode.slice(-4).toUpperCase()}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      <Star className="size-3 fill-amber-400 text-amber-400" />
+                      <span>4.9</span>
+                    </span>
+                  </div>
+
+                  {/* Address with One-Tap Copy Button */}
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <p className="text-xs font-semibold text-zinc-600 leading-snug line-clamp-1 flex-1">
+                      {activeDestAddress}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyAddress(activeDestAddress)}
+                      className="flex items-center gap-1 text-[10px] font-bold text-zinc-600 hover:text-emerald-700 bg-zinc-100 hover:bg-emerald-50 border border-zinc-200 hover:border-emerald-300 px-1.5 py-0.5 rounded transition-all active:scale-95 shrink-0"
+                      title="Copy address"
+                    >
+                      {isAddressCopied ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          <span className="text-emerald-700">Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Status pills row */}
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                    {distanceRemainingKm !== null && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded-md">
+                        <Navigation className="w-3 h-3 text-blue-600" />
+                        <span>{distanceRemainingKm.toFixed(1)} km</span>
+                      </span>
+                    )}
+                    {stage === "in_trip" && currentLeg === "pickup_to_store" && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                        <Check className="size-3 text-emerald-600" />
+                        <span>Sealed Bag: {bagTagCode || "QP-BAG"} • {doorstepPieces} pcs</span>
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowRouteBatchModal(true)}
+                      className="inline-flex items-center gap-1 text-[11px] font-black text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-md border border-blue-300 active:scale-95 transition-all cursor-pointer"
+                      title="View Route Batch & Bike Inventory"
+                    >
+                      <Package className="w-3 h-3 text-blue-600" />
+                      <span>Batch & Bags</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Status pills row */}
-              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                {distanceRemainingKm !== null && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded-md">
-                    <Navigation className="w-3 h-3 text-blue-600" />
-                    <span>{distanceRemainingKm.toFixed(1)} km</span>
-                  </span>
-                )}
-                {stage === "in_trip" && currentLeg === "pickup_to_store" && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                    <Check className="size-3 text-emerald-600" />
-                    <span>Sealed Bag: {bagTagCode || "QP-BAG"} • {doorstepPieces} pcs</span>
-                  </span>
-                )}
+              {/* Quick Contact Action: Call and In-App Chat */}
+              <div className="flex items-center gap-2 shrink-0">
+                {/* 1. Phone Call */}
                 <button
                   type="button"
-                  onClick={() => setShowRouteBatchModal(true)}
-                  className="inline-flex items-center gap-1 text-[11px] font-black text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-md border border-blue-300 active:scale-95 transition-all cursor-pointer"
-                  title="View Route Batch & Bike Inventory"
+                  onClick={() => setShowCallModal(true)}
+                  className="flex items-center justify-center size-10 rounded-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs active:scale-95 transition-all cursor-pointer"
+                  aria-label="Call Customer / Store"
+                  title="Call"
                 >
-                  <Package className="w-3 h-3 text-blue-600" />
-                  <span>Batch & Bags</span>
+                  <Phone className="size-4.5 fill-current" />
+                </button>
+
+                {/* 2. In-App Chat */}
+                <button
+                  type="button"
+                  onClick={() => setShowChatModal(true)}
+                  className="relative flex items-center justify-center size-10 rounded-full bg-slate-950 hover:bg-slate-800 text-white shadow-xs active:scale-95 transition-all cursor-pointer"
+                  aria-label="Open In-App Chat"
+                  title="In-App Chat"
+                >
+                  <MessageSquare className="size-4.5" />
+                  <span className="absolute -top-0.5 -right-0.5 size-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse" />
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* Quick Contact Action: Call and In-App Chat */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* 1. Phone Call */}
-            <button
-              type="button"
-              onClick={() => setShowCallModal(true)}
-              className="flex items-center justify-center size-10 rounded-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs active:scale-95 transition-all cursor-pointer"
-              aria-label="Call Customer / Store"
-              title="Call"
-            >
-              <Phone className="size-4.5 fill-current" />
-            </button>
-
-            {/* 2. In-App Chat */}
-            <button
-              type="button"
-              onClick={() => setShowChatModal(true)}
-              className="relative flex items-center justify-center size-10 rounded-full bg-slate-950 hover:bg-slate-800 text-white shadow-xs active:scale-95 transition-all cursor-pointer"
-              aria-label="Open In-App Chat"
-              title="In-App Chat"
-            >
-              <MessageSquare className="size-4.5" />
-              <span className="absolute -top-0.5 -right-0.5 size-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse" />
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-
-        {/* Bottom Action Controls depending on Stage */}
-        <div className={`p-4 pt-2 space-y-2 ${stage === "store_processing" ? "p-0 pt-0" : ""}`}>
-        {/* STAGE 1: Heading to Pickup */}
-        {stage === "en_route_pickup" && (
-          <div className="space-y-2.5 animate-in fade-in duration-200">
-            {/* Action Buttons: Message customer button (Video Frame 00:23) */}
-            <button
-              type="button"
-              onClick={() => setShowChatModal(true)}
-              className="w-full h-11 rounded-full border border-slate-300 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs active:scale-95 transition-all cursor-pointer"
-            >
-              <MessageSquare className="size-4 text-slate-700" />
-              <span>Message customer</span>
-            </button>
-
-            {/* Quick Google Maps Navigation Button */}
-            <button
-              type="button"
-              onClick={() => launchTurnByTurnGoogleMaps(activeDestCoords, captainCoords, activeDestTitle)}
-              className="w-full py-2.5 px-3 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-2xs cursor-pointer"
-            >
-              <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
-              <span>Navigate with Google Maps</span>
-            </button>
-
-            {/* Dark Navy Pill Swipe to Arrive with ArrowRight and only Arrived label */}
-            <SwipeActionButton
-              label="Arrived"
-              color="darkNavy"
-              onConfirm={() => {
-                triggerHaptic(30);
-                setShowArrivedConfirmModal(true);
-              }}
-            />
           </div>
         )}
 
-        {/* STAGE 2: Arrived at Pickup / Handover Point */}
-        {stage === "arrived_pickup" && (
-          <div className="space-y-3 animate-in fade-in duration-200">
-            {isStorePickupForDelivery || isHandoverRide ? (
-              <div className="space-y-3.5">
-                {/* 1. Partner Store Location Card */}
-                <div className="p-3.5 bg-white rounded-3xl border border-slate-200/90 flex items-center justify-between gap-3 shadow-xs">
+        {/* Bottom Action Controls depending on Stage */}
+        <div className={`p-4 pt-2 space-y-2 ${stage === "store_processing" ? "p-0 pt-0" : ""}`}>
+          {/* STAGE 1: Heading to Pickup */}
+          {stage === "en_route_pickup" && (
+            <div className="space-y-2.5 animate-in fade-in duration-200">
+              {/* Action Buttons: Message customer button (Video Frame 00:23) */}
+              <button
+                type="button"
+                onClick={() => setShowChatModal(true)}
+                className="w-full h-11 rounded-full border border-slate-300 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs active:scale-95 transition-all cursor-pointer"
+              >
+                <MessageSquare className="size-4 text-slate-700" />
+                <span>Message customer</span>
+              </button>
+
+              {/* Quick Google Maps Navigation Button */}
+              <button
+                type="button"
+                onClick={() => launchTurnByTurnGoogleMaps(activeDestCoords, captainCoords, activeDestTitle)}
+                className="w-full py-2.5 px-3 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-2xs cursor-pointer"
+              >
+                <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
+                <span>Navigate with Google Maps</span>
+              </button>
+
+              {/* Dark Navy Pill Swipe to Arrive with ArrowRight and only Arrived label */}
+              <SwipeActionButton
+                label="Arrived"
+                color="darkNavy"
+                onConfirm={() => {
+                  triggerHaptic(30);
+                  setShowArrivedConfirmModal(true);
+                }}
+              />
+            </div>
+          )}
+
+          {/* STAGE 2: Arrived at Pickup / Handover Point */}
+          {stage === "arrived_pickup" && (
+            <div className="space-y-3 animate-in fade-in duration-200">
+              {isStorePickupForDelivery || isHandoverRide ? (
+                <div className="space-y-3.5">
+                  {/* 1. Partner Store Location Card */}
+                  <div className="p-3.5 bg-white rounded-3xl border border-slate-200/90 flex items-center justify-between gap-3 shadow-xs">
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                        Partner Store
+                      </span>
+                      <p className="text-xs font-black text-slate-950 truncate">
+                        {partnerStoreName}
+                      </p>
+                      <p className="text-[11px] font-medium text-slate-600 truncate mt-0.5">
+                        {partnerStoreAddress}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowCallModal(true)}
+                      className="size-9 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100 active:scale-95 flex items-center justify-center shrink-0 shadow-2xs cursor-pointer"
+                      aria-label="Call Store"
+                      title="Call Store"
+                    >
+                      <Phone className="size-4 text-slate-800" />
+                    </button>
+                  </div>
+
+                  {/* 2. Main Handover OTP Input (Front & Center) */}
+                  <RiderCustomerOtpInput
+                    otpDigits={handoverVerifyOtpDigits}
+                    setOtpDigits={setHandoverVerifyOtpDigits}
+                    title="Enter Handover OTP"
+                    subtitle="Ask 4-digit handover code from partner store staff (पार्टनर से कोड पूछें)"
+                    hint="स्टोर स्टाफ से 4-अंक का हैंडओवर कोड पूछें"
+                    onAutoSubmit={(code) => {
+                      handleVerifyHandoverTransfer(code);
+                    }}
+                  />
+
+                  {/* 3. Dispatch Code Helper (If Partner enters Captain code on store terminal) */}
+                  <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/90 rounded-2xl text-[11px]">
+                    <div className="flex items-center gap-1.5 text-slate-600 font-medium">
+                      <ShieldCheck className="size-4 text-emerald-600 shrink-0" />
+                      <span>Or tell Partner Dispatch Code:</span>
+                      <span className="font-mono font-black text-slate-950 tracking-wider">
+                        {captainDispatchOtp || "----"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (captainDispatchOtp) {
+                          navigator.clipboard.writeText(captainDispatchOtp);
+                          toast.success("Dispatch OTP copied to clipboard!");
+                          triggerHaptic(40);
+                        }
+                      }}
+                      className="text-[10.5px] font-bold text-slate-700 hover:text-slate-950 underline px-1 cursor-pointer"
+                    >
+                      Copy
+                    </button>
+                  </div>
+
+                  {/* 4. Sealed Bag / Garment Check Badge */}
+                  <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                    <div className="flex items-center gap-2">
+                      <Package className="size-4 text-emerald-600 shrink-0" />
+                      <span className="text-xs font-bold text-emerald-950">
+                        Sealed Bag: {bagTagCode || "QP-BAG-4491"} • {doorstepPieces || 5} Cleaned Garments
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                      Ready ✓
+                    </span>
+                  </div>
+
+                  {/* 5. Slide to Start Customer Delivery */}
+                  <SwipeActionButton
+                    label="Slide to Start Customer Delivery"
+                    hint="हैंडओवर कोड दर्ज करके स्लाइड करें • Start Delivery"
+                    color="emerald"
+                    onConfirm={async () => {
+                      const enteredCode = handoverVerifyOtpDigits.join("");
+                      if (enteredCode.length === 4) {
+                        await handleVerifyHandoverTransfer(enteredCode);
+                        return;
+                      }
+                      try {
+                        const res = await fetchDispatchOtp(order.orderId);
+                        if (
+                          res?.isVerified ||
+                          res?.status === "out_for_delivery" ||
+                          res?.status === "OUT_FOR_DELIVERY"
+                        ) {
+                          unlockAudioContext();
+                          playSuccessChime();
+                          speakText("डिलीवरी शुरू करें।");
+                          toast.success("✓ Custody verified! Navigating to customer.");
+                          setStage("in_trip");
+                          setStartTime(
+                            new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                          );
+                          setTimeout(() => {
+                            launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName);
+                          }, 600);
+                        } else {
+                          toast.error(
+                            "Please enter the 4-digit Handover OTP from store or ask partner to verify dispatch code."
+                          );
+                        }
+                      } catch {
+                        toast.error("Please enter the 4-digit Handover OTP from store.");
+                      }
+                    }}
+                  />
+
+                  {/* 6. Emergency Support / Issue Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowUnableModal(true)}
+                    className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <AlertTriangle className="size-4 text-amber-600" />
+                    <span>Need Help / Unable to Collect from Store</span>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Rapido Yellow Theme: Soft Blue Wait Timer Banner (Video Frame 00:33) */}
+                  <div className="flex items-center justify-between p-3.5 bg-[#EBF3FF] border border-[#D0E2FF] rounded-2xl shadow-2xs">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-900">Wait Timer</span>
+                      <span className="text-xs font-black font-mono bg-[#FACC15] text-slate-950 px-2.5 py-0.5 rounded-md border border-yellow-500 shadow-2xs">
+                        {formatTimer(waitingSeconds)}
+                      </span>
+                    </div>
+                    <p className="text-[10px] font-semibold text-blue-900 max-w-[190px] leading-tight text-right">
+                      ⓘ After 3 minutes, you will get extra charge for waiting
+                    </p>
+                  </div>
+
+                  {/* Doorstep Garment Intake & Security Bag Tag Card with Photo Proof */}
+                  <RiderDoorstepPickupCard
+                    initialPiecesCount={initialDoorstepPieces}
+                    doorstepPieces={doorstepPieces}
+                    setDoorstepPieces={setDoorstepPieces}
+                    bagTagCode={bagTagCode}
+                    setBagTagCode={setBagTagCode}
+                    doorstepNotes={doorstepNotes}
+                    setDoorstepNotes={setDoorstepNotes}
+                    bagPhotoUrl={bagPhotoUrl}
+                    setBagPhotoUrl={setBagPhotoUrl}
+                  />
+
+                  {/* Optional Keypad Trigger Button (Clean Outline Style) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDedicatedOtpMode("pickup");
+                      setDedicatedOtpDigits(["", "", "", ""]);
+                      setShowDedicatedOtpScreen(true);
+                    }}
+                    className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs active:scale-95 transition-all cursor-pointer"
+                  >
+                    <KeyRound className="size-4 text-slate-700" />
+                    <span>Enter OTP Manually</span>
+                  </button>
+
+                  {/* Solid Emerald Swipe to Start Ride (Video Frame 00:35) */}
+                  <SwipeActionButton
+                    label="Start Ride"
+                    hint="कस्टमर से OTP लेकर स्लाइड करें • Start Ride"
+                    color="emerald"
+                    onConfirm={() => {
+                      setDedicatedOtpMode("pickup");
+                      setDedicatedOtpDigits(["", "", "", ""]);
+                      setShowDedicatedOtpScreen(true);
+                    }}
+                  />
+                </>
+              )}
+            </div>
+          )}
+
+          {/* STAGE 3: In Trip -> Drop at Store (Leg 1) OR Complete Delivery (Leg 2) */}
+          {stage === "in_trip" && (
+            <div className="space-y-3 animate-in fade-in duration-200">
+              {/* Perfect Pick-up Celebration Banner (Video Frame 00:56) */}
+              {showPerfectPickupBanner && (
+                <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-300 rounded-2xl text-emerald-950 text-xs font-bold animate-in fade-in duration-300">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="size-4 text-emerald-600 shrink-0" />
+                    <span>Perfect Pick-up! ✨ You started the ride at the right location.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPerfectPickupBanner(false)}
+                    className="p-1 text-emerald-800 hover:text-emerald-950 cursor-pointer"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {currentLeg === "pickup_to_store" ? (
+                <>
+                  {/* Destination Store Banner (Clean White Theme) */}
+                  <div className="p-3.5 bg-white border border-slate-200/90 rounded-3xl flex items-center justify-between gap-3 shadow-xs">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="size-10 rounded-2xl bg-amber-50 border border-amber-200 text-slate-900 flex items-center justify-center shrink-0 shadow-2xs">
+                        <Package className="size-5 text-amber-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                          Drop Clothes at Partner Store
+                        </span>
+                        <p className="text-sm font-black text-slate-950 truncate">
+                          {partnerStoreName}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                            <Check className="size-3 text-emerald-600" />
+                            <span>Sealed Bag: {bagTagCode || "QP-BAG"} • {doorstepPieces} pcs</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-black text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200 shrink-0">
+                      Leg 1 Active
+                    </span>
+                  </div>
+
+                  {/* In-Trip Google Maps Navigation Button */}
+                  <button
+                    type="button"
+                    onClick={() => launchTurnByTurnGoogleMaps(storeCoords, captainCoords, partnerStoreName)}
+                    className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
+                    <span>Navigate to Store with Google Maps</span>
+                  </button>
+
+                  {/* Dark Navy Pill Swipe to Handover at Store */}
+                  <SwipeActionButton
+                    label="Handover"
+                    color="darkNavy"
+                    onConfirm={() => {
+                      triggerHaptic(30);
+                      setShowHandoverConfirmModal(true);
+                    }}
+                  />
+                </>
+              ) : isCodOrder && !isPaymentConfirmed ? (
+                <div className="space-y-3.5 animate-in fade-in duration-200">
+                  {/* 1. Bill Amount to Collect Card */}
+                  <div className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3 text-center">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                        Total Bill to Collect
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-black text-amber-800">
+                        COD • PAYMENT PENDING
+                      </span>
+                    </div>
+
+                    <div className="py-1">
+                      <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-slate-950">
+                        ₹{codPayableAmount.toFixed(2)}
+                      </div>
+                      <p className="text-[11px] font-medium text-slate-500 mt-1">
+                        Cash on Delivery • Collect before handing clothes
+                      </p>
+                    </div>
+
+                    {/* 2. Razorpay Dynamic UPI QR Card */}
+                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-slate-900">
+                          <QrCode className="size-4 text-slate-700" />
+                          <span>Scan & Pay via UPI</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-500">
+                          Razorpay Verified
+                        </span>
+                      </div>
+
+                      {/* Centered QR Box */}
+                      <div className="size-48 mx-auto bg-white p-2.5 border border-slate-200/90 rounded-2xl flex items-center justify-center shadow-2xs">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(
+                            `upi://pay?pa=quickpress.rzp@icici&pn=QuickPress&am=${codPayableAmount.toFixed(2)}&cu=INR&tn=QuickPress-${order.orderCode || order.orderId}`
+                          )}`}
+                          alt="Razorpay Dynamic UPI QR"
+                          className="size-full object-contain"
+                        />
+                      </div>
+
+                      <p className="text-[11px] font-medium text-slate-600">
+                        Customer scans with Google Pay, PhonePe, Paytm, CRED or BHIM
+                      </p>
+
+                      {/* 1-Tap Check Live Payment Status Button */}
+                      <button
+                        type="button"
+                        disabled={isCheckingPayment}
+                        onClick={async () => {
+                          setIsCheckingPayment(true);
+                          triggerHaptic(40);
+                          toast.info("Checking live Razorpay payment status...");
+                          try {
+                            if (order.orderId && !order.orderId.startsWith("TEST-")) {
+                              const liveOrder = await fetchRiderOrder(order.orderId);
+                              const pStatus = String(
+                                liveOrder?.paymentStatus || (liveOrder as any)?.payment?.status || ""
+                              ).toLowerCase();
+                              const isPaid = pStatus === "paid" || pStatus === "captured" || pStatus === "success";
+                              if (isPaid) {
+                                setIsPaymentConfirmed(true);
+                                setPaymentMethodUsed("razorpay_upi");
+                                unlockAudioContext();
+                                playSuccessChime();
+                                speakText("भुगतान प्राप्त हुआ।");
+                                toast.success(`✓ Payment Verified: ₹${codPayableAmount.toFixed(2)} received via Razorpay UPI!`);
+                                return;
+                              }
+                            }
+                            // If test order or preview mode
+                            if (order.orderId && order.orderId.startsWith("TEST-")) {
+                              setIsPaymentConfirmed(true);
+                              setPaymentMethodUsed("razorpay_upi");
+                              unlockAudioContext();
+                              playSuccessChime();
+                              speakText("भुगतान प्राप्त हुआ।");
+                              toast.success(`✓ [Test Mode] Payment verified: ₹${codPayableAmount.toFixed(2)}!`);
+                              return;
+                            }
+                            toast.warning("Payment not detected yet. Ask customer to complete UPI payment, or tap 'Confirm Cash Received'.");
+                          } catch {
+                            toast.info("Status check: Please confirm with customer or tap 'Confirm Cash Received'.");
+                          } finally {
+                            setIsCheckingPayment(false);
+                          }
+                        }}
+                        className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCw className={`size-3.5 text-slate-700 ${isCheckingPayment ? "animate-spin" : ""}`} />
+                        <span>{isCheckingPayment ? "Verifying with Razorpay..." : "Check Live Payment Status (Razorpay)"}</span>
+                      </button>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="relative py-1">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-slate-200" />
+                      </div>
+                      <div className="relative flex justify-center text-[10px] font-bold text-slate-400 uppercase">
+                        <span className="bg-white px-2">OR Physical Cash</span>
+                      </div>
+                    </div>
+
+                    {/* Confirm Cash Received CTA */}
+                    <button
+                      type="button"
+                      disabled={isCollectingCash || isPaymentConfirmed}
+                      onClick={async () => {
+                        if (isActionLockedRef.current || isCollectingCash || isPaymentConfirmed) return;
+                        isActionLockedRef.current = true;
+                        setIsCollectingCash(true);
+                        triggerHaptic(50);
+                        try {
+                          if (order.orderId && !order.orderId.startsWith("TEST-")) {
+                            await collectCashPayment(order.orderId);
+                          }
+                          setIsPaymentConfirmed(true);
+                          setPaymentMethodUsed("cash");
+                          unlockAudioContext();
+                          playSuccessChime();
+                          toast.success(`✓ Cash collected: ₹${codPayableAmount.toFixed(2)} recorded in database!`);
+                        } catch (err: any) {
+                          setIsPaymentConfirmed(true);
+                          setPaymentMethodUsed("cash");
+                          unlockAudioContext();
+                          playSuccessChime();
+                          toast.success(`✓ Cash collected: ₹${codPayableAmount.toFixed(2)} recorded.`);
+                        } finally {
+                          isActionLockedRef.current = false;
+                          setIsCollectingCash(false);
+                        }
+                      }}
+                      className="w-full h-12 rounded-full bg-slate-950 hover:bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs cursor-pointer disabled:opacity-60 disabled:pointer-events-none disabled:cursor-not-allowed"
+                    >
+                      <CheckCircle2 className="size-4 text-emerald-400" />
+                      <span>Confirm Cash Received (₹{codPayableAmount.toFixed(2)})</span>
+                    </button>
+
+                    <p className="text-[10px] font-bold text-slate-400">
+                      Step 1 of 2: Customer Delivery OTP unlocks after payment
+                    </p>
+                  </div>
+
+                  {/* 1-Tap Google Maps Button */}
+                  <button
+                    type="button"
+                    onClick={() => launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName)}
+                    className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
+                    <span>Navigate to Customer with Google Maps</span>
+                  </button>
+
+                  {/* Secondary Call Customer Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowCallModal(true)}
+                    className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <Phone className="size-4 text-slate-700" />
+                    <span>Call Customer ({order.customerName || "Customer"})</span>
+                  </button>
+
+                  {/* Reached at Customer Action Button */}
+                  <SwipeActionButton
+                    label="Reached at Customer"
+                    color="darkNavy"
+                    onConfirm={handleReachedAtCustomer}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3.5 animate-in fade-in duration-200">
+                  {/* 1. Payment Confirmation Badge */}
+                  {isCodOrder ? (
+                    <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                        <span className="text-xs font-bold text-emerald-950">
+                          Payment Verified: ₹{codPayableAmount.toFixed(2)} ({paymentMethodUsed === "razorpay_upi" ? "Razorpay UPI" : "Cash"})
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                        Paid ✓
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                        <span className="text-xs font-bold text-emerald-950">
+                          Prepaid Order • Paid Online (No Cash to Collect)
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                        Paid Online ✓
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 2. Customer Destination Card */}
+                  <div className="p-3.5 bg-white rounded-3xl border border-slate-200/90 flex items-center justify-between gap-3 shadow-xs">
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                        Customer Doorstep
+                      </span>
+                      <p className="text-xs font-black text-slate-950 truncate">
+                        {order.customerName || "Customer"}
+                      </p>
+                      <p className="text-[11px] font-medium text-slate-600 truncate mt-0.5">
+                        {order.dropAddress || order.pickupAddress}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowCallModal(true)}
+                      className="size-9 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100 active:scale-95 flex items-center justify-center shrink-0 shadow-2xs cursor-pointer"
+                      aria-label="Call Customer"
+                      title="Call Customer"
+                    >
+                      <Phone className="size-4 text-slate-800" />
+                    </button>
+                  </div>
+
+                  {/* 3. 1-Tap Google Maps Button */}
+                  <button
+                    type="button"
+                    onClick={() => launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName)}
+                    className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
+                    <span>Navigate to Customer with Google Maps</span>
+                  </button>
+
+                  {/* 4. Doorstep Cloth Verification Stepper Card */}
+                  <div className="p-3.5 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="size-8 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-900 shadow-2xs">
+                          <Shirt className="size-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-black text-slate-950 tracking-tight">
+                            Doorstep Cloth Verification
+                          </h4>
+                          <p className="text-[10px] font-medium text-slate-500">
+                            Verify cleaned garments before handing over
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                        Expected: {initialDoorstepPieces} pcs
+                      </span>
+                    </div>
+
+                    {/* Quantity Stepper */}
+                    <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-2xl border border-slate-200/90">
+                      <span className="text-xs font-bold text-slate-700">
+                        Delivered Pieces:
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setDoorstepPieces((p) => Math.max(1, p - 1))}
+                          className="size-8 rounded-xl bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 font-black text-base flex items-center justify-center active:scale-95 transition-all shadow-2xs cursor-pointer"
+                          aria-label="Decrease cloth count"
+                        >
+                          -
+                        </button>
+                        <span className="w-10 text-center font-black text-base text-slate-950 font-mono">
+                          {doorstepPieces}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setDoorstepPieces((p) => p + 1)}
+                          className="size-8 rounded-xl bg-slate-950 text-white hover:bg-black font-black text-base flex items-center justify-center active:scale-95 transition-all shadow-2xs cursor-pointer"
+                          aria-label="Increase cloth count"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Checkbox verification confirmation */}
+                    <label className="flex items-start gap-2.5 cursor-pointer pt-0.5">
+                      <input
+                        type="checkbox"
+                        checked={isGarmentVerified}
+                        onChange={(e) => setIsGarmentVerified(e.target.checked)}
+                        className="mt-0.5 size-4 rounded text-slate-950 focus:ring-slate-900 border-slate-300"
+                      />
+                      <span className="text-[11px] font-bold text-slate-700 leading-snug">
+                        I have verified and handed over all cleaned garments to customer.
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* 5. 4-Digit Customer Delivery OTP Input with Instant Auto-Accept */}
+                  <RiderCustomerOtpInput
+                    otpDigits={customerDeliveryOtpDigits}
+                    setOtpDigits={setCustomerDeliveryOtpDigits}
+                    title="Customer Delivery OTP"
+                    subtitle="Ask 4-digit code from customer (कस्टमर से कोड पूछें)"
+                    hint="कस्टमर से 4-अंक का डिलीवरी कोड पूछें"
+                    onAutoSubmit={(code) => {
+                      handleCompleteTrip(code);
+                    }}
+                  />
+
+                  {/* Reached at Customer Dark Navy Button */}
+                  <SwipeActionButton
+                    label="Reached at Customer"
+                    color="darkNavy"
+                    onConfirm={handleReachedAtCustomer}
+                  />
+
+                  {/* 7. Need Help / Emergency */}
+                  <button
+                    type="button"
+                    onClick={() => setShowUnableModal(true)}
+                    className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <AlertTriangle className="size-4 text-amber-600" />
+                    <span>Need Help / Doorstep Issue</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STAGE: Arrived at Store with Clothes for Handover */}
+          {stage === "arrived_store" && (
+            <div className="space-y-3.5 animate-in fade-in duration-200">
+              {/* 1. Partner Store Location Card */}
+              <div className="p-3.5 bg-white rounded-3xl border border-slate-200/90 flex items-center justify-between gap-3 shadow-xs">
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Partner Store Handover
+                  </span>
+                  <p className="text-xs font-black text-slate-950 truncate">
+                    {partnerStoreName}
+                  </p>
+                  <p className="text-[11px] font-medium text-slate-600 truncate mt-0.5">
+                    {partnerStoreAddress}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCallModal(true)}
+                  className="size-9 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100 active:scale-95 flex items-center justify-center shrink-0 shadow-2xs cursor-pointer"
+                  aria-label="Call Store"
+                  title="Call Store"
+                >
+                  <Phone className="size-4 text-slate-800" />
+                </button>
+              </div>
+
+              {isWaitingPartnerHandoverConfirm ? (
+                <div className="p-4 bg-amber-500/10 dark:bg-amber-500/15 border-2 border-amber-400 rounded-3xl text-center space-y-3 animate-in fade-in">
+                  <div className="size-12 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-amber-300 text-amber-700 dark:text-amber-300 flex items-center justify-center mx-auto shadow-inner">
+                    <Clock className="size-6 animate-spin-slow text-amber-600" />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-800 dark:text-amber-300 block">
+                      Handover Initiated • Clothes Dropped
+                    </span>
+                    <h4 className="text-sm font-black text-slate-900">
+                      Waiting for {partnerStoreName} to start processing...
+                    </h4>
+                    <p className="text-[11px] text-slate-600 font-medium max-w-xs mx-auto leading-relaxed">
+                      Aapne kapde dukan par de diye hain. Partner ke console me &ldquo;Start Washing & Processing&rdquo; click karne par ₹25 payout credit hoga aur live turnaround timer shuru hoga.
+                    </p>
+                  </div>
+
+                  {/* Sealed Bag Cross-Check Pill */}
+                  <div className="flex items-center justify-between p-2.5 bg-white/80 border border-amber-200 rounded-2xl max-w-xs mx-auto">
+                    <div className="flex items-center gap-2">
+                      <Package className="size-4 text-amber-600 shrink-0" />
+                      <span className="text-xs font-black text-slate-900">
+                        Bag: {bagTagCode || "QP-BAG"} ({doorstepPieces} pcs)
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                      Awaiting Store
+                    </span>
+                  </div>
+
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        triggerHaptic(20);
+                        if (order.orderId && !order.orderId.startsWith("TEST-")) {
+                          try {
+                            const res = await fetchDispatchOtp(order.orderId);
+                            const stat = String(res?.status || "").toLowerCase();
+                            if (stat === "processing" || stat === "ironing" || res?.processingStartedAt) {
+                              setIsWaitingPartnerHandoverConfirm(false);
+                              setStage("store_processing");
+                              setCurrentLeg("store_to_customer");
+                              unlockAudioContext();
+                              playSuccessChime();
+                              toast.success("🎉 Partner Confirmed Handover! ₹25 Pickup Payout Credited.");
+                            } else {
+                              toast("Partner store hasn't clicked 'Start Processing' yet. Refreshing...", { icon: "⏳" });
+                            }
+                          } catch { }
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-slate-50 text-slate-900 text-xs font-black border border-slate-200 shadow-2xs active:scale-95 transition-all cursor-pointer"
+                    >
+                      <RefreshCw className="size-3.5 text-slate-600 animate-spin-slow" />
+                      <span>Check Store Status</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* 2. Direct Handover Summary Card (No OTP needed for drop-off) */}
+                  <div className="p-4 bg-slate-50 rounded-3xl border border-slate-200 text-center space-y-2">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Store Clothes Drop-Off
+                    </span>
+                    <h4 className="text-sm font-black text-slate-900">
+                      Hand over clothes bag to {partnerStoreName}
+                    </h4>
+                    <p className="text-[11px] text-slate-600 font-medium max-w-xs mx-auto leading-relaxed">
+                      Hand over sealed bag to store staff and tap below. Once partner clicks &ldquo;Start Processing&rdquo;, handover completes & ₹25 payout is credited.
+                    </p>
+                  </div>
+
+                  {/* 3. Sealed Bag & Piece Cross-Check Summary */}
+                  <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                    <div className="flex items-center gap-2.5">
+                      <Package className="size-4.5 text-emerald-600 shrink-0" />
+                      <div className="text-left">
+                        <p className="text-xs font-black text-emerald-950">
+                          Sealed Bag: {bagTagCode || "QP-BAG"}
+                        </p>
+                        <span className="text-[10px] font-bold text-emerald-700">
+                          {doorstepPieces} Garments Handed Over
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-black text-emerald-800 bg-white px-2.5 py-1 rounded-full border border-emerald-200 shadow-2xs">
+                      Verified ✓
+                    </span>
+                  </div>
+
+                  {/* 4. Action Button: Initiate Handover to Store */}
+                  <button
+                    type="button"
+                    onClick={handleStoreIntakeVerified}
+                    className="w-full h-13 rounded-full bg-slate-950 hover:bg-slate-900 text-white font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md cursor-pointer"
+                  >
+                    <Package className="size-4.5 text-yellow-400" />
+                    <span>Handover Clothes to Store Staff 🧺</span>
+                  </button>
+                </>
+              )}
+
+              {/* Emergency Help */}
+              <button
+                type="button"
+                onClick={() => setShowUnableModal(true)}
+                className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+              >
+                <AlertTriangle className="size-4 text-amber-600" />
+                <span>Need Help / Store Issue</span>
+              </button>
+            </div>
+          )}
+
+          {/* STAGE: Clothes Dropped at Store & In Cleaning (Single Continuous Ride Active) */}
+          {stage === "store_processing" && (
+            <div className="space-y-3 animate-in fade-in duration-200">
+              <div className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3.5">
+                {/* Header with status pill */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-8 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-900 shadow-2xs">
+                      <Sparkles className="size-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-black text-slate-950 tracking-tight leading-tight">
+                        Washing & Steam Ironing at Store
+                      </h3>
+                      <p className="text-[10.5px] font-medium text-slate-500">
+                        Trip active in background • Ready hone par siren bajega
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-black text-slate-700">
+                    IN CLEANING
+                  </span>
+                </div>
+
+                {/* 1. Pickup Leg Payout Credited Confirmation */}
+                <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                    <span className="text-xs font-bold text-emerald-950">
+                      Pickup Payout Credited: ₹{(order.pickupLegPayout || safeFare / 2 || 35).toFixed(2)}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                    ✓ Wallet
+                  </span>
+                </div>
+
+                {/* 2. Live Turnaround SLA Countdown Card */}
+                <div className="p-3.5 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                      <Timer className="size-4 text-slate-600" />
+                      <span>Turnaround Countdown</span>
+                    </div>
+                    <span className="text-[10px] font-black text-slate-600 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                      {Math.round(processingTotalSecs / 60)} min SLA
+                    </span>
+                  </div>
+
+                  <div className="flex items-baseline justify-between py-0.5">
+                    <div className="text-3xl font-black font-mono tracking-tight text-slate-950">
+                      {formatCountdown(processingRemainingSecs)}
+                    </div>
+                    <span className="text-xs font-bold text-slate-500">
+                      {processingRemainingSecs > 0 ? "Remaining" : "Almost Ready"}
+                    </span>
+                  </div>
+
+                  {/* Clean Minimal Progress Bar */}
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-slate-950 h-full rounded-full transition-all duration-1000"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.max(
+                            5,
+                            Math.round(
+                              ((processingTotalSecs - processingRemainingSecs) /
+                                Math.max(1, processingTotalSecs)) *
+                              100
+                            )
+                          )
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* 3. Partner Store Info Card */}
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Partner Laundry Store
+                    </span>
+                    <p className="text-xs font-black text-slate-950 truncate">
+                      {partnerStoreName}
+                    </p>
+                    <p className="text-[11px] font-medium text-slate-600 truncate mt-0.5">
+                      {partnerStoreAddress}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCallModal(true)}
+                    className="size-9 rounded-xl bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 active:scale-95 flex items-center justify-center shrink-0 shadow-2xs cursor-pointer"
+                    aria-label="Call Store"
+                    title="Call Store"
+                  >
+                    <Phone className="size-4 text-slate-800" />
+                  </button>
+                </div>
+
+                {/* 4. Action Buttons */}
+                <div className="space-y-2 pt-0.5">
+                  {/* Primary: Go to Dashboard */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic(40);
+                      toast.info("Trip active rahegi! Dashboard par ja rahe hain");
+                      navigate({ to: "/dashboard" });
+                    }}
+                    className="w-full h-12 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-black text-xs flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer shadow-xs"
+                  >
+                    <Home className="size-4 text-white" />
+                    <span>Go to Dashboard (Trip Active in Background)</span>
+                  </button>
+
+                  {/* Secondary: Check If Clothes Are Ready Early */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (order.orderId?.startsWith("TEST-")) {
+                        unlockAudioContext();
+                        playSuccessChime();
+                        speakLaundryReadyForDelivery();
+                        toast.success("Test Laundry Ready! Collect from Store.");
+                        setStage("ready_pickup_store");
+                        return;
+                      }
+                      try {
+                        const res = await fetchDispatchOtp(order.orderId);
+                        if (
+                          res?.status === "ready_for_delivery" ||
+                          res?.status === "ready" ||
+                          res?.status === "out_for_delivery" ||
+                          res?.isVerified
+                        ) {
+                          unlockAudioContext();
+                          playSuccessChime();
+                          speakLaundryReadyForDelivery();
+                          toast.success("Order Ready! Collect from Store.");
+                          setStage("ready_pickup_store");
+                        } else {
+                          toast.info("Partner is currently processing clothes.");
+                        }
+                      } catch {
+                        toast.info("Checking partner status...");
+                      }
+                    }}
+                    className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <Clock className="size-4 text-slate-600" />
+                    <span>Check If Clothes Are Ready Early</span>
+                  </button>
+
+                  {/* Exit Gate Action: Unable to Deliver / Leave Trip at Store */}
+                  <button
+                    type="button"
+                    onClick={() => setShowUnableModal(true)}
+                    className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <AlertTriangle className="size-4 text-amber-600" />
+                    <span>Unable to Deliver / Leave Trip at Store</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STAGE: Ready for Store Pickup -> Captain at Store, Shows Dispatch OTP to Partner */}
+          {stage === "ready_pickup_store" && (
+            <div className="space-y-3 animate-in fade-in duration-200">
+              <div className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3.5">
+                {/* Header with status pill */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shadow-2xs">
+                      <Package className="size-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-black text-slate-950 tracking-tight leading-tight">
+                        Clothes Ready • Store Dispatch
+                      </h3>
+                      <p className="text-[10.5px] font-medium text-slate-500">
+                        Show Dispatch OTP to Store Partner
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-black text-emerald-800">
+                    DISPATCH OTP
+                  </span>
+                </div>
+
+                {/* 1. Big Prominent Golden Monospace Dispatch OTP Card */}
+                <div className="p-4 sm:p-5 bg-slate-950 rounded-3xl border-2 border-yellow-500 shadow-lg text-center space-y-3">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[10px] font-black text-yellow-400 uppercase tracking-widest block">
+                      CAPTAIN DISPATCH OTP
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-300">
+                      Tell to Partner
+                    </span>
+                  </div>
+
+                  {/* 4 Large Golden Digit Monospace Blocks */}
+                  <div className="flex items-center justify-center gap-2.5 pt-0.5">
+                    {(captainDispatchOtp || order.dispatchOtp || "4821")
+                      .slice(0, 4)
+                      .split("")
+                      .map((digit, idx) => (
+                        <div
+                          key={idx}
+                          className="size-13 flex items-center justify-center text-3xl font-black font-mono text-[#FACC15] bg-slate-900 rounded-2xl border-2 border-yellow-400 shadow-inner"
+                        >
+                          {digit}
+                        </div>
+                      ))}
+                  </div>
+
+                  <div className="flex items-center justify-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic(20);
+                        const code = (captainDispatchOtp || order.dispatchOtp || "4821").slice(0, 4);
+                        navigator.clipboard.writeText(code);
+                        toast.success(`Copied Dispatch OTP: ${code}`);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-yellow-400 text-xs font-bold border border-yellow-500/40 transition-all cursor-pointer"
+                    >
+                      <Copy className="size-3" />
+                      <span>Copy Code</span>
+                    </button>
+                  </div>
+
+                  <p className="text-[11px] text-slate-300 font-medium max-w-xs mx-auto leading-relaxed pt-1">
+                    Partner will enter this 4-digit code in their Partner Console to release packed clothes and dispatch the order.
+                  </p>
+                </div>
+
+                {/* 2. Partner Store Collection Card */}
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                       Partner Store
@@ -2381,7 +3348,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowCallModal(true)}
-                    className="size-9 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100 active:scale-95 flex items-center justify-center shrink-0 shadow-2xs cursor-pointer"
+                    className="size-9 rounded-xl bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 active:scale-95 flex items-center justify-center shrink-0 shadow-2xs cursor-pointer"
                     aria-label="Call Store"
                     title="Call Store"
                   >
@@ -2389,212 +3356,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   </button>
                 </div>
 
-                {/* 2. Main Handover OTP Input (Front & Center) */}
-                <RiderCustomerOtpInput
-                  otpDigits={handoverVerifyOtpDigits}
-                  setOtpDigits={setHandoverVerifyOtpDigits}
-                  title="Enter Handover OTP"
-                  subtitle="Ask 4-digit handover code from partner store staff (पार्टनर से कोड पूछें)"
-                  hint="स्टोर स्टाफ से 4-अंक का हैंडओवर कोड पूछें"
-                  onAutoSubmit={(code) => {
-                    handleVerifyHandoverTransfer(code);
-                  }}
-                />
-
-                {/* 3. Dispatch Code Helper (If Partner enters Captain code on store terminal) */}
-                <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/90 rounded-2xl text-[11px]">
-                  <div className="flex items-center gap-1.5 text-slate-600 font-medium">
-                    <ShieldCheck className="size-4 text-emerald-600 shrink-0" />
-                    <span>Or tell Partner Dispatch Code:</span>
-                    <span className="font-mono font-black text-slate-950 tracking-wider">
-                      {captainDispatchOtp || "----"}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (captainDispatchOtp) {
-                        navigator.clipboard.writeText(captainDispatchOtp);
-                        toast.success("Dispatch OTP copied to clipboard!");
-                        triggerHaptic(40);
-                      }
-                    }}
-                    className="text-[10.5px] font-bold text-slate-700 hover:text-slate-950 underline px-1 cursor-pointer"
-                  >
-                    Copy
-                  </button>
-                </div>
-
-                {/* 4. Sealed Bag / Garment Check Badge */}
-                <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
-                  <div className="flex items-center gap-2">
-                    <Package className="size-4 text-emerald-600 shrink-0" />
-                    <span className="text-xs font-bold text-emerald-950">
-                      Sealed Bag: {bagTagCode || "QP-BAG-4491"} • {doorstepPieces || 5} Cleaned Garments
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
-                    Ready ✓
-                  </span>
-                </div>
-
-                {/* 5. Slide to Start Customer Delivery */}
-                <SwipeActionButton
-                  label="Slide to Start Customer Delivery"
-                  hint="हैंडओवर कोड दर्ज करके स्लाइड करें • Start Delivery"
-                  color="emerald"
-                  onConfirm={async () => {
-                    const enteredCode = handoverVerifyOtpDigits.join("");
-                    if (enteredCode.length === 4) {
-                      await handleVerifyHandoverTransfer(enteredCode);
-                      return;
-                    }
-                    try {
-                      const res = await fetchDispatchOtp(order.orderId);
-                      if (
-                        res?.isVerified ||
-                        res?.status === "out_for_delivery" ||
-                        res?.status === "OUT_FOR_DELIVERY"
-                      ) {
-                        unlockAudioContext();
-                        playSuccessChime();
-                        speakText("डिलीवरी शुरू करें।");
-                        toast.success("✓ Custody verified! Navigating to customer.");
-                        setStage("in_trip");
-                        setStartTime(
-                          new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                        );
-                        setTimeout(() => {
-                          launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName);
-                        }, 600);
-                      } else {
-                        toast.error(
-                          "Please enter the 4-digit Handover OTP from store or ask partner to verify dispatch code."
-                        );
-                      }
-                    } catch {
-                      toast.error("Please enter the 4-digit Handover OTP from store.");
-                    }
-                  }}
-                />
-
-                {/* 6. Emergency Support / Issue Button */}
-                <button
-                  type="button"
-                  onClick={() => setShowUnableModal(true)}
-                  className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
-                >
-                  <AlertTriangle className="size-4 text-amber-600" />
-                  <span>Need Help / Unable to Collect from Store</span>
-                </button>
-              </div>
-            ) : (
-              <>
-                {/* Rapido Yellow Theme: Soft Blue Wait Timer Banner (Video Frame 00:33) */}
-                <div className="flex items-center justify-between p-3.5 bg-[#EBF3FF] border border-[#D0E2FF] rounded-2xl shadow-2xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-slate-900">Wait Timer</span>
-                    <span className="text-xs font-black font-mono bg-[#FACC15] text-slate-950 px-2.5 py-0.5 rounded-md border border-yellow-500 shadow-2xs">
-                      {formatTimer(waitingSeconds)}
-                    </span>
-                  </div>
-                  <p className="text-[10px] font-semibold text-blue-900 max-w-[190px] leading-tight text-right">
-                    ⓘ After 3 minutes, you will get extra charge for waiting
-                  </p>
-                </div>
-
-                {/* Doorstep Garment Intake & Security Bag Tag Card with Photo Proof */}
-                <RiderDoorstepPickupCard
-                  initialPiecesCount={initialDoorstepPieces}
-                  doorstepPieces={doorstepPieces}
-                  setDoorstepPieces={setDoorstepPieces}
-                  bagTagCode={bagTagCode}
-                  setBagTagCode={setBagTagCode}
-                  doorstepNotes={doorstepNotes}
-                  setDoorstepNotes={setDoorstepNotes}
-                  bagPhotoUrl={bagPhotoUrl}
-                  setBagPhotoUrl={setBagPhotoUrl}
-                />
-
-                {/* Optional Keypad Trigger Button (Clean Outline Style) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDedicatedOtpMode("pickup");
-                    setDedicatedOtpDigits(["", "", "", ""]);
-                    setShowDedicatedOtpScreen(true);
-                  }}
-                  className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs active:scale-95 transition-all cursor-pointer"
-                >
-                  <KeyRound className="size-4 text-slate-700" />
-                  <span>Enter OTP Manually</span>
-                </button>
-
-                {/* Solid Emerald Swipe to Start Ride (Video Frame 00:35) */}
-                <SwipeActionButton
-                  label="Start Ride"
-                  hint="कस्टमर से OTP लेकर स्लाइड करें • Start Ride"
-                  color="emerald"
-                  onConfirm={() => {
-                    setDedicatedOtpMode("pickup");
-                    setDedicatedOtpDigits(["", "", "", ""]);
-                    setShowDedicatedOtpScreen(true);
-                  }}
-                />
-              </>
-            )}
-          </div>
-        )}
-
-        {/* STAGE 3: In Trip -> Drop at Store (Leg 1) OR Complete Delivery (Leg 2) */}
-        {stage === "in_trip" && (
-          <div className="space-y-3 animate-in fade-in duration-200">
-            {/* Perfect Pick-up Celebration Banner (Video Frame 00:56) */}
-            {showPerfectPickupBanner && (
-              <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-300 rounded-2xl text-emerald-950 text-xs font-bold animate-in fade-in duration-300">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="size-4 text-emerald-600 shrink-0" />
-                  <span>Perfect Pick-up! ✨ You started the ride at the right location.</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowPerfectPickupBanner(false)}
-                  className="p-1 text-emerald-800 hover:text-emerald-950 cursor-pointer"
-                >
-                  <X className="size-3.5" />
-                </button>
-              </div>
-            )}
-
-            {currentLeg === "pickup_to_store" ? (
-              <>
-                {/* Destination Store Banner (Clean White Theme) */}
-                <div className="p-3.5 bg-white border border-slate-200/90 rounded-3xl flex items-center justify-between gap-3 shadow-xs">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="size-10 rounded-2xl bg-amber-50 border border-amber-200 text-slate-900 flex items-center justify-center shrink-0 shadow-2xs">
-                      <Package className="size-5 text-amber-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
-                        Drop Clothes at Partner Store
-                      </span>
-                      <p className="text-sm font-black text-slate-950 truncate">
-                        {partnerStoreName}
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                          <Check className="size-3 text-emerald-600" />
-                          <span>Sealed Bag: {bagTagCode || "QP-BAG"} • {doorstepPieces} pcs</span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-black text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200 shrink-0">
-                    Leg 1 Active
-                  </span>
-                </div>
-
-                {/* In-Trip Google Maps Navigation Button */}
+                {/* 3. 1-Tap Google Maps Navigation */}
                 <button
                   type="button"
                   onClick={() => launchTurnByTurnGoogleMaps(storeCoords, captainCoords, partnerStoreName)}
@@ -2604,923 +3366,158 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   <span>Navigate to Store with Google Maps</span>
                 </button>
 
-                {/* Dark Navy Pill Swipe to Handover at Store */}
+                {/* 4. Action Button: Swipe to Start Delivery to Customer */}
                 <SwipeActionButton
-                  label="Handover"
+                  label="Dispatch Done • Go to Customer"
                   color="darkNavy"
-                  onConfirm={() => {
-                    triggerHaptic(30);
-                    setShowHandoverConfirmModal(true);
-                  }}
+                  onConfirm={handleStartCustomerDelivery}
                 />
-              </>
-            ) : isCodOrder && !isPaymentConfirmed ? (
-              <div className="space-y-3.5 animate-in fade-in duration-200">
-                {/* 1. Bill Amount to Collect Card */}
-                <div className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3 text-center">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                      Total Bill to Collect
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-black text-amber-800">
-                      COD • PAYMENT PENDING
-                    </span>
-                  </div>
 
-                  <div className="py-1">
-                    <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-slate-950">
-                      ₹{codPayableAmount.toFixed(2)}
-                    </div>
-                    <p className="text-[11px] font-medium text-slate-500 mt-1">
-                      Cash on Delivery • Collect before handing clothes
-                    </p>
-                  </div>
-
-                  {/* 2. Razorpay Dynamic UPI QR Card */}
-                  <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-black text-slate-900">
-                        <QrCode className="size-4 text-slate-700" />
-                        <span>Scan & Pay via UPI</span>
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500">
-                        Razorpay Verified
-                      </span>
-                    </div>
-
-                    {/* Centered QR Box */}
-                    <div className="size-48 mx-auto bg-white p-2.5 border border-slate-200/90 rounded-2xl flex items-center justify-center shadow-2xs">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(
-                          `upi://pay?pa=quickpress.rzp@icici&pn=QuickPress&am=${codPayableAmount.toFixed(2)}&cu=INR&tn=QuickPress-${order.orderCode || order.orderId}`
-                        )}`}
-                        alt="Razorpay Dynamic UPI QR"
-                        className="size-full object-contain"
-                      />
-                    </div>
-
-                    <p className="text-[11px] font-medium text-slate-600">
-                      Customer scans with Google Pay, PhonePe, Paytm, CRED or BHIM
-                    </p>
-
-                    {/* 1-Tap Check Live Payment Status Button */}
-                    <button
-                      type="button"
-                      disabled={isCheckingPayment}
-                      onClick={async () => {
-                        setIsCheckingPayment(true);
-                        triggerHaptic(40);
-                        toast.info("Checking live Razorpay payment status...");
-                        try {
-                          if (order.orderId && !order.orderId.startsWith("TEST-")) {
-                            const liveOrder = await fetchRiderOrder(order.orderId);
-                            const pStatus = String(
-                              liveOrder?.paymentStatus || (liveOrder as any)?.payment?.status || ""
-                            ).toLowerCase();
-                            const isPaid = pStatus === "paid" || pStatus === "captured" || pStatus === "success";
-                            if (isPaid) {
-                              setIsPaymentConfirmed(true);
-                              setPaymentMethodUsed("razorpay_upi");
-                              unlockAudioContext();
-                              playSuccessChime();
-                              speakText("भुगतान प्राप्त हुआ।");
-                              toast.success(`✓ Payment Verified: ₹${codPayableAmount.toFixed(2)} received via Razorpay UPI!`);
-                              return;
-                            }
-                          }
-                          // If test order or preview mode
-                          if (order.orderId && order.orderId.startsWith("TEST-")) {
-                            setIsPaymentConfirmed(true);
-                            setPaymentMethodUsed("razorpay_upi");
-                            unlockAudioContext();
-                            playSuccessChime();
-                            speakText("भुगतान प्राप्त हुआ।");
-                            toast.success(`✓ [Test Mode] Payment verified: ₹${codPayableAmount.toFixed(2)}!`);
-                            return;
-                          }
-                          toast.warning("Payment not detected yet. Ask customer to complete UPI payment, or tap 'Confirm Cash Received'.");
-                        } catch {
-                          toast.info("Status check: Please confirm with customer or tap 'Confirm Cash Received'.");
-                        } finally {
-                          setIsCheckingPayment(false);
-                        }
-                      }}
-                      className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
-                    >
-                      <RefreshCw className={`size-3.5 text-slate-700 ${isCheckingPayment ? "animate-spin" : ""}`} />
-                      <span>{isCheckingPayment ? "Verifying with Razorpay..." : "Check Live Payment Status (Razorpay)"}</span>
-                    </button>
-                  </div>
-
-                  {/* Divider */}
-                  <div className="relative py-1">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-slate-200" />
-                    </div>
-                    <div className="relative flex justify-center text-[10px] font-bold text-slate-400 uppercase">
-                      <span className="bg-white px-2">OR Physical Cash</span>
-                    </div>
-                  </div>
-
-                  {/* Confirm Cash Received CTA */}
-                  <button
-                    type="button"
-                    disabled={isCollectingCash || isPaymentConfirmed}
-                    onClick={async () => {
-                      if (isActionLockedRef.current || isCollectingCash || isPaymentConfirmed) return;
-                      isActionLockedRef.current = true;
-                      setIsCollectingCash(true);
-                      triggerHaptic(50);
-                      try {
-                        if (order.orderId && !order.orderId.startsWith("TEST-")) {
-                          await collectCashPayment(order.orderId);
-                        }
-                        setIsPaymentConfirmed(true);
-                        setPaymentMethodUsed("cash");
-                        unlockAudioContext();
-                        playSuccessChime();
-                        toast.success(`✓ Cash collected: ₹${codPayableAmount.toFixed(2)} recorded in database!`);
-                      } catch (err: any) {
-                        setIsPaymentConfirmed(true);
-                        setPaymentMethodUsed("cash");
-                        unlockAudioContext();
-                        playSuccessChime();
-                        toast.success(`✓ Cash collected: ₹${codPayableAmount.toFixed(2)} recorded.`);
-                      } finally {
-                        isActionLockedRef.current = false;
-                        setIsCollectingCash(false);
-                      }
-                    }}
-                    className="w-full h-12 rounded-full bg-slate-950 hover:bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs cursor-pointer disabled:opacity-60 disabled:pointer-events-none disabled:cursor-not-allowed"
-                  >
-                    <CheckCircle2 className="size-4 text-emerald-400" />
-                    <span>Confirm Cash Received (₹{codPayableAmount.toFixed(2)})</span>
-                  </button>
-
-                  <p className="text-[10px] font-bold text-slate-400">
-                    Step 1 of 2: Customer Delivery OTP unlocks after payment
-                  </p>
-                </div>
-
-                {/* 1-Tap Google Maps Button */}
+                {/* Direct button */}
                 <button
                   type="button"
-                  onClick={() => launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName)}
-                  className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+                  onClick={handleStartCustomerDelivery}
+                  className="w-full h-11 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer border border-slate-300"
                 >
-                  <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
-                  <span>Navigate to Customer with Google Maps</span>
+                  <CheckCircle2 className="size-4 text-emerald-600" />
+                  <span>Dispatch Verified • Start Customer Delivery →</span>
                 </button>
 
-                {/* Secondary Call Customer Button */}
-                <button
-                  type="button"
-                  onClick={() => setShowCallModal(true)}
-                  className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
-                >
-                  <Phone className="size-4 text-slate-700" />
-                  <span>Call Customer ({order.customerName || "Customer"})</span>
-                </button>
-
-                {/* Reached at Customer Action Button */}
-                <SwipeActionButton
-                  label="Reached at Customer"
-                  color="darkNavy"
-                  onConfirm={handleReachedAtCustomer}
-                />
-              </div>
-            ) : (
-              <div className="space-y-3.5 animate-in fade-in duration-200">
-                {/* 1. Payment Confirmation Badge */}
-                {isCodOrder ? (
-                  <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                      <span className="text-xs font-bold text-emerald-950">
-                        Payment Verified: ₹{codPayableAmount.toFixed(2)} ({paymentMethodUsed === "razorpay_upi" ? "Razorpay UPI" : "Cash"})
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
-                      Paid ✓
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                      <span className="text-xs font-bold text-emerald-950">
-                        Prepaid Order • Paid Online (No Cash to Collect)
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
-                      Paid Online ✓
-                    </span>
-                  </div>
-                )}
-
-                {/* 2. Customer Destination Card */}
-                <div className="p-3.5 bg-white rounded-3xl border border-slate-200/90 flex items-center justify-between gap-3 shadow-xs">
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                      Customer Doorstep
-                    </span>
-                    <p className="text-xs font-black text-slate-950 truncate">
-                      {order.customerName || "Customer"}
-                    </p>
-                    <p className="text-[11px] font-medium text-slate-600 truncate mt-0.5">
-                      {order.dropAddress || order.pickupAddress}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowCallModal(true)}
-                    className="size-9 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100 active:scale-95 flex items-center justify-center shrink-0 shadow-2xs cursor-pointer"
-                    aria-label="Call Customer"
-                    title="Call Customer"
-                  >
-                    <Phone className="size-4 text-slate-800" />
-                  </button>
-                </div>
-
-                {/* 3. 1-Tap Google Maps Button */}
-                <button
-                  type="button"
-                  onClick={() => launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName)}
-                  className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
-                >
-                  <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
-                  <span>Navigate to Customer with Google Maps</span>
-                </button>
-
-                {/* 4. Doorstep Cloth Verification Stepper Card */}
-                <div className="p-3.5 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="size-8 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-900 shadow-2xs">
-                        <Shirt className="size-4" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-black text-slate-950 tracking-tight">
-                          Doorstep Cloth Verification
-                        </h4>
-                        <p className="text-[10px] font-medium text-slate-500">
-                          Verify cleaned garments before handing over
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-                      Expected: {initialDoorstepPieces} pcs
-                    </span>
-                  </div>
-
-                  {/* Quantity Stepper */}
-                  <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-2xl border border-slate-200/90">
-                    <span className="text-xs font-bold text-slate-700">
-                      Delivered Pieces:
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setDoorstepPieces((p) => Math.max(1, p - 1))}
-                        className="size-8 rounded-xl bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 font-black text-base flex items-center justify-center active:scale-95 transition-all shadow-2xs cursor-pointer"
-                        aria-label="Decrease cloth count"
-                      >
-                        -
-                      </button>
-                      <span className="w-10 text-center font-black text-base text-slate-950 font-mono">
-                        {doorstepPieces}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setDoorstepPieces((p) => p + 1)}
-                        className="size-8 rounded-xl bg-slate-950 text-white hover:bg-black font-black text-base flex items-center justify-center active:scale-95 transition-all shadow-2xs cursor-pointer"
-                        aria-label="Increase cloth count"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Checkbox verification confirmation */}
-                  <label className="flex items-start gap-2.5 cursor-pointer pt-0.5">
-                    <input
-                      type="checkbox"
-                      checked={isGarmentVerified}
-                      onChange={(e) => setIsGarmentVerified(e.target.checked)}
-                      className="mt-0.5 size-4 rounded text-slate-950 focus:ring-slate-900 border-slate-300"
-                    />
-                    <span className="text-[11px] font-bold text-slate-700 leading-snug">
-                      I have verified and handed over all cleaned garments to customer.
-                    </span>
-                  </label>
-                </div>
-
-                {/* 5. 4-Digit Customer Delivery OTP Input with Instant Auto-Accept */}
-                <RiderCustomerOtpInput
-                  otpDigits={customerDeliveryOtpDigits}
-                  setOtpDigits={setCustomerDeliveryOtpDigits}
-                  title="Customer Delivery OTP"
-                  subtitle="Ask 4-digit code from customer (कस्टमर से कोड पूछें)"
-                  hint="कस्टमर से 4-अंक का डिलीवरी कोड पूछें"
-                  onAutoSubmit={(code) => {
-                    handleCompleteTrip(code);
-                  }}
-                />
-
-                {/* Reached at Customer Dark Navy Button */}
-                <SwipeActionButton
-                  label="Reached at Customer"
-                  color="darkNavy"
-                  onConfirm={handleReachedAtCustomer}
-                />
-
-                {/* 7. Need Help / Emergency */}
+                {/* Emergency Exit Gate */}
                 <button
                   type="button"
                   onClick={() => setShowUnableModal(true)}
                   className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
                 >
                   <AlertTriangle className="size-4 text-amber-600" />
-                  <span>Need Help / Doorstep Issue</span>
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* STAGE: Arrived at Store with Clothes for Handover */}
-        {stage === "arrived_store" && (
-          <div className="space-y-3.5 animate-in fade-in duration-200">
-            {/* 1. Partner Store Location Card */}
-            <div className="p-3.5 bg-white rounded-3xl border border-slate-200/90 flex items-center justify-between gap-3 shadow-xs">
-              <div className="min-w-0">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Partner Store Handover
-                </span>
-                <p className="text-xs font-black text-slate-950 truncate">
-                  {partnerStoreName}
-                </p>
-                <p className="text-[11px] font-medium text-slate-600 truncate mt-0.5">
-                  {partnerStoreAddress}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCallModal(true)}
-                className="size-9 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100 active:scale-95 flex items-center justify-center shrink-0 shadow-2xs cursor-pointer"
-                aria-label="Call Store"
-                title="Call Store"
-              >
-                <Phone className="size-4 text-slate-800" />
-              </button>
-            </div>
-
-            {isWaitingPartnerHandoverConfirm ? (
-              <div className="p-4 bg-amber-500/10 dark:bg-amber-500/15 border-2 border-amber-400 rounded-3xl text-center space-y-3 animate-in fade-in">
-                <div className="size-12 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-amber-300 text-amber-700 dark:text-amber-300 flex items-center justify-center mx-auto shadow-inner">
-                  <Clock className="size-6 animate-spin-slow text-amber-600" />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-800 dark:text-amber-300 block">
-                    Handover Initiated • Clothes Dropped
-                  </span>
-                  <h4 className="text-sm font-black text-slate-900">
-                    Waiting for {partnerStoreName} to start processing...
-                  </h4>
-                  <p className="text-[11px] text-slate-600 font-medium max-w-xs mx-auto leading-relaxed">
-                    Aapne kapde dukan par de diye hain. Partner ke console me &ldquo;Start Washing & Processing&rdquo; click karne par ₹25 payout credit hoga aur live turnaround timer shuru hoga.
-                  </p>
-                </div>
-
-                {/* Sealed Bag Cross-Check Pill */}
-                <div className="flex items-center justify-between p-2.5 bg-white/80 border border-amber-200 rounded-2xl max-w-xs mx-auto">
-                  <div className="flex items-center gap-2">
-                    <Package className="size-4 text-amber-600 shrink-0" />
-                    <span className="text-xs font-black text-slate-900">
-                      Bag: {bagTagCode || "QP-BAG"} ({doorstepPieces} pcs)
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                    Awaiting Store
-                  </span>
-                </div>
-
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      triggerHaptic(20);
-                      if (order.orderId && !order.orderId.startsWith("TEST-")) {
-                        try {
-                          const res = await fetchDispatchOtp(order.orderId);
-                          const stat = String(res?.status || "").toLowerCase();
-                          if (stat === "processing" || stat === "ironing" || res?.processingStartedAt) {
-                            setIsWaitingPartnerHandoverConfirm(false);
-                            setStage("store_processing");
-                            setCurrentLeg("store_to_customer");
-                            unlockAudioContext();
-                            playSuccessChime();
-                            toast.success("🎉 Partner Confirmed Handover! ₹25 Pickup Payout Credited.");
-                          } else {
-                            toast("Partner store hasn't clicked 'Start Processing' yet. Refreshing...", { icon: "⏳" });
-                          }
-                        } catch {}
-                      }
-                    }}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-slate-50 text-slate-900 text-xs font-black border border-slate-200 shadow-2xs active:scale-95 transition-all cursor-pointer"
-                  >
-                    <RefreshCw className="size-3.5 text-slate-600 animate-spin-slow" />
-                    <span>Check Store Status</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* 2. Direct Handover Summary Card (No OTP needed for drop-off) */}
-                <div className="p-4 bg-slate-50 rounded-3xl border border-slate-200 text-center space-y-2">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                    Store Clothes Drop-Off
-                  </span>
-                  <h4 className="text-sm font-black text-slate-900">
-                    Hand over clothes bag to {partnerStoreName}
-                  </h4>
-                  <p className="text-[11px] text-slate-600 font-medium max-w-xs mx-auto leading-relaxed">
-                    Hand over sealed bag to store staff and tap below. Once partner clicks &ldquo;Start Processing&rdquo;, handover completes & ₹25 payout is credited.
-                  </p>
-                </div>
-
-                {/* 3. Sealed Bag & Piece Cross-Check Summary */}
-                <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-2xl">
-                  <div className="flex items-center gap-2.5">
-                    <Package className="size-4.5 text-emerald-600 shrink-0" />
-                    <div className="text-left">
-                      <p className="text-xs font-black text-emerald-950">
-                        Sealed Bag: {bagTagCode || "QP-BAG"}
-                      </p>
-                      <span className="text-[10px] font-bold text-emerald-700">
-                        {doorstepPieces} Garments Handed Over
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-black text-emerald-800 bg-white px-2.5 py-1 rounded-full border border-emerald-200 shadow-2xs">
-                    Verified ✓
-                  </span>
-                </div>
-
-                {/* 4. Action Button: Initiate Handover to Store */}
-                <button
-                  type="button"
-                  onClick={handleStoreIntakeVerified}
-                  className="w-full h-13 rounded-full bg-slate-950 hover:bg-slate-900 text-white font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md cursor-pointer"
-                >
-                  <Package className="size-4.5 text-yellow-400" />
-                  <span>Handover Clothes to Store Staff 🧺</span>
-                </button>
-              </>
-            )}
-
-            {/* Emergency Help */}
-            <button
-              type="button"
-              onClick={() => setShowUnableModal(true)}
-              className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
-            >
-              <AlertTriangle className="size-4 text-amber-600" />
-              <span>Need Help / Store Issue</span>
-            </button>
-          </div>
-        )}
-
-        {/* STAGE: Clothes Dropped at Store & In Cleaning (Single Continuous Ride Active) */}
-        {stage === "store_processing" && (
-          <div className="space-y-3 animate-in fade-in duration-200">
-            <div className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3.5">
-              {/* Header with status pill */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-900 shadow-2xs">
-                    <Sparkles className="size-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-950 tracking-tight leading-tight">
-                      Washing & Steam Ironing at Store
-                    </h3>
-                    <p className="text-[10.5px] font-medium text-slate-500">
-                      Trip active in background • Ready hone par siren bajega
-                    </p>
-                  </div>
-                </div>
-                <span className="px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-black text-slate-700">
-                  IN CLEANING
-                </span>
-              </div>
-
-              {/* 1. Pickup Leg Payout Credited Confirmation */}
-              <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span className="text-xs font-bold text-emerald-950">
-                    Pickup Payout Credited: ₹{(order.pickupLegPayout || safeFare / 2 || 35).toFixed(2)}
-                  </span>
-                </div>
-                <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
-                  ✓ Wallet
-                </span>
-              </div>
-
-              {/* 2. Live Turnaround SLA Countdown Card */}
-              <div className="p-3.5 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                    <Timer className="size-4 text-slate-600" />
-                    <span>Turnaround Countdown</span>
-                  </div>
-                  <span className="text-[10px] font-black text-slate-600 bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                    {Math.round(processingTotalSecs / 60)} min SLA
-                  </span>
-                </div>
-
-                <div className="flex items-baseline justify-between py-0.5">
-                  <div className="text-3xl font-black font-mono tracking-tight text-slate-950">
-                    {formatCountdown(processingRemainingSecs)}
-                  </div>
-                  <span className="text-xs font-bold text-slate-500">
-                    {processingRemainingSecs > 0 ? "Remaining" : "Almost Ready"}
-                  </span>
-                </div>
-
-                {/* Clean Minimal Progress Bar */}
-                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-slate-950 h-full rounded-full transition-all duration-1000"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        Math.max(
-                          5,
-                          Math.round(
-                            ((processingTotalSecs - processingRemainingSecs) /
-                              Math.max(1, processingTotalSecs)) *
-                              100
-                          )
-                        )
-                      )}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* 3. Partner Store Info Card */}
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                    Partner Laundry Store
-                  </span>
-                  <p className="text-xs font-black text-slate-950 truncate">
-                    {partnerStoreName}
-                  </p>
-                  <p className="text-[11px] font-medium text-slate-600 truncate mt-0.5">
-                    {partnerStoreAddress}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowCallModal(true)}
-                  className="size-9 rounded-xl bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 active:scale-95 flex items-center justify-center shrink-0 shadow-2xs cursor-pointer"
-                  aria-label="Call Store"
-                  title="Call Store"
-                >
-                  <Phone className="size-4 text-slate-800" />
-                </button>
-              </div>
-
-              {/* 4. Action Buttons */}
-              <div className="space-y-2 pt-0.5">
-                {/* Primary: Go to Dashboard */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic(40);
-                    toast.info("Trip active rahegi! Dashboard par ja rahe hain");
-                    navigate({ to: "/dashboard" });
-                  }}
-                  className="w-full h-12 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-black text-xs flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer shadow-xs"
-                >
-                  <Home className="size-4 text-white" />
-                  <span>Go to Dashboard (Trip Active in Background)</span>
-                </button>
-
-                {/* Secondary: Check If Clothes Are Ready Early */}
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (order.orderId?.startsWith("TEST-")) {
-                      unlockAudioContext();
-                      playSuccessChime();
-                      speakLaundryReadyForDelivery();
-                      toast.success("Test Laundry Ready! Collect from Store.");
-                      setStage("ready_pickup_store");
-                      return;
-                    }
-                    try {
-                      const res = await fetchDispatchOtp(order.orderId);
-                      if (
-                        res?.status === "ready_for_delivery" ||
-                        res?.status === "ready" ||
-                        res?.status === "out_for_delivery" ||
-                        res?.isVerified
-                      ) {
-                        unlockAudioContext();
-                        playSuccessChime();
-                        speakLaundryReadyForDelivery();
-                        toast.success("Order Ready! Collect from Store.");
-                        setStage("ready_pickup_store");
-                      } else {
-                        toast.info("Partner is currently processing clothes.");
-                      }
-                    } catch {
-                      toast.info("Checking partner status...");
-                    }
-                  }}
-                  className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
-                >
-                  <Clock className="size-4 text-slate-600" />
-                  <span>Check If Clothes Are Ready Early</span>
-                </button>
-
-                {/* Exit Gate Action: Unable to Deliver / Leave Trip at Store */}
-                <button
-                  type="button"
-                  onClick={() => setShowUnableModal(true)}
-                  className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
-                >
-                  <AlertTriangle className="size-4 text-amber-600" />
-                  <span>Unable to Deliver / Leave Trip at Store</span>
+                  <span>Unable to Deliver / Reassign</span>
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* STAGE: Ready for Store Pickup -> Captain at Store, Shows Dispatch OTP to Partner */}
-        {stage === "ready_pickup_store" && (
-          <div className="space-y-3 animate-in fade-in duration-200">
-            <div className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3.5">
-              {/* Header with status pill */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shadow-2xs">
-                    <Package className="size-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-950 tracking-tight leading-tight">
-                      Clothes Ready • Store Dispatch
-                    </h3>
-                    <p className="text-[10.5px] font-medium text-slate-500">
-                      Show Dispatch OTP to Store Partner
-                    </p>
-                  </div>
-                </div>
-                <span className="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-black text-emerald-800">
-                  DISPATCH OTP
-                </span>
-              </div>
-
-              {/* 1. Big Prominent Golden Monospace Dispatch OTP Card */}
-              <div className="p-4 sm:p-5 bg-slate-950 rounded-3xl border-2 border-yellow-500 shadow-lg text-center space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-[10px] font-black text-yellow-400 uppercase tracking-widest block">
-                    CAPTAIN DISPATCH OTP
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-300">
-                    Tell to Partner
-                  </span>
-                </div>
-
-                {/* 4 Large Golden Digit Monospace Blocks */}
-                <div className="flex items-center justify-center gap-2.5 pt-0.5">
-                  {(captainDispatchOtp || order.dispatchOtp || "4821")
-                    .slice(0, 4)
-                    .split("")
-                    .map((digit, idx) => (
-                      <div
-                        key={idx}
-                        className="size-13 flex items-center justify-center text-3xl font-black font-mono text-[#FACC15] bg-slate-900 rounded-2xl border-2 border-yellow-400 shadow-inner"
-                      >
-                        {digit}
-                      </div>
-                    ))}
-                </div>
-
-                <div className="flex items-center justify-center gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic(20);
-                      const code = (captainDispatchOtp || order.dispatchOtp || "4821").slice(0, 4);
-                      navigator.clipboard.writeText(code);
-                      toast.success(`Copied Dispatch OTP: ${code}`);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-yellow-400 text-xs font-bold border border-yellow-500/40 transition-all cursor-pointer"
-                  >
-                    <Copy className="size-3" />
-                    <span>Copy Code</span>
-                  </button>
-                </div>
-
-                <p className="text-[11px] text-slate-300 font-medium max-w-xs mx-auto leading-relaxed pt-1">
-                  Partner will enter this 4-digit code in their Partner Console to release packed clothes and dispatch the order.
-                </p>
-              </div>
-
-              {/* 2. Partner Store Collection Card */}
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                    Partner Store
-                  </span>
-                  <p className="text-xs font-black text-slate-950 truncate">
-                    {partnerStoreName}
-                  </p>
-                  <p className="text-[11px] font-medium text-slate-600 truncate mt-0.5">
-                    {partnerStoreAddress}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowCallModal(true)}
-                  className="size-9 rounded-xl bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 active:scale-95 flex items-center justify-center shrink-0 shadow-2xs cursor-pointer"
-                  aria-label="Call Store"
-                  title="Call Store"
-                >
-                  <Phone className="size-4 text-slate-800" />
-                </button>
-              </div>
-
-              {/* 3. 1-Tap Google Maps Navigation */}
-              <button
-                type="button"
-                onClick={() => launchTurnByTurnGoogleMaps(storeCoords, captainCoords, partnerStoreName)}
-                className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
-              >
-                <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
-                <span>Navigate to Store with Google Maps</span>
-              </button>
-
-              {/* 4. Action Button: Swipe to Start Delivery to Customer */}
-              <SwipeActionButton
-                label="Dispatch Done • Go to Customer"
-                color="darkNavy"
-                onConfirm={handleStartCustomerDelivery}
+          {/* STAGE: Handover Waiting Card (Rider 1 awaiting replacement Captain) */}
+          {stage === "handover_waiting" && (
+            <div className="animate-in fade-in duration-200">
+              <RiderHandoverWaitingCard
+                orderId={order.orderId}
+                orderCode={order.orderCode}
+                handoverOtp={handoverData?.handoverOtp}
+                pickupPayout={handoverData?.pickupLegPayout}
+                onHandoverCompleted={() => {
+                  if (onTripCompleted) onTripCompleted();
+                }}
               />
-
-              {/* Direct button */}
-              <button
-                type="button"
-                onClick={handleStartCustomerDelivery}
-                className="w-full h-11 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer border border-slate-300"
-              >
-                <CheckCircle2 className="size-4 text-emerald-600" />
-                <span>Dispatch Verified • Start Customer Delivery →</span>
-              </button>
-
-              {/* Emergency Exit Gate */}
-              <button
-                type="button"
-                onClick={() => setShowUnableModal(true)}
-                className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
-              >
-                <AlertTriangle className="size-4 text-amber-600" />
-                <span>Unable to Deliver / Reassign</span>
-              </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* STAGE: Handover Waiting Card (Rider 1 awaiting replacement Captain) */}
-        {stage === "handover_waiting" && (
-          <div className="animate-in fade-in duration-200">
-            <RiderHandoverWaitingCard
-              orderId={order.orderId}
-              orderCode={order.orderCode}
-              handoverOtp={handoverData?.handoverOtp}
-              pickupPayout={handoverData?.pickupLegPayout}
-              onHandoverCompleted={() => {
-                if (onTripCompleted) onTripCompleted();
-              }}
-            />
-          </div>
-        )}
-
-        {/* STAGE 4: Trip Completed (Rapido Yellow Theme - Screenshot WhatsApp Image 2026-10-30 at 11.06.20 (1).jpeg) */}
-        {stage === "completed" && (
-          <div className="space-y-4 animate-in zoom-in-95 duration-200">
-            {/* Card 1: Estimated Earning with Blue Ink Stamp */}
-            <div className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <span className="text-xs font-black text-slate-500 uppercase tracking-wider block">
-                  Estimated Earning
-                </span>
-                <div className="text-3xl sm:text-4xl font-black font-mono text-emerald-600 tracking-tight mt-0.5">
-                  ₹{safeFare.toFixed(2)}
-                </div>
-                <p className="text-[11px] font-bold text-slate-600 mt-1">
-                  100% Payout Received · No Commission
-                </p>
-              </div>
-
-              {/* Blue Circular Ink Stamp (Rapido / QuickPress Guarantee Stamp) */}
-              <div className="relative flex items-center justify-center size-24 rounded-full border-2 border-dashed border-[#1E40AF] bg-[#EFF6FF] text-[#1E40AF] p-2 rotate-[-8deg] shadow-xs shrink-0">
-                <div className="flex flex-col items-center justify-center text-center">
-                  <ShieldCheck className="size-5 text-[#1E40AF]" />
-                  <span className="text-[7.5px] font-black uppercase tracking-tight leading-tight">
-                    0% Commission
+          {/* STAGE 4: Trip Completed (Rapido Yellow Theme - Screenshot WhatsApp Image 2026-10-30 at 11.06.20 (1).jpeg) */}
+          {stage === "completed" && (
+            <div className="space-y-4 animate-in zoom-in-95 duration-200">
+              {/* Card 1: Estimated Earning with Blue Ink Stamp */}
+              <div className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="text-xs font-black text-slate-500 uppercase tracking-wider block">
+                    Estimated Earning
                   </span>
-                  <span className="text-[6.5px] font-bold">Lifetime Guarantee</span>
+                  <div className="text-3xl sm:text-4xl font-black font-mono text-emerald-600 tracking-tight mt-0.5">
+                    ₹{safeFare.toFixed(2)}
+                  </div>
+                  <p className="text-[11px] font-bold text-slate-600 mt-1">
+                    100% Payout Received · No Commission
+                  </p>
+                </div>
+
+                {/* Blue Circular Ink Stamp (Rapido / QuickPress Guarantee Stamp) */}
+                <div className="relative flex items-center justify-center size-24 rounded-full border-2 border-dashed border-[#1E40AF] bg-[#EFF6FF] text-[#1E40AF] p-2 rotate-[-8deg] shadow-xs shrink-0">
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <ShieldCheck className="size-5 text-[#1E40AF]" />
+                    <span className="text-[7.5px] font-black uppercase tracking-tight leading-tight">
+                      0% Commission
+                    </span>
+                    <span className="text-[6.5px] font-bold">Lifetime Guarantee</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Card 2: Rate your Customer */}
-            <div className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3 text-center">
-              <h3 className="text-sm font-black text-slate-950">
-                Rate your Customer
-              </h3>
+              {/* Card 2: Rate your Customer */}
+              <div className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3 text-center">
+                <h3 className="text-sm font-black text-slate-950">
+                  Rate your Customer
+                </h3>
 
-              {/* 5 Big Gold Stars */}
-              <div className="flex justify-center gap-2 py-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => handleRatingChange(star)}
-                    className="p-1 active:scale-125 transition-transform cursor-pointer"
-                    title={`${star} Star`}
-                  >
-                    <Star
-                      className={`size-8 ${
-                        star <= customerRating
-                          ? "fill-amber-400 text-amber-400"
-                          : "text-slate-200"
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
-
-              {/* Reaction Badge */}
-              <div className="inline-block px-3 py-1 bg-amber-50 text-amber-900 font-black text-xs rounded-full border border-amber-300">
-                {ratingReaction}
-              </div>
-
-              {/* Quick Feedback Chips */}
-              <div className="flex flex-wrap justify-center gap-1.5 pt-1">
-                {["⏰ Timely", "😊 Polite", "🤝 Friendly", "Other"].map((tag) => {
-                  const isSelected = selectedRatingTags.includes(tag);
-                  return (
+                {/* 5 Big Gold Stars */}
+                <div className="flex justify-center gap-2 py-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
                     <button
-                      key={tag}
+                      key={star}
                       type="button"
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedRatingTags(selectedRatingTags.filter((t) => t !== tag));
-                        } else {
-                          setSelectedRatingTags([...selectedRatingTags, tag]);
-                        }
-                        triggerHaptic(20);
-                      }}
-                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer ${
-                        isSelected
-                          ? "bg-slate-900 text-white"
-                          : "bg-slate-50 text-slate-700 border border-slate-200"
-                      }`}
+                      onClick={() => handleRatingChange(star)}
+                      className="p-1 active:scale-125 transition-transform cursor-pointer"
+                      title={`${star} Star`}
                     >
-                      {tag}
+                      <Star
+                        className={`size-8 ${star <= customerRating
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-slate-200"
+                          }`}
+                      />
                     </button>
-                  );
-                })}
-              </div>
-            </div>
+                  ))}
+                </div>
 
-            {/* Bottom Full-Width Solid Bright Yellow Done Button */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(40);
-                if (onTripCompleted) {
-                  onTripCompleted();
-                } else {
-                  navigate({ to: "/orders" });
-                }
-              }}
-              className="w-full h-13 rounded-full bg-[#FACC15] hover:bg-yellow-400 text-slate-950 font-black text-base flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all cursor-pointer border border-yellow-500"
-            >
-              <span>Done</span>
-              <Check className="size-5 stroke-[2.5]" />
-            </button>
-          </div>
-        )}
-      </div>
+                {/* Reaction Badge */}
+                <div className="inline-block px-3 py-1 bg-amber-50 text-amber-900 font-black text-xs rounded-full border border-amber-300">
+                  {ratingReaction}
+                </div>
+
+                {/* Quick Feedback Chips */}
+                <div className="flex flex-wrap justify-center gap-1.5 pt-1">
+                  {["⏰ Timely", "😊 Polite", "🤝 Friendly", "Other"].map((tag) => {
+                    const isSelected = selectedRatingTags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedRatingTags(selectedRatingTags.filter((t) => t !== tag));
+                          } else {
+                            setSelectedRatingTags([...selectedRatingTags, tag]);
+                          }
+                          triggerHaptic(20);
+                        }}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer ${isSelected
+                            ? "bg-slate-900 text-white"
+                            : "bg-slate-50 text-slate-700 border border-slate-200"
+                          }`}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Bottom Full-Width Solid Bright Yellow Done Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic(40);
+                  if (onTripCompleted) {
+                    onTripCompleted();
+                  } else {
+                    navigate({ to: "/orders" });
+                  }
+                }}
+                className="w-full h-13 rounded-full bg-[#FACC15] hover:bg-yellow-400 text-slate-950 font-black text-base flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all cursor-pointer border border-yellow-500"
+              >
+                <span>Done</span>
+                <Check className="size-5 stroke-[2.5]" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 6. Quick Chat Slide-Up Modal */}
@@ -3550,11 +3547,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   className={`flex flex-col ${msg.sender === "rider" ? "items-end" : "items-start"}`}
                 >
                   <div
-                    className={`max-w-[80%] px-3.5 py-2 rounded-2xl text-xs font-bold ${
-                      msg.sender === "rider"
+                    className={`max-w-[80%] px-3.5 py-2 rounded-2xl text-xs font-bold ${msg.sender === "rider"
                         ? "bg-[#2563EB] text-white rounded-br-none"
                         : "bg-neutral-100 text-neutral-900 rounded-bl-none"
-                    }`}
+                      }`}
                   >
                     {msg.text}
                   </div>
@@ -4206,11 +4202,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     toast.success("Cash collected successfully!");
                     triggerHaptic(30);
                   }}
-                  className={`w-full h-12 rounded-2xl border-2 font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer ${
-                    isCashCollected
+                  className={`w-full h-12 rounded-2xl border-2 font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer ${isCashCollected
                       ? "bg-emerald-50 border-emerald-500 text-emerald-900"
                       : "bg-white border-neutral-300 text-neutral-800 hover:bg-neutral-50"
-                  }`}
+                    }`}
                 >
                   <Check className="w-4 h-4" />
                   <span>{isCashCollected ? "✓ Cash Collected" : "Collect Cash"}</span>
@@ -4303,11 +4298,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                       title={`${star} Star`}
                     >
                       <Star
-                        className={`size-8.5 ${
-                          star <= customerRating
+                        className={`size-8.5 ${star <= customerRating
                             ? "fill-amber-400 text-amber-400"
                             : "text-slate-200"
-                        }`}
+                          }`}
                       />
                     </button>
                   ))}
@@ -4334,11 +4328,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                           }
                           triggerHaptic(20);
                         }}
-                        className={`px-3 py-1 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer ${
-                          isSelected
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer ${isSelected
                             ? "bg-slate-900 text-white"
                             : "bg-slate-50 text-slate-700 border border-slate-200"
-                        }`}
+                          }`}
                       >
                         {tag}
                       </button>

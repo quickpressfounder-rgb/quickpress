@@ -561,8 +561,8 @@ export function toOrderDetail(order: Order): OrderDetail {
     garmentDefects: Array.isArray((order as any)?.garmentDefects)
       ? (order as any).garmentDefects
       : Array.isArray((order as any)?.garment_defects)
-      ? (order as any).garment_defects
-      : [],
+        ? (order as any).garment_defects
+        : [],
     hasDefectsReported: Boolean(
       (order as any)?.hasDefectsReported ||
       ((order as any)?.garmentDefects && (order as any).garmentDefects.length > 0) ||

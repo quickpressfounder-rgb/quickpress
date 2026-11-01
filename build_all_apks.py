@@ -6,8 +6,9 @@ import sys
 
 ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 
-ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/a52b7436-8efd-4bee-8065-5cb031bc4852"
+ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/17c1b311-1a3b-46d8-8900-f8a81280aa57"
 OLD_ARTIFACT_DIRS = [
+    "/Users/himanshupal/.gemini/antigravity-ide/brain/a52b7436-8efd-4bee-8065-5cb031bc4852",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/2be060e2-3255-4260-8969-7501366a1753",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/77318238-9621-42dc-99c7-efff7401c879",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/bf9cca5c-94b7-4a2d-9ac5-b3a72ec05c29",

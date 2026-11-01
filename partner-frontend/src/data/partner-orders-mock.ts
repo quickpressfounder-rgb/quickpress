@@ -234,9 +234,9 @@ export function formatOrderPlacedTime(placedAt?: string): { time: string; date: 
     : isYesterday
       ? "Yesterday"
       : d.toLocaleDateString("en-IN", {
-          day: "numeric",
-          month: "short",
-        });
+        day: "numeric",
+        month: "short",
+      });
 
   const diffMs = now.getTime() - d.getTime();
   const diffMins = Math.floor(diffMs / 60000);

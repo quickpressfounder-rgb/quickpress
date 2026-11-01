@@ -151,11 +151,10 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
 
     return (
       <div
-        className={`mt-4 rounded-3xl border p-4.5 transition-all shadow-xs ${
-          isUrgent
+        className={`mt-4 rounded-3xl border p-4.5 transition-all shadow-xs ${isUrgent
             ? "border-rose-400/90 bg-rose-500/10 ring-1 ring-rose-400"
             : "border-amber-400/80 bg-amber-500/10"
-        }`}
+          }`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -165,9 +164,8 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
             </span>
           </div>
           <span
-            className={`font-mono text-xs font-black rounded-xl px-2.5 py-1 ${
-              isUrgent ? "bg-rose-600 text-white animate-pulse" : "bg-amber-600 text-white"
-            }`}
+            className={`font-mono text-xs font-black rounded-xl px-2.5 py-1 ${isUrgent ? "bg-rose-600 text-white animate-pulse" : "bg-amber-600 text-white"
+              }`}
           >
             ⏱️ {formatted}
           </span>
@@ -187,11 +185,10 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
 
     return (
       <div
-        className={`mt-4 rounded-3xl border p-4.5 transition-all shadow-xs ${
-          isUrgent
+        className={`mt-4 rounded-3xl border p-4.5 transition-all shadow-xs ${isUrgent
             ? "border-rose-400/90 bg-rose-500/10 ring-1 ring-rose-400"
             : "border-sky-400/80 bg-sky-500/10"
-        }`}
+          }`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -201,9 +198,8 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
             </span>
           </div>
           <span
-            className={`font-mono text-xs font-black rounded-xl px-2.5 py-1 ${
-              isUrgent ? "bg-rose-600 text-white animate-pulse" : "bg-sky-600 text-white"
-            }`}
+            className={`font-mono text-xs font-black rounded-xl px-2.5 py-1 ${isUrgent ? "bg-rose-600 text-white animate-pulse" : "bg-sky-600 text-white"
+              }`}
           >
             ⏱️ {formatted}
           </span>
@@ -243,7 +239,7 @@ function TrackOrderScreen() {
         (pos) => {
           setDeviceLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         },
-        () => {},
+        () => { },
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
       );
     }
@@ -267,7 +263,7 @@ function TrackOrderScreen() {
               next.garmentDefects = defs;
               next.hasDefectsReported = true;
             }
-          } catch {}
+          } catch { }
         }
         setDetail(next);
         const live = toTracking(next as any);
@@ -284,7 +280,7 @@ function TrackOrderScreen() {
               .then((actives) => {
                 if (alive && actives.length > 0) setActiveOrders(actives);
               })
-              .catch(() => {});
+              .catch(() => { });
           }
         }
       } finally {
@@ -484,11 +480,11 @@ function TrackOrderScreen() {
 
                     const riderCoord = hasRiderLocation
                       ? {
-                          lat: riderLat,
-                          lng: riderLng,
-                          heading: riderHeading,
-                          label: "Delivery Captain (Live)",
-                        }
+                        lat: riderLat,
+                        lng: riderLng,
+                        heading: riderHeading,
+                        label: "Delivery Captain (Live)",
+                      }
                       : null;
 
                     const partnerCoord = hasPartnerLocation
@@ -570,9 +566,8 @@ function TrackOrderScreen() {
                 </div>
                 <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
                   <div
-                    className={`h-full rounded-full transition-all duration-700 ease-out ${
-                      cancelled ? "bg-rose-500" : "bg-primary"
-                    }`}
+                    className={`h-full rounded-full transition-all duration-700 ease-out ${cancelled ? "bg-rose-500" : "bg-primary"
+                      }`}
                     style={{ width: cancelled ? "100%" : `${progress}%` }}
                   />
                 </div>
@@ -619,27 +614,27 @@ function TrackOrderScreen() {
             {["delivery_reassignment_required", "handover_rider_assigned"].includes(
               (detail?.status || "").toLowerCase()
             ) && (
-              <section className="mt-4">
-                <div className="rounded-3xl border-2 border-amber-400 bg-amber-50/90 p-4.5 shadow-sm dark:bg-amber-950/40 dark:border-amber-500">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex size-9 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-xs">
-                      <Truck className="size-5 animate-pulse" />
-                    </span>
-                    <div>
-                      <h4 className="text-xs font-black uppercase tracking-wider text-amber-950 dark:text-amber-200">
-                        Delivery Partner Reassigned
-                      </h4>
-                      <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">
-                        Emergency Handover in Progress
-                      </p>
+                <section className="mt-4">
+                  <div className="rounded-3xl border-2 border-amber-400 bg-amber-50/90 p-4.5 shadow-sm dark:bg-amber-950/40 dark:border-amber-500">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex size-9 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-xs">
+                        <Truck className="size-5 animate-pulse" />
+                      </span>
+                      <div>
+                        <h4 className="text-xs font-black uppercase tracking-wider text-amber-950 dark:text-amber-200">
+                          Delivery Partner Reassigned
+                        </h4>
+                        <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">
+                          Emergency Handover in Progress
+                        </p>
+                      </div>
                     </div>
+                    <p className="mt-2 text-xs leading-relaxed text-amber-900/90 dark:text-amber-200/90">
+                      Your previous delivery partner encountered a vehicle or emergency issue. A nearby QuickPress Captain has been prioritized to take over custody of your laundry to ensure safe and timely doorstep delivery.
+                    </p>
                   </div>
-                  <p className="mt-2 text-xs leading-relaxed text-amber-900/90 dark:text-amber-200/90">
-                    Your previous delivery partner encountered a vehicle or emergency issue. A nearby QuickPress Captain has been prioritized to take over custody of your laundry to ensure safe and timely doorstep delivery.
-                  </p>
-                </div>
-              </section>
-            )}
+                </section>
+              )}
 
             {/* Real OTP Display Card */}
             {(() => {
@@ -867,8 +862,8 @@ function TrackOrderScreen() {
                         href={
                           assignedRider.phone
                             ? `https://wa.me/${assignedRider.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
-                                `Hi ${assignedRider.name}, I am reaching out regarding my QuickPress Order #${detail?.code || orderId}.`
-                              )}`
+                              `Hi ${assignedRider.name}, I am reaching out regarding my QuickPress Order #${detail?.code || orderId}.`
+                            )}`
                             : "#"
                         }
                         target="_blank"
@@ -893,15 +888,14 @@ function TrackOrderScreen() {
                     <div key={step.id} className="flex gap-3">
                       <div className="flex flex-col items-center">
                         <span
-                          className={`flex size-8 shrink-0 items-center justify-center rounded-full transition-all duration-500 ${
-                            step.isCancelled
+                          className={`flex size-8 shrink-0 items-center justify-center rounded-full transition-all duration-500 ${step.isCancelled
                               ? "bg-rose-600 text-white shadow-sm ring-4 ring-rose-100 dark:ring-rose-950/60"
                               : step.done
                                 ? "bg-brand-green text-background"
                                 : step.active
                                   ? "animate-pop bg-primary text-primary-foreground"
                                   : "bg-muted text-muted-foreground"
-                          }`}
+                            }`}
                         >
                           {step.isCancelled ? (
                             <span className="text-sm font-black">✕</span>
@@ -915,34 +909,31 @@ function TrackOrderScreen() {
                         </span>
                         {!isLast ? (
                           <span
-                            className={`w-0.5 flex-1 rounded-full transition-colors duration-500 ${
-                              cancelled
+                            className={`w-0.5 flex-1 rounded-full transition-colors duration-500 ${cancelled
                                 ? "bg-rose-500"
                                 : step.done
                                   ? "bg-brand-green/50"
                                   : "bg-border"
-                            }`}
+                              }`}
                           />
                         ) : null}
                       </div>
                       <div className={`min-w-0 flex-1 ${isLast ? "pb-0" : "pb-6"}`}>
                         <p
-                          className={`text-sm font-bold ${
-                            step.isCancelled
+                          className={`text-sm font-bold ${step.isCancelled
                               ? "text-rose-600 dark:text-rose-400 font-black"
                               : step.done || step.active
                                 ? "text-foreground"
                                 : "text-muted-foreground"
-                          }`}
+                            }`}
                         >
                           {step.label}
                         </p>
                         <p
-                          className={`mt-0.5 text-[11px] leading-relaxed ${
-                            step.isCancelled
+                          className={`mt-0.5 text-[11px] leading-relaxed ${step.isCancelled
                               ? "text-rose-800 dark:text-rose-300 font-medium"
                               : "text-muted-foreground"
-                          }`}
+                            }`}
                         >
                           {step.description}
                         </p>
@@ -1077,11 +1068,10 @@ function TrackOrderScreen() {
                         <span className="text-xs font-bold text-foreground">{detail.payment.label || "QuickPress"}</span>
                       </div>
                       <span
-                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${
-                          detail.payment.paid
+                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${detail.payment.paid
                             ? "bg-brand-green/10 text-brand-green border border-brand-green/20"
                             : "bg-amber-500/10 text-amber-600 border border-amber-500/20"
-                        }`}
+                          }`}
                       >
                         {detail.payment.paid ? "Paid" : "Pay on delivery"}
                       </span>
@@ -1231,11 +1221,10 @@ function TrackOrderScreen() {
                             type="button"
                             onClick={() => setCancelReason(reason)}
                             aria-pressed={cancelReason === reason}
-                            className={`rounded-full px-3 py-2 text-[11px] font-bold tracking-tight transition-all duration-300 active:scale-[0.95] ${
-                              cancelReason === reason
+                            className={`rounded-full px-3 py-2 text-[11px] font-bold tracking-tight transition-all duration-300 active:scale-[0.95] ${cancelReason === reason
                                 ? "bg-primary/15 text-brand-dark"
                                 : "bg-muted text-muted-foreground hover:text-foreground"
-                            }`}
+                              }`}
                           >
                             {reason}
                           </button>

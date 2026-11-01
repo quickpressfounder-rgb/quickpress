@@ -394,7 +394,7 @@ function writePersistedSet(key: string, set: Set<string>) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(key, JSON.stringify(Array.from(set)));
-  } catch {}
+  } catch { }
 }
 
 function readCachedOrders(): ManagedOrder[] {
@@ -411,7 +411,7 @@ function writeCachedOrders(list: ManagedOrder[]) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(CACHED_ORDERS_KEY, JSON.stringify(list));
-  } catch {}
+  } catch { }
 }
 
 export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
@@ -700,10 +700,10 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
             }
           });
           removeCapacitorListener = () => {
-            handle.then((h) => h.remove()).catch(() => {});
+            handle.then((h) => h.remove()).catch(() => { });
           };
         })
-        .catch(() => {});
+        .catch(() => { });
     }
 
     // Fast 2.0s fallback interval when tab is focused, 6s when in background
@@ -754,12 +754,12 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
         prev.map((o) =>
           o.id === orderId
             ? {
-                ...o,
-                stage: "accepted" as OrderStage,
-                partnerAccepted: true,
-                prepTimeMinutes,
-                estimatedReadyAt: new Date(Date.now() + prepTimeMinutes * 60000).toISOString(),
-              }
+              ...o,
+              stage: "accepted" as OrderStage,
+              partnerAccepted: true,
+              prepTimeMinutes,
+              estimatedReadyAt: new Date(Date.now() + prepTimeMinutes * 60000).toISOString(),
+            }
             : o
         )
       );
@@ -894,10 +894,10 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
         prev.map((o) =>
           o.id === orderId
             ? {
-                ...o,
-                stage: "at_partner" as OrderStage,
-                partnerHandoverConfirmed: true,
-              }
+              ...o,
+              stage: "at_partner" as OrderStage,
+              partnerHandoverConfirmed: true,
+            }
             : o
         )
       );
