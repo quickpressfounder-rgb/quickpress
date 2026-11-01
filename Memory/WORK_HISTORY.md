@@ -79,6 +79,7 @@
   - `./venv/bin/python test_commission_engine.py`: Passed (0% commission deduction, balanced double-entry ledger).
 
 ## Session: 2026-11-01 (Part 3) — Production APK & Google Play AAB Release Automation
+- **Commit Hash:** `f9bb512`
 - **Artifacts Built & Released:**
   - **Customer App:**
     - APK: `apks/QuickPress-Customer.apk` (17MB)
