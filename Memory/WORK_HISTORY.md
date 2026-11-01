@@ -45,3 +45,36 @@
   - Attached `pointer-events-none opacity-60 cursor-not-allowed` on busy buttons.
 - **Rider OTP Verification (`rider-frontend/src/components/dashboard/RiderOtpCard.tsx`):**
   - Added `isSubmittingRef` guard on `triggerAutoAccept` to prevent duplicate concurrent OTP submissions.
+
+## Session: 2026-11-01 (Part 2) — Double-Click Protection & Idempotency Across Add Funds, Rider COD Settlement, and Withdrawals
+- **Commit Hash:** `679ca49`
+- **Customer Wallet Add Funds (`customer-frontend/src/routes/wallet.tsx` & `wallet-api.ts`):**
+  - Added `isAddingRef` synchronous mutex lock on `handleProceedAddMoney` preventing duplicate gateway launches.
+  - Added `idempotencyKey` support in `addFunds` data layer, transmitting Razorpay payment ID as unique reference via body and `Idempotency-Key` / `X-Idempotency-Key` HTTP headers.
+  - Added `disabled:pointer-events-none disabled:cursor-not-allowed` on the Add Money submit button.
+- **Rider Fund Add & COD Settlement Modal (`rider-frontend/src/components/wallet/RiderFundAddModal.tsx`):**
+  - Added `isProcessingRef` mutex guard to `handleRazorpayPayment`.
+  - Added `disabled:pointer-events-none disabled:cursor-not-allowed` preventing multiple payment gateway orders on rapid taps.
+- **Rider Bank Cashout / Withdrawals (`rider-frontend/src/components/wallet/RiderWithdrawModal.tsx`):**
+  - Added `isSubmittingRef` mutex guard to `handleWithdraw` preventing duplicate bank cashout requests.
+  - Added `disabled:pointer-events-none disabled:cursor-not-allowed` on bank transfer button.
+- **Rider Active Trip HUD (`rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`):**
+  - Added `isActionLockedRef` and `isCollectingCash` synchronous guards across `handleStartTrip`, `handleCompleteTrip`, and Cash Collection CTA.
+  - Prevented duplicate cash receipt recordings and double-triggering of doorstep handover OTP verification.
+- **Partner Store Wallet Withdrawals (`partner-frontend/src/screens/WalletScreen.tsx`):**
+  - Added `busyRef` mutex lock to `handleWithdraw` and `disabled:pointer-events-none disabled:cursor-not-allowed` on the Withdraw to Bank button.
+- **Backend Concurrency Locks & Idempotency Engines (`backend-python`):**
+  - `app/models/wallet.py`: Added `paymentId` and `idempotencyKey` to `AddFundsPayload`.
+  - `app/api/wallet.py`: Resolved `paymentReference` from `paymentReference`, `paymentId`, or `idempotencyKey`.
+  - `app/db/wallet_repositories.py`: Added atomic user lock in `credit` and verified against duplicate `payment_reference` in `add_funds` to prevent double-crediting.
+  - `app/api/rider.py`: Added deduplication against duplicate `payment_id` / `utr` in `/wallet/razorpay-verify` to prevent double-clearing of rider floating cash.
+  - `app/db/rider_repositories.py`: Wrapped `withdraw` with per-rider `asyncio.Lock` preventing concurrent double-spend race conditions.
+  - `app/db/partner_repositories.py`: Wrapped partner `withdraw` with per-partner `asyncio.Lock`.
+- **Verification & Testing:**
+  - `npm run build:customer`: Exit 0 (Cloudflare worker generated, 0 errors).
+  - `npm run build:rider`: Exit 0 (Cloudflare worker generated, 0 errors).
+  - `npm run build:partner`: Exit 0 (Cloudflare worker generated, 0 errors).
+  - `./venv/bin/python test_captain_hud_end_to_end.py`: 100% passed (2-leg order, bag tag, dynamic UPI QR, cash collection, OTP verification).
+  - `./venv/bin/python test_full_integrated_order_lifecycle.py`: 20/20 transitions & security constraints passed.
+  - `./venv/bin/python test_commission_engine.py`: Passed (0% commission deduction, balanced double-entry ledger).
+
