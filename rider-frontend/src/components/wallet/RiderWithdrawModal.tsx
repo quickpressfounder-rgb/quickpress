@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ArrowUpRight,
   Building2,
@@ -32,6 +32,7 @@ export const RiderWithdrawModal: React.FC<RiderWithdrawModalProps> = ({
 
   const [amount, setAmount] = useState<number>(availableBalance > 0 ? Math.floor(availableBalance) : 100);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [profile, setProfile] = useState<RiderProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
@@ -57,6 +58,7 @@ export const RiderWithdrawModal: React.FC<RiderWithdrawModalProps> = ({
   const registeredHolder = profile?.accountHolder || profile?.fullName || "Captain";
 
   const handleWithdraw = async () => {
+    if (isSubmittingRef.current || isSubmitting) return;
     if (amount < 10) {
       toast.error("Minimum withdrawal amount is ₹10");
       return;
@@ -66,6 +68,7 @@ export const RiderWithdrawModal: React.FC<RiderWithdrawModalProps> = ({
       return;
     }
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     triggerHaptic(30);
 
@@ -91,6 +94,7 @@ export const RiderWithdrawModal: React.FC<RiderWithdrawModalProps> = ({
     } catch (err: any) {
       toast.error(err?.message || "Failed to process withdrawal");
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -250,7 +254,7 @@ export const RiderWithdrawModal: React.FC<RiderWithdrawModalProps> = ({
             type="button"
             onClick={handleWithdraw}
             disabled={isSubmitting || amount <= 0 || availableBalance < 10}
-            className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+            className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md active:scale-98 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>

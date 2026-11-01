@@ -1260,6 +1260,9 @@ class PartnerOrderRepository:
 
 
 class PartnerWalletRepository:
+    def __init__(self) -> None:
+        self._partner_locks: Dict[str, asyncio.Lock] = {}
+
     async def wallet(self, partner_id: str) -> Optional[Dict[str, Any]]:
         return await database.find_one(WALLETS, {"accountId": partner_id})
 
@@ -1269,27 +1272,29 @@ class PartnerWalletRepository:
         )
 
     async def withdraw(self, partner_id: str, amount: float) -> Dict[str, Any]:
-        wallet = await self.wallet(partner_id)
-        if wallet is None:
-            raise PartnerNotFoundError("Wallet not found")
-        if amount <= 0:
-            raise InvalidTransitionError("Withdrawal amount must be greater than zero")
-        if amount > wallet.get("balance", 0):
-            raise InvalidTransitionError("Insufficient wallet balance")
-        new_balance = wallet["balance"] - amount
-        await database.update(WALLETS, {"accountId": partner_id}, {"balance": new_balance})
-        txn = {
-            "_id": _uid("wtx"),
-            "accountId": partner_id,
-            "title": "Withdrawal to bank",
-            "date": _now(),
-            "amount": amount,
-            "direction": "debit",
-            "status": "success",
-            "kind": "withdrawal",
-        }
-        await database.insert(WALLET_TXNS, txn)
-        return await self.wallet(partner_id)
+        lock = self._partner_locks.setdefault(partner_id, asyncio.Lock())
+        async with lock:
+            wallet = await self.wallet(partner_id)
+            if wallet is None:
+                raise PartnerNotFoundError("Wallet not found")
+            if amount <= 0:
+                raise InvalidTransitionError("Withdrawal amount must be greater than zero")
+            if amount > wallet.get("balance", 0):
+                raise InvalidTransitionError("Insufficient wallet balance")
+            new_balance = wallet["balance"] - amount
+            await database.update(WALLETS, {"accountId": partner_id}, {"balance": new_balance})
+            txn = {
+                "_id": _uid("wtx"),
+                "accountId": partner_id,
+                "title": "Withdrawal to bank",
+                "date": _now(),
+                "amount": amount,
+                "direction": "debit",
+                "status": "success",
+                "kind": "withdrawal",
+            }
+            await database.insert(WALLET_TXNS, txn)
+            return await self.wallet(partner_id)
 
 
 class PartnerReviewRepository:

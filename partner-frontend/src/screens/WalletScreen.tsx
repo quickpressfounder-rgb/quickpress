@@ -10,7 +10,7 @@ import {
   Loader2,
   Wallet as WalletIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Toaster } from "@/shared/ui/sonner";
@@ -33,9 +33,11 @@ export function WalletScreen() {
   const wallet = walletState.data;
   const transactions = txnState.data;
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
 
   const handleWithdraw = async () => {
-    if (!wallet) return;
+    if (!wallet || busyRef.current || busy) return;
+    busyRef.current = true;
     setBusy(true);
     try {
       const result = await withdrawToBank(wallet.availableBalance);
@@ -44,6 +46,7 @@ export function WalletScreen() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Withdrawal failed");
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
@@ -80,7 +83,7 @@ export function WalletScreen() {
                   type="button"
                   disabled={busy || wallet.availableBalance === 0}
                   onClick={() => void handleWithdraw()}
-                  className="relative mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-xs font-black text-white shadow-cta transition-all hover:brightness-105 active:scale-95 disabled:opacity-60 cursor-pointer"
+                  className="relative mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-xs font-black text-white shadow-cta transition-all hover:brightness-105 active:scale-95 disabled:opacity-60 disabled:pointer-events-none disabled:cursor-not-allowed cursor-pointer"
                 >
                   {busy ? <Loader2 className="size-4 animate-spin" /> : <Banknote className="size-4" />}
                   Withdraw to Bank

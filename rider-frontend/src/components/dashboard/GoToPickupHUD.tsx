@@ -237,6 +237,8 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [isPaymentConfirmed, setIsPaymentConfirmed] = useState<boolean>(!isCodOrder);
   const [paymentMethodUsed, setPaymentMethodUsed] = useState<"razorpay_upi" | "cash">("razorpay_upi");
   const [isCheckingPayment, setIsCheckingPayment] = useState<boolean>(false);
+  const [isCollectingCash, setIsCollectingCash] = useState<boolean>(false);
+  const isActionLockedRef = useRef<boolean>(false);
   const codPayableAmount = Number(
     (order as any).payableAmount ||
     (order as any).grandTotal ||
@@ -1611,6 +1613,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   };
 
   const handleStartTrip = async (directOtp?: string) => {
+    if (isActionLockedRef.current) return;
     const enteredOtp = (directOtp || otpDigits.join("")).trim();
     const otpToVerify = enteredOtp || order.startOtp;
 
@@ -1619,72 +1622,77 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       return;
     }
 
-    // Call Real Backend verification first (skip for simulated test orders)
-    if (order.orderId && !order.orderId.startsWith("TEST-")) {
-      try {
-        await confirmPickup(order.orderId, otpToVerify, {
-          bagTag: bagTagCode.trim(),
-          verifiedPieces: doorstepPieces,
-          notes: doorstepNotes.trim(),
-          bagPhotoUrl: bagPhotoUrl || undefined,
-        });
-        order.bagTag = bagTagCode;
-        order.doorstepPiecesVerified = true;
+    isActionLockedRef.current = true;
+    try {
+      // Call Real Backend verification first (skip for simulated test orders)
+      if (order.orderId && !order.orderId.startsWith("TEST-")) {
         try {
-          const cur = localStorage.getItem("qp_active_rider_order");
-          if (cur) {
-            const parsed = JSON.parse(cur);
-            parsed.bagTag = bagTagCode;
-            parsed.doorstepPiecesVerified = true;
-            localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
-          }
-        } catch {}
-      } catch (err: any) {
-        const msg = (err?.message || "").toLowerCase();
-        if (msg.includes("already") || msg.includes("picked") || msg.includes("completed")) {
-          console.log("Order already picked up, proceeding to in_trip");
-        } else {
+          await confirmPickup(order.orderId, otpToVerify, {
+            bagTag: bagTagCode.trim(),
+            verifiedPieces: doorstepPieces,
+            notes: doorstepNotes.trim(),
+            bagPhotoUrl: bagPhotoUrl || undefined,
+          });
+          order.bagTag = bagTagCode;
+          order.doorstepPiecesVerified = true;
           try {
-            await startDelivery(order.orderId, otpToVerify);
-          } catch {
-            const displayMsg = err?.message || "Invalid Pickup OTP. Please ask customer for correct 4-digit code.";
-            toast.error(displayMsg);
-            return;
+            const cur = localStorage.getItem("qp_active_rider_order");
+            if (cur) {
+              const parsed = JSON.parse(cur);
+              parsed.bagTag = bagTagCode;
+              parsed.doorstepPiecesVerified = true;
+              localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
+            }
+          } catch {}
+        } catch (err: any) {
+          const msg = (err?.message || "").toLowerCase();
+          if (msg.includes("already") || msg.includes("picked") || msg.includes("completed")) {
+            console.log("Order already picked up, proceeding to in_trip");
+          } else {
+            try {
+              await startDelivery(order.orderId, otpToVerify);
+            } catch {
+              const displayMsg = err?.message || "Invalid Pickup OTP. Please ask customer for correct 4-digit code.";
+              toast.error(displayMsg);
+              return;
+            }
           }
         }
       }
+
+      unlockAudioContext();
+      triggerHaptic();
+      playSuccessChime();
+      speakText("पिकअप पूरा हुआ। स्टोर के लिए इन-ऐप नेविगेशन शुरू हो रहा है।");
+      setStage("in_trip");
+      setCurrentLeg("pickup_to_store");
+      setShowDedicatedOtpScreen(false);
+      setIsWaitingTimerActive(false);
+      setIsInAppNavActive(true);
+      const sTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      setStartTime(sTime);
+      toast.success("Pickup Done! 🛵 In-App Navigation active to Partner Store...");
+
+      try {
+        const cur = localStorage.getItem("qp_active_rider_order");
+        const parsed = cur ? JSON.parse(cur) : { ...order };
+        parsed.stage = "in_trip";
+        parsed.currentLeg = "pickup_to_store";
+        parsed.status = "picked_up";
+        parsed.showDedicatedOtpScreen = false;
+        parsed.startTime = sTime;
+        parsed.pickupCompletedAt = new Date().toISOString();
+        localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
+        localStorage.setItem("qp_active_delivery_order", JSON.stringify(parsed));
+      } catch {}
+
+      // Real Google Maps Turn-by-Turn Navigation Intent (keeping overlay HUD screen active)
+      setTimeout(() => {
+        launchTurnByTurnGoogleMaps(storeCoords, captainCoords, partnerStoreName);
+      }, 600);
+    } finally {
+      isActionLockedRef.current = false;
     }
-
-    unlockAudioContext();
-    triggerHaptic();
-    playSuccessChime();
-    speakText("पिकअप पूरा हुआ। स्टोर के लिए इन-ऐप नेविगेशन शुरू हो रहा है।");
-    setStage("in_trip");
-    setCurrentLeg("pickup_to_store");
-    setShowDedicatedOtpScreen(false);
-    setIsWaitingTimerActive(false);
-    setIsInAppNavActive(true);
-    const sTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    setStartTime(sTime);
-    toast.success("Pickup Done! 🛵 In-App Navigation active to Partner Store...");
-
-    try {
-      const cur = localStorage.getItem("qp_active_rider_order");
-      const parsed = cur ? JSON.parse(cur) : { ...order };
-      parsed.stage = "in_trip";
-      parsed.currentLeg = "pickup_to_store";
-      parsed.status = "picked_up";
-      parsed.showDedicatedOtpScreen = false;
-      parsed.startTime = sTime;
-      parsed.pickupCompletedAt = new Date().toISOString();
-      localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
-      localStorage.setItem("qp_active_delivery_order", JSON.stringify(parsed));
-    } catch {}
-
-    // Real Google Maps Turn-by-Turn Navigation Intent (keeping overlay HUD screen active)
-    setTimeout(() => {
-      launchTurnByTurnGoogleMaps(storeCoords, captainCoords, partnerStoreName);
-    }, 600);
   };
 
   const handleStoreIntakeVerified = async () => {
@@ -1746,89 +1754,95 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   };
 
   const handleCompleteTrip = async (directOtp?: string) => {
-    unlockAudioContext();
-    triggerHaptic();
-    playSuccessChime();
+    if (isActionLockedRef.current) return;
+    isActionLockedRef.current = true;
+    try {
+      unlockAudioContext();
+      triggerHaptic();
+      playSuccessChime();
 
-    if (currentLeg === "pickup_to_store" && stage === "in_trip") {
-      // --- LEG 1 DROPPED AT STORE: Awaiting Partner Processing Start ---
-      setStage("arrived_store");
-      setIsWaitingPartnerHandoverConfirm(true);
-      setIsInAppNavActive(false);
-      toast.success(
-        `📦 Clothes Handed Over to ${partnerStoreName}! Waiting for partner to confirm & start processing.`
-      );
+      if (currentLeg === "pickup_to_store" && stage === "in_trip") {
+        // --- LEG 1 DROPPED AT STORE: Awaiting Partner Processing Start ---
+        setStage("arrived_store");
+        setIsWaitingPartnerHandoverConfirm(true);
+        setIsInAppNavActive(false);
+        toast.success(
+          `📦 Clothes Handed Over to ${partnerStoreName}! Waiting for partner to confirm & start processing.`
+        );
 
-      // Persist handover initiated state in localStorage
-      const updatedOrder: ActiveOrderData = {
-        ...order,
-        status: "at_partner",
-        riderHandoverInitiated: true,
-        pickupAddress: partnerStoreAddress,
-        pickupTitle: partnerStoreName,
-        dropAddress: order.dropAddress || order.pickupAddress,
-        dropTitle: order.customerName,
-        pickupCoords: storeCoords,
-        dropCoords: customerCoords,
-        partnerCoords: storeCoords,
-        customerCoords: customerCoords,
-      };
-      try {
-        localStorage.setItem("qp_active_rider_order", JSON.stringify(updatedOrder));
-      } catch {}
-
-      if (order.orderId && !order.orderId.startsWith("TEST-")) {
+        // Persist handover initiated state in localStorage
+        const updatedOrder: ActiveOrderData = {
+          ...order,
+          status: "at_partner",
+          riderHandoverInitiated: true,
+          pickupAddress: partnerStoreAddress,
+          pickupTitle: partnerStoreName,
+          dropAddress: order.dropAddress || order.pickupAddress,
+          dropTitle: order.customerName,
+          pickupCoords: storeCoords,
+          dropCoords: customerCoords,
+          partnerCoords: storeCoords,
+          customerCoords: customerCoords,
+        };
         try {
-          await confirmDropAtPartner(order.orderId, false);
-        } catch (e) {
-          console.warn("confirmDropAtPartner error:", e);
-        }
-      }
-    } else {
-      // --- LEG 2 COMPLETE: Customer Doorstep Delivery ---
-      const enteredOtp = (directOtp || customerDeliveryOtpDigits.join("") || otpDigits.join("")).trim();
-      const otpToVerify = enteredOtp || order.deliveryOtp;
-      if (!otpToVerify || otpToVerify.length < 4) {
-        toast.error("Please enter the 4-digit delivery code from the customer");
-        return;
-      }
+          localStorage.setItem("qp_active_rider_order", JSON.stringify(updatedOrder));
+        } catch {}
 
-      if (order.orderId && !order.orderId.startsWith("TEST-")) {
-        try {
-          await confirmDoorstepGarments(order.orderId, {
-            verifiedPieces: doorstepPieces,
-            notes: doorstepNotes,
-          });
-        } catch (e) {
-          console.warn("confirmDoorstepGarments error:", e);
-        }
-
-        try {
-          await confirmDelivery(order.orderId, enteredOtp, {
-            garmentVerified: isGarmentVerified,
-            verifiedPieces: doorstepPieces,
-            notes: doorstepNotes,
-          });
-        } catch (e: any) {
-          const msg = (e?.message || "").toLowerCase();
-          if (msg.includes("already") || msg.includes("delivered") || msg.includes("completed")) {
-            console.log("Order already verified/delivered, completing trip HUD");
-          } else {
-            toast.error(e?.message || "Invalid Delivery OTP. Please verify with customer.");
-            return;
+        if (order.orderId && !order.orderId.startsWith("TEST-")) {
+          try {
+            await confirmDropAtPartner(order.orderId, false);
+          } catch (e) {
+            console.warn("confirmDropAtPartner error:", e);
           }
         }
+      } else {
+        // --- LEG 2 COMPLETE: Customer Doorstep Delivery ---
+        const enteredOtp = (directOtp || customerDeliveryOtpDigits.join("") || otpDigits.join("")).trim();
+        const otpToVerify = enteredOtp || order.deliveryOtp;
+        if (!otpToVerify || otpToVerify.length < 4) {
+          toast.error("Please enter the 4-digit delivery code from the customer");
+          return;
+        }
+
+        if (order.orderId && !order.orderId.startsWith("TEST-")) {
+          try {
+            await confirmDoorstepGarments(order.orderId, {
+              verifiedPieces: doorstepPieces,
+              notes: doorstepNotes,
+            });
+          } catch (e) {
+            console.warn("confirmDoorstepGarments error:", e);
+          }
+
+          try {
+            await confirmDelivery(order.orderId, enteredOtp, {
+              garmentVerified: isGarmentVerified,
+              verifiedPieces: doorstepPieces,
+              notes: doorstepNotes,
+            });
+          } catch (e: any) {
+            const msg = (e?.message || "").toLowerCase();
+            if (msg.includes("already") || msg.includes("delivered") || msg.includes("completed")) {
+              console.log("Order already verified/delivered, completing trip HUD");
+            } else {
+              toast.error(e?.message || "Invalid Delivery OTP. Please verify with customer.");
+              return;
+            }
+          }
+        }
+
+        speakTripComplete(safeFare);
+        setStage("completed");
+        setIsInAppNavActive(false);
+        setCompletedTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+        toast.success(`🎉 Delivery Completed! Collected ₹${safeFare.toFixed(2)} — Credited to Wallet`);
+
+        try {
+          localStorage.removeItem("qp_active_rider_order");
+        } catch {}
       }
-
-      speakTripComplete(safeFare);
-      setStage("completed");
-      setIsInAppNavActive(false);
-      setCompletedTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-      toast.success(`🎉 Delivery Completed! Collected ₹${safeFare.toFixed(2)} — Credited to Wallet`);
-
-      try {
-        localStorage.removeItem("qp_active_rider_order");
-      } catch {}
+    } finally {
+      isActionLockedRef.current = false;
     }
   };
 
@@ -2711,7 +2725,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   {/* Confirm Cash Received CTA */}
                   <button
                     type="button"
+                    disabled={isCollectingCash || isPaymentConfirmed}
                     onClick={async () => {
+                      if (isActionLockedRef.current || isCollectingCash || isPaymentConfirmed) return;
+                      isActionLockedRef.current = true;
+                      setIsCollectingCash(true);
                       triggerHaptic(50);
                       try {
                         if (order.orderId && !order.orderId.startsWith("TEST-")) {
@@ -2728,9 +2746,12 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                         unlockAudioContext();
                         playSuccessChime();
                         toast.success(`✓ Cash collected: ₹${codPayableAmount.toFixed(2)} recorded.`);
+                      } finally {
+                        isActionLockedRef.current = false;
+                        setIsCollectingCash(false);
                       }
                     }}
-                    className="w-full h-12 rounded-full bg-slate-950 hover:bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs cursor-pointer"
+                    className="w-full h-12 rounded-full bg-slate-950 hover:bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs cursor-pointer disabled:opacity-60 disabled:pointer-events-none disabled:cursor-not-allowed"
                   >
                     <CheckCircle2 className="size-4 text-emerald-400" />
                     <span>Confirm Cash Received (₹{codPayableAmount.toFixed(2)})</span>

@@ -317,25 +317,27 @@ class WalletRepository:
         reference: Optional[str] = None,
         status: str = "success",
     ) -> tuple[Dict[str, Any], WalletTransaction]:
-        amount = self._validate_amount(amount)
-        document = await self._wallet_document(user)
-        if status == "pending":
-            document["pending_balance"] = _money(document.get("pending_balance")) + amount
-        else:
-            document["balance"] = _money(document.get("balance")) + amount
-        await self._save_wallet(document)
-        transaction = await self._record_transaction(
-            user,
-            kind=kind,
-            title=title,
-            amount=amount,
-            direction="credit",
-            balance_after=_money(document.get("balance")),
-            status=status,
-            description=description,
-            method=method,
-            reference=reference,
-        )
+        user_lock = self._user_locks.setdefault(user.id, asyncio.Lock())
+        async with user_lock:
+            amount = self._validate_amount(amount)
+            document = await self._wallet_document(user)
+            if status == "pending":
+                document["pending_balance"] = _money(document.get("pending_balance")) + amount
+            else:
+                document["balance"] = _money(document.get("balance")) + amount
+            await self._save_wallet(document)
+            transaction = await self._record_transaction(
+                user,
+                kind=kind,
+                title=title,
+                amount=amount,
+                direction="credit",
+                balance_after=_money(document.get("balance")),
+                status=status,
+                description=description,
+                method=method,
+                reference=reference,
+            )
 
         # Synchronize double-entry wallet_ledger collection
         try:
@@ -439,6 +441,34 @@ class WalletRepository:
         value = self._validate_amount(amount)
         method_clean = (method or "wallet").strip().lower()
         method_label = KIND_LABELS.get(method_clean, method_clean.upper())
+
+        # Idempotency check: if payment_reference is given, ensure it hasn't been credited yet
+        if payment_reference:
+            existing_payment = await database.collection(PAYMENTS).find_one(
+                {"user_id": user.id, "transaction_id": payment_reference, "status": "paid"}
+            )
+            if existing_payment:
+                wallet_doc = await self._wallet_document(user)
+                wallet_resp = await self._wallet_response(user, wallet_doc)
+                recent_txns = await database.collection(TRANSACTIONS).find(
+                    {"user_id": user.id, "reference": existing_payment.get("_id")}
+                ).to_list(1)
+                txn = self._to_transaction(recent_txns[0]) if recent_txns else None
+                return AddFundsResponse(
+                    ok=True,
+                    message=f"Funds already credited for transaction {payment_reference}.",
+                    wallet=wallet_resp,
+                    transaction=txn or WalletTransaction(
+                        id=f"tx-{payment_reference[:8]}",
+                        kind="add-funds",
+                        title="Money added to wallet",
+                        amount=value,
+                        balanceAfter=wallet_resp.totalBalance,
+                        status="success",
+                        createdAt=_iso(utcnow()),
+                    ),
+                    payment=self._to_payment(existing_payment),
+                )
 
         payment = await self._create_payment_document(
             user,

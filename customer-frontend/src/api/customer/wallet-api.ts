@@ -293,6 +293,7 @@ export async function addFunds(
   amount: number,
   method: string = "wallet",
   paymentId?: string,
+  idempotencyKey?: string,
 ): Promise<AddFundsResult> {
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new ApiError("validation", "Enter an amount greater than ₹0.");
@@ -301,12 +302,23 @@ export async function addFunds(
     throw new ApiError("validation", "Amount can't exceed ₹1,00,000.");
   }
   if (!isOnline()) throw new ApiError("offline", "Reconnect to add money to your wallet.");
+  const payload = {
+    amount,
+    method,
+    ...(paymentId ? { paymentId, paymentReference: paymentId } : {}),
+    ...(idempotencyKey ? { idempotencyKey } : {}),
+  };
+  const headers: Record<string, string> = {};
+  if (idempotencyKey) {
+    headers["Idempotency-Key"] = idempotencyKey;
+    headers["X-Idempotency-Key"] = idempotencyKey;
+  }
   const raw = await apiPostJson<{
     ok?: boolean;
     message?: string;
     wallet?: RawWallet;
     transaction?: RawTransaction | null;
-  }>("/api/wallet/add-funds", { amount, method, ...(paymentId ? { paymentId } : {}) });
+  }>("/api/wallet/add-funds", payload, { headers });
   invalidateWalletCache();
   return {
     ok: raw.ok ?? true,
@@ -315,3 +327,4 @@ export async function addFunds(
     transaction: raw.transaction ? toTransaction(raw.transaction, 0) : null,
   };
 }
+

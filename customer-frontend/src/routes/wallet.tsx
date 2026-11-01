@@ -26,7 +26,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { BottomNav } from "@/components/home/BottomNav";
@@ -269,6 +269,7 @@ function WalletScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [amount, setAmount] = useState<string>("500");
   const [adding, setAdding] = useState(false);
+  const isAddingRef = useRef<boolean>(false);
 
   // Settings & Receipt Modal States
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -321,6 +322,7 @@ function WalletScreen() {
 
   /* ------------------- Real Payment Gateway Top-up ------------------- */
   const handleProceedAddMoney = async (value: number) => {
+    if (isAddingRef.current || adding) return;
     if (!Number.isFinite(value) || value <= 0) {
       toast.error("Please enter an amount greater than ₹0");
       return;
@@ -330,6 +332,7 @@ function WalletScreen() {
       return;
     }
 
+    isAddingRef.current = true;
     setAdding(true);
     try {
       // 1. Trigger Razorpay Checkout with Real Live API Key
@@ -342,8 +345,8 @@ function WalletScreen() {
       });
 
       if (outcome.status === "success" && outcome.paymentId) {
-        // 2. Post real transaction credit to backend
-        const result = await addFunds(value, "razorpay", outcome.paymentId);
+        // 2. Post real transaction credit to backend with idempotency key
+        const result = await addFunds(value, "razorpay", outcome.paymentId, outcome.paymentId);
         setWallet(result.wallet);
         toast.success(`₹${value} added to Quick Money successfully! 🎉`);
         setAddOpen(false);
@@ -357,6 +360,7 @@ function WalletScreen() {
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : "Payment processing error.");
     } finally {
+      isAddingRef.current = false;
       setAdding(false);
     }
   };
@@ -693,7 +697,7 @@ function WalletScreen() {
               type="button"
               disabled={adding || numAmount <= 0}
               onClick={() => void handleProceedAddMoney(numAmount)}
-              className="mt-5 w-full py-4 px-6 rounded-2xl bg-[#00C853] hover:bg-[#00B048] text-white font-bold text-sm shadow-md shadow-[#00C853]/25 active:scale-[0.98] transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="mt-5 w-full py-4 px-6 rounded-2xl bg-[#00C853] hover:bg-[#00B048] text-white font-bold text-sm shadow-md shadow-[#00C853]/25 active:scale-[0.98] transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed cursor-pointer"
             >
               {adding ? (
                 <>

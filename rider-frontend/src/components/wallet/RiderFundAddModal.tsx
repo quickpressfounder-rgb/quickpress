@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   CreditCard,
   DollarSign,
@@ -38,6 +38,7 @@ export const RiderFundAddModal: React.FC<RiderFundAddModalProps> = ({
 
   const [amount, setAmount] = useState<number>(floatingCash > 0 ? floatingCash : 200);
   const [isProcessing, setIsProcessing] = useState(false);
+  const isProcessingRef = useRef(false);
 
   const quickAmounts = [
     ...(floatingCash > 0 ? [Math.ceil(floatingCash)] : []),
@@ -48,11 +49,13 @@ export const RiderFundAddModal: React.FC<RiderFundAddModalProps> = ({
   ].filter((v, i, a) => a.indexOf(v) === i);
 
   const handleRazorpayPayment = async () => {
+    if (isProcessingRef.current || isProcessing) return;
     if (amount <= 0) {
       toast.error("Please enter a valid deposit amount");
       return;
     }
 
+    isProcessingRef.current = true;
     setIsProcessing(true);
     triggerHaptic(30);
 
@@ -112,6 +115,7 @@ export const RiderFundAddModal: React.FC<RiderFundAddModalProps> = ({
     } catch (err: any) {
       toast.error(err?.message || "Failed to process payment with Razorpay");
     } finally {
+      isProcessingRef.current = false;
       setIsProcessing(false);
     }
   };
@@ -255,7 +259,7 @@ export const RiderFundAddModal: React.FC<RiderFundAddModalProps> = ({
             type="button"
             onClick={handleRazorpayPayment}
             disabled={isProcessing || amount <= 0}
-            className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+            className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md active:scale-98 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed"
           >
             {isProcessing ? (
               <>

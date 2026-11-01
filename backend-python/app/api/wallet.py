@@ -49,8 +49,10 @@ async def wallet(user: User = Depends(current_user)) -> WalletResponse:
 @router.post("/wallet/add-funds", response_model=AddFundsResponse)
 async def add_funds(payload: AddFundsPayload, user: User = Depends(current_user)) -> AddFundsResponse:
     try:
+        ref = payload.paymentReference or payload.paymentId or payload.idempotencyKey
         return await wallet_repository.add_funds(
-            user, payload.amount, payload.method, payload.paymentReference
+            user, payload.amount, payload.method, ref
         )
     except WalletError as error:
         raise HTTPException(status_code=error.status_code, detail=error.message) from error
+

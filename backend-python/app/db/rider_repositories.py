@@ -820,6 +820,9 @@ class RiderEarningsRepository:
 
 
 class RiderWalletRepository:
+    def __init__(self) -> None:
+        self._rider_locks: Dict[str, asyncio.Lock] = {}
+
     async def get(self, rider_id: str) -> Optional[Dict[str, Any]]:
         document = await database.find_one(WALLETS, {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"rider_id": rider_id}]})
         
@@ -888,72 +891,74 @@ class RiderWalletRepository:
         account_holder: str = "",
         upi_id: str = "",
     ) -> Dict[str, Any]:
-        wallet = await database.find_one(WALLETS, {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"rider_id": rider_id}]})
-        if wallet is None:
-            wallet = await self.get(rider_id)
-        if wallet is None:
-            raise LookupError("Wallet not found")
-        if amount <= 0:
-            raise ValueError("Enter a valid withdrawal amount (minimum ₹10)")
-        curr_balance = float(wallet.get("balance", 0.0))
-        if curr_balance < amount:
-            raise ValueError(f"Insufficient wallet balance. Available: ₹{curr_balance:.2f}")
+        lock = self._rider_locks.setdefault(rider_id, asyncio.Lock())
+        async with lock:
+            wallet = await database.find_one(WALLETS, {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"rider_id": rider_id}]})
+            if wallet is None:
+                wallet = await self.get(rider_id)
+            if wallet is None:
+                raise LookupError("Wallet not found")
+            if amount <= 0:
+                raise ValueError("Enter a valid withdrawal amount (minimum ₹10)")
+            curr_balance = float(wallet.get("balance", 0.0))
+            if curr_balance < amount:
+                raise ValueError(f"Insufficient wallet balance. Available: ₹{curr_balance:.2f}")
 
-        # Fetch registered bank account details from rider_profiles (provided at registration)
-        prof = await database.find_one("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}) or {}
-        bank_details = prof.get("bankDetails") or {}
-        target_bank = bank_name or bank_details.get("bankName") or prof.get("bankName") or "Bank Account"
-        target_acc = account_number or bank_details.get("accountNumber") or prof.get("accountNumber") or wallet.get("accountNumber") or ""
-        target_ifsc = ifsc or bank_details.get("ifsc") or prof.get("ifsc") or wallet.get("ifsc") or ""
-        target_holder = account_holder or bank_details.get("accountHolderName") or prof.get("accountHolder") or prof.get("fullName") or "Captain"
-        target_last4 = target_acc[-4:] if len(target_acc) >= 4 else (target_acc or "Primary")
-        
-        new_balance = round(curr_balance - amount, 2)
-        curr_withdrawn = float(wallet.get("totalWithdrawn", 0.0))
-        new_withdrawn = round(curr_withdrawn + amount, 2)
-        
-        now_iso = _now()
-        await database.update(
-            WALLETS,
-            {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"rider_id": rider_id}]},
-            {"balance": new_balance, "totalWithdrawn": new_withdrawn, "updatedAt": now_iso},
-            upsert=True,
-        )
-        
-        now_ts = int(datetime.now(timezone.utc).timestamp())
-        random_suffix = random.randint(1000, 9999)
-        utr_number = f"BNK{now_ts}{random_suffix}"
-        
-        txn_doc = {
-            "_id": f"rwtx-{rider_id}-{int(datetime.now(timezone.utc).timestamp() * 1000)}",
-            "rider_id": rider_id,
-            "riderId": rider_id,
-            "title": f"Bank Withdrawal · {target_bank} (•••• {target_last4})",
-            "date": now_iso,
-            "amount": amount,
-            "direction": "debit",
-            "status": "pending",
-            "kind": "withdrawal",
-            "utr": utr_number,
-            "bankName": target_bank,
-            "accountNumberMasked": f"•••• •••• {target_last4}",
-            "ifsc": target_ifsc,
-            "accountHolder": target_holder,
-            "method": "Direct Bank Account Transfer (IMPS/NEFT)",
-        }
-        await database.insert(WALLET_TXNS, txn_doc)
-        
-        return {
-            "ok": True,
-            "amount": amount,
-            "balance": new_balance,
-            "totalWithdrawn": new_withdrawn,
-            "utr": utr_number,
-            "bankName": target_bank,
-            "accountNumberMasked": f"•••• •••• {target_last4}",
-            "ifsc": target_ifsc,
-            "message": f"Withdrawal request of ₹{amount:.2f} to {target_bank} (•••• {target_last4}) submitted successfully!",
-        }
+            # Fetch registered bank account details from rider_profiles (provided at registration)
+            prof = await database.find_one("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}) or {}
+            bank_details = prof.get("bankDetails") or {}
+            target_bank = bank_name or bank_details.get("bankName") or prof.get("bankName") or "Bank Account"
+            target_acc = account_number or bank_details.get("accountNumber") or prof.get("accountNumber") or wallet.get("accountNumber") or ""
+            target_ifsc = ifsc or bank_details.get("ifsc") or prof.get("ifsc") or wallet.get("ifsc") or ""
+            target_holder = account_holder or bank_details.get("accountHolderName") or prof.get("accountHolder") or prof.get("fullName") or "Captain"
+            target_last4 = target_acc[-4:] if len(target_acc) >= 4 else (target_acc or "Primary")
+            
+            new_balance = round(curr_balance - amount, 2)
+            curr_withdrawn = float(wallet.get("totalWithdrawn", 0.0))
+            new_withdrawn = round(curr_withdrawn + amount, 2)
+            
+            now_iso = _now()
+            await database.update(
+                WALLETS,
+                {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"rider_id": rider_id}]},
+                {"balance": new_balance, "totalWithdrawn": new_withdrawn, "updatedAt": now_iso},
+                upsert=True,
+            )
+            
+            now_ts = int(datetime.now(timezone.utc).timestamp())
+            random_suffix = random.randint(1000, 9999)
+            utr_number = f"BNK{now_ts}{random_suffix}"
+            
+            txn_doc = {
+                "_id": f"rwtx-{rider_id}-{int(datetime.now(timezone.utc).timestamp() * 1000)}",
+                "rider_id": rider_id,
+                "riderId": rider_id,
+                "title": f"Bank Withdrawal · {target_bank} (•••• {target_last4})",
+                "date": now_iso,
+                "amount": amount,
+                "direction": "debit",
+                "status": "pending",
+                "kind": "withdrawal",
+                "utr": utr_number,
+                "bankName": target_bank,
+                "accountNumberMasked": f"•••• •••• {target_last4}",
+                "ifsc": target_ifsc,
+                "accountHolder": target_holder,
+                "method": "Direct Bank Account Transfer (IMPS/NEFT)",
+            }
+            await database.insert(WALLET_TXNS, txn_doc)
+            
+            return {
+                "ok": True,
+                "amount": amount,
+                "balance": new_balance,
+                "totalWithdrawn": new_withdrawn,
+                "utr": utr_number,
+                "bankName": target_bank,
+                "accountNumberMasked": f"•••• •••• {target_last4}",
+                "ifsc": target_ifsc,
+                "message": f"Withdrawal request of ₹{amount:.2f} to {target_bank} (•••• {target_last4}) submitted successfully!",
+            }
 
     async def credit(self, rider_id: str, amount: float, title: str = "Bonus Incentive Credit", kind: str = "incentive", order_code: str = "", order_id: str = "", **kwargs) -> Dict[str, Any]:
         wallet = await database.find_one(WALLETS, {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"rider_id": rider_id}]})

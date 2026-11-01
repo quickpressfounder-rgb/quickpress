@@ -77,6 +77,9 @@ class AddFundsPayload(BaseModel):
     #: production gateway credentials exist.
     method: PaymentKind = "wallet"
     paymentReference: Optional[str] = Field(default=None, max_length=120)
+    paymentId: Optional[str] = Field(default=None, max_length=120)
+    idempotencyKey: Optional[str] = Field(default=None, max_length=120)
+
 
 
 class PaymentRecord(BaseModel):

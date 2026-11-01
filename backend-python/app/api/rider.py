@@ -4246,6 +4246,18 @@ async def verify_deposit_razorpay_payment(body: dict, user: Optional[User] = Dep
             logger.warning(f"Signature check skipped or failed in test mode: {e}")
 
     now_iso = _now()
+    # Deduplicate against repeated webhooks or rapid double clicks
+    existing_txn = await database.find_one("rider_wallet_transactions", {"utr": payment_id})
+    if existing_txn:
+        prof = await database.find_one("rider_profiles", {"$or": [{"_id": resolved_id}, {"riderId": resolved_id}]}) or {}
+        current_cash = float(prof.get("floatingCash") or prof.get("cashInHand") or 0.0)
+        return {
+            "ok": True,
+            "message": f"Payment {payment_id} already processed. Floating cash up to date.",
+            "remainingFloatingCash": current_cash,
+            "paymentId": payment_id,
+        }
+
     prof = await database.find_one("rider_profiles", {"$or": [{"_id": resolved_id}, {"riderId": resolved_id}]}) or {}
     current_cash = float(prof.get("floatingCash") or prof.get("cashInHand") or 0.0)
     new_balance = max(0.0, current_cash - amount)
