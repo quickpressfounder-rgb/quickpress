@@ -63,3 +63,8 @@
 3. **Build & Capacitor Sync:**
    - Verified frontend compilation via `npm run build:customer`.
    - Regenerated production static bundle and synchronized Capacitor iOS platform via `python3 build_all_ios.py customer`.
+
+### Notifications Page Banner Removal
+1. **Removed "Order Bell & Live Alerts" Banner:**
+   - Removed the duplicate push notification enable card and button from `customer-frontend/src/routes/notifications.tsx`.
+   - Notification permissions are now handled cleanly and automatically at initial startup directly via native device pop-ups, keeping the Notifications tab interface clean and uncluttered.
