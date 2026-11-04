@@ -39,3 +39,12 @@
      - `customer-frontend/public/logo.png`
      - `customer-frontend/public/quickpress-brand-logo.png`
      - `customer-frontend/public/favicon.png`
+
+### Set App Display Name to "QuickPress"
+1. **Config & Info.plist Update:**
+   - Changed `appName` in `customer-frontend/capacitor.config.ts` from `"QuickPress Customer"` to `"QuickPress"`.
+   - Updated `CFBundleDisplayName` in `customer-frontend/ios/App/App/Info.plist` to `"QuickPress"`.
+   - Updated `customer-frontend/ios/App/App/capacitor.config.json` to `"QuickPress"`.
+   - The app now displays solely as **"QuickPress"** beneath the iOS app icon on iPhone home screens and in Xcode.
+2. **Build & Sync:**
+   - Ran `python3 build_all_ios.py customer` and verified successful sync with Xcode native workspace.

@@ -821,7 +821,7 @@ function HomeScreen() {
                   </section>
                 ) : (
                   <section className="mt-8">
-                    <div 
+                    <div
                       onClick={() => void navigate({ to: "/membership" })}
                       className="group relative overflow-hidden rounded-2xl border border-amber-300/80 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-emerald-500/10 p-4 text-zinc-950 shadow-xs transition-all hover:border-amber-400 hover:shadow-soft active:scale-[0.99] cursor-pointer"
                     >
@@ -879,17 +879,16 @@ function HomeScreen() {
                               <p className="mt-0.5 text-xs text-muted-foreground">{order.placed}</p>
                             </div>
                             <span
-                              className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                                String(order.status).toLowerCase().includes("delivered") || String(order.status).toLowerCase().includes("completed")
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
-                                  : String(order.status).toLowerCase().includes("cancel") || String(order.status).toLowerCase().includes("fail")
-                                    ? "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800"
-                                    : String(order.status).toLowerCase().includes("out for delivery")
-                                      ? "bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800"
-                                      : String(order.status).toLowerCase().includes("wash") || String(order.status).toLowerCase().includes("clean") || String(order.status).toLowerCase().includes("press")
-                                        ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800"
-                                        : "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800"
-                              }`}
+                              className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${String(order.status).toLowerCase().includes("delivered") || String(order.status).toLowerCase().includes("completed")
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
+                                : String(order.status).toLowerCase().includes("cancel") || String(order.status).toLowerCase().includes("fail")
+                                  ? "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800"
+                                  : String(order.status).toLowerCase().includes("out for delivery")
+                                    ? "bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800"
+                                    : String(order.status).toLowerCase().includes("wash") || String(order.status).toLowerCase().includes("clean") || String(order.status).toLowerCase().includes("press")
+                                      ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800"
+                                      : "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800"
+                                }`}
                             >
                               {order.status}
                             </span>

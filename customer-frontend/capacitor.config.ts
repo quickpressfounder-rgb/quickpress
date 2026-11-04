@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.quickpress.customer",
-  appName: "QuickPress Customer",
+  appName: "QuickPress",
   webDir: ".output/public",
   android: {
     allowMixedContent: true,
