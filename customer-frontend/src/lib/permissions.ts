@@ -81,15 +81,12 @@ export async function requestLocationPermission(): Promise<SavedLocation | null>
   }
 }
 
-/** Request browser notification permission, register FCM/Service Worker, and play audio chime. */
+/** Request device notification permission, register FCM/Service Worker, and play audio chime. */
 export async function requestNotificationPermission(): Promise<boolean> {
-  if (typeof window === "undefined" || !("Notification" in window)) {
-    return false;
-  }
-
   try {
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
+    const { requestDeviceNotificationPermission } = await import("@/lib/notifications");
+    const status = await requestDeviceNotificationPermission();
+    if (status !== "granted") {
       return false;
     }
 
@@ -98,7 +95,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
     // 2. Register Service Worker and sync FCM Push Token with backend
     try {
-      if ("serviceWorker" in navigator) {
+      if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
         await navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: "/" });
       }
       await requestPushNotificationPermission();

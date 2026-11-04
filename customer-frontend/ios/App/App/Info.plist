@@ -68,6 +68,8 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>QuickPress uses your location to discover nearby laundromat partners and deliver your fresh clothes.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>QuickPress requires location access to find nearby laundromats and manage doorstep pickup &amp; delivery.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>QuickPress uses your camera to capture clothing items or stain instructions.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

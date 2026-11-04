@@ -40,41 +40,10 @@ export function NotificationManager() {
     // Ask for permission directly if in default state (not yet decided)
     const askNativeMobilePermission = async () => {
       try {
-        // 1. Android Native App check (Native interface already available)
-        if (typeof window !== "undefined" && (window as any).AndroidNotification?.showNotification) {
+        const { requestDeviceNotificationPermission } = await import("@/lib/notifications");
+        const status = await requestDeviceNotificationPermission();
+        if (status === "granted") {
           void requestPushNotificationPermission();
-          return;
-        }
-
-        // 2. Capacitor Native Mobile Platform check
-        const cap = (window as any).Capacitor;
-        if (cap?.isNativePlatform?.()) {
-          const push = cap.Plugins?.PushNotifications;
-          if (push) {
-            const check = await push.checkPermissions?.();
-            if (check?.receive !== "granted") {
-              const res = await push.requestPermissions?.();
-              if (res?.receive === "granted") {
-                await push.register?.();
-                void requestPushNotificationPermission();
-                return;
-              }
-            } else {
-              await push.register?.();
-              void requestPushNotificationPermission();
-              return;
-            }
-          }
-        }
-
-        // 3. Browser / Mobile Web Native Permission API
-        if (typeof window !== "undefined" && "Notification" in window) {
-          if (Notification.permission === "default") {
-            const perm = await Notification.requestPermission();
-            if (perm === "granted") {
-              void requestPushNotificationPermission();
-            }
-          }
         }
       } catch (err) {
         console.debug("[NotificationManager] Native permission request:", err);

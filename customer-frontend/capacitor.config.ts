@@ -11,6 +11,13 @@ const config: CapacitorConfig = {
     allowsLinkPreview: false,
     backgroundColor: "#ffffff",
   },
+  plugins: {
+    LocalNotifications: {
+      smallIcon: "ic_stat_icon_config_sample",
+      iconColor: "#10B981",
+      sound: "default",
+    },
+  },
 };
 
 export default config;

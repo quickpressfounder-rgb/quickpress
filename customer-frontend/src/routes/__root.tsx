@@ -234,6 +234,15 @@ function RootComponent() {
     return startCustomerAutoRefresh();
   }, []);
 
+  // Direct device permissions prompt on initial app startup:
+  // Immediately invokes native device OS popups for Notification & Location without any extra screen/modal
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    import("@/lib/notifications")
+      .then((m) => m.requestStartupDevicePermissions())
+      .catch((err) => console.warn("[StartupPermissions] Initialization notice:", err));
+  }, []);
+
   // Native Deep Linking Listener (e.g. from Standee QR scan, WhatsApp share link, or Universal link)
   useEffect(() => {
     if (typeof window === "undefined") return;

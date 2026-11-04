@@ -1,6 +1,6 @@
 /**
  * QuickPress Device Notifications Helper.
- * Handles Native Android OS Notifications, Service Worker Mobile Notifications, & Browser APIs.
+ * Handles Native iOS / Android Notifications via Capacitor, Service Worker Mobile Notifications, & Browser APIs.
  */
 
 export type DevicePermissionStatus = "granted" | "denied" | "default" | "unsupported";
@@ -9,7 +9,9 @@ export function isNotificationSupported(): boolean {
   if (typeof window === "undefined") return false;
   // 1. Check Native Android App JavascriptInterface
   if ((window as any).AndroidNotification?.showNotification) return true;
-  // 2. Check Standard Web / Mobile Notification & Service Worker
+  // 2. Check Capacitor Native Mobile Environment
+  if ((window as any).Capacitor) return true;
+  // 3. Check Standard Web / Mobile Notification & Service Worker
   return "Notification" in window || "serviceWorker" in navigator;
 }
 
@@ -24,6 +26,10 @@ export function getDeviceNotificationPermission(): DevicePermissionStatus {
   return Notification.permission;
 }
 
+/**
+ * Directly prompts native device notification permission alert.
+ * On iOS: Triggers the native system alert "QuickPress Would Like to Send You Notifications".
+ */
 export async function requestDeviceNotificationPermission(): Promise<DevicePermissionStatus> {
   if (typeof window === "undefined") return "unsupported";
 
@@ -34,8 +40,11 @@ export async function requestDeviceNotificationPermission(): Promise<DevicePermi
     if (perm.display === "granted") {
       return "granted";
     }
-  } catch {
-    // Fall through
+    if (perm.display === "denied") {
+      return "denied";
+    }
+  } catch (err) {
+    console.debug("[Notifications] Capacitor LocalNotifications error:", err);
   }
 
   // 2. Android Native App check
@@ -48,7 +57,6 @@ export async function requestDeviceNotificationPermission(): Promise<DevicePermi
     try {
       const permission = await Notification.requestPermission();
       if (permission === "granted" && "serviceWorker" in navigator) {
-        // Ensure service worker is actively registered
         navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: "/" }).catch(() => {});
       }
       return permission;
@@ -59,6 +67,72 @@ export async function requestDeviceNotificationPermission(): Promise<DevicePermi
   }
 
   return "unsupported";
+}
+
+/**
+ * Direct device permissions prompt invoked on initial app startup:
+ * 1. Prompts native iOS Notification permission alert.
+ * 2. Prompts native iOS Location permission alert.
+ * Only runs once on initial launch without showing any intermediate page or custom modal.
+ */
+export async function requestStartupDevicePermissions(): Promise<{
+  notifications: string;
+  location: boolean;
+}> {
+  if (typeof window === "undefined") {
+    return { notifications: "unsupported", location: false };
+  }
+
+  const STARTUP_PERMS_KEY = "qp_startup_permissions_requested_v2";
+  const alreadyPrompted = localStorage.getItem(STARTUP_PERMS_KEY);
+  if (alreadyPrompted) {
+    return { notifications: "already_prompted", location: false };
+  }
+  // Record immediately so it only prompts once on first launch
+  localStorage.setItem(STARTUP_PERMS_KEY, "true");
+
+  console.log("[Permissions] Requesting direct startup device permissions...");
+
+  let notifStatus = "default";
+  try {
+    // 1. Trigger Direct Native Notification Permission Dialog
+    notifStatus = await requestDeviceNotificationPermission();
+    console.log("[Permissions] Direct Notification prompt completed:", notifStatus);
+  } catch (err) {
+    console.warn("[Permissions] Notification prompt error:", err);
+  }
+
+  // Small pause (400ms) to ensure iOS alert transitions smoothly to the location prompt
+  await new Promise((r) => setTimeout(r, 400));
+
+  let locationAcquired = false;
+  try {
+    // 2. Trigger Direct Native Location Permission Dialog
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      locationAcquired = await new Promise<boolean>((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            console.log("[Permissions] Native location fix acquired:", pos.coords.latitude, pos.coords.longitude);
+            try {
+              const { reverseGeocode, saveLocation } = await import("@/api/customer/location");
+              const loc = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+              saveLocation(loc);
+            } catch {}
+            resolve(true);
+          },
+          (err) => {
+            console.log("[Permissions] Native location response / dismissed:", err.message);
+            resolve(false);
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      });
+    }
+  } catch (err) {
+    console.warn("[Permissions] Location prompt error:", err);
+  }
+
+  return { notifications: notifStatus, location: locationAcquired };
 }
 
 export async function openDeviceNotificationSettings(): Promise<boolean> {
@@ -86,19 +160,20 @@ export async function openDeviceNotificationSettings(): Promise<boolean> {
 export type TriggerOsNotificationOptions = {
   title: string;
   body: string;
-  orderId?: string;
-  url?: string;
-  tag?: string;
-  icon?: string;
-  badge?: string;
+  orderId?: string | undefined;
+  url?: string | undefined;
+  tag?: string | undefined;
+  icon?: string | undefined;
+  badge?: string | undefined;
 };
 
 /**
  * Universal Mobile OS Notification Dispatcher.
- * Reliably delivers to the phone's top notification shade / status bar across:
- * 1. Native Android APK (via AndroidNotification JavascriptInterface)
- * 2. Android Chrome / PWA / Samsung Internet / Firefox (via ServiceWorkerRegistration.showNotification)
- * 3. Desktop Browsers (via Notification constructor)
+ * Delivers native banners & system tray notifications across:
+ * 1. Native iOS & Android (Capacitor LocalNotifications with foreground presentation)
+ * 2. Native Android App (Injected WebView Interface)
+ * 3. Mobile PWA / Chrome Service Worker
+ * 4. Desktop Browsers
  */
 export async function triggerMobileOsNotification(
   options: TriggerOsNotificationOptions
@@ -125,13 +200,14 @@ export async function triggerMobileOsNotification(
           body,
           largeBody: body,
           summaryText: "QuickPress",
-          schedule: { at: new Date(Date.now() + 250) },
           sound: "default",
+          // Pass foreground: true so iOS LocalNotificationsHandler presents banner, sound, badge, & list even in active view
+          foreground: true,
           extra: {
             url: clickUrl,
             orderId,
           },
-        },
+        } as any,
       ],
     });
     console.log("[MobileNotification] Native iOS / Capacitor notification dispatched successfully");
@@ -161,7 +237,7 @@ export async function triggerMobileOsNotification(
   // Channel 2: Service Worker (Standard on Android Chrome, Mobile PWA, Edge, Firefox, Samsung)
   if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
     try {
-      let reg: ServiceWorkerRegistration | null = null;
+      let reg: ServiceWorkerRegistration | null | undefined = null;
       try {
         reg = await navigator.serviceWorker.ready;
       } catch {

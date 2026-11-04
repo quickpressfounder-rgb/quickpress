@@ -48,3 +48,18 @@
    - The app now displays solely as **"QuickPress"** beneath the iOS app icon on iPhone home screens and in Xcode.
 2. **Build & Sync:**
    - Ran `python3 build_all_ios.py customer` and verified successful sync with Xcode native workspace.
+
+### Native iPhone Startup Device Permissions (Notification + Location) & System Tray Notifications
+1. **Direct Native Device Permissions on Startup:**
+   - Implemented `requestStartupDevicePermissions()` in `customer-frontend/src/lib/notifications.ts` invoked immediately in `customer-frontend/src/routes/__root.tsx` on initial mount.
+   - Triggers native iOS system alerts directly (`UNUserNotificationCenter` alert + `CLLocationManager` location alert) without showing any extra intermediate page or modal.
+   - Guarded with `localStorage` key `qp_startup_permissions_requested_v2` so it runs once on first launch and never pesters the user repeatedly.
+   - On location grant, automatically reverse geocodes coordinates to initialize default customer address in state and storage.
+2. **Outside System Notifications & Foreground Presentation:**
+   - Configured `LocalNotifications` plugin in `customer-frontend/capacitor.config.ts` and `capacitor.config.json`.
+   - Updated `triggerMobileOsNotification` to dispatch with `foreground: true` and `sound: "default"` so iOS `UNUserNotificationCenter` displays banners, plays the notification chime, and shows in Notification Center/Lock Screen whether the app is active, backgrounded, or minimized.
+   - Patched `LocalNotificationsPlugin.swift` `resolveSound` to cleanly route `sound: "default"` to `UNNotificationSound.default`.
+   - Added `NSLocationAlwaysAndWhenInUseUsageDescription` in `customer-frontend/ios/App/App/Info.plist`.
+3. **Build & Capacitor Sync:**
+   - Verified frontend compilation via `npm run build:customer`.
+   - Regenerated production static bundle and synchronized Capacitor iOS platform via `python3 build_all_ios.py customer`.
