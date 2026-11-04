@@ -16,6 +16,8 @@ export interface RiderWalletDetail {
   upiId?: string;
   bankName?: string;
   accountNumber?: string;
+  accountLast4?: string;
+  bankAccountLast4?: string;
   accountHolder?: string;
   ifsc?: string;
   createdAt?: string;

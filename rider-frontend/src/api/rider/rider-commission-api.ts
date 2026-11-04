@@ -31,6 +31,8 @@ export type RiderCommissionGuarantee = {
   description: string;
   benefits: string[];
   effectiveDate: string;
+  guaranteedAmount?: number;
+  targetTrips?: number;
 };
 
 export async function fetchRiderCommissionSlip(

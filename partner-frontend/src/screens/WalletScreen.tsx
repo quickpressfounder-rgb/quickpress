@@ -136,7 +136,7 @@ export function WalletScreen() {
               <SectionHeading title="Transaction History" />
               <div className="mt-4 divide-y divide-border/60">
                 {transactions.map((txn) => {
-                  const isCredit = txn.type === "credit";
+                  const isCredit = txn.direction === "credit";
                   return (
                     <div
                       key={txn.id}
@@ -157,7 +157,7 @@ export function WalletScreen() {
                           )}
                         </span>
                         <div>
-                          <p className="text-xs font-bold text-foreground">{txn.description}</p>
+                          <p className="text-xs font-bold text-foreground">{txn.title}</p>
                           <p className="text-[10px] text-muted-foreground">{txn.date}</p>
                         </div>
                       </div>

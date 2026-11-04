@@ -205,7 +205,8 @@ function ShopManagementContent() {
       {/* Status Sheet */}
       {statusOpen ? (
         <ShopStatusSheet
-          current={status}
+          open={statusOpen}
+          status={status}
           onClose={() => setStatusOpen(false)}
           onSelect={(next) => {
             setStatus(next);

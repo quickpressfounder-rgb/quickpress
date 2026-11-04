@@ -302,17 +302,30 @@ class Smart2RideEngine:
         existing_pickup = (order.get("otp") or {}).get("pickup")
         if isinstance(existing_pickup, dict) and existing_pickup.get("code"):
             p_code = str(existing_pickup["code"])
+            pickup_otp = dict(existing_pickup)
+        elif isinstance(existing_pickup, dict):
+            p_code = str(order.get("pickupOtp") or generate_secure_4digit_otp())
+            pickup_otp = dict(existing_pickup)
+            pickup_otp.setdefault("code", p_code)
         elif existing_pickup:
             p_code = str(existing_pickup)
+            pickup_otp = create_otp_record(code=p_code)
         else:
             p_code = str(order.get("pickupOtp") or generate_secure_4digit_otp())
+            pickup_otp = create_otp_record(code=p_code)
 
-        h_code = generate_secure_4digit_otp()
-        while h_code == p_code:
+        existing_handover = (order.get("otp") or {}).get("handover")
+        if isinstance(existing_handover, dict) and existing_handover.get("code"):
+            h_code = str(existing_handover["code"])
+            handover_otp = dict(existing_handover)
+        elif existing_handover:
+            h_code = str(existing_handover)
+            handover_otp = create_otp_record(code=h_code)
+        else:
             h_code = generate_secure_4digit_otp()
-
-        pickup_otp = create_otp_record(code=p_code)
-        handover_otp = create_otp_record(code=h_code)
+            while h_code == p_code:
+                h_code = generate_secure_4digit_otp()
+            handover_otp = create_otp_record(code=h_code)
 
         ride_doc = {
             "_id": f"ride-pk-{canonical_id}",
@@ -372,6 +385,12 @@ class Smart2RideEngine:
         # Update canonical order status (protect against race condition if rider already accepted)
         now_order = await lifecycle.find_order(canonical_id)
         current_status_now = lifecycle.order_status(now_order)
+        # Preserve verified pickup OTP if rider has already verified it in concurrent thread
+        now_otp = (now_order.get("otp") or {}) if isinstance(now_order, dict) else {}
+        now_pickup = now_otp.get("pickup")
+        if isinstance(now_pickup, dict) and now_pickup.get("verified"):
+            pickup_otp = now_pickup
+
         order_set_fields: Dict[str, Any] = {
             "ride1Id": ride_doc["_id"],
             "updatedAt": now,
@@ -504,24 +523,26 @@ class Smart2RideEngine:
         existing_dispatch = (order.get("otp") or {}).get("dispatch")
         if isinstance(existing_dispatch, dict) and existing_dispatch.get("code"):
             d_code = str(existing_dispatch["code"])
+            dispatch_otp = dict(existing_dispatch)
         elif existing_dispatch:
             d_code = str(existing_dispatch)
+            dispatch_otp = create_otp_record(code=d_code)
         else:
             d_code = str(order.get("dispatchOtp") or generate_secure_4digit_otp())
+            dispatch_otp = create_otp_record(code=d_code)
 
         existing_delivery = (order.get("otp") or {}).get("delivery")
         if isinstance(existing_delivery, dict) and existing_delivery.get("code"):
             del_code = str(existing_delivery["code"])
+            delivery_otp = dict(existing_delivery)
         elif existing_delivery:
             del_code = str(existing_delivery)
+            delivery_otp = create_otp_record(code=del_code)
         else:
             del_code = str(order.get("deliveryOtp") or generate_secure_4digit_otp())
-
-        while del_code == d_code:
-            del_code = generate_secure_4digit_otp()
-
-        dispatch_otp = create_otp_record(code=d_code)
-        delivery_otp = create_otp_record(code=del_code)
+            while del_code == d_code:
+                del_code = generate_secure_4digit_otp()
+            delivery_otp = create_otp_record(code=del_code)
 
         # Check if original pickup rider opted out or is unable to deliver
         has_opted_out = bool(
@@ -634,7 +655,14 @@ class Smart2RideEngine:
             upsert=True,
         )
 
-        # Update canonical order status
+        # Update canonical order status (protect verified OTPs from being overwritten)
+        now_order_2 = await lifecycle.find_order(canonical_id)
+        now_otp_2 = (now_order_2.get("otp") or {}) if isinstance(now_order_2, dict) else {}
+        if isinstance(now_otp_2.get("dispatch"), dict) and now_otp_2["dispatch"].get("verified"):
+            dispatch_otp = now_otp_2["dispatch"]
+        if isinstance(now_otp_2.get("delivery"), dict) and now_otp_2["delivery"].get("verified"):
+            delivery_otp = now_otp_2["delivery"]
+
         now_dt = datetime.now(timezone.utc)
         order_update: Dict[str, Any] = {
             "ride2Id": ride_doc["_id"],

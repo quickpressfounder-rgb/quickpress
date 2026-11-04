@@ -355,7 +355,8 @@ function WalletScreen() {
       } else if (outcome.status === "user_dropped") {
         toast.info("Payment cancelled. You can retry anytime.");
       } else {
-        toast.error(outcome.reason || "Payment was not completed. Please try again.");
+        const failureReason = "reason" in outcome ? outcome.reason : "Payment was not completed. Please try again.";
+        toast.error(failureReason || "Payment was not completed. Please try again.");
       }
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : "Payment processing error.");

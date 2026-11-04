@@ -120,3 +120,27 @@
   - `python3 build_all_ios.py partner`: Exit code 0 (Capacitor iOS synced).
   - `python3 build_all_ios.py customer`: Exit code 0 (Capacitor iOS synced).
   - `python3 build_all_ios.py rider`: Exit code 0 (Capacitor iOS synced).
+
+## Session: 2026-11-04 (Part 2) — Backend OTP Concurrency Bug Fix & Multi-Console Frontend Type/Runtime Hardening
+- **Commit Hash:** `bc84310`
+- **Bug Fixes & Hardening:**
+  - **Backend Smart 2-Ride Engine (`backend-python/app/services/smart_2ride_engine.py`):**
+    - Fixed critical async race condition where background task `create_ride_1_pickup` / `create_ride_2_delivery` overwrote existing verified pickup/dispatch/delivery OTP records with fresh unverified tokens if the rider verified before the background task completed.
+    - Added preservation of existing verified OTP state (`pickup_otp`, `handover_otp`, `dispatch_otp`, `delivery_otp`) before committing updates to the canonical order document.
+  - **Customer Frontend (`customer-frontend`):**
+    - `src/routes/wallet.tsx`: Safe discrimination of `"reason" in outcome` to avoid property access errors on `PaymentOutcome` success types.
+    - `src/routes/track.$orderId.tsx`: Fixed string enum comparisons for refund order statuses (`refund_pending`, `refunded`).
+    - `src/api/core/razorpay.ts`: Unified global `Window.NativeRazorpay` interface with optional `getInstalledUpiApps?: () => string;` to eliminate ambient declaration conflict with `upi-intent.ts`.
+  - **Partner Frontend (`partner-frontend`):**
+    - `src/screens/ShopManagementScreen.tsx`: Corrected `<ShopStatusSheet>` prop binding from `current={status}` to `open={statusOpen} status={status}`.
+    - `src/screens/WalletScreen.tsx`: Corrected property mismatches `txn.type` -> `txn.direction` and `txn.description` -> `txn.title` on `PartnerWalletTransaction`.
+  - **Rider Frontend (`rider-frontend`):**
+    - `src/api/rider/rider-wallet-api.ts`: Added optional `accountLast4?: string;` and `bankAccountLast4?: string;` to `RiderWalletDetail`.
+    - `src/api/rider/rider-commission-api.ts`: Added optional `guaranteedAmount?: number;` and `targetTrips?: number;` to `RiderCommissionGuarantee`.
+    - `src/screens/RiderWalletScreen.tsx`: Graceful fallback rendering for guarantee headline and description, and fallback resolution for linked bank account last 4 digits.
+- **Verification & Testing:**
+  - `backend-python/test_full_integrated_order_lifecycle.py`: 20/20 lifecycle transitions and security constraints passed (Exit code 0).
+  - `backend-python/test_captain_hud_end_to_end.py`: 100% passed for complete 2-leg order lifecycle (Exit code 0).
+  - `npm run build:customer`: Exit code 0 (Vite + TanStack Router client & server bundles).
+  - `npm run build:partner`: Exit code 0 (Nitro production bundle).
+  - `npm run build:rider`: Exit code 0 (Nitro production bundle).

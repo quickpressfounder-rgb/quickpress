@@ -87,6 +87,7 @@ declare global {
   interface Window {
     NativeRazorpay?: {
       openRazorpay: (optionsJson: string) => void;
+      getInstalledUpiApps?: () => string;
     };
   }
 }

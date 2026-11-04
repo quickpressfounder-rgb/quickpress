@@ -492,9 +492,9 @@ export function RiderWalletScreen() {
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
               <Sparkles className="size-5 text-amber-600 shrink-0" />
               <div className="text-xs">
-                <p className="font-bold text-amber-900">Minimum Daily Guarantee Active</p>
+                <p className="font-bold text-amber-900">{guarantee.headline || "Minimum Daily Guarantee Active"}</p>
                 <p className="text-amber-700 text-[11px] mt-0.5">
-                  Earn guaranteed minimum ₹{guarantee.guaranteedAmount || 800} on completing {guarantee.targetTrips || 10} orders today.
+                  {guarantee.description || `Earn guaranteed minimum ₹${guarantee.guaranteedAmount || 800} on completing ${guarantee.targetTrips || 10} orders today.`}
                 </p>
               </div>
             </div>
