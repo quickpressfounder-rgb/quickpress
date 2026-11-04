@@ -57,6 +57,17 @@ import { readSession } from "@/api/core/session-store";
 import { CACHE_KEYS, readStaleCache, writeCache } from "@/api/customer/api/cache";
 import { fetchMembership, subscribeMembership, type Membership } from "@/api/customer/membership-api";
 
+import washFoldImg from "@/shared/assets/item-wash-fold.jpg";
+import dryCleanImg from "@/shared/assets/item-dry-clean.jpg";
+import steamIronImg from "@/shared/assets/item-steam-iron.jpg";
+import premiumImg from "@/shared/assets/item-premium.jpg";
+import shoesImg from "@/shared/assets/item-shoes.jpg";
+import curtainImg from "@/shared/assets/item-curtain.jpg";
+import blanketImg from "@/shared/assets/item-blanket.jpg";
+import carpetImg from "@/shared/assets/item-carpet.jpg";
+import expressImg from "@/shared/assets/item-express.jpg";
+import bagLeatherImg from "@/shared/assets/item-bag-leather.jpg";
+
 function normalizeIndianPhone(phone: string): string {
   const digits = (phone || "").replace(/\D/g, "");
   if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
@@ -65,20 +76,21 @@ function normalizeIndianPhone(phone: string): string {
 }
 
 function getServiceImage(item: CartLine): string {
-  if (item.image && item.image.trim() && !item.image.includes("placeholder")) {
+  const t = (item.name || "").toLowerCase();
+  if (t.includes("bag") || t.includes("leather") || t.includes("handbag") || t.includes("jacket")) return bagLeatherImg;
+  if (t.includes("premium") || t.includes("saree") || t.includes("luxury")) return premiumImg;
+  if (t.includes("steam") || t.includes("iron")) return steamIronImg;
+  if (t.includes("shoe") || t.includes("sneaker")) return shoesImg;
+  if (t.includes("curtain")) return curtainImg;
+  if (t.includes("blanket") || t.includes("quilt")) return blanketImg;
+  if (t.includes("carpet") || t.includes("rug")) return carpetImg;
+  if (t.includes("express")) return expressImg;
+  if (t.includes("dry") || (t.includes("clean") && !t.includes("wash"))) return dryCleanImg;
+  if (t.includes("wash") || t.includes("fold") || t.includes("laundry")) return washFoldImg;
+  if (item.image && (item.image.startsWith("http://") || item.image.startsWith("https://") || item.image.startsWith("data:") || item.image.startsWith("/uploads/"))) {
     return item.image;
   }
-  const name = (item.name || "").toLowerCase();
-  if (name.includes("steam") || name.includes("iron")) return "/images/services/steam-iron.jpg";
-  if (name.includes("dry") || name.includes("suit") || name.includes("blazer")) return "/images/services/dry-cleaning.jpg";
-  if (name.includes("shoe") || name.includes("sneaker")) return "/images/services/shoe-cleaning.jpg";
-  if (name.includes("blanket") || name.includes("quilt") || name.includes("duvet")) return "/images/services/blanket-cleaning.jpg";
-  if (name.includes("carpet") || name.includes("rug")) return "/images/services/carpet-cleaning.jpg";
-  if (name.includes("curtain") || name.includes("drape")) return "/images/services/curtain-cleaning.jpg";
-  if (name.includes("bag") || name.includes("leather")) return "/images/services/bag-leather-cleaning.jpg";
-  if (name.includes("express")) return "/images/services/express-laundry.jpg";
-  if (name.includes("premium")) return "/images/services/premium-laundry.jpg";
-  return "/images/services/wash-fold.jpg";
+  return washFoldImg;
 }
 
 export const Route = createFileRoute("/checkout")({
@@ -497,7 +509,7 @@ export function CheckoutPage() {
     return (
       <main className="min-h-screen bg-white text-zinc-900 font-sans pb-12">
         <div className="mx-auto max-w-md">
-          <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3 bg-white border-b border-zinc-100 shadow-2xs">
+          <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 pb-3 pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white border-b border-zinc-100 shadow-2xs">
             <button
               type="button"
               aria-label="Go to Home"
@@ -540,7 +552,7 @@ export function CheckoutPage() {
   return (
     <main className="min-h-screen bg-white text-zinc-950 font-sans pb-36">
       {/* Top Header — Clean Blinkit Minimalist White */}
-      <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3 bg-white border-b border-zinc-200/80 shadow-2xs">
+      <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 pb-3 pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white border-b border-zinc-200/80 shadow-2xs">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -564,6 +576,20 @@ export function CheckoutPage() {
             </p>
           </div>
         </div>
+
+        <button
+          type="button"
+          aria-label="Clear all items from cart"
+          onClick={() => {
+            cart.clear();
+            setCartState({ instructions: "", couponCode: null, couponDiscount: 0 });
+            toast.info("Cart cleared");
+          }}
+          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all cursor-pointer border border-red-100/80 shadow-2xs"
+          title="Clear all items from cart"
+        >
+          <Trash2 className="size-4.5 stroke-[2.2]" />
+        </button>
       </header>
 
       <div className="mx-auto max-w-md px-4 pt-3 space-y-4">
@@ -735,9 +761,6 @@ export function CheckoutPage() {
                     +₹{expressFee}
                   </span>
                 </div>
-                <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
-                  ⚡ Nearest Captain in 15 mins • Priority fast wash & delivery in 12–24 hrs
-                </p>
               </div>
             </div>
             <div className="shrink-0">
@@ -875,21 +898,7 @@ export function CheckoutPage() {
           </section>
         </div>
 
-        {/* SECTION 5: SPECIAL CARE INSTRUCTIONS */}
-        <div>
-          <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
-            Special Care Instructions (Optional)
-          </h2>
-          <section aria-label="Care Instructions" className="bg-white rounded-2xl p-4 border border-zinc-200/90 shadow-2xs">
-            <textarea
-              rows={3}
-              value={instructions}
-              onChange={(e) => handleInstructionChange(e.target.value)}
-              placeholder="e.g. Do not bleach, starch shirts, handle silk gently..."
-              className="w-full resize-none text-xs rounded-xl border border-zinc-200 p-3 text-zinc-900 placeholder:text-zinc-400 focus:border-[#0c831f] focus:ring-1 focus:ring-[#0c831f] focus:outline-hidden leading-relaxed"
-            />
-          </section>
-        </div>
+
 
         {/* SECTION 6: APPLY COUPON */}
         <div>
@@ -944,87 +953,7 @@ export function CheckoutPage() {
           </section>
         </div>
 
-        {/* SECTION 6.5: VIP MEMBERSHIP UPSELL / STATUS */}
-        <div>
-          {isMember ? (
-            <div className="rounded-2xl border border-amber-300/80 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-emerald-500/10 p-3.5 shadow-2xs flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="flex size-8 items-center justify-center rounded-xl bg-amber-500 text-white shadow-2xs">
-                  <Crown className="size-4 fill-white" />
-                </span>
-                <div>
-                  <p className="text-xs font-black text-amber-950 flex items-center gap-1.5">
-                    <span>QuickPress {membership?.planName || "VIP"} Member</span>
-                    <span className="rounded-full bg-amber-400/30 px-1.5 py-0.2 text-[9px] font-black text-amber-900 uppercase">ACTIVE</span>
-                  </p>
-                  <p className="text-[10px] font-medium text-amber-850">
-                    ₹0 Delivery Fee &amp; VIP Priority Applied
-                  </p>
-                </div>
-              </div>
-              <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                Saved ₹{baseDeliveryFee + memberDiscount}
-              </span>
-            </div>
-          ) : (
-            <div className={`rounded-2xl border p-3.5 transition-all ${
-              clubAddon 
-                ? "border-[#0c831f] bg-emerald-50/70 shadow-xs ring-1 ring-[#0c831f]/30" 
-                : "border-amber-300/90 bg-gradient-to-r from-amber-50/90 via-amber-50/50 to-white shadow-2xs"
-            }`}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-2.5 min-w-0">
-                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-xs">
-                    <Sparkles className="size-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="text-xs font-black text-zinc-900">Add QuickPress Club (3 Months)</p>
-                      <span className="rounded-full bg-amber-500 text-white px-1.5 py-0.2 text-[9px] font-black uppercase">
-                        ⚡ Save ₹{baseDeliveryFee + Math.round(itemsSubtotal * 0.1)} Today
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-[11px] text-zinc-600 leading-tight">
-                      Get <strong>₹0 Delivery Fee</strong> on this order &amp; future orders, plus <strong>10% extra discount</strong>!
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setClubAddon((prev) => !prev)}
-                  className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-black transition-all active:scale-95 cursor-pointer ${
-                    clubAddon
-                      ? "bg-[#0c831f] text-white shadow-xs"
-                      : "border border-amber-500 bg-amber-500/10 text-amber-950 hover:bg-amber-500 hover:text-white"
-                  }`}
-                >
-                  {clubAddon ? "✓ Added (₹99)" : "+ Add (₹99)"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
 
-        {/* Surge Alert Banner if Active */}
-        {isSurgeActive ? (
-          <div className={`p-3 rounded-2xl border text-xs flex items-start gap-2.5 shadow-2xs ${
-            isSurgeWaived
-              ? "bg-emerald-50/80 border-emerald-200 text-emerald-950"
-              : "bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 text-amber-950"
-          }`}>
-            <CloudRain className={`size-4 shrink-0 mt-0.5 ${isSurgeWaived ? "text-emerald-600" : "text-amber-600 animate-pulse"}`} />
-            <div className="min-w-0 flex-1">
-              <p className="font-bold text-[11px] leading-tight flex items-center gap-1.5">
-                {isSurgeWaived ? "👑 VIP Zero-Surge Guarantee Active" : `⚡ ${surgeReason} Active`}
-              </p>
-              <p className="text-[10.5px] mt-0.5 text-zinc-600 leading-snug">
-                {isSurgeWaived
-                  ? `₹${surgeBaseAmount} surge fee is waived for your order with your QuickPress Club VIP status.`
-                  : `Extra ₹${surgeFee} goes 100% to delivery captains ensuring speedy pickup & drop during weather / peak rush.`}
-              </p>
-            </div>
-          </div>
-        ) : null}
 
         {/* SECTION 7: BILL DETAILS */}
         <div>

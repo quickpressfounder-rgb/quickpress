@@ -4,10 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import { LocationDetecting } from "@/components/LocationDetecting";
 import {
-  detectDeviceLocation,
-  GeoError,
-  saveLocation,
-} from "@/api/customer/location";
+  detectAndVerifyLiveLocation,
+} from "@/api/customer/services/location-verifier";
 
 type LocationSearchParams = {
   redirect?: string;
@@ -50,52 +48,53 @@ function LocationScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(true);
   const [attempt, setAttempt] = useState(0);
+  const [progressState, setProgressState] = useState({
+    label: "Detecting your location…",
+    sublabel: "Finding verified laundry partners near you",
+    statusBadge: "Live GPS Triangulation",
+  });
 
   const detect = useCallback(async () => {
     setError(null);
     setIsLocating(true);
-    const startTimestamp = Date.now();
 
     try {
-      // 1. Request native notification permission in background without blocking GPS
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
-        try {
-          Notification.requestPermission()
-            .then((perm) => {
-              if (perm === "granted") {
-                void import("@/api/core/firebase-messaging").then((m) => {
-                  void m.requestPushNotificationPermission();
-                });
-              }
-            })
-            .catch(() => {});
-        } catch {
-          // ignore error if browser restricts invocation
-        }
-      }
-
-      // 2. Fetch real device GPS coordinates & reverse geocode (<500ms fast lock)
-      const location = await detectDeviceLocation({ timeoutMs: 3200, allowFallback: true });
-      saveLocation(location);
-
-      // 3. Smooth animation display duration (at least 800ms for smooth visual feel)
-      const elapsed = Date.now() - startTimestamp;
-      if (elapsed < 800) {
-        await new Promise((resolve) => setTimeout(resolve, 800 - elapsed));
-      }
+      const res = await detectAndVerifyLiveLocation({
+        onProgress: setProgressState,
+        timeoutMs: 3500,
+      });
 
       setIsLocating(false);
 
-      // 4. Immediately transition to home (or redirected destination)
-      const target = (search?.redirect as any) || "/home";
-      void navigate({ to: target, replace: true });
-    } catch (cause) {
+      if (!res.success || !res.location) {
+        setError(
+          res.error ||
+            "Unable to detect your exact GPS location. Please ensure location services are turned on."
+        );
+        return;
+      }
+
+      if (res.available) {
+        const target = (search?.redirect as any) || "/home";
+        void navigate({ to: target, replace: true });
+      } else {
+        void navigate({
+          to: "/services-unavailable" as any,
+          search: {
+            area: res.location.area || "",
+            city: res.location.city || "",
+            state: res.location.state || "",
+            lat: res.location.latitude ? String(res.location.latitude) : undefined,
+            lng: res.location.longitude ? String(res.location.longitude) : undefined,
+          } as any,
+          replace: true,
+        });
+      }
+    } catch {
       setIsLocating(false);
-      const msg =
-        cause instanceof GeoError
-          ? cause.message
-          : "Unable to detect your exact GPS location. Please ensure location services are turned on.";
-      setError(msg);
+      setError(
+        "Unable to detect your exact GPS location. Please ensure location services are turned on."
+      );
     }
   }, [navigate, search?.redirect]);
 
@@ -104,7 +103,13 @@ function LocationScreen() {
   }, [detect, attempt]);
 
   if (isLocating) {
-    return <LocationDetecting label="Detecting your location…" />;
+    return (
+      <LocationDetecting
+        label={progressState.label}
+        sublabel={progressState.sublabel}
+        statusBadge={progressState.statusBadge}
+      />
+    );
   }
 
   return (

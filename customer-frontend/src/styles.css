@@ -60,6 +60,47 @@
   animation: splash-rise 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* =====================================================================
+ * Mobile Hardware Safe-Area & Notch / Dynamic Island Insets
+ * Auto-adapts padding across iPhone (Dynamic Island & Notch) & Android
+ * ===================================================================== */
+html {
+  width: 100%;
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Prevent iOS WebKit auto-zooming and horizontal auto-scroll when focusing inputs */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  input[type="text"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="email"],
+  input[type="password"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+.app-header-safe {
+  padding-top: max(0.875rem, calc(env(safe-area-inset-top, 0px) + 0.5rem)) !important;
+}
+
+.app-screen-safe {
+  padding-top: max(1.75rem, calc(env(safe-area-inset-top, 0px) + 0.75rem)) !important;
+}
 
 /* =====================================================================
  * QuickPress Customer — premium motion + UX layer

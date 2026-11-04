@@ -1,146 +1,21 @@
-# QuickPress Engineering Work History & Audit Log
+# QuickPress — Engineering Work History
 
-## Session: 2026-10-31 — Comprehensive Multi-Console Health Audit & Lifecycle Verification
-- **Commit Hash:** `8dd2976`
+## Session: November 4, 2026
 
-### 1. Verification & Build Results
-- **Customer Frontend (`customer-frontend`):** Vite + Nitro production build passed (Exit code 0).
-- **Partner Frontend (`partner-frontend`):** Vite + Nitro production build passed (Exit code 0).
-- **Rider Frontend (`rider-frontend`):** Vite + Nitro production build passed (Exit code 0).
-- **Admin Frontend (`admin-frontend`):** Vite + Nitro production build passed (Exit code 0).
-
-### 2. Backend Engine Integration & Security Constraint Tests
-- **Full Order Lifecycle (`backend-python/test_full_integrated_order_lifecycle.py`):**
-  - All 20 transitions verified end-to-end against live Supabase database.
-  - Security constraints verified: Partner cannot start processing or mark ready before pickup; invalid OTPs rejected with retry limit counter.
-- **Active Captain HUD (`backend-python/test_captain_hud_end_to_end.py`):**
-  - 100% passed for 2-leg order lifecycle (Pickup leg -> Store drop -> Laundry processing -> Delivery leg -> COD cash collection -> Delivery OTP).
-- **Commission & Financial Precision (`backend-python/test_commission_engine.py`):**
-  - All financial precision tests, 0% commission deduction for captain, and double-entry checks passed.
-- **Production Real Data Integration (`backend-python/test_production_real_data.py`):**
-  - All 7 real data steps passed and aggregated directly to live Admin Dashboard metrics.
-
-### 3. Key Bug Fixes & Architectural Decisions
-- **`backend-python/app/services/smart_2ride_engine.py`:**
-  - Resolved race condition in `create_ride_1_pickup` where background asynchronous auto-dispatch was blindly setting canonical order status to `rider_searching`, overwriting an already claimed or accepted rider state.
-- **`backend-python/app/services/order_lifecycle.py`:**
-  - Updated `check_transition` to normalize target statuses as well as current statuses, preventing illegal transition errors when canonical status aliases (e.g., `ready` vs `ready_for_delivery`) are invoked.
-- **`backend-python/test_production_real_data.py`:**
-  - Corrected parameter order in `rider_delivery_repository.pickup` and `deliver` calls to match repository signatures `(order_id, rider_id, otp=...)`.
-- **`rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`:**
-  - Added reactive synchronization effect to synchronize incoming order trip stage, OTP screen mode, and leg details directly from parent order state.
-
-## Session: 2026-11-01 — Double-Click Payment & Idempotency Hardening
-- **Commit Hash:** `145d9e2`
-- **Customer Checkout & Payments (`customer-frontend/src/routes/checkout.tsx`):**
-  - Integrated synchronous in-flight lock (`isPlacingOrderRef`) to block double-clicks in 0ms before React state re-renders.
-  - Added unique session `checkoutIdempotencyKeyRef` passed to backend `postOrder` payload and HTTP headers (`Idempotency-Key` / `X-Idempotency-Key`).
-- **Payment Gateway Drawer (`customer-frontend/src/components/payment/BlinkitPaymentDrawer.tsx`):**
-  - Added `isProcessingRef` synchronous mutex guard across Razorpay trigger, Wallet payment, and Cash on Delivery.
-  - Added `pointer-events-none opacity-90` to drawer container during in-flight payment execution.
-- **Data Layer Transport (`customer-frontend/src/api/customer/cart-api.ts`):**
-  - Added `idempotencyKey` field to `PostOrderPayload` and mapped to `Idempotency-Key` request headers.
-- **Partner Action Bar & Handlers (`partner-frontend/src/hooks/use-order-action-handler.tsx` & `OrderActionBar.tsx`):**
-  - Added `busyActionRef` synchronous mutex to prevent duplicate order accept/reject/ready mutations.
-  - Attached `pointer-events-none opacity-60 cursor-not-allowed` on busy buttons.
-- **Rider OTP Verification (`rider-frontend/src/components/dashboard/RiderOtpCard.tsx`):**
-  - Added `isSubmittingRef` guard on `triggerAutoAccept` to prevent duplicate concurrent OTP submissions.
-
-## Session: 2026-11-01 (Part 2) — Double-Click Protection & Idempotency Across Add Funds, Rider COD Settlement, and Withdrawals
-- **Commit Hash:** `679ca49`
-- **Customer Wallet Add Funds (`customer-frontend/src/routes/wallet.tsx` & `wallet-api.ts`):**
-  - Added `isAddingRef` synchronous mutex lock on `handleProceedAddMoney` preventing duplicate gateway launches.
-  - Added `idempotencyKey` support in `addFunds` data layer, transmitting Razorpay payment ID as unique reference via body and `Idempotency-Key` / `X-Idempotency-Key` HTTP headers.
-  - Added `disabled:pointer-events-none disabled:cursor-not-allowed` on the Add Money submit button.
-- **Rider Fund Add & COD Settlement Modal (`rider-frontend/src/components/wallet/RiderFundAddModal.tsx`):**
-  - Added `isProcessingRef` mutex guard to `handleRazorpayPayment`.
-  - Added `disabled:pointer-events-none disabled:cursor-not-allowed` preventing multiple payment gateway orders on rapid taps.
-- **Rider Bank Cashout / Withdrawals (`rider-frontend/src/components/wallet/RiderWithdrawModal.tsx`):**
-  - Added `isSubmittingRef` mutex guard to `handleWithdraw` preventing duplicate bank cashout requests.
-  - Added `disabled:pointer-events-none disabled:cursor-not-allowed` on bank transfer button.
-- **Rider Active Trip HUD (`rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`):**
-  - Added `isActionLockedRef` and `isCollectingCash` synchronous guards across `handleStartTrip`, `handleCompleteTrip`, and Cash Collection CTA.
-  - Prevented duplicate cash receipt recordings and double-triggering of doorstep handover OTP verification.
-- **Partner Store Wallet Withdrawals (`partner-frontend/src/screens/WalletScreen.tsx`):**
-  - Added `busyRef` mutex lock to `handleWithdraw` and `disabled:pointer-events-none disabled:cursor-not-allowed` on the Withdraw to Bank button.
-- **Backend Concurrency Locks & Idempotency Engines (`backend-python`):**
-  - `app/models/wallet.py`: Added `paymentId` and `idempotencyKey` to `AddFundsPayload`.
-  - `app/api/wallet.py`: Resolved `paymentReference` from `paymentReference`, `paymentId`, or `idempotencyKey`.
-  - `app/db/wallet_repositories.py`: Added atomic user lock in `credit` and verified against duplicate `payment_reference` in `add_funds` to prevent double-crediting.
-  - `app/api/rider.py`: Added deduplication against duplicate `payment_id` / `utr` in `/wallet/razorpay-verify` to prevent double-clearing of rider floating cash.
-  - `app/db/rider_repositories.py`: Wrapped `withdraw` with per-rider `asyncio.Lock` preventing concurrent double-spend race conditions.
-  - `app/db/partner_repositories.py`: Wrapped partner `withdraw` with per-partner `asyncio.Lock`.
-- **Verification & Testing:**
-  - `npm run build:customer`: Exit 0 (Cloudflare worker generated, 0 errors).
-  - `npm run build:rider`: Exit 0 (Cloudflare worker generated, 0 errors).
-  - `npm run build:partner`: Exit 0 (Cloudflare worker generated, 0 errors).
-  - `./venv/bin/python test_captain_hud_end_to_end.py`: 100% passed (2-leg order, bag tag, dynamic UPI QR, cash collection, OTP verification).
-  - `./venv/bin/python test_full_integrated_order_lifecycle.py`: 20/20 transitions & security constraints passed.
-  - `./venv/bin/python test_commission_engine.py`: Passed (0% commission deduction, balanced double-entry ledger).
-
-## Session: 2026-11-01 (Part 3) — Production APK & Google Play AAB Release Automation
-- **Commit Hash:** `f9bb512`
-- **Artifacts Built & Released:**
-  - **Customer App:**
-    - APK: `apks/QuickPress-Customer.apk` (17MB)
-    - AAB: `apks/QuickPress-Customer.aab` (16MB)
-    - Website Download: `website/public/apks/QuickPress-Customer.apk`
-  - **Partner App:**
-    - APK: `apks/QuickPress-Partner.apk` (18MB)
-    - AAB: `apks/QuickPress-Partner.aab` (17MB)
-    - Website Download: `website/public/apks/QuickPress-Partner.apk`
-  - **Rider / Captain App:**
-    - APK: `apks/QuickPress-Captain.apk` (18MB)
-    - AAB: `apks/QuickPress-Captain.aab` (17MB)
-    - Website Download: `website/public/apks/QuickPress-Captain.apk`
-- **Build Verification:**
-  - Vite production bundles compiled across all client applications.
-  - SSR runtime hoisting patched and static index.html generated.
-  - Native assets synced to Android Capacitor public asset trees.
-  - Capacitor configurations sanitized of external server dependencies.
-  - Android Gradle `clean`, `assembleDebug` (APK), and `bundleDebug` (Play Store AAB) executed with exit code 0.
-  - iOS Capacitor projects synced.
-- **Artifact Persistence:**
-  - Generated APK and AAB binaries mirrored to active IDE artifact directory: `/Users/himanshupal/.gemini/antigravity-ide/brain/17c1b311-1a3b-46d8-8900-f8a81280aa57/`.
-
-## Session: 2026-11-04 — Native iOS (iPhone) Conversion & Build Automation
-- **Commit Hash:** `8795ccb`
-- **Accomplishments & iOS Setup:**
-  - **Partner Console iOS Project (`partner-frontend/ios/`):**
-    - Added `@capacitor/ios: ^8.5.3` and generated native Xcode project with Swift Package Manager (`CapApp-SPM`).
-    - Configured `Info.plist` with explicit `NSCameraUsageDescription` and `NSPhotoLibraryUsageDescription` for pre-wash garment defect proof.
-    - Sanitized `capacitor.config.ts` for clean offline-ready local asset serving.
-  - **iPhone Notch & Safe-Area Insets:**
-    - Updated `customer-frontend/src/routes/__root.tsx` and `partner-frontend/src/routes/__root.tsx` with `viewport-fit=cover`.
-    - Enables proper CSS safe-area insets (`env(safe-area-inset-top)` and `env(safe-area-inset-bottom)`) preventing Dynamic Island and home-indicator clipping.
-  - **Unified iOS Build & Sync Script (`build_all_ios.py`):**
-    - Created build script supporting `customer`, `partner`, and `rider` targets.
-    - Automatically builds Vite/Nitro SSR production bundles, generates static `index.html`, syncs web assets to `ios/App/App/public`, and synchronizes Capacitor iOS platforms via `npx cap sync ios`.
-- **Build Verification:**
-  - `python3 build_all_ios.py partner`: Exit code 0 (Capacitor iOS synced).
-  - `python3 build_all_ios.py customer`: Exit code 0 (Capacitor iOS synced).
-  - `python3 build_all_ios.py rider`: Exit code 0 (Capacitor iOS synced).
-
-## Session: 2026-11-04 (Part 2) — Backend OTP Concurrency Bug Fix & Multi-Console Frontend Type/Runtime Hardening
-- **Commit Hash:** `bc84310`
-- **Bug Fixes & Hardening:**
-  - **Backend Smart 2-Ride Engine (`backend-python/app/services/smart_2ride_engine.py`):**
-    - Fixed critical async race condition where background task `create_ride_1_pickup` / `create_ride_2_delivery` overwrote existing verified pickup/dispatch/delivery OTP records with fresh unverified tokens if the rider verified before the background task completed.
-    - Added preservation of existing verified OTP state (`pickup_otp`, `handover_otp`, `dispatch_otp`, `delivery_otp`) before committing updates to the canonical order document.
-  - **Customer Frontend (`customer-frontend`):**
-    - `src/routes/wallet.tsx`: Safe discrimination of `"reason" in outcome` to avoid property access errors on `PaymentOutcome` success types.
-    - `src/routes/track.$orderId.tsx`: Fixed string enum comparisons for refund order statuses (`refund_pending`, `refunded`).
-    - `src/api/core/razorpay.ts`: Unified global `Window.NativeRazorpay` interface with optional `getInstalledUpiApps?: () => string;` to eliminate ambient declaration conflict with `upi-intent.ts`.
-  - **Partner Frontend (`partner-frontend`):**
-    - `src/screens/ShopManagementScreen.tsx`: Corrected `<ShopStatusSheet>` prop binding from `current={status}` to `open={statusOpen} status={status}`.
-    - `src/screens/WalletScreen.tsx`: Corrected property mismatches `txn.type` -> `txn.direction` and `txn.description` -> `txn.title` on `PartnerWalletTransaction`.
-  - **Rider Frontend (`rider-frontend`):**
-    - `src/api/rider/rider-wallet-api.ts`: Added optional `accountLast4?: string;` and `bankAccountLast4?: string;` to `RiderWalletDetail`.
-    - `src/api/rider/rider-commission-api.ts`: Added optional `guaranteedAmount?: number;` and `targetTrips?: number;` to `RiderCommissionGuarantee`.
-    - `src/screens/RiderWalletScreen.tsx`: Graceful fallback rendering for guarantee headline and description, and fallback resolution for linked bank account last 4 digits.
-- **Verification & Testing:**
-  - `backend-python/test_full_integrated_order_lifecycle.py`: 20/20 lifecycle transitions and security constraints passed (Exit code 0).
-  - `backend-python/test_captain_hud_end_to_end.py`: 100% passed for complete 2-leg order lifecycle (Exit code 0).
-  - `npm run build:customer`: Exit code 0 (Vite + TanStack Router client & server bundles).
-  - `npm run build:partner`: Exit code 0 (Nitro production bundle).
-  - `npm run build:rider`: Exit code 0 (Nitro production bundle).
+### Customer App Cart & Checkout Redesign & iOS Viewport Optimization
+1. **Removed QuickPress Club & Surge Pricing Banners (Image 1):**
+   - Removed Section 6.5 (`Add QuickPress Club (3 Months)`) and the active Surge Alert Banner (`Kasganj High Demand & Peak Hours Active`) from `customer-frontend/src/routes/checkout.tsx`.
+2. **Simplified Delivery Speed Upgrade Card (Image 2):**
+   - Retained the primary heading (`Express Priority Pickup & Delivery`) and price pill (`+₹{expressFee}`).
+   - Removed the sub-description line (`⚡ Nearest Captain in 15 mins • Priority fast wash & delivery in 12–24 hrs`).
+3. **Removed Special Care Instructions (Image 3):**
+   - Completely removed Section 5 (`Special Care Instructions (Optional)`) from `customer-frontend/src/routes/checkout.tsx` and `customer-frontend/src/routes/cart.tsx`.
+4. **Resolved Real Service Image in Cart & Checkout (Image 4):**
+   - Integrated bundled service category assets (`washFoldImg`, `dryCleanImg`, `steamIronImg`, `premiumImg`, `shoesImg`, `curtainImg`, `blanketImg`, `carpetImg`, `expressImg`, `bagLeatherImg`) into `checkout.tsx`, `cart.tsx`, and `partner.$partnerId.tsx`.
+   - Cart item rows now dynamically display the exact same crisp, authentic service photography shown on the live Services and Home pages.
+5. **Added Clear Cart Button in Sticky Header (Image 5):**
+   - Added circular red `Trash2` button on the right side of the top header in both `checkout.tsx` and `cart.tsx`.
+   - One-click triggers `cart.clear()`, resets persistent cart state, issues feedback toast, and transitions to the friendly empty cart state.
+6. **Build Verification & iOS Sync:**
+   - Compiled with `npm run build:customer` (zero errors).
+   - Synchronized static assets to `customer-frontend/ios/App/App/public` via `build_all_ios.py`.

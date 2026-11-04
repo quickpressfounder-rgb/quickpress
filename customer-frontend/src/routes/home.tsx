@@ -382,7 +382,7 @@ function HomeScreen() {
             </button>
           </div>
         ) : (
-          <div className="px-5 pb-32 pt-8">
+          <div className="px-5 pb-32 pt-[max(1.75rem,calc(env(safe-area-inset-top,0px)+0.75rem))] app-screen-safe">
             {!online ? (
               <div className="mb-4 flex items-center gap-2 rounded-2xl bg-muted px-3 py-2 text-[11px] font-semibold text-muted-foreground">
                 <WifiOff className="size-3.5" />

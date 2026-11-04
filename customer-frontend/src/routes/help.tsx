@@ -418,7 +418,7 @@ function HelpScreen() {
     return (
       <main className="relative flex h-screen flex-col overflow-hidden bg-zinc-50 dark:bg-zinc-950">
         {/* Top Chat Bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-white/95 px-4 py-3 backdrop-blur-md dark:bg-zinc-900/95">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-white/95 px-4 pb-3 pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe backdrop-blur-md dark:bg-zinc-900/95">
           <div className="flex items-center gap-3">
             <button
               type="button"

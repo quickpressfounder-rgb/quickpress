@@ -25,6 +25,35 @@ import {
   DEFAULT_FINANCIAL_RULES,
 } from "@/api/customer/finance-api";
 
+import washFoldImg from "@/shared/assets/item-wash-fold.jpg";
+import dryCleanImg from "@/shared/assets/item-dry-clean.jpg";
+import steamIronImg from "@/shared/assets/item-steam-iron.jpg";
+import premiumImg from "@/shared/assets/item-premium.jpg";
+import shoesImg from "@/shared/assets/item-shoes.jpg";
+import curtainImg from "@/shared/assets/item-curtain.jpg";
+import blanketImg from "@/shared/assets/item-blanket.jpg";
+import carpetImg from "@/shared/assets/item-carpet.jpg";
+import expressImg from "@/shared/assets/item-express.jpg";
+import bagLeatherImg from "@/shared/assets/item-bag-leather.jpg";
+
+function resolveCategoryServiceImage(title?: string | null, img?: string | null): string {
+  const t = (title || "").toLowerCase();
+  if (t.includes("bag") || t.includes("leather") || t.includes("handbag") || t.includes("jacket")) return bagLeatherImg;
+  if (t.includes("premium") || t.includes("saree") || t.includes("luxury")) return premiumImg;
+  if (t.includes("steam") || t.includes("iron")) return steamIronImg;
+  if (t.includes("shoe") || t.includes("sneaker")) return shoesImg;
+  if (t.includes("curtain")) return curtainImg;
+  if (t.includes("blanket") || t.includes("quilt")) return blanketImg;
+  if (t.includes("carpet") || t.includes("rug")) return carpetImg;
+  if (t.includes("express")) return expressImg;
+  if (t.includes("dry") || (t.includes("clean") && !t.includes("wash"))) return dryCleanImg;
+  if (t.includes("wash") || t.includes("fold") || t.includes("laundry")) return washFoldImg;
+  if (img && (img.startsWith("http://") || img.startsWith("https://") || img.startsWith("data:") || img.startsWith("/uploads/"))) {
+    return img;
+  }
+  return washFoldImg;
+}
+
 export const Route = createFileRoute("/cart")({
   beforeLoad: () => {
     throw redirect({
@@ -215,7 +244,7 @@ function CartPage() {
     return (
       <main className="min-h-screen bg-white text-zinc-900 font-sans pb-12">
         <div className="mx-auto max-w-md">
-          <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+          <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
             <button
               type="button"
               aria-label="Go to Home"
@@ -258,7 +287,7 @@ function CartPage() {
   return (
     <main className="min-h-screen bg-zinc-50 text-zinc-900 font-sans pb-32">
       {/* Top Header */}
-      <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+      <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -285,13 +314,16 @@ function CartPage() {
 
         <button
           type="button"
+          aria-label="Clear all items from cart"
           onClick={() => {
             cart.clear();
+            setCartState({ instructions: "", couponCode: null, couponDiscount: 0 });
             toast.info("Cart cleared");
           }}
-          className="text-xs font-bold text-red-600 hover:text-red-700 active:scale-95 px-2 py-1 cursor-pointer"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all cursor-pointer border border-red-100/80 shadow-2xs"
+          title="Clear Cart"
         >
-          Clear All
+          <Trash2 className="size-4.5 stroke-[2.2]" />
         </button>
       </header>
 
@@ -328,22 +360,6 @@ function CartPage() {
               />
             ))}
           </div>
-        </section>
-
-
-        {/* Special Instructions Note */}
-        <section aria-label="Care Instructions" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-2">
-          <label htmlFor="instructions" className="block text-xs font-black uppercase tracking-wider text-zinc-900">
-            Special Care Instructions (Optional)
-          </label>
-          <textarea
-            id="instructions"
-            rows={2}
-            value={instructions}
-            onChange={(e) => handleInstructionChange(e.target.value)}
-            placeholder="e.g. Do not bleach, starch shirts, handle silk gently..."
-            className="w-full rounded-xl border border-zinc-200 p-2.5 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-[#0c831f] focus:outline-hidden"
-          />
         </section>
 
         {/* Coupons Strip */}
@@ -497,20 +513,16 @@ function CartItemRow({
   onStep: (delta: number) => void;
   onRemove: () => void;
 }) {
+  const photoUrl = resolveCategoryServiceImage(item.name, item.image);
+
   return (
     <div className="flex items-center justify-between gap-3 border border-zinc-100 p-3 rounded-xl bg-zinc-50/50">
       <div className="flex items-center gap-2.5 min-w-0 flex-1">
-        {item.image ? (
-          <img
-            src={item.image}
-            alt={item.name}
-            className="size-11 rounded-xl object-cover border border-zinc-200 shrink-0"
-          />
-        ) : (
-          <div className="size-11 rounded-xl bg-emerald-50 text-[#0c831f] font-black text-xs flex items-center justify-center shrink-0">
-            {item.name.charAt(0)}
-          </div>
-        )}
+        <img
+          src={photoUrl}
+          alt={item.name}
+          className="size-11 rounded-xl object-cover border border-zinc-200 shrink-0"
+        />
         <div className="min-w-0">
           <p className="truncate text-xs font-black text-zinc-900">{item.name}</p>
           <p className="text-[11px] font-semibold text-zinc-500">

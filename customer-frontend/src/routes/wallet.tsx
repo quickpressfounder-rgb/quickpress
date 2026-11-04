@@ -410,7 +410,7 @@ function WalletScreen() {
         {/* ========================================================
             1. TOP BAR (Zomato Money Style: Arrow + Quick Money + Gear)
         ======================================================== */}
-        <header className="sticky top-0 z-40 flex items-center justify-between bg-white/95 backdrop-blur-md px-4 py-3 border-b border-neutral-100">
+        <header className="sticky top-0 z-40 flex items-center justify-between bg-white/95 backdrop-blur-md px-4 pb-3 pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe border-b border-neutral-100">
           <div className="flex items-center gap-3">
             <button
               type="button"

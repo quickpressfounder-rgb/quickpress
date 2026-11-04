@@ -338,7 +338,7 @@ function PaymentMethodsScreen() {
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[#f4f5f8] dark:bg-zinc-950 pb-28">
       {/* Top Header matching reference screenshot */}
-      <header className="sticky top-0 z-30 flex items-center gap-3.5 bg-white px-4 py-3.5 shadow-2xs dark:bg-zinc-900 border-b border-slate-100 dark:border-zinc-800">
+      <header className="sticky top-0 z-30 flex items-center gap-3.5 bg-white px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe shadow-2xs dark:bg-zinc-900 border-b border-slate-100 dark:border-zinc-800">
         <button
           type="button"
           onClick={() => {

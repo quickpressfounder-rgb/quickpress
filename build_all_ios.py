@@ -50,40 +50,108 @@ def patch_ssr_bundle(app_dir):
                 print(f"Warning patching {fname}: {e}")
 
 def generate_index_html(app_dir, port):
-    print(f"Generating static index.html via SSR server on port {port}...")
-    server_script = os.path.join(app_dir, ".output", "server", "index.mjs")
-    if not os.path.exists(server_script):
-        # Fallback to direct client index.html if already produced
-        client_index = os.path.join(app_dir, ".output", "public", "index.html")
-        if os.path.exists(client_index):
-            print(f"✓ Using pre-existing client index.html at {client_index}")
-            return
-        raise RuntimeError(f"Server script not found: {server_script}")
-
-    env = os.environ.copy()
-    env["PORT"] = str(port)
-    proc = subprocess.Popen(["node", server_script], cwd=app_dir, env=env)
-    
+    print(f"Generating static index.html for {os.path.basename(app_dir)} (fallback port {port})...")
+    ssr_script = os.path.join(app_dir, ".output", "server", "_ssr", "ssr.mjs")
     html = None
-    try:
-        for _ in range(30):
-            time.sleep(0.4)
-            res = subprocess.run(f"curl -s http://127.0.0.1:{port}/", shell=True, capture_output=True, text=True)
+
+    if os.path.exists(ssr_script):
+        try:
+            render_code = f"""
+import('{ssr_script}').then(async (mod) => {{
+    const handler = mod.default || mod;
+    const res = await handler.fetch(new Request('http://localhost/'));
+    const body = await res.text();
+    process.stdout.write(body);
+}}).catch((err) => {{
+    console.error(err);
+    process.exit(1);
+}});
+"""
+            res = subprocess.run(
+                ["node", "--input-type=module", "-e", render_code],
+                cwd=app_dir,
+                capture_output=True,
+                text=True
+            )
             if res.returncode == 0 and "<html" in res.stdout and "This page didn't load" not in res.stdout:
                 html = res.stdout
-                break
-    finally:
-        try:
-            proc.terminate()
-            proc.wait(timeout=3)
-        except Exception:
-            proc.kill()
+                print(f"✓ Successfully rendered SSR in-memory ({len(html)} chars)")
+        except Exception as e:
+            print(f"In-memory SSR attempt failed, falling back to server: {e}")
 
     if not html:
-        raise RuntimeError(f"Failed to fetch valid rendered HTML from http://127.0.0.1:{port}/")
+        server_script = os.path.join(app_dir, ".output", "server", "index.mjs")
+        if not os.path.exists(server_script):
+            client_index = os.path.join(app_dir, ".output", "public", "index.html")
+            if os.path.exists(client_index):
+                print(f"✓ Using pre-existing client index.html at {client_index}")
+                return
+            raise RuntimeError(f"Server script not found: {server_script}")
+
+        env = os.environ.copy()
+        env["PORT"] = str(port)
+        proc = subprocess.Popen(["node", server_script], cwd=app_dir, env=env)
+        
+        try:
+            for _ in range(30):
+                time.sleep(0.4)
+                res = subprocess.run(f"curl -s http://127.0.0.1:{port}/", shell=True, capture_output=True, text=True)
+                if res.returncode == 0 and "<html" in res.stdout and "This page didn't load" not in res.stdout:
+                    html = res.stdout
+                    break
+        finally:
+            try:
+                proc.terminate()
+                proc.wait(timeout=3)
+            except Exception:
+                proc.kill()
+
+    if not html:
+        raise RuntimeError(f"Failed to fetch valid rendered HTML for {os.path.basename(app_dir)}")
+
+    html = html.replace('\x00', '')
+    import re
+    viewport_meta = '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>'
+    if '<meta name="viewport"' in html:
+        html = re.sub(r'<meta\s+name=["\']viewport["\'][^>]*>', viewport_meta, html)
+    elif "<head>" in html:
+        html = html.replace("<head>", f"<head>{viewport_meta}", 1)
 
     if "<base " not in html and "<head>" in html:
         html = html.replace("<head>", '<head><base href="/" />', 1)
+
+    qp_config_script = """<script>
+              (function() {
+                var _base = (window.__QUICKPRESS_CONFIG__ && window.__QUICKPRESS_CONFIG__.API_BASE_URL) || 'https://api.withquickpress.com';
+                window.__QUICKPRESS_CONFIG__ = { API_BASE_URL: _base };
+                if (window.__qp_fetch_patched) return;
+                window.__qp_fetch_patched = true;
+                var _origFetch = window.fetch;
+                window.fetch = function(input, init) {
+                  if (typeof input === 'string') {
+                    if (_base) {
+                      var hostOnly = _base.replace(/^https?:\\/\\//, '');
+                      input = input.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, hostOnly);
+                    }
+                    if (input.startsWith('/api/') && _base) { input = _base + input; }
+                  } else if (input && input.url) {
+                    try {
+                      var newUrl = input.url;
+                      if (_base) {
+                        var hostOnly = _base.replace(/^https?:\\/\\//, '');
+                        newUrl = newUrl.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, hostOnly);
+                      }
+                      if (newUrl.startsWith('/api/') && _base) { newUrl = _base + newUrl; }
+                      input = new Request(newUrl, input);
+                    } catch(e) {}
+                  }
+                  return _origFetch.call(this, input, init);
+                };
+              })();
+            </script>"""
+
+    if "__qp_fetch_patched" not in html and "</head>" in html:
+        html = html.replace("</head>", f"{qp_config_script}</head>", 1)
 
     target_index = os.path.join(app_dir, ".output", "public", "index.html")
     with open(target_index, "w", encoding="utf-8") as f:

@@ -546,7 +546,7 @@ function ProfileScreen() {
           />
 
           {/* Top app bar with back navigation */}
-          <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+          <header className="sticky top-0 z-30 flex items-center justify-between px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -868,7 +868,7 @@ function ProfileScreen() {
     <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
       <div className="relative mx-auto w-full max-w-md">
         {/* Top app bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 px-5 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 px-5 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
           <h1 className="text-lg font-bold tracking-tight text-foreground">My Profile</h1>
           <div className="flex shrink-0 items-center gap-2">
             <button
@@ -1406,7 +1406,7 @@ function SavedServicesPage({ onBack }: { onBack: () => void }) {
     <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
       <div className="relative mx-auto w-full max-w-md pb-32">
         {/* Top App Bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+        <header className="sticky top-0 z-30 flex items-center justify-between px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -1559,7 +1559,7 @@ function FavouriteStoresPage({ onBack }: { onBack: () => void }) {
     <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
       <div className="relative mx-auto w-full max-w-md pb-32">
         {/* Top App Bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+        <header className="sticky top-0 z-30 flex items-center justify-between px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -1762,7 +1762,7 @@ function NotificationSettingsPage({
     <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
       <div className="relative mx-auto w-full max-w-md pb-32">
         {/* Top App Bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+        <header className="sticky top-0 z-30 flex items-center justify-between px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -1833,7 +1833,7 @@ function AppearanceSettingsPage({
     <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
       <div className="relative mx-auto w-full max-w-md pb-32">
         {/* Top App Bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+        <header className="sticky top-0 z-30 flex items-center justify-between px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -1944,7 +1944,7 @@ function LanguageSettingsPage({
     <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
       <div className="relative mx-auto w-full max-w-md pb-32">
         {/* Top App Bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+        <header className="sticky top-0 z-30 flex items-center justify-between px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
           <div className="flex items-center gap-3">
             <button
               type="button"

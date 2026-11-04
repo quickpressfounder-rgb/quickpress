@@ -17,6 +17,11 @@ import { toast } from "sonner";
 import { readLocation, saveLocation, type SavedLocation } from "@/api/customer/location";
 import { submitWaitlist } from "@/api/customer/services/partner-service";
 import { restoreCustomerSession } from "@/api/customer/auth-api";
+import { LocationDetecting } from "@/components/LocationDetecting";
+import {
+  detectAndVerifyLiveLocation,
+  type LocationDetectionState,
+} from "@/api/customer/services/location-verifier";
 
 type UnavailableSearchParams = {
   area?: string;
@@ -69,6 +74,53 @@ function ServicesUnavailablePage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [waitlistDone, setWaitlistDone] = useState(false);
+  const [detectingModal, setDetectingModal] = useState<LocationDetectionState | null>(null);
+
+  const handleRedetectGPS = async () => {
+    if (detectingModal?.active) return;
+    setDetectingModal({
+      active: true,
+      label: "Acquiring Real Device GPS…",
+      sublabel: "Connecting to satellite and cellular triangulation…",
+      statusBadge: "Live GPS Triangulation",
+    });
+
+    try {
+      const res = await detectAndVerifyLiveLocation({
+        onProgress: (state) => setDetectingModal({ active: true, ...state }),
+        timeoutMs: 3500,
+      });
+
+      if (!res.success || !res.location) {
+        setDetectingModal(null);
+        toast.error(res.error || "Could not detect GPS location.");
+        return;
+      }
+
+      setDetectingModal(null);
+
+      if (res.available) {
+        toast.success(`QuickPress is Live in ${res.location.city || res.location.area}! Opening home…`);
+        void navigate({ to: "/home" });
+      } else {
+        toast.info(`QuickPress is not yet operating in ${res.location.city || res.location.area}.`);
+        void navigate({
+          to: "/services-unavailable" as any,
+          search: {
+            area: res.location.area || "",
+            city: res.location.city || "",
+            state: res.location.state || "",
+            lat: res.location.latitude ? String(res.location.latitude) : undefined,
+            lng: res.location.longitude ? String(res.location.longitude) : undefined,
+          } as any,
+          replace: true,
+        });
+      }
+    } catch {
+      setDetectingModal(null);
+      toast.error("Failed to verify location. Please try again.");
+    }
+  };
 
   const handleNotifyMe = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -101,7 +153,7 @@ function ServicesUnavailablePage() {
   };
 
   return (
-    <main className="relative min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-20 pt-6">
+    <main className="relative min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-20 pt-[max(1.5rem,calc(env(safe-area-inset-top,0px)+0.75rem))] app-screen-safe">
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5">
         {/* Top Bar */}
         <header className="flex items-center justify-between py-2">
@@ -164,19 +216,28 @@ function ServicesUnavailablePage() {
               </div>
             </div>
 
-            {/* Primary Action: Change Location */}
-            <div className="mt-6 space-y-3">
+            {/* Primary Actions: Re-detect GPS or Select Location */}
+            <div className="mt-6 space-y-2.5">
+              <button
+                type="button"
+                onClick={handleRedetectGPS}
+                className="flex h-13 min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-white text-[15px] font-black shadow-md shadow-emerald-600/25 transition-all hover:bg-emerald-700 active:scale-[0.985]"
+              >
+                <Navigation className="size-4 stroke-[2.5]" />
+                <span>Detect Current GPS Location</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => void navigate({ to: "/location-search" })}
-                className="flex h-13 min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 text-[15px] font-black shadow-md transition-all hover:opacity-90 active:scale-[0.985]"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card text-foreground text-[14px] font-bold shadow-xs transition-all hover:bg-muted active:scale-[0.985]"
               >
-                <Search className="size-4 stroke-[2.5]" />
-                <span>Select Different Location</span>
+                <Search className="size-4 stroke-[2.2]" />
+                <span>Select Different Location / City</span>
               </button>
 
               {/* Notify Me / Waitlist Section */}
-              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-left">
+              <div className="mt-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-left">
                 <div className="flex items-center gap-2">
                   <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600">
                     <Bell className="size-3.5" />
@@ -199,7 +260,7 @@ function ServicesUnavailablePage() {
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="10-digit mobile number"
                       maxLength={10}
-                      className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-foreground outline-none focus:border-emerald-500"
+                      className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-card px-3 text-[16px] md:text-xs font-semibold text-foreground outline-none focus:border-emerald-500"
                     />
                     <button
                       type="submit"
@@ -220,6 +281,16 @@ function ServicesUnavailablePage() {
           </div>
         </div>
       </div>
+
+      {/* Real-time Location Detecting Modal with Radar Concentric Pulse & Bobbing Pin */}
+      {detectingModal?.active ? (
+        <LocationDetecting
+          label={detectingModal.label}
+          sublabel={detectingModal.sublabel}
+          statusBadge={detectingModal.statusBadge}
+          onCancel={() => setDetectingModal(null)}
+        />
+      ) : null}
     </main>
   );
 }

@@ -7,6 +7,10 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
   },
+  ios: {
+    allowsLinkPreview: false,
+    backgroundColor: "#ffffff",
+  },
 };
 
 export default config;

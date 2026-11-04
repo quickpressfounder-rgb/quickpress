@@ -31,6 +31,12 @@ import {
 import { requestNotificationPermission } from "@/lib/permissions";
 import { checkLocationAvailability } from "@/api/customer/services/partner-service";
 import { fetchAddresses, type SavedAddress } from "@/api/customer/addresses-api";
+import { LocationDetecting } from "@/components/LocationDetecting";
+import {
+  detectAndVerifyLiveLocation,
+  verifySelectedLocation,
+  type LocationDetectionState,
+} from "@/api/customer/services/location-verifier";
 
 type LocationSearchParams = {
   redirect?: string;
@@ -78,6 +84,7 @@ function LocationSearchScreen() {
   const [saving, setSaving] = useState(false);
   const [checkingLabel, setCheckingLabel] = useState<string | null>(null);
   const [remote, setRemote] = useState<PlaceSuggestion[]>([]);
+  const [detectingModal, setDetectingModal] = useState<LocationDetectionState | null>(null);
 
   // GET /api/locations
   useEffect(() => {
@@ -168,19 +175,31 @@ function LocationSearchScreen() {
   };
 
   /**
-   * Process and verify location availability.
-   * If available -> redirect to /home (or target).
+   * Process and verify location availability against Admin Panel live cities.
+   * If available -> redirect to /home.
    * If unavailable -> redirect to /services-unavailable.
    */
   const processLocationSelection = async (location: SavedLocation) => {
+    if (saving || detectingModal?.active) return;
     setSaving(true);
-    setCheckingLabel(`Checking laundry partners in ${location.area || location.city || "your area"}…`);
-    saveLocation(location);
+
+    setDetectingModal({
+      active: true,
+      label: `Verifying ${location.city || location.area || "selected location"}…`,
+      sublabel: "Checking operational cities and active partner network in Admin Panel…",
+      statusBadge: "Admin City Check",
+    });
 
     try {
-      const avail = await checkLocationAvailability(location);
-      if (avail && avail.available) {
-        toast.success(`Services available in ${location.area || location.city || "your area"}!`);
+      const res = await verifySelectedLocation(location, {
+        onProgress: (state) => setDetectingModal({ active: true, ...state }),
+      });
+
+      setSaving(false);
+      setDetectingModal(null);
+
+      if (res.available) {
+        toast.success(`Services active in ${location.area || location.city}!`);
         void navigate({ to: (redirectTarget as any) || "/home" });
       } else {
         void navigate({
@@ -195,25 +214,59 @@ function LocationSearchScreen() {
         });
       }
     } catch {
-      // Fallback on network timeout
-      void navigate({ to: (redirectTarget as any) || "/home" });
-    } finally {
       setSaving(false);
-      setCheckingLabel(null);
+      setDetectingModal(null);
+      void navigate({ to: (redirectTarget as any) || "/home" });
     }
   };
 
   const useCurrentLocation = async () => {
-    if (locating || saving) return;
+    if (locating || saving || detectingModal?.active) return;
     setLocating(true);
     void requestNotificationPermission();
+
+    setDetectingModal({
+      active: true,
+      label: "Acquiring Real Device GPS…",
+      sublabel: "Connecting to satellite and cellular triangulation…",
+      statusBadge: "Live GPS Triangulation",
+    });
+
     try {
-      const loc = await detectDeviceLocation({ timeoutMs: 3200 });
+      const res = await detectAndVerifyLiveLocation({
+        onProgress: (state) => setDetectingModal({ active: true, ...state }),
+        timeoutMs: 3500,
+      });
+
+      if (!res.success || !res.location) {
+        setDetectingModal(null);
+        setLocating(false);
+        toast.error(res.error || "Could not detect device GPS. Please search and select your location.");
+        return;
+      }
+
       setLocating(false);
-      await processLocationSelection(loc);
+      setDetectingModal(null);
+
+      if (res.available) {
+        toast.success(`QuickPress is Live in ${res.location.city || res.location.area}!`);
+        void navigate({ to: (redirectTarget as any) || "/home" });
+      } else {
+        void navigate({
+          to: "/services-unavailable" as any,
+          search: {
+            area: res.location.area || "",
+            city: res.location.city || "",
+            state: res.location.state || "",
+            lat: res.location.latitude ? String(res.location.latitude) : undefined,
+            lng: res.location.longitude ? String(res.location.longitude) : undefined,
+          } as any,
+        });
+      }
     } catch {
-      toast.error("Could not detect device GPS. Please search and select your location above.");
+      setDetectingModal(null);
       setLocating(false);
+      toast.error("Failed to verify location. Please try again.");
     }
   };
 
@@ -234,9 +287,14 @@ function LocationSearchScreen() {
     await processLocationSelection(loc);
   };
 
+  // Reset scroll to top-left on enter
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
-    <main className="relative min-h-screen overflow-hidden bg-white dark:bg-zinc-950">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-6 pb-32 pt-8">
+    <main className="relative min-h-screen overflow-x-clip overflow-x-hidden bg-white dark:bg-zinc-950">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-32 pt-[max(1.75rem,calc(env(safe-area-inset-top,0px)+0.75rem))] app-screen-safe">
         {/* Top Header */}
         <div className="flex items-center gap-3">
           <button
@@ -249,7 +307,7 @@ function LocationSearchScreen() {
                 void navigate({ to: "/home" });
               }
             }}
-            className="flex size-10 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.95]"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.95]"
           >
             <ArrowLeft className="size-5" />
           </button>
@@ -273,11 +331,10 @@ function LocationSearchScreen() {
             </span>
             <input
               type="text"
-              autoFocus={!isFromLogin}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search your area, colony, street or landmark…"
-              className="min-w-0 flex-1 bg-transparent pr-2 text-sm font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground/70"
+              className="min-w-0 flex-1 bg-transparent pr-2 text-[16px] font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground/70"
             />
             {query ? (
               <button
@@ -447,7 +504,7 @@ function LocationSearchScreen() {
 
       {/* Floating Continue CTA */}
       <div className="glass-panel fixed inset-x-0 bottom-0 z-40">
-        <div className="mx-auto w-full max-w-md px-6 pb-6 pt-4">
+        <div className="mx-auto w-full max-w-md px-5 pb-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] pt-4">
           <button
             type="button"
             onClick={confirm}
@@ -460,6 +517,16 @@ function LocationSearchScreen() {
           </button>
         </div>
       </div>
+
+      {/* Real-time Location Detecting Modal with Radar Concentric Pulse & Bobbing Pin */}
+      {detectingModal?.active ? (
+        <LocationDetecting
+          label={detectingModal.label}
+          sublabel={detectingModal.sublabel}
+          statusBadge={detectingModal.statusBadge}
+          onCancel={() => setDetectingModal(null)}
+        />
+      ) : null}
     </main>
   );
 }

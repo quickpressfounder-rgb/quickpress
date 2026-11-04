@@ -80,9 +80,6 @@ function resolvePartnerLogo(logo?: string | null): string {
 }
 
 function resolveServiceImage(title?: string | null, img?: string | null): string {
-  if (img && (img.startsWith("http://") || img.startsWith("https://") || img.startsWith("data:") || img.startsWith("/uploads/"))) {
-    return img;
-  }
   const t = (title || "").toLowerCase();
   if (t.includes("bag") || t.includes("leather") || t.includes("handbag") || t.includes("jacket")) return bagLeatherImg;
   if (t.includes("premium") || t.includes("saree") || t.includes("luxury")) return premiumImg;
@@ -94,7 +91,9 @@ function resolveServiceImage(title?: string | null, img?: string | null): string
   if (t.includes("express")) return expressImg;
   if (t.includes("dry") || (t.includes("clean") && !t.includes("wash"))) return dryCleanImg;
   if (t.includes("wash") || t.includes("fold") || t.includes("laundry")) return washFoldImg;
-  if (img && (img.startsWith("/") || img.startsWith("http") || img.startsWith("data:"))) return img;
+  if (img && (img.startsWith("http://") || img.startsWith("https://") || img.startsWith("data:") || img.startsWith("/uploads/"))) {
+    return img;
+  }
   return washFoldImg;
 }
 
@@ -348,7 +347,7 @@ function PartnerDetailScreen() {
                 name: svc.name,
                 price: svc.startingPrice,
                 unit: svc.unit,
-                image: svc.image,
+                image: resolveServiceImage(svc.name, svc.image),
                 description: svc.description,
                 partnerId,
                 partnerName: data?.partner.name,
@@ -426,7 +425,7 @@ function PartnerDetailScreen() {
     <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950 scroll-smooth">
       <div className="relative mx-auto w-full max-w-md">
         {/* Top app bar */}
-        <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-2 px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+        <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-2 px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
           <button
             type="button"
             aria-label="Go back"

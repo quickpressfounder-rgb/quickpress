@@ -116,9 +116,9 @@ function SearchScreen() {
   };
 
   return (
-    <main className="min-h-screen bg-white dark:bg-zinc-950 pb-16">
-      <div className="mx-auto w-full max-w-md">
-        <header className="sticky top-0 z-30 bg-white/85 dark:bg-zinc-950/85 px-5 py-3.5 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+    <main className="min-h-screen bg-white dark:bg-zinc-950 pb-16 overflow-x-hidden w-full max-w-full">
+      <div className="mx-auto w-full max-w-md overflow-x-hidden">
+        <header className="sticky top-0 z-30 bg-white/85 dark:bg-zinc-950/85 px-5 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -160,7 +160,7 @@ function SearchScreen() {
             </label>
           </div>
 
-          <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto">
+          <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto overscroll-x-contain pb-1">
             {SCOPE_CHIPS.map((chip) => (
               <button
                 key={chip.id}
