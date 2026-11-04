@@ -104,7 +104,7 @@
   - Generated APK and AAB binaries mirrored to active IDE artifact directory: `/Users/himanshupal/.gemini/antigravity-ide/brain/17c1b311-1a3b-46d8-8900-f8a81280aa57/`.
 
 ## Session: 2026-11-04 — Native iOS (iPhone) Conversion & Build Automation
-- **Commit Hash:** Pending commit
+- **Commit Hash:** `8795ccb`
 - **Accomplishments & iOS Setup:**
   - **Partner Console iOS Project (`partner-frontend/ios/`):**
     - Added `@capacitor/ios: ^8.5.3` and generated native Xcode project with Swift Package Manager (`CapApp-SPM`).
