@@ -103,4 +103,20 @@
 - **Artifact Persistence:**
   - Generated APK and AAB binaries mirrored to active IDE artifact directory: `/Users/himanshupal/.gemini/antigravity-ide/brain/17c1b311-1a3b-46d8-8900-f8a81280aa57/`.
 
-
+## Session: 2026-11-04 — Native iOS (iPhone) Conversion & Build Automation
+- **Commit Hash:** Pending commit
+- **Accomplishments & iOS Setup:**
+  - **Partner Console iOS Project (`partner-frontend/ios/`):**
+    - Added `@capacitor/ios: ^8.5.3` and generated native Xcode project with Swift Package Manager (`CapApp-SPM`).
+    - Configured `Info.plist` with explicit `NSCameraUsageDescription` and `NSPhotoLibraryUsageDescription` for pre-wash garment defect proof.
+    - Sanitized `capacitor.config.ts` for clean offline-ready local asset serving.
+  - **iPhone Notch & Safe-Area Insets:**
+    - Updated `customer-frontend/src/routes/__root.tsx` and `partner-frontend/src/routes/__root.tsx` with `viewport-fit=cover`.
+    - Enables proper CSS safe-area insets (`env(safe-area-inset-top)` and `env(safe-area-inset-bottom)`) preventing Dynamic Island and home-indicator clipping.
+  - **Unified iOS Build & Sync Script (`build_all_ios.py`):**
+    - Created build script supporting `customer`, `partner`, and `rider` targets.
+    - Automatically builds Vite/Nitro SSR production bundles, generates static `index.html`, syncs web assets to `ios/App/App/public`, and synchronizes Capacitor iOS platforms via `npx cap sync ios`.
+- **Build Verification:**
+  - `python3 build_all_ios.py partner`: Exit code 0 (Capacitor iOS synced).
+  - `python3 build_all_ios.py customer`: Exit code 0 (Capacitor iOS synced).
+  - `python3 build_all_ios.py rider`: Exit code 0 (Capacitor iOS synced).
