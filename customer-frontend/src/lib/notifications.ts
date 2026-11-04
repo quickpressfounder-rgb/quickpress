@@ -27,26 +27,20 @@ export function getDeviceNotificationPermission(): DevicePermissionStatus {
 export async function requestDeviceNotificationPermission(): Promise<DevicePermissionStatus> {
   if (typeof window === "undefined") return "unsupported";
 
-  // 1. Android Native App check
-  if ((window as any).AndroidNotification?.showNotification) {
-    return "granted";
+  // 1. Capacitor Native Mobile App check (iOS & Android)
+  try {
+    const { LocalNotifications } = await import("@capacitor/local-notifications");
+    const perm = await LocalNotifications.requestPermissions();
+    if (perm.display === "granted") {
+      return "granted";
+    }
+  } catch {
+    // Fall through
   }
 
-  // 2. Capacitor Native Mobile App check
-  const cap = (window as any).Capacitor;
-  if (cap?.isNativePlatform?.()) {
-    const push = cap.Plugins?.PushNotifications;
-    if (push?.requestPermissions) {
-      try {
-        const capResult = await push.requestPermissions();
-        if (capResult?.receive === "granted") {
-          await push.register?.();
-          return "granted";
-        }
-      } catch {
-        // Fall through
-      }
-    }
+  // 2. Android Native App check
+  if ((window as any).AndroidNotification?.showNotification) {
+    return "granted";
   }
 
   // 3. Web / Mobile Browser Notification API
@@ -114,6 +108,37 @@ export async function triggerMobileOsNotification(
   const notificationTag = options.tag || (orderId ? `order-${orderId}` : `quickpress-${Date.now()}`);
   const icon = options.icon || "/favicon.png";
   const badge = options.badge || "/favicon.png";
+
+  // Channel 0: Real Native iOS & Android Notification (Capacitor LocalNotifications)
+  try {
+    const { LocalNotifications } = await import("@capacitor/local-notifications");
+    const permStatus = await LocalNotifications.checkPermissions();
+    if (permStatus.display !== "granted") {
+      await LocalNotifications.requestPermissions();
+    }
+    const notifId = Math.floor(Math.random() * 2147483647);
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: notifId,
+          title,
+          body,
+          largeBody: body,
+          summaryText: "QuickPress",
+          schedule: { at: new Date(Date.now() + 250) },
+          sound: "default",
+          extra: {
+            url: clickUrl,
+            orderId,
+          },
+        },
+      ],
+    });
+    console.log("[MobileNotification] Native iOS / Capacitor notification dispatched successfully");
+    return true;
+  } catch (capErr) {
+    console.debug("[MobileNotification] LocalNotifications notice:", capErr);
+  }
 
   // Channel 1: Native Android App (Injected WebView Interface)
   if (typeof window !== "undefined" && (window as any).AndroidNotification?.showNotification) {

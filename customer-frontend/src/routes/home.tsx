@@ -54,6 +54,7 @@ import {
   SEARCH_SCOPES as SEARCH_SCOPE_OPTIONS,
 } from "@/api/customer/services/search-service";
 import { fetchMembership, type Membership } from "@/api/customer/membership-api";
+import { requestDeviceNotificationPermission } from "@/lib/notifications";
 
 
 import defaultAvatar from "@/shared/assets/default-avatar.png";
@@ -175,6 +176,7 @@ function HomeScreen() {
   };
 
   useEffect(() => {
+    void requestDeviceNotificationPermission();
     setRecentSearches(readRecentSearches());
     const token =
       typeof window !== "undefined"

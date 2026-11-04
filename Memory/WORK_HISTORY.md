@@ -19,3 +19,23 @@
 6. **Build Verification & iOS Sync:**
    - Compiled with `npm run build:customer` (zero errors).
    - Synchronized static assets to `customer-frontend/ios/App/App/public` via `build_all_ios.py`.
+
+
+### Customer App Checkout Header Clean, Payment Flow Fix, Native iOS Notifications & App Icon
+1. **Header & Section Cleanups (Image 1 & 2):**
+   - Removed `• QuickPress • Express Delivery` subtitle from the checkout top header in `customer-frontend/src/routes/checkout.tsx`.
+   - Removed `⚡ Express Active` badge from the Delivery Speed Upgrade section.
+2. **Fixed "Proceed to Payment":**
+   - Eliminated blocking form validations in `checkout.tsx`: name, phone, and pickup address now auto-fallback to active location (e.g. Kasganj address) and user profile so customers are never blocked.
+   - Smoothly launches `BlinkitPaymentDrawer` with 100% working payment options (Razorpay UPI, Cards, NetBanking, COD).
+3. **Real Native iPhone Notifications Integration:**
+   - Installed and registered `@capacitor/local-notifications` in the iOS Capacitor workspace.
+   - Wired native iOS banner/sound notifications on order confirmation in `checkout.tsx` and updated `customer-frontend/src/lib/notifications.ts` to trigger native notifications in iOS Notification Center and Lock Screen.
+4. **Custom App Logo Integration (Image 3):**
+   - Converted the user's official yellow QuickPress brand logo (`1024x1024`) to PNG and updated:
+     - `customer-frontend/ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png`
+     - `customer-frontend/public/app-icon.png`
+     - `customer-frontend/public/apple-touch-icon.png`
+     - `customer-frontend/public/logo.png`
+     - `customer-frontend/public/quickpress-brand-logo.png`
+     - `customer-frontend/public/favicon.png`
