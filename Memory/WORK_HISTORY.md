@@ -68,3 +68,29 @@
 1. **Removed "Order Bell & Live Alerts" Banner:**
    - Removed the duplicate push notification enable card and button from `customer-frontend/src/routes/notifications.tsx`.
    - Notification permissions are now handled cleanly and automatically at initial startup directly via native device pop-ups, keeping the Notifications tab interface clean and uncluttered.
+
+### Firebase Native Background Push Notification Integration (Customer, Partner & Rider Apps)
+1. **Firebase Configuration Assets Placed:**
+   - Placed user-supplied `GoogleService-Info.plist` into each native iOS application target:
+     - `customer-frontend/ios/App/App/GoogleService-Info.plist` (Bundle ID: `com.quickpress.customer`)
+     - `partner-frontend/ios/App/App/GoogleService-Info.plist` (Bundle ID: `com.quickpress.partner`)
+     - `rider-frontend/ios/App/App/GoogleService-Info.plist` (Bundle ID: `com.quickpress.rider`)
+   - Placed unified `google-services.json` (project `quickpress-b1e19`) into each Android application target:
+     - `customer-frontend/android/app/google-services.json`
+     - `partner-frontend/android/app/google-services.json`
+     - `rider-frontend/android/app/google-services.json`
+2. **Capacitor Push Notifications Plugin Integration:**
+   - Installed `@capacitor/push-notifications@8.1.3` across all 3 frontends (`customer-frontend`, `partner-frontend`, `rider-frontend`).
+   - Configured `PushNotifications: { presentationOptions: ["badge", "sound", "alert"] }` in `capacitor.config.ts` for all 3 apps.
+3. **iOS Remote Notifications Delegation & Info.plist:**
+   - Added remote notifications lifecycle callbacks in `AppDelegate.swift` across all 3 apps (`didRegisterForRemoteNotificationsWithDeviceToken` and `didFailToRegisterForRemoteNotificationsWithError`) to forward APNs device tokens to Capacitor's notification bridge.
+   - Added `UIBackgroundModes` with `remote-notification` key to `Info.plist` across all 3 iOS targets for true lock-screen and background push delivery.
+4. **Native Device Token Syncing & Foreground Alert Listeners:**
+   - Created `src/api/core/native-push.ts` in each app:
+     - Customer: `customer-frontend/src/api/core/native-push.ts` (syncs role `customer` to backend `/api/notifications/fcm-token`, triggers local notification banner and audio chimes).
+     - Partner: `partner-frontend/src/api/core/native-push.ts` (syncs role `partner` to backend `/api/notifications/fcm-token`, triggers partner order audio alert and toast).
+     - Rider / Captain: `rider-frontend/src/api/core/native-push.ts` (syncs role `rider` to backend `/api/notifications/fcm-token`, triggers captain order alert sound and toast).
+   - Hooked `initCapacitorPush()` into initial mount in `__root.tsx` across all 3 applications.
+5. **Full Multi-App Build & iOS Native Workspace Synchronization:**
+   - Successfully verified builds: `build:customer`, `build:partner`, and `build:rider` with zero errors.
+   - Ran `python3 build_all_ios.py` to regenerate SSR fallbacks, static HTML, and synchronize assets and plugins for Customer, Partner, and Captain iOS apps.

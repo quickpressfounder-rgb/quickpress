@@ -179,7 +179,7 @@ function HelpScreen() {
           }
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (active) setLoadingOrders(false);
       });
@@ -208,7 +208,7 @@ function HelpScreen() {
         setFaqList(result);
         if (result.categories.length) setCategories(result.categories);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (!controller.signal.aborted) setFaqsLoading(false);
       });
@@ -219,7 +219,7 @@ function HelpScreen() {
   const refreshTickets = useCallback(() => {
     fetchTickets()
       .then((result) => setTickets(result.items))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -234,7 +234,7 @@ function HelpScreen() {
         .then((fresh) => {
           setActiveTicket((curr) => (curr && curr.id === fresh.id ? fresh : curr));
         })
-        .catch(() => {});
+        .catch(() => { });
     }, 4000);
     return () => clearInterval(interval);
   }, [activeTicket?.id]);
@@ -247,7 +247,7 @@ function HelpScreen() {
         .then((fresh) => {
           setActiveTicket(fresh);
         })
-        .catch(() => {});
+        .catch(() => { });
     }
     refreshTickets();
   });
@@ -314,9 +314,8 @@ function HelpScreen() {
 
     const finalSub = subReason
       ? `${TICKET_CATEGORY_OPTIONS.find((c) => c.id === category)?.label}: ${subReason}`
-      : `${TICKET_CATEGORY_OPTIONS.find((c) => c.id === category)?.label || "Laundry Issue"}${
-          selectedOrder ? ` (#${selectedOrder.id})` : ""
-        }`;
+      : `${TICKET_CATEGORY_OPTIONS.find((c) => c.id === category)?.label || "Laundry Issue"}${selectedOrder ? ` (#${selectedOrder.id})` : ""
+      }`;
 
     const finalDesc = description.trim()
       ? description.trim()
@@ -519,11 +518,10 @@ function HelpScreen() {
                   )}
 
                   <div
-                    className={`rounded-2xl px-3.5 py-2.5 text-xs shadow-xs ${
-                      isCustomer
-                        ? "rounded-br-xs bg-gradient-to-r from-emerald-600 to-teal-600 text-white"
-                        : "rounded-bl-xs border border-border bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
-                    }`}
+                    className={`rounded-2xl px-3.5 py-2.5 text-xs shadow-xs ${isCustomer
+                      ? "rounded-br-xs bg-gradient-to-r from-emerald-600 to-teal-600 text-white"
+                      : "rounded-bl-xs border border-border bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
+                      }`}
                   >
                     {/* Attached Photos */}
                     {photosList.length > 0 && (
@@ -551,16 +549,15 @@ function HelpScreen() {
                     <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
 
                     <div
-                      className={`mt-1 flex items-center justify-end gap-1 text-[9px] ${
-                        isCustomer ? "text-emerald-100/80" : "text-muted-foreground"
-                      }`}
+                      className={`mt-1 flex items-center justify-end gap-1 text-[9px] ${isCustomer ? "text-emerald-100/80" : "text-muted-foreground"
+                        }`}
                     >
                       <span>
                         {msg.createdAt
                           ? new Date(msg.createdAt).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
                           : ""}
                       </span>
                       {isCustomer && <CheckCircle2 className="size-2.5" />}
@@ -687,22 +684,20 @@ function HelpScreen() {
             <button
               type="button"
               onClick={() => setActiveTab("need-help")}
-              className={`flex-1 rounded-xl py-2 text-xs font-black transition-all ${
-                activeTab === "need-help"
-                  ? "bg-white text-emerald-800 shadow-xs dark:bg-zinc-900 dark:text-emerald-400"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`flex-1 rounded-xl py-2 text-xs font-black transition-all ${activeTab === "need-help"
+                ? "bg-white text-emerald-800 shadow-xs dark:bg-zinc-900 dark:text-emerald-400"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               Need Help?
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("my-tickets")}
-              className={`relative flex-1 rounded-xl py-2 text-xs font-black transition-all ${
-                activeTab === "my-tickets"
-                  ? "bg-white text-emerald-800 shadow-xs dark:bg-zinc-900 dark:text-emerald-400"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`relative flex-1 rounded-xl py-2 text-xs font-black transition-all ${activeTab === "my-tickets"
+                ? "bg-white text-emerald-800 shadow-xs dark:bg-zinc-900 dark:text-emerald-400"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               My Tickets
               {tickets.length > 0 && (
@@ -755,11 +750,10 @@ function HelpScreen() {
                         key={ord.id}
                         type="button"
                         onClick={() => setSelectedOrder(ord)}
-                        className={`flex w-52 shrink-0 flex-col justify-between rounded-2xl border p-3 text-left transition-all ${
-                          isSelected
-                            ? "border-emerald-600 bg-emerald-50/60 shadow-xs ring-2 ring-emerald-500/20 dark:bg-emerald-950/30"
-                            : "border-border bg-card hover:border-border/80"
-                        }`}
+                        className={`flex w-52 shrink-0 flex-col justify-between rounded-2xl border p-3 text-left transition-all ${isSelected
+                          ? "border-emerald-600 bg-emerald-50/60 shadow-xs ring-2 ring-emerald-500/20 dark:bg-emerald-950/30"
+                          : "border-border bg-card hover:border-border/80"
+                          }`}
                       >
                         <div>
                           <div className="flex items-center justify-between">
@@ -767,11 +761,10 @@ function HelpScreen() {
                               #{ord.id}
                             </span>
                             <span
-                              className={`rounded-full px-1.5 py-0.2 text-[9px] font-bold capitalize ${
-                                ord.status === "delivered"
-                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                                  : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                              }`}
+                              className={`rounded-full px-1.5 py-0.2 text-[9px] font-bold capitalize ${ord.status === "delivered"
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                                }`}
                             >
                               {ord.status}
                             </span>
@@ -793,11 +786,10 @@ function HelpScreen() {
                   <button
                     type="button"
                     onClick={() => setSelectedOrder(null)}
-                    className={`flex w-36 shrink-0 flex-col items-center justify-center rounded-2xl border border-dashed p-3 text-center transition-all ${
-                      selectedOrder === null
-                        ? "border-emerald-600 bg-emerald-50/40 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200"
-                        : "border-border text-muted-foreground hover:bg-muted/30"
-                    }`}
+                    className={`flex w-36 shrink-0 flex-col items-center justify-center rounded-2xl border border-dashed p-3 text-center transition-all ${selectedOrder === null
+                      ? "border-emerald-600 bg-emerald-50/40 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200"
+                      : "border-border text-muted-foreground hover:bg-muted/30"
+                      }`}
                   >
                     <HelpCircle className="size-5 mb-1 opacity-70" />
                     <span className="text-[10px] font-bold">General Inquiry (No Order)</span>
@@ -826,11 +818,10 @@ function HelpScreen() {
                         setCategory(opt.id);
                         setSubReason("");
                       }}
-                      className={`flex items-center gap-2 rounded-2xl border p-3 text-left transition-all ${
-                        isSelected
-                          ? "border-emerald-600 bg-emerald-50/70 font-black text-emerald-950 shadow-xs dark:bg-emerald-950/40 dark:text-emerald-200"
-                          : "border-border bg-card text-foreground hover:bg-muted/40 font-bold"
-                      }`}
+                      className={`flex items-center gap-2 rounded-2xl border p-3 text-left transition-all ${isSelected
+                        ? "border-emerald-600 bg-emerald-50/70 font-black text-emerald-950 shadow-xs dark:bg-emerald-950/40 dark:text-emerald-200"
+                        : "border-border bg-card text-foreground hover:bg-muted/40 font-bold"
+                        }`}
                     >
                       <span className="text-base">
                         {opt.id === "wash-quality"
@@ -857,11 +848,10 @@ function HelpScreen() {
                       key={reason}
                       type="button"
                       onClick={() => setSubReason(reason)}
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                        subReason === reason
-                          ? "bg-emerald-600 text-white"
-                          : "bg-muted text-muted-foreground hover:bg-accent"
-                      }`}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${subReason === reason
+                        ? "bg-emerald-600 text-white"
+                        : "bg-muted text-muted-foreground hover:bg-accent"
+                        }`}
                     >
                       {reason}
                     </button>
@@ -1032,9 +1022,8 @@ function HelpScreen() {
                       >
                         <span className="pr-2">{faq.question}</span>
                         <ChevronDown
-                          className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
-                            isOpen ? "rotate-180" : ""
-                          }`}
+                          className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+                            }`}
                         />
                       </button>
                       {isOpen && (
@@ -1095,15 +1084,14 @@ function HelpScreen() {
                       </div>
 
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
-                          tkt.status === "open"
-                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                            : tkt.status === "in-progress"
-                              ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-                              : tkt.status === "resolved"
-                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                                : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-                        }`}
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${tkt.status === "open"
+                          ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                          : tkt.status === "in-progress"
+                            ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                            : tkt.status === "resolved"
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                              : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                          }`}
                       >
                         {TICKET_STATUS_LABEL[tkt.status] || tkt.status}
                       </span>

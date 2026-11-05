@@ -217,6 +217,7 @@ function RootComponent() {
       m.requestPushNotificationPermission();
       m.setupForegroundMessageListener();
     }).catch(() => {});
+    import("@/api/core/native-push").then((m) => m.initCapacitorPush("rider")).catch(() => {});
   }, []);
 
   return (

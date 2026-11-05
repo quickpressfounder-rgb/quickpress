@@ -66,6 +66,10 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>QuickPress Captain uses your location to navigate to pickup laundromats and delivery customer addresses.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

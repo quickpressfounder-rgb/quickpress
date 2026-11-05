@@ -243,6 +243,14 @@ function RootComponent() {
       .catch((err) => console.warn("[StartupPermissions] Initialization notice:", err));
   }, []);
 
+  // Native Capacitor Push Notifications Initialization (APNs on iOS, FCM on Android)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    import("@/api/core/native-push")
+      .then((m) => m.initCapacitorPush("customer"))
+      .catch(() => {});
+  }, []);
+
   // Native Deep Linking Listener (e.g. from Standee QR scan, WhatsApp share link, or Universal link)
   useEffect(() => {
     if (typeof window === "undefined") return;

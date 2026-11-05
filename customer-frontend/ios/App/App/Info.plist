@@ -66,6 +66,10 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>QuickPress uses your location to discover nearby laundromat partners and deliver your fresh clothes.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

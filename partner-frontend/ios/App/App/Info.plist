@@ -66,6 +66,10 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>QuickPress Partner uses your camera to capture pre-wash garment defect photos (stains, tears) to protect customer clothes and prevent disputes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
