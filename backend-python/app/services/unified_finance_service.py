@@ -150,10 +150,12 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
         "platformFeeType": "fixed",     # fixed | percentage
         "handlingFee": 15.0,
         "handlingFeeType": "fixed",     # fixed | percentage
+        "handlingFeeEnabled": True,
         "convenienceFee": 0.0,
         "convenienceFeeType": "fixed",
         "packagingFee": 0.0,
         "packagingFeeType": "fixed",
+        "packagingFeeEnabled": False,
         "serviceCharge": 0.0,
         "serviceChargeType": "fixed",
         "otherFees": [],
@@ -198,7 +200,8 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
     # 4. COMMISSION ENGINE (SINGLE UNIFIED PLATFORM COMMISSION)
     "commission": {
         "partnerCommissionType": "percentage",
-        "platformCommissionPercent": 18.0,
+        "partnerPayoutPercent": 85.0,
+        "platformCommissionPercent": 15.0,
         "standardRate": 0.18,
         "silverRate": 0.15,
         "goldRate": 0.12,
@@ -215,7 +218,7 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
     "riderPayout": {
         "basePay": 25.0,
         "baseDistanceKm": 2.0,
-        "perKmRate": 6.0,
+        "perKmRate": 8.0,
         "pickupEarning": 10.0,
         "deliveryEarning": 15.0,
         "peakIncentive": 15.0,
@@ -249,7 +252,7 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
             {"minKm": 8.0, "maxKm": 12.0, "fee": 90.0},
             {"minKm": 12.0, "maxKm": 999.0, "fee": 120.0},
         ],
-        "freeDeliveryThreshold": 499.0,
+        "freeDeliveryThreshold": 149.0,
         "subsidyFundingSource": "QUICKPRESS_FUNDED",  # QUICKPRESS_FUNDED | PARTNER_FUNDED | SHARED_FUNDED
         "nightSurge": 0.0,
         "rainSurge": 0.0,
@@ -524,13 +527,13 @@ class UnifiedFinanceService:
                 "minimumOrderValue": float(p.get("minimumOrderValue", 99.0)),
                 "laundryGstRate": float(g.get("laundryGstRate", 0.05)),
                 "serviceGstRate": float(g.get("platformGstRate", 0.18)),
-                "standardCommissionRate": float(c.get("standardRate", 0.18)),
+                "standardCommissionRate": float(c.get("platformCommissionPercent") or 15.0) / 100.0 if float(c.get("platformCommissionPercent", 15.0)) > 1.0 else float(c.get("standardRate", 0.15)),
                 "silverCommissionRate": float(c.get("silverRate", 0.15)),
                 "goldCommissionRate": float(c.get("goldRate", 0.12)),
                 "silverCommissionThreshold": int(c.get("silverThreshold", 100)),
                 "goldCommissionThreshold": int(c.get("goldThreshold", 300)),
                 "riderBaseFare": float(rp.get("basePay", 25.0)),
-                "riderPerKmRate": float(rp.get("perKmRate", 6.0)),
+                "riderPerKmRate": float(rp.get("perKmRate", 8.0)),
                 "riderNightSurge": float(rp.get("nightSurge", 0.0)),
                 "riderRainSurge": float(rp.get("rainSurge", 0.0)),
             })
@@ -657,8 +660,8 @@ class UnifiedFinanceService:
         # Enforce minimum delivery fee
         calculated_delivery_fee = max(calculated_delivery_fee, min_delivery_fee)
 
-        # Free Delivery check
-        free_thresh = float(delivery_cfg.get("freeDeliveryThreshold", 499.0))
+        # Free Delivery check (Threshold customizable via Admin Finance Rules, default ₹149)
+        free_thresh = float(delivery_cfg.get("freeDeliveryThreshold", 149.0))
         is_free_delivery = is_member or (gross_service_value >= free_thresh)
         delivery_subsidy = calculated_delivery_fee if is_free_delivery else 0.0
         customer_delivery_fee = 0.0 if is_free_delivery else calculated_delivery_fee
@@ -668,6 +671,14 @@ class UnifiedFinanceService:
 
         # C. Platform & Handling & Convenience & Packaging & Express Fees
         def _calc_fee(key: str, default_val: float) -> float:
+            enabled_key = f"{key}Enabled"
+            if enabled_key in fees_cfg:
+                enabled_val = fees_cfg.get(enabled_key)
+                if isinstance(enabled_val, bool) and not enabled_val:
+                    return 0.0
+                if str(enabled_val).strip().lower() in ("false", "0", "off", "no"):
+                    return 0.0
+
             if key in pricing_cfg:
                 fee_val = float(pricing_cfg[key])
             elif key in fees_cfg:
@@ -691,7 +702,7 @@ class UnifiedFinanceService:
         surge_multiplier = float(rules.get("pricing", {}).get("surgeMultiplier", 1.0) or 1.0)
         surge_fee = 0.0
         if surge_enabled:
-            base_surge_val = float(surge_cfg.get("rainSurgeFee", 20.0) or 20.0)
+            base_surge_val = float(surge_cfg.get("surgeFee") or surge_cfg.get("rainSurgeFee", 20.0) or 20.0)
             if is_member:
                 surge_fee = 0.0  # Zero Surge Guarantee for VIP Club Members
             else:
@@ -764,10 +775,14 @@ class UnifiedFinanceService:
 
         # F. Settlement Split (Separate Authoritative Calculations)
         comm_cfg = rules.get("commission", {})
-        comm_val = comm_cfg.get("platformCommissionPercent") or comm_cfg.get("standardRate") or 18.0
-        comm_rate = float(comm_val)
-        if comm_rate > 1.0:
-            comm_rate = comm_rate / 100.0
+        partner_payout_pct = comm_cfg.get("partnerPayoutPercent")
+        if partner_payout_pct is not None:
+            comm_rate = max(0.0, (100.0 - float(partner_payout_pct)) / 100.0)
+        else:
+            comm_val = comm_cfg.get("platformCommissionPercent") or comm_cfg.get("standardRate") or 15.0
+            comm_rate = float(comm_val)
+            if comm_rate > 1.0:
+                comm_rate = comm_rate / 100.0
         platform_commission = round(taxable_laundry * comm_rate, 2)
         tcs_deduction = round(taxable_laundry * float(gst_cfg.get("tcsRate", 0.01)), 2)
         tds_deduction = round(taxable_laundry * float(gst_cfg.get("tdsRate", 0.01)), 2)
@@ -777,7 +792,7 @@ class UnifiedFinanceService:
 
         rider_cfg = rules.get("riderPayout", {})
         rider_base = float(rider_cfg.get("basePay", 25.0))
-        rider_per_km = float(rider_cfg.get("perKmRate", 6.0))
+        rider_per_km = float(rider_cfg.get("perKmRate", 8.0))
         rider_dist_fare = round(max(0.0, distance_km - float(rider_cfg.get("baseDistanceKm", 2.0))) * rider_per_km, 2)
         rider_net_earnings = round(rider_base + rider_dist_fare + rider_express_bonus, 2)
 
@@ -1758,7 +1773,7 @@ class UnifiedFinanceService:
         # Rider calculations
         rider_rules = rules.get("riderPayout", {})
         base_pay = float(rider_rules.get("basePay", 25.0))
-        per_km = float(rider_rules.get("perKmRate", 6.0))
+        per_km = float(rider_rules.get("perKmRate", 8.0))
         rider_dist_pay = round(max(0.0, distance_km - 2.0) * per_km, 2)
         rider_express = float(rider_rules.get("expressBonus", 20.0)) if is_express else 0.0
         rider_payout = round(base_pay + rider_dist_pay + rider_express, 2)

@@ -19,10 +19,18 @@ export interface FinancialRules {
     universalExpressPrice?: number;
     platformFee: number;
     handlingFee: number;
+    packagingFee?: number;
     expressMultiplier: number;
     surgeMultiplier: number;
     minimumOrderValue: number;
     surgeReason?: string;
+  };
+  fees?: {
+    platformFee: number;
+    handlingFee: number;
+    handlingFeeEnabled?: boolean;
+    packagingFee: number;
+    packagingFeeEnabled?: boolean;
   };
   gst: {
     laundryGstRate: number;
@@ -43,12 +51,18 @@ export interface FinancialRules {
     rainSurge: number;
   };
   commission: {
+    partnerPayoutPercent?: number;
+    platformCommissionPercent?: number;
     standardRate: number;
     silverRate: number;
     goldRate: number;
     silverThreshold: number;
     goldThreshold: number;
     captainCommissionRate: number;
+  };
+  riderPayout?: {
+    basePay: number;
+    perKmRate: number;
   };
   expressPickup?: {
     enabled: boolean;
@@ -104,10 +118,18 @@ export const DEFAULT_FINANCIAL_RULES: FinancialRules = {
     universalExpressPrice: 99.0,
     platformFee: 10.0,
     handlingFee: 15.0,
+    packagingFee: 0.0,
     expressMultiplier: 1.35,
     surgeMultiplier: 1.0,
     minimumOrderValue: 99.0,
     surgeReason: "Standard Operations",
+  },
+  fees: {
+    platformFee: 10.0,
+    handlingFee: 15.0,
+    handlingFeeEnabled: true,
+    packagingFee: 0.0,
+    packagingFeeEnabled: false,
   },
   gst: {
     laundryGstRate: 0.05,
@@ -128,18 +150,24 @@ export const DEFAULT_FINANCIAL_RULES: FinancialRules = {
       { minKm: 8.0, maxKm: 12.0, fee: 90.0 },
       { minKm: 12.0, maxKm: 999.0, fee: 120.0 },
     ],
-    freeDeliveryThreshold: 499.0,
+    freeDeliveryThreshold: 149.0,
     subsidyFundingSource: "QUICKPRESS_FUNDED",
     nightSurge: 0.0,
     rainSurge: 0.0,
   },
   commission: {
+    partnerPayoutPercent: 85.0,
+    platformCommissionPercent: 15.0,
     standardRate: 0.18,
     silverRate: 0.15,
     goldRate: 0.12,
     silverThreshold: 100,
     goldThreshold: 300,
     captainCommissionRate: 0.0,
+  },
+  riderPayout: {
+    basePay: 25.0,
+    perKmRate: 8.0,
   },
   expressPickup: {
     enabled: true,

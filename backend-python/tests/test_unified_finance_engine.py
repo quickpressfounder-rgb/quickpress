@@ -37,27 +37,27 @@ async def clean_finance_test_data():
 @pytest.mark.asyncio
 async def test_checkout_pricing_and_intra_state_gst():
     """Validates distance slabs, 5% laundry GST, 18% service GST, and intra-state CGST/SGST split."""
-    items = [{"price": 200.0, "quantity": 2}]  # Subtotal 400.0
+    items = [{"price": 60.0, "quantity": 2}]  # Subtotal 120.0 (< 149 free delivery threshold)
     price_res = await unified_finance_service.calculate_checkout_price(
         items=items,
         distance_km=3.5,  # Matches 2-5km slab: ₹40 delivery fee
-        coupon_discount=50.0,
+        coupon_discount=20.0,
         customer_state="Uttar Pradesh",
         partner_state="Uttar Pradesh",
     )
 
-    assert price_res["itemsSubtotal"] == 400.0
+    assert price_res["itemsSubtotal"] == 120.0
     assert price_res["actualDeliveryFee"] == 40.0
     assert price_res["customerDeliveryFee"] == 40.0
-    assert price_res["taxableLaundry"] == 350.0  # 400 - 50 coupon
-    assert price_res["laundryGst"] == 17.5  # 5% of 350
+    assert price_res["taxableLaundry"] == 100.0  # 120 - 20 coupon
+    assert price_res["laundryGst"] == 5.0  # 5% of 100
     # Service fees: 40 delivery + 10 platform + 15 handling = 65. 18% of 65 = 11.7
     assert price_res["serviceGst"] == 11.7
-    assert price_res["totalGst"] == 29.2  # 17.5 + 11.7
-    assert price_res["cgst"] == 14.6
-    assert price_res["sgst"] == 14.6
+    assert price_res["totalGst"] == 16.7  # 5.0 + 11.7
+    assert price_res["cgst"] == 8.35
+    assert price_res["sgst"] == 8.35
     assert price_res["igst"] == 0.0
-    assert price_res["customerPayable"] == 444.2
+    assert price_res["customerPayable"] == 181.7
 
 
 @pytest.mark.asyncio

@@ -28,6 +28,8 @@ export interface FinancialRules {
     categoryTaxOverrides?: Array<{ id: string; category: string; gstRate: number; active: boolean }>;
   };
   commission: {
+    partnerPayoutPercent?: number;
+    platformCommissionPercent?: number;
     partnerCommissionType?: "tier" | "percentage" | "fixed" | string;
     partnerCommissionPercent?: number;
     fixedAmountPerOrder?: number;
@@ -131,13 +133,23 @@ export interface FinancialRules {
     platformFeeType: string;
     handlingFee: number;
     handlingFeeType: string;
+    handlingFeeEnabled?: boolean;
     convenienceFee: number;
     convenienceFeeType: string;
     packagingFee: number;
     packagingFeeType: string;
+    packagingFeeEnabled?: boolean;
     serviceCharge: number;
     serviceChargeType: string;
     otherFees?: Array<{ id: string; name: string; type: string; value: number; active: boolean }>;
+  };
+  surge?: {
+    enabled: boolean;
+    rainSurgeFee: number;
+    peakSurgeFee: number;
+    surgeFee?: number;
+    etaDelayMinutes?: number;
+    surgeReason: string;
   };
   discount?: {
     minOrderValue: number;

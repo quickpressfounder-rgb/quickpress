@@ -231,12 +231,22 @@ export const DEFAULT_FINANCIAL_RULES: any = {
     platformFeeType: "fixed",
     handlingFee: "15",
     handlingFeeType: "fixed",
+    handlingFeeEnabled: true,
     convenienceFee: "0",
     convenienceFeeType: "fixed",
     packagingFee: "0",
     packagingFeeType: "fixed",
+    packagingFeeEnabled: false,
     serviceCharge: "0",
     serviceChargeType: "fixed",
+  },
+  surge: {
+    enabled: false,
+    rainSurgeFee: "20",
+    peakSurgeFee: "15",
+    surgeFee: "20",
+    etaDelayMinutes: 15,
+    surgeReason: "Monsoon / High Demand Surge",
   },
   gst: {
     enabled: true,
@@ -257,8 +267,9 @@ export const DEFAULT_FINANCIAL_RULES: any = {
   },
   commission: {
     partnerCommissionType: "percentage",
-    platformCommissionPercent: "18",
-    standardPercent: "18",
+    partnerPayoutPercent: "85",
+    platformCommissionPercent: "15",
+    standardPercent: "15",
     fixedAmountPerOrder: "0",
     captainCommissionRate: 0.0,
   },
@@ -275,7 +286,7 @@ export const DEFAULT_FINANCIAL_RULES: any = {
       { minKm: 8.0, maxKm: 12.0, fee: "90" },
       { minKm: 12.0, maxKm: 999.0, fee: "120" },
     ],
-    freeDeliveryThreshold: "499",
+    freeDeliveryThreshold: "149",
     subsidyFundingSource: "QUICKPRESS_FUNDED",
     nightSurge: "25",
     rainSurge: "20",
@@ -340,7 +351,7 @@ export const DEFAULT_FINANCIAL_RULES: any = {
   riderPayout: {
     basePay: "25",
     baseDistanceKm: "2.0",
-    perKmRate: "6.0",
+    perKmRate: "8.0",
     pickupEarning: "10",
     deliveryEarning: "15",
     peakIncentive: "15",
@@ -468,12 +479,22 @@ function mapServerRulesToForm(data: FinancialRules): any {
       platformFeeType: String(data.fees?.platformFeeType ?? "fixed"),
       handlingFee: String(data.fees?.handlingFee ?? data.pricing?.handlingFee ?? 15),
       handlingFeeType: String(data.fees?.handlingFeeType ?? "fixed"),
+      handlingFeeEnabled: Boolean(data.fees?.handlingFeeEnabled !== false),
       convenienceFee: String(data.fees?.convenienceFee ?? 0),
       convenienceFeeType: String(data.fees?.convenienceFeeType ?? "fixed"),
       packagingFee: String(data.fees?.packagingFee ?? 0),
       packagingFeeType: String(data.fees?.packagingFeeType ?? "fixed"),
+      packagingFeeEnabled: Boolean(data.fees?.packagingFeeEnabled),
       serviceCharge: String(data.fees?.serviceCharge ?? 0),
       serviceChargeType: String(data.fees?.serviceChargeType ?? "fixed"),
+    },
+    surge: {
+      enabled: Boolean(data.surge?.enabled),
+      rainSurgeFee: String(data.surge?.rainSurgeFee ?? data.delivery?.rainSurge ?? 20),
+      peakSurgeFee: String(data.surge?.peakSurgeFee ?? 15),
+      surgeFee: String(data.surge?.surgeFee ?? data.surge?.rainSurgeFee ?? 20),
+      etaDelayMinutes: Number(data.surge?.etaDelayMinutes ?? 15),
+      surgeReason: String(data.surge?.surgeReason ?? "High Demand / Weather Surge"),
     },
     gst: {
       enabled: Boolean(data.gst?.enabled !== false),
@@ -497,6 +518,8 @@ function mapServerRulesToForm(data: FinancialRules): any {
     },
     commission: {
       partnerCommissionType: String(data.commission?.partnerCommissionType ?? "tier"),
+      partnerPayoutPercent: String(data.commission?.partnerPayoutPercent ?? (data.commission?.platformCommissionPercent ? 100 - Number(data.commission.platformCommissionPercent) : (data.commission?.standardRate ? Math.round((1 - data.commission.standardRate) * 100) : 85))),
+      platformCommissionPercent: String(data.commission?.platformCommissionPercent ?? (data.commission?.platformCommissionRate ? Math.round(data.commission.platformCommissionRate * 100) : 15)),
       standardPercent: String(Math.round((data.commission?.standardRate ?? 0.18) * 10000) / 100),
       silverPercent: String(Math.round((data.commission?.silverRate ?? 0.15) * 10000) / 100),
       goldPercent: String(Math.round((data.commission?.goldRate ?? 0.12) * 10000) / 100),
@@ -504,7 +527,6 @@ function mapServerRulesToForm(data: FinancialRules): any {
       goldThreshold: String(data.commission?.goldThreshold ?? 300),
       fixedAmountPerOrder: String(data.commission?.fixedAmountPerOrder ?? 0),
       captainCommissionRate: data.commission?.captainCommissionRate ?? 0.0,
-      platformCommissionPercent: String(Math.round((data.commission?.platformCommissionRate ?? 0.18) * 10000) / 100),
       categoryOverrides: (data.commission?.categoryOverrides || DEFAULT_FINANCIAL_RULES.commission.categoryOverrides).map((c: any) => ({
         id: String(c.id ?? ""),
         category: String(c.category ?? ""),
@@ -530,7 +552,7 @@ function mapServerRulesToForm(data: FinancialRules): any {
         maxKm: s.maxKm,
         fee: String(s.fee ?? 30),
       })),
-      freeDeliveryThreshold: String(data.delivery?.freeDeliveryThreshold ?? 499),
+      freeDeliveryThreshold: String(data.delivery?.freeDeliveryThreshold ?? 149),
       subsidyFundingSource: data.delivery?.subsidyFundingSource ?? "QUICKPRESS_FUNDED",
       nightSurge: String(data.delivery?.nightSurge ?? 25),
       rainSurge: String(data.delivery?.rainSurge ?? 20),
@@ -579,7 +601,7 @@ function mapServerRulesToForm(data: FinancialRules): any {
     riderPayout: {
       basePay: String(data.riderPayout?.basePay ?? 25),
       baseDistanceKm: String(data.riderPayout?.baseDistanceKm ?? 2.0),
-      perKmRate: String(data.riderPayout?.perKmRate ?? 6.0),
+      perKmRate: String(data.riderPayout?.perKmRate ?? 8.0),
       pickupEarning: String(data.riderPayout?.pickupEarning ?? 10),
       deliveryEarning: String(data.riderPayout?.deliveryEarning ?? 15),
       peakIncentive: String(data.riderPayout?.peakIncentive ?? 15),
@@ -704,12 +726,22 @@ function prepareRulesForSave(raw: any): FinancialRules {
       platformFeeType: String(raw?.fees?.platformFeeType || "fixed"),
       handlingFee: Number(raw?.fees?.handlingFee ?? raw?.pricing?.handlingFee) || 0,
       handlingFeeType: String(raw?.fees?.handlingFeeType || "fixed"),
+      handlingFeeEnabled: Boolean(raw?.fees?.handlingFeeEnabled !== false),
       convenienceFee: Number(raw?.fees?.convenienceFee) || 0,
       convenienceFeeType: String(raw?.fees?.convenienceFeeType || "fixed"),
       packagingFee: Number(raw?.fees?.packagingFee) || 0,
       packagingFeeType: String(raw?.fees?.packagingFeeType || "fixed"),
+      packagingFeeEnabled: Boolean(raw?.fees?.packagingFeeEnabled),
       serviceCharge: Number(raw?.fees?.serviceCharge) || 0,
       serviceChargeType: String(raw?.fees?.serviceChargeType || "fixed"),
+    },
+    surge: {
+      enabled: Boolean(raw?.surge?.enabled),
+      rainSurgeFee: Number(raw?.surge?.rainSurgeFee ?? raw?.surge?.surgeFee) || 0,
+      peakSurgeFee: Number(raw?.surge?.peakSurgeFee) || 0,
+      surgeFee: Number(raw?.surge?.surgeFee ?? raw?.surge?.rainSurgeFee) || 0,
+      etaDelayMinutes: Number(raw?.surge?.etaDelayMinutes) || 15,
+      surgeReason: String(raw?.surge?.surgeReason || "High Demand / Weather Surge"),
     },
     gst: {
       enabled: Boolean(raw?.gst?.enabled !== false),
@@ -733,14 +765,16 @@ function prepareRulesForSave(raw: any): FinancialRules {
     },
     commission: {
       partnerCommissionType: String(raw?.commission?.partnerCommissionType || "tier"),
-      standardRate: (parseFloat(raw?.commission?.standardPercent) || 0) / 100,
+      partnerPayoutPercent: Number(raw?.commission?.partnerPayoutPercent) || 85,
+      platformCommissionPercent: Number(raw?.commission?.platformCommissionPercent) || (100 - (Number(raw?.commission?.partnerPayoutPercent) || 85)),
+      standardRate: raw?.commission?.partnerPayoutPercent ? (100 - Number(raw?.commission?.partnerPayoutPercent)) / 100 : ((parseFloat(raw?.commission?.standardPercent) || 18) / 100),
       silverRate: (parseFloat(raw?.commission?.silverPercent) || 0) / 100,
       goldRate: (parseFloat(raw?.commission?.goldPercent) || 0) / 100,
       silverThreshold: Number(raw?.commission?.silverThreshold) || 100,
       goldThreshold: Number(raw?.commission?.goldThreshold) || 300,
       fixedAmountPerOrder: Number(raw?.commission?.fixedAmountPerOrder) || 0,
       captainCommissionRate: 0.0,
-      platformCommissionRate: (parseFloat(raw?.commission?.platformCommissionPercent) || 18) / 100,
+      platformCommissionRate: (parseFloat(raw?.commission?.platformCommissionPercent) || 15) / 100,
       categoryOverrides: (raw?.commission?.categoryOverrides || []).map((c: any) => ({
         id: String(c.id),
         category: String(c.category),
@@ -766,7 +800,7 @@ function prepareRulesForSave(raw: any): FinancialRules {
         maxKm: Number(s.maxKm) || 0,
         fee: Number(s.fee) || 0,
       })),
-      freeDeliveryThreshold: Number(raw?.delivery?.freeDeliveryThreshold) || 0,
+      freeDeliveryThreshold: Number(raw?.delivery?.freeDeliveryThreshold) || 149,
       subsidyFundingSource: raw?.delivery?.subsidyFundingSource || "QUICKPRESS_FUNDED",
       nightSurge: Number(raw?.delivery?.nightSurge) || 0,
       rainSurge: Number(raw?.delivery?.rainSurge) || 0,
@@ -815,7 +849,7 @@ function prepareRulesForSave(raw: any): FinancialRules {
     riderPayout: {
       basePay: Number(raw?.riderPayout?.basePay) || 25,
       baseDistanceKm: Number(raw?.riderPayout?.baseDistanceKm) || 2.0,
-      perKmRate: Number(raw?.riderPayout?.perKmRate) || 6.0,
+      perKmRate: Number(raw?.riderPayout?.perKmRate) || 8.0,
       pickupEarning: Number(raw?.riderPayout?.pickupEarning) || 10,
       deliveryEarning: Number(raw?.riderPayout?.deliveryEarning) || 15,
       peakIncentive: Number(raw?.riderPayout?.peakIncentive) || 15,
@@ -1562,18 +1596,328 @@ export function FinanceEnginePage() {
               TAB 2: ENGINE RULES & CONTROL CENTER (THE 8 SUB-ENGINES)
              ========================================================================= */}
           <TabsContent value="rules" className="mt-6 space-y-6">
+            {/* =========================================================================
+                MASTER FINANCE RULES CONTROLLER (CENTRAL COMMAND)
+               ========================================================================= */}
+            <div className="bg-linear-to-br from-emerald-950 via-zinc-900 to-black text-white p-6 rounded-3xl border border-emerald-500/30 shadow-xl space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-emerald-500/20 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-inner">
+                    <Sliders className="size-6 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
+                        QuickPress Master Finance Controller
+                      </h2>
+                      <Badge className="bg-emerald-500 text-black font-black text-[10px] uppercase tracking-wider">
+                        Live System
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Configure partner commission, delivery boy /km fare, order fees, surge, packaging &amp; free delivery rules.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <Button
+                    onClick={() => setIsSaveModalOpen(true)}
+                    className="bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs px-4 py-2 rounded-xl gap-2 shadow-lg hover:shadow-emerald-500/25 transition-all cursor-pointer"
+                  >
+                    <Save className="size-4" />
+                    <span>Save Live Rules</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* 7 Core Controllers Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {/* 1. Partner Payout Rate */}
+                <div className="bg-zinc-900/90 rounded-2xl border border-emerald-500/30 p-4 space-y-3 relative overflow-hidden group hover:border-emerald-500/60 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                      <Building2 className="size-3.5" /> 1. Partner Payout Rate
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                      Store Hub
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-zinc-300">Partner Revenue Share (%)</Label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        value={editableRules?.commission?.partnerPayoutPercent ?? "85"}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          updateField("commission.partnerPayoutPercent", val);
+                          const num = parseFloat(val);
+                          if (!isNaN(num)) {
+                            updateField("commission.platformCommissionPercent", String(Math.max(0, 100 - num)));
+                            updateField("commission.standardPercent", String(Math.max(0, 100 - num)));
+                          }
+                        }}
+                        className="bg-zinc-950 border-zinc-700 text-white font-black text-sm pr-8 focus:border-emerald-500"
+                      />
+                      <span className="absolute right-3 top-2.5 text-xs font-bold text-zinc-500">%</span>
+                    </div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-zinc-950/80 border border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
+                    <span>Platform Commission:</span>
+                    <span className="font-bold text-emerald-400">
+                      {Math.max(0, 100 - (parseFloat(editableRules?.commission?.partnerPayoutPercent) || 85))}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Delivery Boy /KM Wise Payout */}
+                <div className="bg-zinc-900/90 rounded-2xl border border-teal-500/30 p-4 space-y-3 relative overflow-hidden group hover:border-teal-500/60 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+                      <Bike className="size-3.5" /> 2. Delivery Boy Rate (/KM)
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 font-bold">
+                      Fleet Fare
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-zinc-300">Rate / KM (₹)</Label>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={editableRules?.riderPayout?.perKmRate ?? "8.0"}
+                          onChange={(e) => updateField("riderPayout.perKmRate", e.target.value)}
+                          className="bg-zinc-950 border-zinc-700 text-white font-black text-sm pr-7 focus:border-teal-500"
+                        />
+                        <span className="absolute right-2 top-2.5 text-[10px] font-bold text-zinc-500">/km</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-zinc-300">Base Pay (₹)</Label>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={editableRules?.riderPayout?.basePay ?? "25"}
+                          onChange={(e) => updateField("riderPayout.basePay", e.target.value)}
+                          className="bg-zinc-950 border-zinc-700 text-white font-black text-sm pl-6 focus:border-teal-500"
+                        />
+                        <span className="absolute left-2.5 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 leading-tight">
+                    Rider receives base pay for first 2 km + ₹{editableRules?.riderPayout?.perKmRate || 8}/km for additional transit.
+                  </p>
+                </div>
+
+                {/* 3. Handling Fee */}
+                <div className="bg-zinc-900/90 rounded-2xl border border-sky-500/30 p-4 space-y-3 relative overflow-hidden group hover:border-sky-500/60 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                      <Receipt className="size-3.5" /> 3. Handling Fee
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-zinc-400 font-bold">
+                        {editableRules?.fees?.handlingFeeEnabled !== false ? "ON" : "OFF"}
+                      </span>
+                      <Switch
+                        checked={editableRules?.fees?.handlingFeeEnabled !== false}
+                        onCheckedChange={(checked) => updateField("fees.handlingFeeEnabled", checked)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-zinc-300">Handling Fee Amount (₹)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={editableRules?.fees?.handlingFee ?? editableRules?.pricing?.handlingFee ?? "15"}
+                        onChange={(e) => {
+                          updateField("fees.handlingFee", e.target.value);
+                          updateField("pricing.handlingFee", e.target.value);
+                        }}
+                        disabled={editableRules?.fees?.handlingFeeEnabled === false}
+                        className="bg-zinc-950 border-zinc-700 text-white font-black text-sm pl-7 focus:border-sky-500 disabled:opacity-40"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 leading-tight">
+                    Platform handling charge added at checkout. Toggle off to waive handling fee completely.
+                  </p>
+                </div>
+
+                {/* 4. Surge Charges */}
+                <div className="bg-zinc-900/90 rounded-2xl border border-amber-500/30 p-4 space-y-3 relative overflow-hidden group hover:border-amber-500/60 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                      <Zap className="size-3.5" /> 4. Surge Charges
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-zinc-400 font-bold">
+                        {editableRules?.surge?.enabled ? "ACTIVE" : "OFF"}
+                      </span>
+                      <Switch
+                        checked={Boolean(editableRules?.surge?.enabled)}
+                        onCheckedChange={(checked) => updateField("surge.enabled", checked)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-[11px] text-zinc-300">Surge Fee Amount (₹)</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={editableRules?.surge?.rainSurgeFee ?? editableRules?.surge?.surgeFee ?? "20"}
+                          onChange={(e) => {
+                            updateField("surge.rainSurgeFee", e.target.value);
+                            updateField("surge.surgeFee", e.target.value);
+                          }}
+                          disabled={!editableRules?.surge?.enabled}
+                          className="bg-zinc-950 border-zinc-700 text-white font-black text-sm pl-7 focus:border-amber-500 disabled:opacity-40"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-zinc-400">Surge Notice / Reason</Label>
+                      <Input
+                        type="text"
+                        value={editableRules?.surge?.surgeReason ?? "Monsoon Rain / Peak Surge"}
+                        onChange={(e) => updateField("surge.surgeReason", e.target.value)}
+                        disabled={!editableRules?.surge?.enabled}
+                        placeholder="e.g. Monsoon Rain & High Demand"
+                        className="bg-zinc-950 border-zinc-700 text-zinc-200 text-xs focus:border-amber-500 disabled:opacity-40"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 leading-tight">
+                    Applied during bad weather or high demand. VIP Club members receive 100% waiver guarantee.
+                  </p>
+                </div>
+
+                {/* 5. Packing / Packaging Charge */}
+                <div className="bg-zinc-900/90 rounded-2xl border border-purple-500/30 p-4 space-y-3 relative overflow-hidden group hover:border-purple-500/60 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+                      <Sparkles className="size-3.5" /> 5. Packing Charges
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-zinc-400 font-bold">
+                        {editableRules?.fees?.packagingFeeEnabled ? "ACTIVE" : "OFF"}
+                      </span>
+                      <Switch
+                        checked={Boolean(editableRules?.fees?.packagingFeeEnabled)}
+                        onCheckedChange={(checked) => updateField("fees.packagingFeeEnabled", checked)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-zinc-300">Packaging Fee (₹)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={editableRules?.fees?.packagingFee ?? "0"}
+                        onChange={(e) => updateField("fees.packagingFee", e.target.value)}
+                        disabled={!editableRules?.fees?.packagingFeeEnabled}
+                        className="bg-zinc-950 border-zinc-700 text-white font-black text-sm pl-7 focus:border-purple-500 disabled:opacity-40"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 leading-tight">
+                    Garment protection packaging charge. Enable and set amount (e.g. ₹10) or keep 0 to disable.
+                  </p>
+                </div>
+
+                {/* 6. Min Order Value for Free Delivery */}
+                <div className="bg-zinc-900/90 rounded-2xl border border-emerald-500/40 p-4 space-y-3 relative overflow-hidden group hover:border-emerald-500 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                      <Truck className="size-3.5" /> 6. Free Delivery Min Order
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                      100% Free
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-zinc-300">Free Delivery Threshold (₹)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="10"
+                        value={editableRules?.delivery?.freeDeliveryThreshold ?? "149"}
+                        onChange={(e) => updateField("delivery.freeDeliveryThreshold", e.target.value)}
+                        className="bg-zinc-950 border-emerald-500/50 text-emerald-400 font-black text-sm pl-7 focus:border-emerald-400"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 leading-tight">
+                    Orders with items total &ge; ₹{editableRules?.delivery?.freeDeliveryThreshold || 149} get automatic FREE delivery.
+                  </p>
+                </div>
+
+                {/* 7. Extra Delivery Fee Below Min Order */}
+                <div className="bg-zinc-900/90 rounded-2xl border border-rose-500/30 p-4 space-y-3 relative overflow-hidden group hover:border-rose-500/60 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                      <Navigation className="size-3.5" /> 7. Below-Threshold Delivery Fee
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold">
+                      Extra Charge
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-zinc-300">Delivery Charge Below Min Order (₹)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="5"
+                        value={editableRules?.delivery?.baseFee ?? "30"}
+                        onChange={(e) => updateField("delivery.baseFee", e.target.value)}
+                        className="bg-zinc-950 border-zinc-700 text-rose-400 font-black text-sm pl-7 focus:border-rose-500"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 leading-tight">
+                    Charged to the customer when their order is under ₹{editableRules?.delivery?.freeDeliveryThreshold || 149}.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-zinc-50 p-3 rounded-xl border border-zinc-200">
               <div className="flex items-center gap-2">
                 <Sliders className="size-4 text-emerald-600" />
                 <span className="text-xs font-bold text-zinc-800">
-                  Select Sub-Engine to Configure:
+                  Advanced Sub-Engines Drilldown:
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
                   onClick={() => setIsSaveModalOpen(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5 shadow-xs"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5 shadow-xs cursor-pointer"
                 >
                   <Save className="size-3.5" />
                   <span>Save Rule Changes</span>

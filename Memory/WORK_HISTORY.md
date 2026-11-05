@@ -111,3 +111,36 @@
 4. **Multi-App Compilation & iOS Native Workspace Sync:**
    - Verified compilation across `build:partner` and `build:rider` (zero errors).
    - Executed `python3 build_all_ios.py` to regenerate static assets and synchronize all 3 native Xcode platforms.
+
+### Unified Master Finance Controller in Admin Console & Full Platform Pricing Engine
+1. **Admin Console Master Financial Controller Card (`admin-frontend`):**
+   - Implemented a unified, high-priority **QuickPress Master Finance Controller** directly at the top of the Rules tab in `admin-frontend/src/routes/finance-engine.tsx`.
+   - Unified 7 key financial levers into a single responsive control dashboard:
+     1. **Partner Payout Rate (%)**: Set partner revenue percentage (default: 85%), dynamically synchronizing platform commission (15%).
+     2. **Delivery Boy / Captain Payout Rate (/KM Wise)**: Configurable Rate/KM (default: ₹8.00/km) and Base Pay (default: ₹25).
+     3. **Handling Fee (₹)**: Configurable fee amount (default: ₹15) with an instant enable/disable toggle.
+     4. **Surge Charges (₹)**: Configurable surge amount (default: ₹20), enable/disable toggle, and custom weather/demand notice text.
+     5. **Packing / Packaging Charges (₹)**: Configurable packaging fee amount with an enable/disable toggle.
+     6. **Free Delivery Minimum Order Threshold (₹)**: Dynamic free delivery qualification cart value (default: ₹149).
+     7. **Below-Threshold Delivery Fee (₹)**: Extra delivery fee charged when cart value is below threshold (default: ₹30).
+   - Added direct "Save Live Rules" action trigger and synchronized `DEFAULT_FINANCIAL_RULES`, `mapServerRulesToForm`, and `prepareRulesForSave`.
+   - Updated TypeScript interfaces in `admin-frontend/src/api/finance-api.ts`.
+2. **Backend Financial & Pricing Engine (`backend-python`):**
+   - In `backend-python/app/services/unified_finance_service.py`:
+     - Updated default `freeDeliveryThreshold` from `499.0` to `149.0` and `baseFee` to `30.0`.
+     - Added conditional checking for `handlingFeeEnabled` and `packagingFeeEnabled` in `_calc_fee`.
+     - Integrated `partnerPayoutPercent` support in settlement calculations.
+     - Synchronized rider `/km` distance payout to `riderPayout.perKmRate` (default: ₹8.0/km).
+   - In `backend-python/app/services/financial_engine.py`:
+     - Updated fallback defaults to `freeDeliveryThreshold: 149.0`, `baseDeliveryFee: 30.0`, `standardCommissionRate: 0.15`, and `riderPerKmRate: 8.0`.
+   - Updated and verified 14 unit and integration tests across `test_unified_finance_engine.py`, `test_finance_rules_precision.py`, and `test_finance_rules_and_admin_pnl.py` (100% pass rate).
+3. **Customer Checkout & Bill Details (`customer-frontend`):**
+   - In `customer-frontend/src/routes/checkout.tsx`:
+     - Dynamically evaluates `freeDeliveryThreshold` (default: ₹149) and `baseDeliveryFee` (default: ₹30).
+     - Added an interactive Free Delivery Reward Banner informing users how much more to add to unlock 100% Free Delivery (or celebrating when unlocked).
+     - Separated Handling Fee and Packing / Packaging Charge in Bill Details breakdown when enabled by Admin.
+   - In `customer-frontend/src/api/customer/finance-api.ts`:
+     - Synchronized `FinancialRules` interface and `DEFAULT_FINANCIAL_RULES` defaults (`freeDeliveryThreshold: 149`, `fees.handlingFeeEnabled: true`, `fees.packagingFeeEnabled: false`).
+4. **Verification & Cross-Platform iOS Sync:**
+   - Verified builds: `build:admin`, `build:customer`, `build:partner`, and `build:rider` (all passed with zero errors).
+   - Ran `python3 build_all_ios.py` to synchronize native iOS platforms across Customer, Partner, and Captain apps.

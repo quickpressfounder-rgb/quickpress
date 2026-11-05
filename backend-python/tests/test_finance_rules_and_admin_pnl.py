@@ -11,14 +11,18 @@ Tests:
 
 import pytest
 from httpx import AsyncClient, ASGITransport
-from app.main import app
+from app.main import app, fastapi_app
 from app.db.client import database
 from app.services.unified_finance_service import unified_finance_service
+from app.models.user import Role, User
+from app.core.deps import current_user
 
 
 @pytest.fixture(autouse=True)
 async def clean_test_finance_data():
+    fastapi_app.dependency_overrides[current_user] = lambda: User(id="test-admin", role=Role.admin, email="admin@quickpress.test", full_name="Admin")
     yield
+    fastapi_app.dependency_overrides.pop(current_user, None)
     await database.collection("financial_rules").delete_many({})
     unified_finance_service._rules_cache = None
     unified_finance_service._cache_time = 0.0

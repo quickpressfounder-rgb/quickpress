@@ -27,17 +27,17 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_FINANCIAL_CONFIG: Dict[str, Any] = {
     # Platform Commissions
-    "standardCommissionRate": 0.18,  # 18% for <100 orders/month
+    "standardCommissionRate": 0.15,  # 15% platform commission (85% partner payout)
     "silverCommissionRate": 0.15,    # 15% for 100-300 orders/month
     "goldCommissionRate": 0.12,      # 12% for >300 orders/month
     "tcsRate": 0.01,                 # 1% Section 194-O TCS
     "tdsRate": 0.01,                 # 1% Section 194-C TDS
 
     # Customer Delivery & Convenience
-    "baseDeliveryFee": 29.0,         # Within base distance
+    "baseDeliveryFee": 30.0,         # Within base distance (extra charge below minimum order)
     "baseDeliveryRadiusKm": 5.0,     # Base radius in KM
-    "extraKmRate": 6.0,              # Per KM above base radius
-    "freeDeliveryThreshold": 499.0,  # Free delivery order minimum
+    "extraKmRate": 8.0,              # Per KM above base radius
+    "freeDeliveryThreshold": 149.0,  # Free delivery order minimum (e.g. ₹149)
     "handlingFee": 15.0,             # Platform handling & packaging
     "expressTurnaroundMultiplier": 1.35, # +35% for 24-hr express
 

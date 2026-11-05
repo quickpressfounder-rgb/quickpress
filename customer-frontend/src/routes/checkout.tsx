@@ -310,11 +310,22 @@ export function CheckoutPage() {
   const memberDiscount = isEffectiveMember ? Math.round(itemsSubtotal * 0.1) : 0;
   const clubPlanPrice = (!isMember && clubAddon) ? 99 : 0;
 
-  const freeDeliveryThreshold = financeRules?.delivery?.freeDeliveryThreshold ?? 499;
+  const freeDeliveryThreshold = financeRules?.delivery?.freeDeliveryThreshold ?? 149;
   const isFreeDelivery = itemsSubtotal >= freeDeliveryThreshold || isEffectiveMember;
   const baseDeliveryFee = financeRules?.delivery?.slabs?.[0]?.fee ?? (financeRules?.delivery?.baseFee ?? 30);
   const deliveryFee = itemsSubtotal > 0 ? (isFreeDelivery ? 0 : baseDeliveryFee) : 0;
-  const handlingFee = itemsSubtotal > 0 ? (financeRules?.pricing?.handlingFee ?? 15) : 0;
+  
+  // Handling fee (governed by Admin Finance Rules toggle & amount)
+  const isHandlingFeeEnabled = (financeRules as any)?.fees?.handlingFeeEnabled !== false;
+  const handlingFee = (itemsSubtotal > 0 && isHandlingFeeEnabled)
+    ? (financeRules?.fees?.handlingFee ?? financeRules?.pricing?.handlingFee ?? 15)
+    : 0;
+
+  // Packaging fee (governed by Admin Finance Rules toggle & amount)
+  const isPackagingFeeEnabled = Boolean((financeRules as any)?.fees?.packagingFeeEnabled);
+  const packagingFeeAmount = Number((financeRules as any)?.fees?.packagingFee ?? (financeRules?.pricing as any)?.packagingFee ?? 0);
+  const packagingFee = (itemsSubtotal > 0 && isPackagingFeeEnabled && packagingFeeAmount > 0) ? packagingFeeAmount : 0;
+
   const platformFee = itemsSubtotal > 0 ? (financeRules?.pricing?.platformFee ?? 10) : 0;
 
   const expressFee = financeRules?.pricing?.universalExpressPrice ?? financeRules?.expressPickup?.fee ?? 99;
@@ -337,11 +348,11 @@ export function CheckoutPage() {
 
   // 5% fabric laundry GST + 18% services GST
   const laundryGst = Math.round(Math.max(0, itemsSubtotal - couponDiscount - memberDiscount) * (financeRules?.gst?.laundryGstRate ?? 0.05));
-  const serviceGst = Math.round((deliveryFee + handlingFee + platformFee + currentExpressFee + surgeFee) * (financeRules?.gst?.platformGstRate ?? 0.18));
+  const serviceGst = Math.round((deliveryFee + handlingFee + packagingFee + platformFee + currentExpressFee + surgeFee) * (financeRules?.gst?.platformGstRate ?? 0.18));
   const gst = laundryGst + serviceGst;
 
   const grandTotal = Math.round(
-    Math.max(0, itemsSubtotal + deliveryFee + handlingFee + platformFee + currentExpressFee + surgeFee + gst + clubPlanPrice - couponDiscount - memberDiscount)
+    Math.max(0, itemsSubtotal + deliveryFee + handlingFee + packagingFee + platformFee + currentExpressFee + surgeFee + gst + clubPlanPrice - couponDiscount - memberDiscount)
   );
   const savings =
     Math.max(0, totalMRP - itemsSubtotal) +
@@ -986,6 +997,49 @@ export function CheckoutPage() {
 
 
 
+        {/* FREE DELIVERY REWARD BANNER */}
+        {itemsSubtotal > 0 && (
+          <div className={`p-3 rounded-2xl border text-xs flex items-center justify-between transition-all ${
+            isFreeDelivery
+              ? "bg-emerald-50 border-emerald-200/90 text-emerald-950"
+              : "bg-amber-50/90 border-amber-200 text-amber-950"
+          }`}>
+            <div className="flex items-center gap-2.5">
+              <div className={`size-8 rounded-xl flex items-center justify-center shrink-0 ${
+                isFreeDelivery ? "bg-emerald-100 text-[#0c831f]" : "bg-amber-100 text-amber-700"
+              }`}>
+                <Truck className="size-4" />
+              </div>
+              <div>
+                {isFreeDelivery ? (
+                  <>
+                    <p className="font-black text-[#0c831f] flex items-center gap-1">
+                      <CheckCircle2 className="size-3.5" /> FREE Delivery Applied!
+                    </p>
+                    <p className="text-[11px] text-zinc-500 font-medium">You saved ₹{baseDeliveryFee} on this order</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-black text-amber-900">
+                      Add ₹{Math.max(0, freeDeliveryThreshold - itemsSubtotal)} more for FREE Delivery!
+                    </p>
+                    <p className="text-[11px] text-zinc-600 font-medium">Free delivery on orders ₹{freeDeliveryThreshold}+ (otherwise ₹{baseDeliveryFee})</p>
+                  </>
+                )}
+              </div>
+            </div>
+            {!isFreeDelivery && (
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/home" })}
+                className="text-[11px] font-black text-[#0c831f] hover:underline px-2.5 py-1 bg-white rounded-lg border border-emerald-200 shrink-0 shadow-2xs"
+              >
+                + Add Items
+              </button>
+            )}
+          </div>
+        )}
+
         {/* SECTION 7: BILL DETAILS */}
         <div>
           <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
@@ -1012,10 +1066,19 @@ export function CheckoutPage() {
                 </div>
               </div>
 
-              <div className="flex justify-between">
-                <span>Handling &amp; Packaging</span>
-                <span className="font-bold text-zinc-900">₹{handlingFee}</span>
-              </div>
+              {handlingFee > 0 && (
+                <div className="flex justify-between">
+                  <span>Handling Fee</span>
+                  <span className="font-bold text-zinc-900">₹{handlingFee}</span>
+                </div>
+              )}
+
+              {packagingFee > 0 && (
+                <div className="flex justify-between">
+                  <span>Packing &amp; Packaging</span>
+                  <span className="font-bold text-zinc-900">₹{packagingFee}</span>
+                </div>
+              )}
 
               <div className="flex justify-between">
                 <span>Platform Convenience Fee</span>
