@@ -149,9 +149,9 @@ export function CheckoutPage() {
       ? cachedProfile.name
       : session?.account?.name && session.account.name !== "Customer" && session.account.name !== "Guest User"
       ? session.account.name
-      : "Himanshu Pal";
+      : "";
   const initialPhone = normalizeIndianPhone(
-    cachedProfile?.phone || session?.account?.phone || cachedAddrs[0]?.phone || "9876543210"
+    cachedProfile?.phone || session?.account?.phone || cachedAddrs[0]?.phone || ""
   );
 
   const [customerName, setCustomerName] = useState<string>(() => initialName);
@@ -383,12 +383,14 @@ export function CheckoutPage() {
     }
 
     if (!customerName.trim()) {
-      setCustomerName(initialName || "Himanshu Pal");
+      toast.error("Please enter your name for delivery contact.");
+      return;
     }
 
     const clean = normalizeIndianPhone(customerPhone);
     if (!clean || clean.length !== 10) {
-      setCustomerPhone("9876543210");
+      toast.error("Please enter a valid 10-digit mobile number for order delivery updates.");
+      return;
     }
 
     if (!selectedPickup || !selectedPickup.line || !selectedPickup.line.trim() || addresses.length === 0) {
@@ -482,6 +484,15 @@ export function CheckoutPage() {
   const handleSelectCod = async () => {
     // 🛑 Double-click protection: Drop instant duplicate requests
     if (isPlacingOrderRef.current || placingOrder) return;
+    if (!customerName.trim()) {
+      toast.error("Please enter your name for delivery contact.");
+      return;
+    }
+    const cleanPhone = normalizeIndianPhone(customerPhone);
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      toast.error("Please enter a valid 10-digit mobile number for order delivery updates.");
+      return;
+    }
     if (!selectedPickup) {
       toast.error("Please select a pickup address.");
       return;

@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 
+from app.config import get_settings
 from app.core.deps import current_user
 from app.db import payment_repositories as repo
 from app.db.client import database
@@ -121,15 +122,27 @@ async def razorpay_webhook(
     except Exception:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload.")
 
+    import os
     cfg = razorpay_client.get_pg_config()
-    if cfg["is_configured"] and cfg["webhook_secret"]:
+    secret = (os.getenv("RAZORPAY_WEBHOOK_SECRET") if "RAZORPAY_WEBHOOK_SECRET" in os.environ else (cfg.get("webhook_secret") or "")).strip()
+    settings = get_settings()
+    is_prod = (os.getenv("APP_ENV") or getattr(settings, "app_env", "") or "").lower() in ("production", "prod")
+
+    if is_prod and not secret:
+        logger.error("Razorpay webhook received in production but RAZORPAY_WEBHOOK_SECRET is unconfigured!")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Payment gateway webhook secret is unconfigured.",
+        )
+
+    if secret:
         if not x_razorpay_signature or not razorpay_client.verify_webhook_signature(
             raw_body=raw_body,
             signature=x_razorpay_signature,
-            secret=cfg["webhook_secret"],
+            secret=secret,
         ):
             logger.warning("Razorpay webhook signature mismatch.")
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid webhook signature.")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid webhook signature.")
 
     event_id = payload.get("event_id") or payload.get("id") or f"evt_{hash(raw_body)}"
     event_type = payload.get("event") or ""

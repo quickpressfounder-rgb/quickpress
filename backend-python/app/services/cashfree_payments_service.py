@@ -543,12 +543,24 @@ async def handle_cashfree_webhook(
     settings = get_settings()
 
     # Signature verification
-    if settings.cashfree_configured or settings.cashfree_webhook_secret:
+    import os
+    is_prod = (os.getenv("APP_ENV") or getattr(settings, "app_env", "") or "").lower() in ("production", "prod")
+    secret = (
+        os.getenv("CASHFREE_WEBHOOK_SECRET")
+        if "CASHFREE_WEBHOOK_SECRET" in os.environ
+        else (settings.cashfree_webhook_secret or settings.cashfree_secret_key or "")
+    ).strip()
+
+    if is_prod and not secret:
+        logger.error("Cashfree webhook received in production but CASHFREE_WEBHOOK_SECRET is unconfigured.")
+        raise CashfreePaymentServiceError("Payment gateway webhook secret is unconfigured.", 500)
+
+    if secret:
         is_valid = cashfree_client.verify_webhook_signature(
             raw_body=raw_body,
             signature=signature,
             timestamp=timestamp,
-            secret=settings.cashfree_webhook_secret or settings.cashfree_secret_key,
+            secret=secret,
         )
         if not is_valid:
             logger.warning("Cashfree webhook signature mismatch.")

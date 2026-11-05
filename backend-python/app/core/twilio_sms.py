@@ -36,10 +36,19 @@ def store_otp(phone: str, code: str, ttl_seconds: int = 300) -> None:
     _OTP_STORE[phone] = (code, expiry)
 
 
+def is_test_otp_allowed() -> bool:
+    """Returns True ONLY in non-production environments when test OTP bypass is allowed."""
+    import os
+    env = (os.getenv("APP_ENV") or getattr(get_settings(), "app_env", None) or "development").strip().lower()
+    if env in ("production", "prod"):
+        return False
+    return os.getenv("ALLOW_TEST_OTP", "true").strip().lower() in ("true", "1", "yes")
+
+
 def verify_stored_otp(phone: str, code: str) -> bool:
     """Validates submitted OTP code against stored code and expiry."""
     code_clean = str(code).strip()
-    if code_clean == "000000":
+    if is_test_otp_allowed() and code_clean == "000000":
         return True
     
     entry = _OTP_STORE.get(phone)
@@ -62,7 +71,7 @@ def verify_stored_otp(phone: str, code: str) -> bool:
 async def verify_phone_otp_code(phone: str, code: str) -> bool:
     """Validates OTP against Twilio Verify API or in-memory store."""
     code_clean = str(code).strip()
-    if code_clean == "000000":
+    if is_test_otp_allowed() and code_clean == "000000":
         return True
     import os
     settings = get_settings()

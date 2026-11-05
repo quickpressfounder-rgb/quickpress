@@ -144,3 +144,33 @@
 4. **Verification & Cross-Platform iOS Sync:**
    - Verified builds: `build:admin`, `build:customer`, `build:partner`, and `build:rider` (all passed with zero errors).
    - Ran `python3 build_all_ios.py` to synchronize native iOS platforms across Customer, Partner, and Captain apps.
+
+### Production Launch Readiness Phase 1: Security Hardening & Zero-Trust Gateways
+1. **Security — OTP Bypass Hardening (`backend-python`):**
+   - In `backend-python/app/core/twilio_sms.py`:
+     - Added `is_test_otp_allowed()` helper ensuring `000000` bypass is strictly blocked in production (`APP_ENV=production`).
+     - Test OTP bypass is only permitted in development/staging environments when `ALLOW_TEST_OTP=true` is present.
+2. **Security — Payment Webhook Signature Enforcement (`backend-python`):**
+   - In `backend-python/app/api/razorpay.py`:
+     - Enforced mandatory webhook secret verification. If `APP_ENV=production` and `RAZORPAY_WEBHOOK_SECRET` is unset, rejects webhook request with 500 error ("fails closed").
+     - Enforced strict HMAC-SHA256 signature verification; mismatches or missing signatures reject with 401 Unauthorized.
+   - In `backend-python/app/services/cashfree_payments_service.py`:
+     - Enforced production check for `CASHFREE_WEBHOOK_SECRET`; unconfigured secret in production raises 500.
+     - Invalid Cashfree signature rejects with 400 Bad Request.
+3. **Data & UI — Real Customer Contact Validation on Checkout (`customer-frontend`):**
+   - In `customer-frontend/src/routes/checkout.tsx`:
+     - Removed hardcoded default `"Himanshu Pal"` and `"9876543210"` from checkout initial state.
+     - Added strict validation on "Proceed to Pay" and COD order submission: users with empty name or invalid 10-digit phone are now prompted with friendly toasts (`toast.error`), ensuring riders always have genuine customer phone numbers and names for delivery.
+4. **Environment Standardization (`admin-frontend` & `rider-frontend`):**
+   - Standardized `admin-frontend/.env.production` to `https://api.withquickpress.com`.
+   - Updated `customer-frontend/.env.example` and `rider-frontend/.env` to point to `https://api.withquickpress.com`.
+5. **Automated Test Coverage (`backend-python`):**
+   - Created `backend-python/tests/test_production_security_hardening.py` with 4 automated test cases covering:
+     - Rejection of `000000` OTP bypass in production.
+     - Dev mode OTP verification retention.
+     - Razorpay webhook signature enforcement and unconfigured fail-close behavior in production.
+     - Cashfree webhook signature enforcement and unconfigured fail-close behavior in production.
+   - All tests passing (100%).
+6. **Multi-App Build & iOS Native Synchronization:**
+   - Successfully compiled all four frontends: `build:admin`, `build:customer`, `build:partner`, and `build:rider`.
+   - Executed `python3 build_all_ios.py` to regenerate static assets and synchronize all 3 native Xcode platforms (`customer-frontend/ios`, `partner-frontend/ios`, `rider-frontend/ios`).
