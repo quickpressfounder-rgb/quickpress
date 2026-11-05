@@ -222,7 +222,7 @@ export function NotificationsScreen() {
   return (
     <PartnerLayout activeTab="dashboard" hideBottomNav={false}>
       {/* Top Mobile & Desktop Sticky Bar */}
-      <div className="sticky top-0 z-20 border-b border-zinc-200/80 bg-white/95 backdrop-blur-md">
+      <div className="sticky top-0 z-20 border-b border-zinc-200/80 bg-white/95 backdrop-blur-md app-header-safe">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <button

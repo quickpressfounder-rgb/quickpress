@@ -69,7 +69,7 @@ function ShopManagementContent() {
       subtitle={`${shopStatusMeta(status).label} · ${profile.category || "Laundry Service"}`}
     >
       {/* Mobile Top Sticky Navigation Bar */}
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between bg-white px-4 border-b border-zinc-200/90 shadow-2xs md:hidden">
+      <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between bg-white px-4 pb-2 border-b border-zinc-200/90 shadow-2xs md:hidden app-header-safe">
         <div className="flex items-center gap-3">
           <button
             type="button"

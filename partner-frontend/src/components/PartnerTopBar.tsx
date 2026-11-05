@@ -24,7 +24,7 @@ export function PartnerTopBar({
   const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-30 mx-auto w-full max-w-md">
+    <header className="sticky top-0 z-30 mx-auto w-full max-w-md app-header-safe">
       <div className="glass-panel flex items-center gap-2 px-4 py-3">
         {showBack ? (
           <button

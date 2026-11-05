@@ -152,7 +152,7 @@ export function PartnerReviewsScreen() {
       subtitle="Public feedback, star ratings, and store responses"
     >
       {/* Mobile Top App Bar (< md) */}
-      <div className="sticky top-0 z-20 flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-3 md:hidden">
+      <div className="sticky top-0 z-20 flex items-center justify-between border-b border-zinc-200 bg-white px-4 pb-3 md:hidden app-header-safe">
         <div className="flex items-center gap-2.5">
           <button
             type="button"

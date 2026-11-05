@@ -94,7 +94,7 @@ export function RiderBottomNav({ active = "dashboard", ordersBadgeCount }: Rider
       className={`fixed inset-x-0 bottom-0 z-40 bg-white border-t border-zinc-200/90 select-none shadow-[0_-4px_20px_rgba(0,0,0,0.04)] transition-all duration-300 ease-out ${
         isVisible ? "translate-y-0 opacity-100" : "translate-y-28 opacity-0 pointer-events-none"
       }`}
-      style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 6px, 12px)", paddingTop: "8px" }}
+      style={{ paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 8px), 16px)", paddingTop: "8px" }}
     >
       <div className="flex items-center justify-around max-w-sm mx-auto px-6">
         {/* 1. Home Tab (Solid Black Icon + Label) - Screenshot Match */}

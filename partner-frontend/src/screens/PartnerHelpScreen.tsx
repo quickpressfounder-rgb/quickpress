@@ -199,7 +199,7 @@ export function PartnerHelpScreen() {
     >
       <div className="mx-auto w-full max-w-7xl px-4 py-4 md:px-8 md:py-6 space-y-4 md:space-y-6">
         {/* Mobile Sticky Top Bar */}
-        <div className="sticky top-0 z-30 -mx-4 -mt-4 mb-3 flex items-center justify-between border-b border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur-md md:hidden">
+        <div className="sticky top-0 z-30 -mx-4 -mt-4 mb-3 flex items-center justify-between border-b border-zinc-200 bg-white/95 px-4 pb-3 backdrop-blur-md md:hidden app-header-safe">
           <div className="flex items-center gap-2.5">
             <button
               type="button"

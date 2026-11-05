@@ -1467,7 +1467,7 @@ export function BusinessRegistrationScreen() {
       <Toaster position="top-center" richColors />
 
       {/* 1. Top Header Bar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200 px-4 py-3 flex items-center justify-between shadow-2xs">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200 px-4 pb-3 flex items-center justify-between shadow-2xs app-header-safe">
         <div className="flex items-center gap-3">
           <button
             type="button"

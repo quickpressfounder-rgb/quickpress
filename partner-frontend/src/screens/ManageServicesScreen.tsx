@@ -180,7 +180,7 @@ export function ManageServicesScreen() {
       {/* ========================================================================= */}
       <div className="min-h-screen bg-zinc-50/50 pb-28 text-zinc-900 md:hidden">
         {/* Sticky Top Header matching Zomato Merchant Detail */}
-        <header className="sticky top-0 z-30 bg-white px-4 pt-3.5 pb-3 border-b border-zinc-200/90 shadow-2xs">
+        <header className="sticky top-0 z-30 bg-white px-4 pb-3 border-b border-zinc-200/90 shadow-2xs app-header-safe">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-base font-black tracking-tight text-zinc-950">

@@ -114,7 +114,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
   const navContent = (
     <nav
       aria-label="Partner Navigation"
-      className={`fixed inset-x-0 bottom-0 z-40 w-full border-t border-zinc-200/90 bg-white/95 backdrop-blur-md pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-1.5 px-3 shadow-[0_-2px_12px_rgba(0,0,0,0.04)] transition-transform duration-300 ease-in-out md:hidden select-none ${
+      className={`fixed inset-x-0 bottom-0 z-40 w-full border-t border-zinc-200/90 bg-white/95 backdrop-blur-md pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+0.35rem))] pt-1.5 px-3 shadow-[0_-2px_12px_rgba(0,0,0,0.04)] transition-transform duration-300 ease-in-out md:hidden select-none ${
         isVisible ? "translate-y-0" : "translate-y-full pointer-events-none"
       }`}
     >

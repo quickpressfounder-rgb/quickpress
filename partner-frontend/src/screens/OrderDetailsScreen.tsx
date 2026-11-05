@@ -431,7 +431,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
       {/* ========================================================================= */}
       <div className="min-h-screen bg-zinc-50/50 pb-28 text-zinc-900 md:hidden">
         {/* Sticky Mobile Header matching Zomato Merchant Detail */}
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between bg-white px-4 border-b border-zinc-200/90 shadow-2xs">
+        <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between bg-white px-4 pb-2 border-b border-zinc-200/90 shadow-2xs app-header-safe">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"

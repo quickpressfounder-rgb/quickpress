@@ -94,3 +94,20 @@
 5. **Full Multi-App Build & iOS Native Workspace Synchronization:**
    - Successfully verified builds: `build:customer`, `build:partner`, and `build:rider` with zero errors.
    - Ran `python3 build_all_ios.py` to regenerate SSR fallbacks, static HTML, and synchronize assets and plugins for Customer, Partner, and Captain iOS apps.
+
+### iPhone Notch, Safe-Area & Viewport Overflow Containment (Partner & Rider Apps)
+1. **Global Safe-Area & Horizontal Overflow Architecture:**
+   - Configured `html, body` in both `partner-frontend/src/styles.css` and `rider-frontend/src/styles.css` with `overflow-x: hidden; overflow-x: clip; overscroll-behavior-x: none; -webkit-text-size-adjust: 100%`.
+   - Added WebKit media query enforcing `font-size: 16px !important` on all inputs, search boxes, textareas, and selects across both apps, permanently stopping iOS Safari/WebKit auto-zoom jumping and horizontal screen drift.
+   - Standardized `.app-header-safe` (`padding-top: max(0.875rem, calc(env(safe-area-inset-top, 0px) + 0.5rem)) !important`), `.app-screen-safe`, and `.app-bottom-safe`.
+2. **Partner App Headers & Bottom Navigation:**
+   - Applied `app-header-safe` and flexible min-heights across all Partner sticky app bars (`DashboardHeader.tsx`, `ZomatoHubView.tsx`, `OrdersScreen.tsx`, `ManageServicesScreen.tsx`, `OrderDetailsScreen.tsx`, `PartnerProfileScreen.tsx`, `ShopManagementScreen.tsx`, `BusinessSettingsScreen.tsx`, `NotificationsScreen.tsx`, `PartnerReviewsScreen.tsx`, `PartnerHelpScreen.tsx`, `BusinessRegistrationScreen.tsx`, `MerchantPermissionsScreen.tsx`, `PartnerTopBar.tsx`, `PartnerAuthScreen.tsx`, `OtpVerificationScreen.tsx`).
+   - Added safe-area bottom spacing in `PartnerBottomNav.tsx` (`pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+0.35rem))]`) preventing iPhone Home Indicator bar clipping.
+   - Wrapped root layouts in `__root.tsx` and `PartnerLayout.tsx` with full overflow-x containment.
+3. **Captain / Rider App Headers & Bottom Navigation:**
+   - Updated `RiderLayout.tsx` top padding from `36px` to `52px` (`max(calc(env(safe-area-inset-top, 0px) + 14px), 52px)`) with `app-header-safe` to prevent notch/dynamic island clipping on mobile tab views.
+   - Updated `RiderBottomNav.tsx` bottom padding to `max(calc(env(safe-area-inset-bottom, 0px) + 8px), 16px)`.
+   - Wrapped root layouts with full width and overflow-x containment.
+4. **Multi-App Compilation & iOS Native Workspace Sync:**
+   - Verified compilation across `build:partner` and `build:rider` (zero errors).
+   - Executed `python3 build_all_ios.py` to regenerate static assets and synchronize all 3 native Xcode platforms.

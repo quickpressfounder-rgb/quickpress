@@ -126,7 +126,7 @@ export function OrdersScreen() {
       {/* ========================================================================= */}
       <div className="min-h-screen bg-white pb-28 text-black md:hidden">
         {/* Sticky Filter Header with Real [Online ⚪] Switch, Action Icons & Stage Pills */}
-        <header className="sticky top-0 z-20 bg-white border-b border-zinc-200/90 px-4 pt-3 pb-2.5 shadow-2xs">
+        <header className="sticky top-0 z-20 bg-white border-b border-zinc-200/90 px-4 pb-2.5 shadow-2xs app-header-safe">
           {/* Top Bar Row: Real Online Toggle Switch on Left, Action Icons on Right */}
           <div className="flex items-center justify-between">
             {/* Real Store Online Pill Switch matching Image 4 */}

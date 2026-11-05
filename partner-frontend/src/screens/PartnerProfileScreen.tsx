@@ -642,7 +642,7 @@ export function PartnerProfileScreen() {
       {/* ========================================================================= */}
       <div className="min-h-screen bg-background pb-32 text-foreground md:hidden">
         {/* Sticky Header */}
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between bg-card/90 backdrop-blur-xl px-4 border-b border-border/70 shadow-xs">
+        <header className="sticky top-0 z-20 flex min-h-14 items-center justify-between bg-card/90 backdrop-blur-xl px-4 pb-2 border-b border-border/70 shadow-xs app-header-safe">
           <div className="flex items-center gap-3">
             <button
               type="button"

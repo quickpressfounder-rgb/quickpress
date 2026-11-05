@@ -20,7 +20,7 @@ export function DashboardHeader({
   const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-30 w-full">
+    <header className="sticky top-0 z-30 w-full app-header-safe bg-white/95 backdrop-blur-md border-b border-zinc-200/60 shadow-2xs">
       <div className="glass-panel grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 md:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-sm font-black tracking-tight text-brand-dark">

@@ -481,7 +481,7 @@ export function ZomatoHubView() {
       {/* ========================================================================= */}
       {/* 1. TOP HEADER: Exact Pure Minimalist Zomato Header                        */}
       {/* ========================================================================= */}
-      <header className="sticky top-0 z-30 bg-white border-b border-zinc-200 px-4 pt-3 pb-2.5 transition-all">
+      <header className="sticky top-0 z-30 bg-white border-b border-zinc-200 px-4 pb-2.5 transition-all app-header-safe">
         <div className="flex items-center justify-between gap-2.5">
           {/* Store Logo & Details */}
           <div className="flex items-center gap-2.5 min-w-0 flex-1">

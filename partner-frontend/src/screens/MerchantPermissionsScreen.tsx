@@ -287,7 +287,7 @@ export function MerchantPermissionsScreen() {
   return (
     <div className="min-h-screen bg-white text-zinc-950 pb-28">
       {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-white border-b border-zinc-200 px-4 py-3.5">
+      <header className="sticky top-0 z-30 bg-white border-b border-zinc-200 px-4 pb-3.5 app-header-safe">
         <div className="mx-auto max-w-2xl flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button

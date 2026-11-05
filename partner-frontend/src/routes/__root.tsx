@@ -92,7 +92,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      {
+        name: "viewport",
+        content:
+          "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover",
+      },
       { title: "QuickPress Partner — Store Console" },
       {
         name: "description",
@@ -165,8 +169,13 @@ function RootShell({ children }: { children: ReactNode }) {
         />
         <HeadContent />
       </head>
-      <body className="min-h-screen bg-background text-foreground antialiased selection:bg-primary/20" suppressHydrationWarning>
-        {children}
+      <body
+        className="min-h-screen bg-background text-foreground antialiased selection:bg-primary/20 overflow-x-hidden w-full max-w-full"
+        suppressHydrationWarning
+      >
+        <div className="min-h-dvh bg-white relative overflow-x-hidden w-full max-w-full">
+          {children}
+        </div>
         <Scripts />
       </body>
     </html>

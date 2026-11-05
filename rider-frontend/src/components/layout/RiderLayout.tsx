@@ -113,8 +113,8 @@ export function RiderLayout({
         {/* Mobile Top Bar (for non-dashboard tabs: Orders, Finance, More) */}
         {activeTab !== "dashboard" ? (
           <div
-            className="w-full bg-white/95 backdrop-blur-md border-b border-emerald-100 px-4 pb-3 sm:px-6 md:hidden sticky top-0 z-30 select-none shadow-2xs"
-            style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 10px), 36px)" }}
+            className="w-full bg-white/95 backdrop-blur-md border-b border-emerald-100 px-4 pb-3 sm:px-6 md:hidden sticky top-0 z-30 select-none shadow-2xs app-header-safe"
+            style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 14px), 52px)" }}
           >
             <div className="flex items-center justify-between gap-3">
               <div>

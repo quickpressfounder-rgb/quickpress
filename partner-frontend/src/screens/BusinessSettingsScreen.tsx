@@ -271,7 +271,7 @@ export function BusinessSettingsScreen() {
       {/* ========================================================================= */}
       <div className="min-h-screen bg-[#F4F5F7] pb-24 text-zinc-900 md:hidden">
         {/* Sticky Mobile App Bar */}
-        <header className="sticky top-0 z-30 flex h-15 items-center justify-between border-b border-zinc-200/80 bg-white/95 px-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)] backdrop-blur-md">
+        <header className="sticky top-0 z-30 flex min-h-15 items-center justify-between border-b border-zinc-200/80 bg-white/95 px-4 pb-2 shadow-[0_1px_3px_rgba(0,0,0,0.05)] backdrop-blur-md app-header-safe">
           <div className="flex items-center gap-3">
             <button
               type="button"

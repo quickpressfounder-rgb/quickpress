@@ -145,7 +145,7 @@ export function PartnerLayout({
   }
 
   return (
-    <div className="min-h-screen bg-white text-black flex flex-col">
+    <div className="min-h-screen bg-white text-black flex flex-col w-full max-w-full overflow-x-hidden">
       {/* Full-Width Desktop Top Bar (>= md) matching Zomato layout */}
       <PartnerDesktopTopBar
         title={title}
@@ -159,7 +159,7 @@ export function PartnerLayout({
         onSearchChange={onSearchChange}
       />
 
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 w-full max-w-full overflow-x-hidden">
         {/* Desktop Left Sidebar (>= md) */}
         <PartnerSidebar
           shopName={shopName}
@@ -170,7 +170,7 @@ export function PartnerLayout({
         />
 
         {/* Page Content */}
-        <main className="flex-1 min-w-0 overflow-y-auto bg-white pb-24 md:pb-8">
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-white pb-24 md:pb-8 w-full max-w-full">
           {children}
         </main>
       </div>

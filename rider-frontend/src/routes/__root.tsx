@@ -190,10 +190,10 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body
-        className="min-h-screen bg-white text-slate-950 antialiased selection:bg-amber-400 selection:text-black"
+        className="min-h-screen bg-white text-slate-950 antialiased selection:bg-amber-400 selection:text-black overflow-x-hidden w-full max-w-full"
         suppressHydrationWarning
       >
-        <div className="min-h-dvh bg-white relative overflow-x-hidden">
+        <div className="min-h-dvh bg-white relative overflow-x-hidden w-full max-w-full">
           {children}
         </div>
         <Scripts />

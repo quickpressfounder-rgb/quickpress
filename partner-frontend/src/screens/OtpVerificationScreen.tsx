@@ -131,10 +131,10 @@ export function OtpVerificationScreen() {
     <div className="min-h-screen bg-white text-zinc-900 font-sans selection:bg-blue-500/20">
       <Toaster richColors position="top-center" />
 
-      <div className="min-h-screen flex flex-col justify-between max-w-sm sm:max-w-md mx-auto w-full px-5 py-4 animate-in fade-in duration-200">
+      <div className="min-h-screen flex flex-col justify-between max-w-sm sm:max-w-md mx-auto w-full px-5 pt-2 pb-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] animate-in fade-in duration-200">
         <div>
           {/* Top Bar with Back Action & Edit Link */}
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center justify-between pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.5rem))]">
             <button
               type="button"
               onClick={() => navigate({ to: partnerRoutes.auth })}

@@ -77,3 +77,4 @@ export async function initCapacitorPush(role: "customer" | "partner" | "rider" =
     console.debug("[NativePush] Capacitor Push init notice:", err);
   }
 }
+
