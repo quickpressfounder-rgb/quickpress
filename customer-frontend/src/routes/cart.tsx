@@ -191,11 +191,14 @@ function CartPage() {
   const itemsSubtotal = cart.lines.reduce((sum, item) => sum + (item.price || universalBase) * item.qty, 0);
   const totalMRP = cart.lines.reduce((sum, item) => sum + Math.round((item.price || universalBase) * 1.25) * item.qty, 0);
 
-  const freeDeliveryThreshold = financeRules?.delivery?.freeDeliveryThreshold ?? 499;
+  const freeDeliveryThreshold = financeRules?.delivery?.freeDeliveryThreshold ?? 149;
   const isFreeDelivery = itemsSubtotal >= freeDeliveryThreshold;
   const baseDeliveryFee = financeRules?.delivery?.slabs?.[0]?.fee ?? (financeRules?.delivery?.baseFee ?? 30);
   const deliveryFee = itemsSubtotal > 0 ? (isFreeDelivery ? 0 : baseDeliveryFee) : 0;
-  const handlingFee = itemsSubtotal > 0 ? (financeRules?.pricing?.handlingFee ?? 15) : 0;
+  const isHandlingFeeEnabled = financeRules?.fees?.handlingFeeEnabled ?? true;
+  const handlingFee = itemsSubtotal > 0 && isHandlingFeeEnabled ? (financeRules?.pricing?.handlingFee ?? 15) : 0;
+  const isPackagingFeeEnabled = financeRules?.fees?.packagingFeeEnabled ?? false;
+  const packagingFee = itemsSubtotal > 0 && isPackagingFeeEnabled ? (financeRules?.pricing?.packagingFee ?? 10) : 0;
   const platformFee = itemsSubtotal > 0 ? (financeRules?.pricing?.platformFee ?? 10) : 0;
 
   // Surge fee calculation
@@ -209,12 +212,12 @@ function CartPage() {
   const surgeReason = financeRules?.surge?.surgeReason || "Weather & High Demand Surge";
   const surgeFee = itemsSubtotal > 0 && isSurgeActive ? surgeBaseAmount : 0;
 
-  // 5% fabric laundry GST + 18% services GST (handling + platform + customer delivery fee + surge fee)
+  // 5% fabric laundry GST + 18% services GST (handling + packaging + platform + customer delivery fee + surge fee)
   const laundryGst = Math.round(Math.max(0, itemsSubtotal - couponDiscount) * (financeRules?.gst?.laundryGstRate ?? 0.05));
-  const serviceGst = Math.round((deliveryFee + handlingFee + platformFee + surgeFee) * (financeRules?.gst?.platformGstRate ?? 0.18));
+  const serviceGst = Math.round((deliveryFee + handlingFee + packagingFee + platformFee + surgeFee) * (financeRules?.gst?.platformGstRate ?? 0.18));
   const gst = laundryGst + serviceGst;
 
-  const grandTotal = Math.max(0, itemsSubtotal + deliveryFee + handlingFee + platformFee + surgeFee + gst - couponDiscount);
+  const grandTotal = Math.max(0, itemsSubtotal + deliveryFee + handlingFee + packagingFee + platformFee + surgeFee + gst - couponDiscount);
   const savings = Math.max(0, totalMRP - itemsSubtotal) + couponDiscount + (isFreeDelivery && itemsSubtotal > 0 ? baseDeliveryFee : 0);
 
   const displayedAddons = (dynamicAddons.length > 0 ? dynamicAddons : SUGGESTED_ADDONS)
@@ -436,10 +439,19 @@ function CartPage() {
               </div>
             </div>
 
-            <div className="flex justify-between">
-              <span>Handling & Packaging</span>
-              <span className="font-bold text-zinc-900">₹{handlingFee}</span>
-            </div>
+            {isHandlingFeeEnabled && handlingFee > 0 ? (
+              <div className="flex justify-between">
+                <span>Handling Fee</span>
+                <span className="font-bold text-zinc-900">₹{handlingFee}</span>
+              </div>
+            ) : null}
+
+            {isPackagingFeeEnabled && packagingFee > 0 ? (
+              <div className="flex justify-between">
+                <span>Packing & Packaging</span>
+                <span className="font-bold text-zinc-900">₹{packagingFee}</span>
+              </div>
+            ) : null}
 
             <div className="flex justify-between">
               <span>Platform Convenience Fee</span>

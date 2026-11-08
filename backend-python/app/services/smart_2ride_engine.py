@@ -1183,6 +1183,16 @@ class Smart2RideEngine:
             if not rider_profile:
                 rider_profile = await database.find_one("riders", {"_id": rider_id}) or {}
 
+            # Rider status validation (Fleet Safety & Anti-Fraud)
+            r_status = str(rider_profile.get("status") or "").lower()
+            if r_status in ("suspended", "blocked", "banned", "inactive", "blacklisted") or rider_profile.get("isSuspended"):
+                raise ValueError("ACCOUNT_SUSPENDED: Your delivery partner account is currently suspended or inactive. Please contact QuickPress support.")
+
+            is_online = bool(rider_profile.get("isOnline") or rider_profile.get("is_available"))
+            duty_status = str(rider_profile.get("dutyStatus") or "").upper()
+            if not is_online and duty_status not in ("ON DUTY", "ONLINE", "ACTIVE") and r_status != "online":
+                raise ValueError("RIDER_OFFLINE: You are currently offline. Please go On Duty in the Captain app before accepting trips.")
+
             # Strict City Isolation Check: Captain must belong to the same city as the ride
             ride_city_raw = str(ride.get("city") or (ride.get("pickupLocation") or {}).get("city") or "").strip()
             if not ride_city_raw:
@@ -2248,7 +2258,7 @@ class Smart2RideEngine:
 
         # Record COD collected cash in rider's floating custody (Finance Security)
         pay_mode = str(order.get("paymentMode") or (order.get("payment") or {}).get("mode") or "").lower()
-        if pay_mode in ("cod", "cash", "cash_on_delivery") and rider_id:
+        if pay_mode in ("cod", "cash", "cash_on_delivery") and rider_id and not order.get("cashCollectedByRider"):
             collected_amount = float(
                 (order.get("totals") or {}).get("grandTotal")
                 or (order.get("pricing") or {}).get("finalTotal")

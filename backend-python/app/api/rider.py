@@ -4039,10 +4039,21 @@ async def arrived_at_customer(order_id: str, user: User = Depends(current_user))
 @router.post("/orders/{order_id}/collect-cash")
 async def collect_cash_order(order_id: str, user: User = Depends(current_user)) -> dict:
     rider_id = await _rider_id(user)
-    from app.services.smart_2ride_engine import RIDES_COLLECTION
+    from app.services.smart_2ride_engine import RIDES_COLLECTION, RIDERS_COLLECTION
     ride = await database.find_one(RIDES_COLLECTION, {"_id": order_id})
     target_order_id = ride.get("orderId") if ride else order_id
     now_iso = lifecycle.now_iso()
+
+    target_order = await database.find_one("customer_orders", {"_id": target_order_id}) or {}
+    already_collected = bool(target_order.get("cashCollectedByRider"))
+    collected_amount = float(
+        (target_order.get("totals") or {}).get("grandTotal")
+        or (target_order.get("pricing") or {}).get("finalTotal")
+        or target_order.get("total_amount")
+        or target_order.get("amount")
+        or 0.0
+    )
+
     await database.update(
         "customer_orders",
         {"_id": target_order_id},
@@ -4054,6 +4065,29 @@ async def collect_cash_order(order_id: str, user: User = Depends(current_user)) 
             "updatedAt": now_iso,
         }
     )
+
+    # Synchronize with unified financial ledger for accurate Admin P&L / Cashbook
+    await database.update_one(
+        "order_financials",
+        {"_id": target_order_id},
+        {
+            "$set": {
+                "paymentStatus": "PAID",
+                "paymentGateway": "cod",
+                "collectedAt": now_iso,
+                "cashCollectedBy": rider_id,
+                "updatedAt": now_iso,
+            }
+        }
+    )
+
+    # Update rider cash-in-hand custody float
+    if collected_amount > 0 and rider_id and not already_collected:
+        await database.collection(RIDERS_COLLECTION).update_one(
+            {"_id": rider_id},
+            {"$inc": {"floatingCash": collected_amount, "cashInHand": collected_amount}}
+        )
+
     return {"ok": True, "message": "Cash payment recorded successfully", "orderId": target_order_id}
 
 

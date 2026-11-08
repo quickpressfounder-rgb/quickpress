@@ -27,15 +27,15 @@ export function FloatingCartBar({
     setMounted(true);
   }, []);
 
-  // Preload checkout route in background for 0ms instant open
+  // Preload cart route in background for 0ms instant open
   useEffect(() => {
     if (count > 0) {
-      void router.preloadRoute({ to: "/checkout" }).catch(() => undefined);
+      void router.preloadRoute({ to: "/cart" }).catch(() => undefined);
     }
   }, [count, router]);
 
-  // Don't show floating bar on checkout, cart, or success pages
-  if (!mounted || count === 0 || pathname === "/cart" || pathname === "/checkout" || pathname.startsWith("/order-success")) {
+  // Don't show floating bar on checkout, cart, or success pages, or when cart is empty
+  if (!mounted || typeof document === "undefined" || count <= 0 || lines.length === 0 || pathname === "/cart" || pathname === "/checkout" || pathname.startsWith("/order-success")) {
     return null;
   }
 
@@ -72,7 +72,7 @@ export function FloatingCartBar({
     >
       <div className="mx-auto w-full max-w-md px-4">
         <Link
-          to="/checkout"
+          to="/cart"
           className="group pointer-events-auto relative overflow-hidden flex items-center justify-between gap-3 rounded-2xl bg-[#006045] text-white border border-[#006045] px-4 py-2.5 shadow-[0_12px_36px_-6px_rgba(0,96,69,0.4)] ring-1 ring-black/10 transition-all duration-300 cursor-pointer active:scale-[0.98] hover:brightness-105 hover:shadow-[0_16px_40px_-6px_rgba(0,96,69,0.5)]"
         >
           {/* Left: Overlapping circular item thumbnails + View Cart text */}

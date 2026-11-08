@@ -174,3 +174,51 @@
 6. **Multi-App Build & iOS Native Synchronization:**
    - Successfully compiled all four frontends: `build:admin`, `build:customer`, `build:partner`, and `build:rider`.
    - Executed `python3 build_all_ios.py` to regenerate static assets and synchronize all 3 native Xcode platforms (`customer-frontend/ios`, `partner-frontend/ios`, `rider-frontend/ios`).
+
+### Production Launch Readiness Phase 2: 10 Critical Platform Logical Fixes
+1. **Bug 1 — Coupon Code Validation Mismatch & Order Placement Rejection:**
+   - In `backend-python/app/db/cart_repositories.py` and `backend-python/app/db/order_repositories.py`:
+     - Added `QUICK50` (50% off up to ₹100, min ₹199) and `FIRSTFREE` (flat ₹75 off, min ₹99) to `DEFAULT_COUPONS` and the fallback verification list in order placement.
+     - Orders placed with promotional coupons now validate and persist correctly without rejection.
+2. **Bug 2 — Cart vs Checkout Pricing Discrepancy:**
+   - In `customer-frontend/src/routes/cart.tsx`:
+     - Updated free delivery qualification threshold from `499` to `149` (matching `checkout.tsx` and admin finance rules).
+     - Integrated `isHandlingFeeEnabled` checking, plus `isPackagingFeeEnabled` and `packagingFee` into service GST calculation, grand total, and bill breakdown.
+     - Ensured 100% parity between the Cart summary and Checkout bill details.
+3. **Bug 3 — Multi-Store Cart Cross-Contamination:**
+   - In `customer-frontend/src/routes/partner.$partnerId.tsx`:
+     - Implemented single-store cart isolation check in `step()`.
+     - Added confirmation modal (`Replace items in cart?`) prompting customers before replacing items from another laundromat partner store, preventing mixed-partner carts.
+4. **Bug 4 — GST Tax Misclassification (Intra-State vs Inter-State IGST):**
+   - In `backend-python/app/services/unified_finance_service.py`:
+     - Added geographic state normalizer (`_normalize_state`) mapping Kasganj / UP addresses (e.g. `"Kasganj, Uttar Pradesh 207123"`) to `"uttar pradesh"`.
+     - Properly applies intra-state 2.5% CGST + 2.5% SGST (0 IGST) for local orders instead of incorrectly charging 5% IGST.
+5. **Bug 5 — Hardcoded 2.5 KM Delivery Distance in Order Creation:**
+   - In `backend-python/app/db/order_repositories.py`:
+     - Replaced static `2.5` km placeholder with dynamic `haversine_km` distance calculation between customer delivery coordinates and partner store coordinates.
+6. **Bug 6 — Offline / Suspended Rider Claiming Orders:**
+   - In `backend-python/app/services/smart_2ride_engine.py`:
+     - Added strict safety checks in `handle_rider_accept` raising `ACCOUNT_SUSPENDED` if the rider is suspended/inactive, and `RIDER_OFFLINE` if not on duty, preventing invalid job claims.
+7. **Bug 7 — Default Fallback City as "Bengaluru" Changed to "Kasganj":**
+   - Replaced legacy fallback city `"Bengaluru"` with `"Kasganj"` across:
+     - `backend-python/app/db/order_repositories.py`
+     - `backend-python/app/models/partner.py`
+     - `backend-python/app/db/catalog_repositories.py`
+     - `customer-frontend/src/routes/addresses.tsx`
+8. **Bug 8 — In-Memory Cart State Not Cleared on Logout:**
+   - In `customer-frontend/src/api/customer/profile-api.ts`:
+     - Added `clearCartLines()` and `setCartState(...)` calls inside `logout()` and `deleteCustomerAccount()` `finally` blocks, clearing active cart data on sign out.
+9. **Bug 9 — Rider COD Cash Collection vs Admin Financial Ledger Mismatch:**
+   - In `backend-python/app/api/rider.py` (`collect_cash_order`):
+     - Added update to `order_financials` (`paymentStatus: "PAID", paymentGateway: "cod"`), and incremented rider `floatingCash` / `cashInHand` with `not already_collected` guard.
+   - In `backend-python/app/services/smart_2ride_engine.py`:
+     - Added guard `not order.get("cashCollectedByRider")` before updating float to prevent double-charging the captain's COD float balance.
+10. **Bug 10 — Floating Cart Bar Visibility on Empty Cart:**
+    - In `customer-frontend/src/components/cart/FloatingCartBar.tsx`:
+      - Added `count <= 0 || lines.length === 0` guard so the floating cart bar never renders when empty.
+      - Updated destination link from `/checkout` to `/cart`.
+11. **Testing, Build & Native iOS Verification:**
+    - Created `backend-python/tests/test_logical_fixes.py` (3 test suites, 100% pass).
+    - Verified 18 tests across finance and security test suites (100% pass).
+    - Built and verified all 4 web frontends (`customer`, `admin`, `partner`, `rider`) with zero errors.
+    - Ran `build_all_ios.py` and synchronized native iOS Capacitor platforms for Customer, Partner, and Captain apps.

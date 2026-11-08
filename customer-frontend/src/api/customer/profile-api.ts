@@ -24,6 +24,8 @@ import type {
 import { clearSession, readToken } from "../core/session-store";
 import { apiGetJson, apiPostJson, apiRequest } from "../core/transport";
 import { CACHE_KEYS, readCache, readStaleCache, writeCache } from "./api/cache";
+import { clearCartLines } from "./cart-store";
+import { setCartState } from "./cart-api";
 
 export const PROFILE_API_ENDPOINTS = {
   profile: "/api/profile",
@@ -377,6 +379,8 @@ export async function logout(): Promise<{ ok: true }> {
     await apiPostJson<{ ok: true }>(PROFILE_API_ENDPOINTS.logout, {});
   } finally {
     clearSession();
+    clearCartLines();
+    setCartState({ instructions: "", couponCode: null, couponDiscount: 0 });
   }
   return { ok: true };
 }
@@ -388,6 +392,8 @@ export async function deleteCustomerAccount(): Promise<{ ok: true; message?: str
     return res;
   } finally {
     clearSession();
+    clearCartLines();
+    setCartState({ instructions: "", couponCode: null, couponDiscount: 0 });
   }
 }
 

@@ -77,15 +77,15 @@ type AddressTextField = Exclude<keyof AddressDraft, "type" | "latitude" | "longi
 
 const FIELDS: { key: AddressTextField; label: string; placeholder: string; half?: boolean }[] = [
   { key: "houseNumber", label: "House Number", placeholder: "B-402", half: true },
-  { key: "building", label: "Building Name", placeholder: "Sunrise Residency", half: true },
-  { key: "street", label: "Street", placeholder: "Palm Grove Road" },
-  { key: "area", label: "Area", placeholder: "Indiranagar" },
-  { key: "landmark", label: "Landmark", placeholder: "Opposite metro pillar" },
-  { key: "city", label: "City", placeholder: "Bengaluru", half: true },
-  { key: "state", label: "State", placeholder: "Karnataka", half: true },
-  { key: "pincode", label: "PIN Code", placeholder: "560038", half: true },
-  { key: "contactName", label: "Contact Name", placeholder: "Aarav Sharma", half: true },
-  { key: "phone", label: "Phone Number", placeholder: "+91 98765 43210" },
+  { key: "building", label: "Building Name", placeholder: "House / Apartment / Floor", half: true },
+  { key: "street", label: "Street", placeholder: "Main Road / Street Name" },
+  { key: "area", label: "Area", placeholder: "Kisroli Road / Market" },
+  { key: "landmark", label: "Landmark", placeholder: "Near Clock Tower / Hospital" },
+  { key: "city", label: "City", placeholder: "Kasganj", half: true },
+  { key: "state", label: "State", placeholder: "Uttar Pradesh", half: true },
+  { key: "pincode", label: "PIN Code", placeholder: "207123", half: true },
+  { key: "contactName", label: "Contact Name", placeholder: "Your Name", half: true },
+  { key: "phone", label: "Phone Number", placeholder: "10-digit Mobile Number" },
 ];
 
 function AddressesScreen() {

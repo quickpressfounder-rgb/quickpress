@@ -243,6 +243,7 @@ function PartnerDetailScreen() {
   const [offline, setOffline] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [cartPopupOpen, setCartPopupOpen] = useState(false);
+  const [pendingItemReplacement, setPendingItemReplacement] = useState<{ id: string; delta: number; otherStoreName?: string } | null>(null);
   const isPartnerClosed = Boolean(data?.partner && (!data.partner.open || data.partner.status === "closed"));
 
   useEffect(() => {
@@ -331,6 +332,22 @@ function PartnerDetailScreen() {
         );
         return;
       }
+
+      // Marketplace store isolation check
+      if (delta > 0) {
+        const otherStoreItem = cart.lines.find(
+          (line) => line.partnerId && line.partnerId !== partnerId
+        );
+        if (otherStoreItem) {
+          setPendingItemReplacement({
+            id,
+            delta,
+            otherStoreName: otherStoreItem.partnerName || "another store",
+          });
+          return;
+        }
+      }
+
       setQuantities((prev) => {
         const nextQty = Math.max(0, (prev[id] ?? 0) + delta);
         const updated = { ...prev, [id]: nextQty };
@@ -1002,6 +1019,61 @@ function PartnerDetailScreen() {
           </div>
         </div>
       ) : null}
+      {/* Single-Store Cart Isolation Dialog */}
+      {pendingItemReplacement && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl border border-zinc-100 text-center animate-in slide-in-from-bottom-4 duration-300">
+            <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 mb-3 border border-amber-100">
+              <Store className="size-6" />
+            </div>
+            <h3 className="text-base font-black text-zinc-900">Replace items in cart?</h3>
+            <p className="mt-1.5 text-xs text-zinc-500 leading-relaxed">
+              Your cart currently contains services from <span className="font-bold text-zinc-800">{pendingItemReplacement.otherStoreName}</span>. Do you want to discard them and start a new order with <span className="font-bold text-zinc-800">{data?.partner.name}</span>?
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setPendingItemReplacement(null)}
+                className="w-full py-2.5 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-700 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const pending = pendingItemReplacement;
+                  setPendingItemReplacement(null);
+                  cart.clear();
+                  setQuantities({});
+                  if (pending) {
+                    const svc = data?.services.find((s) => s.id === pending.id);
+                    if (svc) {
+                      setQuantities({ [pending.id]: pending.delta });
+                      cart.add(
+                        {
+                          id: svc.id,
+                          name: svc.name,
+                          price: svc.startingPrice,
+                          unit: svc.unit,
+                          image: resolveServiceImage(svc.name, svc.image),
+                          description: svc.description,
+                          partnerId,
+                          partnerName: data?.partner.name,
+                        },
+                        pending.delta,
+                      );
+                      toast.success(`Cart updated with ${data?.partner.name}`);
+                    }
+                  }
+                }}
+                className="w-full py-2.5 text-xs font-bold rounded-xl bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
+              >
+                Replace Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -762,8 +762,22 @@ class UnifiedFinanceService:
                 taxable_laundry + laundry_gst + service_fees_taxable + service_gst, 2
             )
 
-        # Intra-state vs Inter-state GST breakdown
-        is_interstate = customer_state.strip().lower() != partner_state.strip().lower()
+        # Intra-state vs Inter-state GST breakdown with intelligent geographic normalization
+        def _normalize_state(s: str) -> str:
+            clean = (s or "").strip().lower()
+            if any(kw in clean for kw in ("uttar pradesh", "uttarpradesh", "u.p.", "up", "kasganj", "aligarh", "mathura", "agra", "lucknow", "noida", "ghaziabad")):
+                return "uttar pradesh"
+            if any(kw in clean for kw in ("karnataka", "bengaluru", "bangalore")):
+                return "karnataka"
+            if any(kw in clean for kw in ("delhi", "new delhi", "delhi ncr")):
+                return "delhi"
+            if any(kw in clean for kw in ("maharashtra", "mumbai", "pune")):
+                return "maharashtra"
+            return clean
+
+        norm_c_state = _normalize_state(customer_state)
+        norm_p_state = _normalize_state(partner_state)
+        is_interstate = bool(norm_c_state and norm_p_state and norm_c_state != norm_p_state)
         if is_interstate:
             cgst = 0.0
             sgst = 0.0

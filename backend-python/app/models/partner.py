@@ -132,7 +132,7 @@ class PartnerProfileResponse(BaseModel):
     ownerName: str = "Partner"
     phone: str = ""
     email: str = ""
-    city: str = "Bengaluru"
+    city: str = "Kasganj"
     rating: float = 5.0
     totalOrders: int = 0
     joinedOn: str = "August 2026"

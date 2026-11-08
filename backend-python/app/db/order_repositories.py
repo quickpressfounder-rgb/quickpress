@@ -403,8 +403,9 @@ class OrderRepository:
             from app.db.cart_repositories import DEFAULT_COUPONS
             doc = next((c for c in DEFAULT_COUPONS if str(c.get("code", "")).upper() == clean_code), None)
 
-        if not doc and clean_code in ("WELCOME50", "FIRST50", "FREEDEL", "CASH50", "QUICK30", "FREESHIP", "FESTIVE50", "WELCOME100"):
-            doc = {"code": clean_code, "status": "Active", "flatDiscount": min(50, client_discount) if client_discount > 0 else 50, "minOrder": 0}
+        if not doc and clean_code in ("WELCOME50", "FIRST50", "FREEDEL", "CASH50", "QUICK30", "FREESHIP", "FESTIVE50", "WELCOME100", "QUICK50", "FIRSTFREE"):
+            flat_val = 75 if clean_code == "FIRSTFREE" else (min(50, client_discount) if client_discount > 0 else 50)
+            doc = {"code": clean_code, "status": "Active", "flatDiscount": flat_val, "minOrder": 0}
 
         if not doc:
             raise ValueError(f"Invalid or expired promo code: '{clean_code}'")
@@ -580,9 +581,32 @@ class OrderRepository:
 
         is_express_order = bool((payload.pickup and payload.pickup.express) or getattr(payload, "isExpress", False))
 
+        # Real distance calculation between customer address and partner store
+        calc_dist_km = 2.5
+        try:
+            from app.core.maps import haversine_km
+            c_lat = getattr(address, "latitude", None)
+            c_lng = getattr(address, "longitude", None)
+            if (c_lat is None or c_lng is None) and payload.addressId:
+                saved_addr = await address_repository.get(user.id, payload.addressId)
+                if saved_addr:
+                    c_lat = getattr(saved_addr, "latitude", None)
+                    c_lng = getattr(saved_addr, "longitude", None)
+
+            p_doc = await database.find_one("partner_profiles", {"$or": [{"_id": partner.id}, {"partnerId": partner.id}]})
+            p_lat = (p_doc or {}).get("latitude") or (p_doc or {}).get("lat") or ((p_doc or {}).get("location") or {}).get("latitude")
+            p_lng = (p_doc or {}).get("longitude") or (p_doc or {}).get("lng") or ((p_doc or {}).get("location") or {}).get("longitude")
+
+            if c_lat is not None and c_lng is not None and p_lat is not None and p_lng is not None:
+                computed_dist = round(haversine_km((float(c_lat), float(c_lng)), (float(p_lat), float(p_lng))), 1)
+                if computed_dist > 0:
+                    calc_dist_km = max(0.5, min(50.0, computed_dist))
+        except Exception:
+            calc_dist_km = 2.5
+
         fin_calc = await unified_finance_service.calculate_checkout_price(
             items=[{"price": it.price, "quantity": it.qty, "name": it.name} for it in items],
-            distance_km=2.5,
+            distance_km=calc_dist_km,
             coupon_code=verified_coupon_code,
             coupon_discount=float(verified_coupon_discount) + float(member_discount_amount),
             is_express=is_express_order,
@@ -1005,7 +1029,7 @@ class OrderRepository:
             name=document.get("businessName") or document.get("name") or "QuickPress Partner",
             phone=document.get("phone", ""),
             image=image,
-            city=city_area or "Bengaluru",
+            city=city_area or "Kasganj",
         )
 
 
