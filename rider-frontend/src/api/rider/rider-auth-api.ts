@@ -179,8 +179,8 @@ export async function verifyAadhaarOtp(aadhaarNumber: string, otp: string, clien
   }>("/api/rider/verify/aadhaar/verify-otp", { aadhaarNumber, otp, clientId, fullName });
 }
 
-export async function verifyAadhaar(aadhaarNumber: string, fullName = "") {
-  return verifyAadhaarOtp(aadhaarNumber, "123456", undefined, fullName);
+export async function verifyAadhaar(aadhaarNumber: string, otp: string, clientId?: string, fullName = "") {
+  return verifyAadhaarOtp(aadhaarNumber, otp, clientId, fullName);
 }
 
 export async function verifyPan(panNumber: string, fullName = "") {

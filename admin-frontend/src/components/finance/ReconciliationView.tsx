@@ -4,6 +4,7 @@ import {
   fetchReconciliationSummary,
   fetchReconciliationRuns,
   resolveReconciliationRun,
+  fetchTreasuryHealth,
 } from "../../api/finance-api";
 import {
   Scale,
@@ -14,6 +15,7 @@ import {
   Filter,
   ArrowRight,
   ShieldAlert,
+  ShieldCheck,
   FileCheck,
   Building,
   CreditCard,
@@ -41,6 +43,11 @@ export const ReconciliationView: React.FC<ReconciliationViewProps> = ({ onInspec
   const { data: summaryData, isLoading: summaryLoading } = useQuery({
     queryKey: ["reconSummary"],
     queryFn: fetchReconciliationSummary,
+  });
+
+  const { data: treasuryData, isLoading: treasuryLoading } = useQuery({
+    queryKey: ["treasuryHealth"],
+    queryFn: fetchTreasuryHealth,
   });
 
   const { data: runsData, isLoading: runsLoading } = useQuery({
@@ -143,7 +150,8 @@ export const ReconciliationView: React.FC<ReconciliationViewProps> = ({ onInspec
               onClick={() => {
                 queryClient.invalidateQueries({ queryKey: ["reconSummary"] });
                 queryClient.invalidateQueries({ queryKey: ["reconRuns"] });
-                toast.success("Reconciliation records refreshed");
+                queryClient.invalidateQueries({ queryKey: ["treasuryHealth"] });
+                toast.success("Reconciliation & Treasury records refreshed");
               }}
               className="bg-zinc-800 text-zinc-200 border-zinc-600 hover:bg-zinc-700 font-bold"
             >
@@ -179,6 +187,59 @@ export const ReconciliationView: React.FC<ReconciliationViewProps> = ({ onInspec
             <div>
               <div className="font-bold text-zinc-200">3. Bank General Ledger</div>
               <div className="text-zinc-400">Final GL balanced journal posted to Account 1010</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Live Treasury Double-Entry Zero-Loss Integrity Banner */}
+      <div className="bg-gradient-to-r from-emerald-950/40 via-zinc-900 to-zinc-900 border border-emerald-500/30 rounded-2xl p-5 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <ShieldCheck className="size-6 text-emerald-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-black text-zinc-100">Treasury Double-Entry Balance</span>
+                <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
+                  treasuryData?.status === "HEALTHY" || !treasuryData?.status
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                    : "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                }`}>
+                  {treasuryData?.status === "HEALTHY" || !treasuryData?.status ? "ZERO-LOSS BALANCED" : "VARIANCE FLAGGED"}
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Mathematical Verification: Inflow (Customer + Subsidy) = Disposition (Partner + Rider + Commission + Taxes + Gateway)
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-zinc-900/90 border border-zinc-800 p-3 rounded-xl text-center">
+            <div className="px-2">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Audited Orders</div>
+              <div className="text-sm font-black text-zinc-200 mt-0.5">
+                {treasuryData?.totalOrdersAudited ?? 0}
+              </div>
+            </div>
+            <div className="px-2 border-l border-zinc-800">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total Inflow</div>
+              <div className="text-sm font-black text-emerald-400 mt-0.5">
+                ₹{(treasuryData?.totalInflow ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+            <div className="px-2 border-l border-zinc-800">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total Disposition</div>
+              <div className="text-sm font-black text-blue-400 mt-0.5">
+                ₹{(treasuryData?.totalDisposition ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+            <div className="px-2 border-l border-zinc-800">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Net Variance</div>
+              <div className={`text-sm font-black mt-0.5 ${(treasuryData?.netTreasuryVariance ?? 0) === 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                ₹{(treasuryData?.netTreasuryVariance ?? 0).toFixed(2)}
+              </div>
             </div>
           </div>
         </div>

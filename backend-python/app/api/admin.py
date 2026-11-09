@@ -2928,6 +2928,16 @@ async def run_dpdp_anonymization(
     return {"ok": True, "result": result}
 
 
+@router.get("/treasury/verify-health")
+async def verify_treasury_health_alias(
+    user: User = Depends(require_roles(Role.admin)),
+) -> dict:
+    """Live treasury audit: validates zero-loss double-entry balance across all orders."""
+    from app.db.reconciliation_repository import reconciliation_repository
+    return await reconciliation_repository.verify_treasury_health()
+
+
+
 
 
 

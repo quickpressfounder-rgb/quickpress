@@ -217,3 +217,45 @@ async def test_razorpay_webhook_concurrent_duplicate_handling():
     except Exception as exc:
         err_str = str(exc).lower()
         assert "duplicate" in err_str or "11000" in err_str or "unique" in err_str
+
+
+@pytest.mark.asyncio
+async def test_treasury_health_zero_loss_audit():
+    """Verify double-entry zero-loss treasury health engine audits inflow == disposition."""
+    from app.db.reconciliation_repository import reconciliation_repository
+
+    # 1. Clear test order & financial snapshot
+    test_ord_id = "ord_treasury_audit_test_01"
+    await database.collection("customer_orders").delete_many({"_id": test_ord_id})
+    await database.collection("order_financials").delete_many({"_id": test_ord_id})
+
+    # 2. Insert test order with perfectly balanced financials
+    # Inflow: customerPayable (500.0) + deliverySubsidy (50.0) = 550.0
+    # Disposition: partnerAmount (400.0) + riderAmount (70.0) + platformFee (50.0) + taxes (20.0) + gatewayFee (10.0) = 550.0
+    order_doc = {
+        "_id": test_ord_id,
+        "code": "ORD-TREASURY-01",
+        "status": "delivered",
+        "financialSnapshot": {
+            "customerPayable": 500.0,
+            "deliverySubsidy": 50.0,
+            "partnerAmount": 400.0,
+            "riderAmount": 70.0,
+            "platformFee": 50.0,
+            "totalGst": 20.0,
+            "gatewayFee": 10.0,
+        },
+    }
+    await database.collection("customer_orders").insert_one(order_doc)
+
+    report = await reconciliation_repository.verify_treasury_health()
+    assert report["ok"] is True
+    assert report["currency"] == "INR"
+    assert report["policy"] == "DOUBLE_ENTRY_ZERO_LOSS_INTEGRITY"
+    assert report["totalOrdersAudited"] >= 1
+    assert report["status"] == "HEALTHY"
+    assert report["mathematicallyReconciled"] is True
+
+    # Clean up test artifact
+    await database.collection("customer_orders").delete_many({"_id": test_ord_id})
+

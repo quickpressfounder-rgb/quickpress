@@ -776,6 +776,24 @@ export async function fetchReconciliationSummary(): Promise<{
   return await apiGetJson("/api/reconciliation/summary");
 }
 
+export async function fetchTreasuryHealth(): Promise<{
+  ok: boolean;
+  status: "HEALTHY" | "VARIANCE_DETECTED";
+  mathematicallyReconciled: boolean;
+  totalOrdersAudited: number;
+  totalInflow: number;
+  totalDisposition: number;
+  netTreasuryVariance: number;
+  currency: string;
+  integrityScorePercentage: number;
+  flaggedDiscrepanciesCount: number;
+  flaggedDiscrepancies: Array<any>;
+  auditedAt: string;
+  policy: string;
+}> {
+  return await apiGetJson("/api/reconciliation/treasury-health");
+}
+
 export async function fetchReconciliationRuns(params?: Record<string, any>): Promise<{
   ok: boolean;
   page: number;

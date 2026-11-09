@@ -154,5 +154,73 @@ class ReconciliationRepository:
             "match_rate_percentage": round((len(matched) / len(all_runs) * 100), 1) if all_runs else 100.0,
         }
 
+    async def verify_treasury_health(self) -> Dict[str, Any]:
+        """Audits double-entry ledger integrity across all settled and active customer orders.
+
+        Verifies that:
+            Inflow (customerPayable + deliverySubsidy) == Disposition (partnerNet + riderPayout + platformFee + taxes + gatewayFee)
+        within a strict ₹0.05 rounding tolerance.
+        """
+        orders = await database.find_many("customer_orders", {"status": {"$nin": ["cancelled", "declined"]}})
+        financials = await database.find_many("order_financials", {})
+        fin_map = {str(f.get("_id") or f.get("orderId")): f for f in financials}
+
+        total_orders_audited = 0
+        total_inflow = 0.0
+        total_disposition = 0.0
+        flagged_discrepancies: List[Dict[str, Any]] = []
+
+        for ord_doc in orders:
+            ord_id = str(ord_doc.get("_id") or ord_doc.get("id"))
+            fin = fin_map.get(ord_id) or ord_doc.get("financialSnapshot") or ord_doc.get("pricingSnapshot")
+            if not fin:
+                continue
+
+            customer_payable = float(fin.get("customerPayable", fin.get("grandTotal", 0.0)))
+            delivery_subsidy = float(fin.get("deliverySubsidy", 0.0))
+            inflow = round(customer_payable + delivery_subsidy, 2)
+
+            partner_amount = float(fin.get("partnerAmount", fin.get("partnerNetPayout", 0.0)))
+            rider_amount = float(fin.get("riderAmount", fin.get("riderPayout", 0.0)))
+            platform_fee = float(fin.get("platformFee", fin.get("commission", 0.0)))
+            taxes = float(fin.get("totalGst", fin.get("tax", 0.0)))
+            gateway_fee = float(fin.get("gatewayFee", 0.0))
+
+            disposition = round(partner_amount + rider_amount + platform_fee + taxes + gateway_fee, 2)
+            delta = round(abs(inflow - disposition), 2)
+
+            total_orders_audited += 1
+            total_inflow = round(total_inflow + inflow, 2)
+            total_disposition = round(total_disposition + disposition, 2)
+
+            if delta > 0.05:
+                flagged_discrepancies.append({
+                    "orderId": ord_id,
+                    "orderCode": ord_doc.get("code") or ord_id,
+                    "inflow": inflow,
+                    "disposition": disposition,
+                    "variance": round(inflow - disposition, 2),
+                    "status": ord_doc.get("status"),
+                })
+
+        net_variance = round(abs(total_inflow - total_disposition), 2)
+        is_healthy = len(flagged_discrepancies) == 0
+
+        return {
+            "ok": True,
+            "status": "HEALTHY" if is_healthy else "VARIANCE_DETECTED",
+            "mathematicallyReconciled": is_healthy,
+            "totalOrdersAudited": total_orders_audited,
+            "totalInflow": total_inflow,
+            "totalDisposition": total_disposition,
+            "netTreasuryVariance": net_variance,
+            "currency": "INR",
+            "integrityScorePercentage": 100.0 if total_orders_audited == 0 else round((total_orders_audited - len(flagged_discrepancies)) / total_orders_audited * 100, 2),
+            "flaggedDiscrepanciesCount": len(flagged_discrepancies),
+            "flaggedDiscrepancies": flagged_discrepancies[:20],
+            "auditedAt": _now_iso(),
+            "policy": "DOUBLE_ENTRY_ZERO_LOSS_INTEGRITY",
+        }
+
 
 reconciliation_repository = ReconciliationRepository()

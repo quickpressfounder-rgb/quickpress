@@ -35,6 +35,13 @@ async def get_reconciliation_summary() -> Dict[str, Any]:
     return {"ok": True, "summary": summary}
 
 
+@router.get("/treasury-health", summary="Verify Double-Entry Treasury Health & Zero-Loss Integrity")
+async def get_treasury_health() -> Dict[str, Any]:
+    """Audits double-entry ledger balance across all orders and flags mathematical variance."""
+    health = await reconciliation_repository.verify_treasury_health()
+    return health
+
+
 @router.get("/runs", summary="List Reconciliation Runs (Paginated)")
 async def list_reconciliation_runs(
     page: int = Query(1, ge=1, description="Page number"),
