@@ -583,10 +583,17 @@ async def handle_cashfree_webhook(
         logger.info("Cashfree webhook event %s already processed. Skipping.", event_id)
         return {"ok": True, "message": "Already processed"}
 
-    # Record event in Supabase
-    await database.collection(WEBHOOK_EVENTS_COLL).insert_one(
-        {"_id": event_id, "type": event_type, "time": event_time, "data": event_data}
-    )
+    # Record event in Supabase / DB
+    try:
+        await database.collection(WEBHOOK_EVENTS_COLL).insert_one(
+            {"_id": event_id, "type": event_type, "time": event_time, "data": event_data}
+        )
+    except Exception as exc:
+        err_str = str(exc).lower()
+        if "duplicate" in err_str or "11000" in err_str or "unique" in err_str:
+            logger.info("Cashfree webhook event %s already processed (concurrent duplicate). Skipping.", event_id)
+            return {"ok": True, "message": "Already processed"}
+        raise
     if database._supabase:
         try:
             pool = await database._supabase.get_pool()

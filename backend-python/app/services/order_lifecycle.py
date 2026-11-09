@@ -640,7 +640,32 @@ async def transition(
         "events": embedded,
         **(changes or {}),
     }
-    await database.collection(ORDERS).update_one({"_id": order["_id"]}, {"$set": update})
+
+    # Compare-And-Swap (CAS) concurrency guard: only apply transition if status hasn't mutated concurrently
+    cur_status = order_status(order)
+    raw_status = order.get("status")
+    status_match = list({cur_status, raw_status}) if raw_status else [cur_status]
+    cas_filter = {"_id": order["_id"], "status": {"$in": status_match}}
+
+    res = await database.collection(ORDERS).update_one(cas_filter, {"$set": update})
+    is_modified = False
+    if res is None:
+        is_modified = False
+    elif hasattr(res, "modified_count"):
+        is_modified = (res.modified_count > 0 or getattr(res, "matched_count", 0) > 0)
+    elif isinstance(res, dict):
+        is_modified = True
+
+    if not is_modified:
+        fresh = await get_order(order["_id"])
+        fresh_status = order_status(fresh)
+        if fresh_status == target:
+            # Idempotent call: target state was already applied
+            return fresh
+        raise InvalidTransitionError(
+            f"Concurrent state conflict: Order {order_id} status changed to '{fresh_status}'. Transition to '{target}' aborted."
+        )
+
     updated = await get_order(order["_id"])
     await record_event(
         updated,

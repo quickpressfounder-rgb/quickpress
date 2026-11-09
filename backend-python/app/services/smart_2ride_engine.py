@@ -1179,18 +1179,31 @@ class Smart2RideEngine:
             zomato_dispatch_engine.cancel_dispatch(ride_id)
 
             now = lifecycle.now_iso()
-            rider_profile = await database.find_one(RIDERS_COLLECTION, {"_id": rider_id}) or {}
-            if not rider_profile:
-                rider_profile = await database.find_one("riders", {"_id": rider_id}) or {}
+            clean_r_id = rider_id.replace("CAP-", "").lower()
+            candidate_ids = [rider_id, clean_r_id, f"rdr-{clean_r_id}", f"rdr_{clean_r_id}"]
+            rider_profile = (
+                await database.find_one(RIDERS_COLLECTION, {"$or": [{"_id": {"$in": candidate_ids}}, {"riderId": {"$in": candidate_ids}}]})
+                or await database.find_one("riders", {"$or": [{"_id": {"$in": candidate_ids}}, {"riderId": {"$in": candidate_ids}}]})
+                or {}
+            )
 
             # Rider status validation (Fleet Safety & Anti-Fraud)
             r_status = str(rider_profile.get("status") or "").lower()
             if r_status in ("suspended", "blocked", "banned", "inactive", "blacklisted") or rider_profile.get("isSuspended"):
                 raise ValueError("ACCOUNT_SUSPENDED: Your delivery partner account is currently suspended or inactive. Please contact QuickPress support.")
 
+            is_assigned_to_this_rider = bool(
+                parent_order
+                and (
+                    parent_order.get("assignedRiderId") in (rider_id, clean_r_id, f"rdr-{clean_r_id}", f"CAP-{clean_r_id.upper()}")
+                    or parent_order.get("riderId") in (rider_id, clean_r_id, f"rdr-{clean_r_id}", f"CAP-{clean_r_id.upper()}")
+                    or (isinstance(parent_order.get("rider"), dict) and parent_order.get("rider", {}).get("id") in (rider_id, clean_r_id, f"rdr-{clean_r_id}"))
+                )
+            )
+
             is_online = bool(rider_profile.get("isOnline") or rider_profile.get("is_available"))
             duty_status = str(rider_profile.get("dutyStatus") or "").upper()
-            if not is_online and duty_status not in ("ON DUTY", "ONLINE", "ACTIVE") and r_status != "online":
+            if not is_online and duty_status not in ("ON DUTY", "ONLINE", "ACTIVE") and r_status != "online" and not is_assigned_to_this_rider:
                 raise ValueError("RIDER_OFFLINE: You are currently offline. Please go On Duty in the Captain app before accepting trips.")
 
             # Strict City Isolation Check: Captain must belong to the same city as the ride

@@ -1094,62 +1094,106 @@ class ReferralRepository:
         if hasattr(user, "id"):
             cands.append(f"PRT-{user.id}")
 
-        query: Dict[str, Any] = {"referrerId": {"$in": cands}, "status": "unlocked"}
-        if reward_id:
-            query["$or"] = [{"_id": reward_id}, {"id": reward_id}]
+        from app.core.idempotency import idempotency_engine
 
-        unlocked_docs = await database.find_many(MULTI_ROLE_LEDGER, query)
-        if not unlocked_docs:
-            return ClaimReferralRewardResponse(
-                ok=False,
-                claimedAmount=0.0,
-                cycleId="current",
-                message="No unlocked referral rewards found to claim.",
-            )
-
-        total_amount = sum(float(d.get("rewardAmount") or 0.0) for d in unlocked_docs)
-        now_str = utcnow().isoformat()
-
-        # Update status in ledger
-        for d in unlocked_docs:
-            d_id = str(d.get("_id") or d.get("id"))
-            await database.collection(MULTI_ROLE_LEDGER).update_one(
-                {"$or": [{"_id": d_id}, {"id": d_id}]},
-                {"$set": {"status": "claimed_to_cycle", "claimedAt": now_str, "settlementCycleId": "current"}},
-            )
-
-        # Partner settlement credit
-        if role_clean == "partner":
-            await database.collection("partner_settlement_additions").insert_one({
-                "partnerId": user.id,
-                "type": "referral_incentive",
-                "amount": total_amount,
-                "cycleId": "current",
-                "description": f"Referral Reward ({len(unlocked_docs)} stores milestone reached)",
-                "createdAt": now_str,
-            })
-            msg = f"₹{int(total_amount)} referral bonus credited to your Current Weekly Settlement Cycle! Will be paid out in your weekly bank transfer."
-        elif role_clean == "rider":
-            await database.collection("rider_wallets").update_one(
-                {"riderId": user.id},
-                {"$inc": {"balance": total_amount}},
-                upsert=True,
-            )
-            msg = f"₹{int(total_amount)} referral reward credited to your Rider Wallet Float!"
-        else:
-            await database.collection("customer_wallets").update_one(
-                {"userId": user.id},
-                {"$inc": {"balance": total_amount}},
-                upsert=True,
-            )
-            msg = f"₹{int(total_amount)} referral credit added to your QuickPress Wallet!"
-
-        return ClaimReferralRewardResponse(
-            ok=True,
-            claimedAmount=total_amount,
-            cycleId="current",
-            message=msg,
+        idemp = await idempotency_engine.acquire_or_wait(
+            "claim_referral", f"{user.id}:{reward_id or 'all'}"
         )
+        if idemp.is_duplicate and idemp.cached_data:
+            return ClaimReferralRewardResponse(**idemp.cached_data)
+
+        try:
+            query: Dict[str, Any] = {"referrerId": {"$in": cands}, "status": "unlocked"}
+            if reward_id:
+                query["$or"] = [{"_id": reward_id}, {"id": reward_id}]
+
+            unlocked_docs = await database.find_many(MULTI_ROLE_LEDGER, query)
+            if not unlocked_docs:
+                res = ClaimReferralRewardResponse(
+                    ok=False,
+                    claimedAmount=0.0,
+                    cycleId="current",
+                    message="No unlocked referral rewards found to claim.",
+                )
+                await idempotency_engine.complete(
+                    "claim_referral", f"{user.id}:{reward_id or 'all'}", res.model_dump()
+                )
+                return res
+
+            now_str = utcnow().isoformat()
+            claim_batch_id = f"clm-{uuid.uuid4().hex[:12]}"
+            claimed_docs = []
+
+            # Atomically update status in ledger ONLY where status is currently 'unlocked'
+            for d in unlocked_docs:
+                d_id = str(d.get("_id") or d.get("id"))
+                upd_res = await database.collection(MULTI_ROLE_LEDGER).update_one(
+                    {"$and": [{"$or": [{"_id": d_id}, {"id": d_id}]}, {"status": "unlocked"}]},
+                    {
+                        "$set": {
+                            "status": "claimed_to_cycle",
+                            "claimedAt": now_str,
+                            "settlementCycleId": "current",
+                            "claimBatchId": claim_batch_id,
+                        }
+                    },
+                )
+                if upd_res.modified_count > 0:
+                    claimed_docs.append(d)
+
+            if not claimed_docs:
+                res = ClaimReferralRewardResponse(
+                    ok=False,
+                    claimedAmount=0.0,
+                    cycleId="current",
+                    message="No unlocked referral rewards found to claim (already claimed).",
+                )
+                await idempotency_engine.complete(
+                    "claim_referral", f"{user.id}:{reward_id or 'all'}", res.model_dump()
+                )
+                return res
+
+            total_amount = sum(float(d.get("rewardAmount") or 0.0) for d in claimed_docs)
+
+            # Partner settlement credit
+            if role_clean == "partner":
+                await database.collection("partner_settlement_additions").insert_one({
+                    "partnerId": user.id,
+                    "type": "referral_incentive",
+                    "amount": total_amount,
+                    "cycleId": "current",
+                    "description": f"Referral Reward ({len(claimed_docs)} stores milestone reached)",
+                    "createdAt": now_str,
+                })
+                msg = f"₹{int(total_amount)} referral bonus credited to your Current Weekly Settlement Cycle! Will be paid out in your weekly bank transfer."
+            elif role_clean == "rider":
+                await database.collection("rider_wallets").update_one(
+                    {"riderId": user.id},
+                    {"$inc": {"balance": total_amount}},
+                    upsert=True,
+                )
+                msg = f"₹{int(total_amount)} referral reward credited to your Rider Wallet Float!"
+            else:
+                await database.collection("customer_wallets").update_one(
+                    {"userId": user.id},
+                    {"$inc": {"balance": total_amount}},
+                    upsert=True,
+                )
+                msg = f"₹{int(total_amount)} referral credit added to your QuickPress Wallet!"
+
+            res = ClaimReferralRewardResponse(
+                ok=True,
+                claimedAmount=total_amount,
+                cycleId="current",
+                message=msg,
+            )
+            await idempotency_engine.complete(
+                "claim_referral", f"{user.id}:{reward_id or 'all'}", res.model_dump()
+            )
+            return res
+        except Exception:
+            await idempotency_engine.release("claim_referral", f"{user.id}:{reward_id or 'all'}")
+            raise
 
     async def process_order_milestones(self, order: Dict[str, Any]) -> None:
         """Triggered when an order is completed. Advances referral milestone counters for referred partner/rider/customer."""

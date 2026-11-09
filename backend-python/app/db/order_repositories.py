@@ -380,6 +380,7 @@ class OrderRepository:
         coupon_code: Optional[str],
         client_discount: int,
         items: List[Any],
+        user_id: Optional[str] = None,
     ) -> Tuple[int, str]:
         """Validate coupon code and compute authoritative discount server-side.
 
@@ -413,6 +414,30 @@ class OrderRepository:
         status_val = str(doc.get("status") or "Active").lower()
         if status_val not in ("active", "live", "valid"):
             raise ValueError(f"Promo code '{clean_code}' is currently inactive.")
+
+        # Check first-order restriction
+        is_first_order_only = (
+            bool(doc.get("firstOrderOnly"))
+            or bool(doc.get("forFirstOrder"))
+            or clean_code in ("WELCOME50", "FIRST50", "FIRSTFREE", "WELCOME100")
+        )
+        if is_first_order_only and user_id:
+            prior_count = await database.collection(COLLECTION).count_documents({
+                "$or": [{"userId": user_id}, {"customerId": user_id}],
+                "status": {"$nin": ["cancelled", "declined"]},
+            })
+            if prior_count > 0:
+                raise ValueError(f"Promo code '{clean_code}' is valid only on your first order.")
+
+        # Check single-use restriction per user
+        if user_id and clean_code:
+            already_used = await database.collection(COLLECTION).find_one({
+                "$or": [{"userId": user_id}, {"customerId": user_id}],
+                "couponCode": {"$regex": f"^{clean_code}$", "$options": "i"},
+                "status": {"$nin": ["cancelled", "declined"]},
+            })
+            if already_used:
+                raise ValueError(f"Promo code '{clean_code}' has already been redeemed on a previous order.")
 
         min_order = float(doc.get("minOrder") or doc.get("minOrderValue") or doc.get("min_order_value") or 0.0)
         if min_order > 0 and raw_subtotal < min_order:
@@ -474,6 +499,7 @@ class OrderRepository:
             payload.couponCode,
             payload.couponDiscount,
             items,
+            user_id=user.id,
         )
 
         totals = compute_totals(items, charges, verified_coupon_discount + member_discount_amount)
@@ -875,55 +901,70 @@ class OrderRepository:
 
     async def cancel(self, user_id: str, order_id: str, reason: str) -> Optional[OrderResponse]:
         """Customers can cancel until the rider has picked the laundry up."""
-        order = await self.by_id(user_id, order_id)
-        if order is None:
-            return None
-        if order.status in ("picked_up", "at_partner", "processing", "completed",
-                            "out_for_delivery", "delivered"):
-            raise ValueError("This order has already been picked up and can no longer be cancelled")
-        if order.status == "cancelled":
-            return order
-        await lifecycle.transition(
-            order.id,
-            lifecycle.CANCELLED,
-            actor_id=user_id,
-            actor_role="customer",
-            metadata={"reason": reason or "Cancelled by customer"},
-            changes={"cancelledReason": reason or "Cancelled by customer"},
-        )
+        from app.core.idempotency import idempotency_engine
 
-        # Automatic instant refund according to live cancellation policy in Unified Finance Engine
-        if order.payment and (order.payment.paid or order.payment.mode == "wallet"):
-            try:
-                from app.services.unified_finance_service import unified_finance_service
-                from app.db.repositories import users
-                from app.db.wallet_repositories import wallet_repository
+        idemp = await idempotency_engine.acquire_or_wait("order_cancel", f"{user_id}:{order_id}")
+        if idemp.is_duplicate:
+            return await self.by_id(user_id, order_id)
 
-                canc_calc = await unified_finance_service.calculate_cancellation(order.id, order.status)
-                refund_amt = float(canc_calc.get("refundAmount", order.totals.grandTotal))
+        try:
+            order = await self.by_id(user_id, order_id)
+            if order is None:
+                await idempotency_engine.release("order_cancel", f"{user_id}:{order_id}")
+                return None
+            if order.status in ("picked_up", "at_partner", "processing", "completed",
+                                "out_for_delivery", "delivered"):
+                await idempotency_engine.release("order_cancel", f"{user_id}:{order_id}")
+                raise ValueError("This order has already been picked up and can no longer be cancelled")
+            if order.status == "cancelled":
+                await idempotency_engine.complete("order_cancel", f"{user_id}:{order_id}", {"ok": True})
+                return order
+            await lifecycle.transition(
+                order.id,
+                lifecycle.CANCELLED,
+                actor_id=user_id,
+                actor_role="customer",
+                metadata={"reason": reason or "Cancelled by customer"},
+                changes={"cancelledReason": reason or "Cancelled by customer"},
+            )
 
-                await unified_finance_service.process_refund(
-                    order_id=order.id,
-                    refund_amount=refund_amt,
-                    reason=reason or "Cancelled by customer",
-                    processed_by=user_id,
-                )
+            # Automatic instant refund according to live cancellation policy in Unified Finance Engine
+            if order.payment and (order.payment.paid or order.payment.mode == "wallet"):
+                try:
+                    from app.services.unified_finance_service import unified_finance_service
+                    from app.db.repositories import users
+                    from app.db.wallet_repositories import wallet_repository
 
-                user_obj = await users.by_id(user_id)
-                if user_obj and refund_amt > 0:
-                    await wallet_repository.credit(
-                        user_obj,
-                        refund_amt,
-                        kind="refund",
-                        title="Order Refund",
-                        description=f"Refund for cancelled Order #{order.code} (Fee: ₹{canc_calc.get('cancellationFee', 0):.2f})",
-                        method="wallet",
-                        reference=f"ref-{order.id}",
+                    canc_calc = await unified_finance_service.calculate_cancellation(order.id, order.status)
+                    refund_amt = float(canc_calc.get("refundAmount", order.totals.grandTotal))
+
+                    await unified_finance_service.process_refund(
+                        order_id=order.id,
+                        refund_amount=refund_amt,
+                        reason=reason or "Cancelled by customer",
+                        processed_by=user_id,
                     )
-            except Exception as e:
-                logger.warning("Error processing unified cancellation refund for %s: %s", order.id, e)
 
-        return await self.by_id(user_id, order_id)
+                    user_obj = await users.by_id(user_id)
+                    if user_obj and refund_amt > 0:
+                        await wallet_repository.credit(
+                            user_obj,
+                            refund_amt,
+                            kind="refund",
+                            title="Order Refund",
+                            description=f"Refund for cancelled Order #{order.code} (Fee: ₹{canc_calc.get('cancellationFee', 0):.2f})",
+                            method="wallet",
+                            reference=f"ref-{order.id}",
+                        )
+                except Exception as e:
+                    logger.warning("Error processing unified cancellation refund for %s: %s", order.id, e)
+
+            res = await self.by_id(user_id, order_id)
+            await idempotency_engine.complete("order_cancel", f"{user_id}:{order_id}", {"ok": True})
+            return res
+        except Exception:
+            await idempotency_engine.release("order_cancel", f"{user_id}:{order_id}")
+            raise
 
     async def history(
         self,
@@ -1017,9 +1058,32 @@ class OrderRepository:
             document = await database.find_one("partner_profiles", {"_id": partner_id})
             if document is None:
                 document = await database.find_one("partner_profiles", {"partnerId": partner_id})
-        if document is None:
-            partners = await database.find_many("partner_profiles")
-            document = partners[0] if partners else None
+
+        # Check if the store is open and active
+        is_open = True
+        if document:
+            is_open = (
+                document.get("isStoreOpen") is not False
+                and document.get("acceptingNewOrders") is not False
+                and str(document.get("status", "")).lower() != "suspended"
+            )
+
+        if not document or not is_open:
+            # Look for an active, open partner store
+            open_partners = await database.find_many(
+                "partner_profiles",
+                {
+                    "isStoreOpen": {"$ne": False},
+                    "acceptingNewOrders": {"$ne": False},
+                    "status": {"$ne": "suspended"},
+                },
+            )
+            if open_partners:
+                document = open_partners[0]
+            elif document is None:
+                partners = await database.find_many("partner_profiles")
+                document = partners[0] if partners else None
+
         if document is None:
             return OrderPartnerParty(id=partner_id or "", name="QuickPress Partner", phone="", image="", city="")
         image = document.get("bannerUrl") or document.get("cover") or document.get("logoUrl") or document.get("logo") or ""

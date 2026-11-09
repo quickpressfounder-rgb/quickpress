@@ -14,7 +14,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 
 logger = logging.getLogger(__name__)
 
@@ -3474,6 +3474,7 @@ async def accept_order(order_id: str, user: User = Depends(current_user)) -> dic
                 return lifecycle.to_rider_delivery(ord_doc)
             return res
         except ValueError as err:
+            logger.warning("smart_2ride_engine.handle_rider_accept failed for rider %s ride %s: %s", rider_id, ride.get("_id"), err)
             latest_ride = await database.find_one(RIDES_COLLECTION, {"_id": ride["_id"]}) or ride
             if latest_ride.get("riderId") == rider_id:
                 ord_doc = await lifecycle.find_order(canonical_ord_id)
@@ -4192,7 +4193,9 @@ async def wallet(user: Optional[User] = Depends(optional_user)) -> dict:
 
 
 @router.post("/wallet/withdraw")
-async def withdraw(body: dict, user: Optional[User] = Depends(optional_user)) -> dict:
+async def withdraw(
+    request: Request, body: dict, user: Optional[User] = Depends(optional_user)
+) -> dict:
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     rider_id = await _rider_id(user)
@@ -4203,8 +4206,30 @@ async def withdraw(body: dict, user: Optional[User] = Depends(optional_user)) ->
     bank_name = str((body or {}).get("bankName") or "").strip()
     account_holder = str((body or {}).get("accountHolder") or "").strip()
     upi_id = str((body or {}).get("upiId") or "").strip()
+
+    idempotency_key = (
+        request.headers.get("x-idempotency-key")
+        or (body or {}).get("idempotencyKey")
+        or (body or {}).get("clientRequestId")
+        or f"{rider_id}:{amount}:{account_number or upi_id}"
+    )
+
+    from app.core.idempotency import idempotency_engine
+
+    idemp = await idempotency_engine.acquire_or_wait(
+        "rider_withdraw", f"{rider_id}:{idempotency_key}"
+    )
+    if idemp.is_duplicate:
+        if idemp.cached_data:
+            return idemp.cached_data
+        if idemp.is_processing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A withdrawal transaction with this idempotency key is currently processing. Please wait.",
+            )
+
     try:
-        return await rider_wallet_repository.withdraw(
+        res = await rider_wallet_repository.withdraw(
             rider_id,
             amount,
             account_number=account_number,
@@ -4213,10 +4238,19 @@ async def withdraw(body: dict, user: Optional[User] = Depends(optional_user)) ->
             account_holder=account_holder,
             upi_id=upi_id,
         )
+        await idempotency_engine.complete(
+            "rider_withdraw", f"{rider_id}:{idempotency_key}", res
+        )
+        return res
     except LookupError as error:
+        await idempotency_engine.release("rider_withdraw", f"{rider_id}:{idempotency_key}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
     except ValueError as error:
+        await idempotency_engine.release("rider_withdraw", f"{rider_id}:{idempotency_key}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+    except Exception:
+        await idempotency_engine.release("rider_withdraw", f"{rider_id}:{idempotency_key}")
+        raise
 
 
 @router.post("/wallet/razorpay-order")

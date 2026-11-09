@@ -526,6 +526,40 @@ class RiderDispatchEngine:
                 f"CITY_MISMATCH: Order is in {o_city.title()}, but you are registered in {r_city.title()}. Rides can only be claimed by Captains in the same city."
             )
 
+        # Multi-Trip Capacity Protection: prevent captain over-commitment / SLA breaches
+        active_rider_stages = [
+            lifecycle.PICKUP_RIDER_ASSIGNED,
+            lifecycle.RIDER_ASSIGNED,
+            lifecycle.RIDER_PICKUP_ACCEPTED,
+            lifecycle.PICKUP_RIDER_ACCEPTED,
+            lifecycle.RIDER_ACCEPTED,
+            lifecycle.RIDER_GOING_TO_PICKUP,
+            lifecycle.PICKUP_OTP_PENDING,
+            lifecycle.PICKED_UP,
+            lifecycle.IN_TRANSIT_TO_STORE,
+            lifecycle.DELIVERY_RIDER_ASSIGNED,
+            lifecycle.DELIVERY_RIDER_2_ASSIGNED,
+            lifecycle.DELIVERY_RIDER_ACCEPTED,
+            lifecycle.DISPATCH_OTP_PENDING,
+            lifecycle.OUT_FOR_DELIVERY,
+            lifecycle.DELIVERY_OTP_PENDING,
+            lifecycle.HANDOVER_RIDER_ASSIGNED,
+            lifecycle.HANDOVER_OTP_PENDING,
+        ]
+        active_orders_count = await database.collection(ORDERS_COLLECTION).count_documents({
+            "$or": [
+                {"assignedRiderId": rider_id},
+                {"riderId": rider_id},
+                {"rider.id": rider_id},
+            ],
+            "status": {"$in": active_rider_stages},
+        })
+        max_concurrent_rider_trips = 3
+        if active_orders_count >= max_concurrent_rider_trips:
+            raise ValueError(
+                f"ACTIVE_TRIPS_LIMIT_REACHED: You already have {active_orders_count} active orders in progress. Please complete your current deliveries before accepting more orders."
+            )
+
         resolved_party = await resolve_real_rider_party(rider_profile or rider_id)
         rider_party = resolved_party or {
             "id": rider_id,

@@ -1276,9 +1276,11 @@ class UnifiedFinanceService:
         refund_status = "REFUNDED" if new_total_refund >= paid_amount else "PARTIALLY_REFUNDED"
 
         now_iso = datetime.now(timezone.utc).isoformat()
-        await database.update_one(
-            "order_financials",
-            {"_id": order_id},
+        res = await database.collection("order_financials").update_one(
+            {
+                "_id": order_id,
+                "refundAmount": already_refunded,
+            },
             {
                 "$set": {
                     "refundAmount": new_total_refund,
@@ -1289,6 +1291,27 @@ class UnifiedFinanceService:
                 }
             },
         )
+        if res.modified_count == 0:
+            fin_fresh = await database.find_one("order_financials", {"_id": order_id})
+            if not fin_fresh:
+                raise ValueError(f"Order financials not found for {order_id}")
+            fresh_already_refunded = float(fin_fresh.get("refundAmount", 0.0))
+            if (fresh_already_refunded + refund_amount) > paid_amount:
+                raise ValueError(f"Refund ceiling exceeded. Max refundable: ₹{paid_amount - fresh_already_refunded:.2f}")
+            new_total_refund = round(fresh_already_refunded + refund_amount, 2)
+            refund_status = "REFUNDED" if new_total_refund >= paid_amount else "PARTIALLY_REFUNDED"
+            await database.collection("order_financials").update_one(
+                {"_id": order_id},
+                {
+                    "$set": {
+                        "refundAmount": new_total_refund,
+                        "refundStatus": refund_status,
+                        "lastRefundReason": reason,
+                        "lastRefundAt": now_iso,
+                        "updatedAt": now_iso,
+                    }
+                },
+            )
 
         # Ledger: REFUND_CREATED
         ledger_entry = await self.record_ledger_event(

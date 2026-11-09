@@ -153,15 +153,22 @@ async def razorpay_webhook(
         logger.info("Razorpay webhook event %s already processed. Skipping.", event_id)
         return {"ok": True, "status": "already_processed", "eventId": event_id}
 
-    await database.collection(WEBHOOK_EVENTS_COLL).insert_one(
-        {
-            "_id": event_id,
-            "event_type": event_type,
-            "gateway": "razorpay",
-            "payload": payload,
-            "processed_at": repo.now_iso(),
-        }
-    )
+    try:
+        await database.collection(WEBHOOK_EVENTS_COLL).insert_one(
+            {
+                "_id": event_id,
+                "event_type": event_type,
+                "gateway": "razorpay",
+                "payload": payload,
+                "processed_at": repo.now_iso(),
+            }
+        )
+    except Exception as exc:
+        err_str = str(exc).lower()
+        if "duplicate" in err_str or "11000" in err_str or "unique" in err_str:
+            logger.info("Razorpay webhook event %s already processed (concurrent duplicate). Skipping.", event_id)
+            return {"ok": True, "status": "already_processed", "eventId": event_id}
+        raise
 
     logger.info("Processing Razorpay webhook event: %s (%s)", event_type, event_id)
 

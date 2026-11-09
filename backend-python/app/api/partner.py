@@ -2953,15 +2953,44 @@ async def get_cycle_settlement_breakdown(
 
 @router.post("/finance/instant-payout")
 async def request_partner_instant_payout(
-    body: dict, partner_id: str = Depends(_partner_id)
+    request: Request, body: dict, partner_id: str = Depends(_partner_id)
 ) -> dict:
     """Executes on-demand instant payout to registered partner bank account via Settlement Engine."""
     from app.services.settlement_engine import settlement_engine
+    from app.core.idempotency import idempotency_engine
+
     amount = float((body or {}).get("amount", 0))
+    idempotency_key = (
+        request.headers.get("x-idempotency-key")
+        or (body or {}).get("idempotencyKey")
+        or (body or {}).get("clientRequestId")
+        or f"{partner_id}:{amount}"
+    )
+
+    idemp = await idempotency_engine.acquire_or_wait(
+        "partner_payout", f"{partner_id}:{idempotency_key}"
+    )
+    if idemp.is_duplicate:
+        if idemp.cached_data:
+            return idemp.cached_data
+        if idemp.is_processing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A payout request with this idempotency key is currently processing. Please wait.",
+            )
+
     try:
-        return await settlement_engine.process_instant_partner_payout(partner_id, amount)
+        res = await settlement_engine.process_instant_partner_payout(partner_id, amount)
+        await idempotency_engine.complete(
+            "partner_payout", f"{partner_id}:{idempotency_key}", res
+        )
+        return res
     except ValueError as e:
+        await idempotency_engine.release("partner_payout", f"{partner_id}:{idempotency_key}")
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        await idempotency_engine.release("partner_payout", f"{partner_id}:{idempotency_key}")
+        raise
 
 
 @router.get("/finance/statement/{cycle_id}/download")

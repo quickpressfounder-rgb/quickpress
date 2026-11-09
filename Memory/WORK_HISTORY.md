@@ -315,3 +315,55 @@
     - Verified 18 tests across finance and security test suites (100% pass).
     - Built and verified all 4 web frontends (`customer`, `admin`, `partner`, `rider`) with zero errors.
     - Ran `build_all_ios.py` and synchronized native iOS Capacitor platforms for Customer, Partner, and Captain apps.
+
+---
+
+## 2026-11-09: Production Hardening — 8 Critical Concurrency & Logical Bugs Resolved
+
+### Summary of Work
+Implemented 8 architectural protections across Customer, Partner, Rider, Admin, and Payment Gateway flows to eliminate race conditions, double credits, double deductions, coupon abuse, and lifecycle transition conflicts.
+
+### Resolved Vulnerabilities & Architectural Fixes:
+1. **Order Cancellation Double-Refund Race Condition Protected:**
+   - In `backend-python/app/db/wallet_repositories.py`: Added idempotency deduplication check on `reference` in `credit()` so duplicate refund transactions cannot double-credit a user's wallet balance.
+   - In `backend-python/app/services/unified_finance_service.py`: Added atomic CAS conditional update on `order_financials` (`{"_id": order_id, "refundAmount": already_refunded}`) to prevent concurrent double refunds.
+   - In `backend-python/app/db/order_repositories.py`: Wrapped `cancel()` with `idempotency_engine.acquire_or_wait("order_cancel", f"{user_id}:{order_id}")`.
+2. **Referral Reward Claim Double-Credit Glitch Fixed:**
+   - In `backend-python/app/db/referral_repositories.py` (`claim_referral_rewards`):
+     - Added `idempotency_engine.acquire_or_wait("claim_referral", ...)` to prevent double submits.
+     - Enforced atomic conditional updates: `update_one({"$and": [{"_id": d_id}, {"status": "unlocked"}]}, {"$set": {"status": "claimed_to_cycle", ...}})` and only credit rows where `modified_count > 0`.
+3. **Rider & Partner Withdrawal Missing Idempotency Protected:**
+   - In `backend-python/app/api/rider.py` (`/wallet/withdraw`): Integrated `acquire_or_wait("rider_withdraw", ...)` to prevent duplicate balance deductions on network retries.
+   - In `backend-python/app/api/partner.py` (`/finance/instant-payout`): Integrated `acquire_or_wait("partner_payout", ...)` to ensure on-demand instant payouts are strictly idempotent.
+4. **First-Order Coupon (`FIRSTFREE` / `WELCOME50`) Unlimited Reuse Loophole Closed:**
+   - In `backend-python/app/db/order_repositories.py`:
+     - Updated `_validate_and_compute_coupon` to accept `user_id`.
+     - Checks `customer_orders` collection for prior non-cancelled orders; blocks `FIRSTFREE` / `WELCOME*` if prior orders exist (`"Promo code valid only on your first order"`).
+     - Checks if user has already used the coupon code on any past order to enforce single-use coupons.
+5. **Offline / Paused Partner Store Order Assignment Glitch Fixed:**
+   - In `backend-python/app/db/order_repositories.py` (`_partner`):
+     - Verified store is online and active (`isStoreOpen is not False`, `acceptingNewOrders is not False`, `status != "suspended"`).
+     - If the partner is closed, automatically re-routes to an active, open laundromat partner store in the area.
+6. **Rider Multi-Trip Over-Capacity Cap Enforced:**
+   - In `backend-python/app/services/rider_dispatch.py` (`claim_rider_offer`):
+     - Enforced a maximum of 3 concurrent active trips per delivery captain (`MAX_CONCURRENT_RIDER_TRIPS = 3`).
+     - Prevents captain over-commitment and pickup SLA violations (`ACTIVE_TRIPS_LIMIT_REACHED`).
+7. **Order Lifecycle State Machine Compare-And-Swap (CAS) Protection:**
+   - In `backend-python/app/services/order_lifecycle.py` (`transition`):
+     - Replaced non-atomic `update_one({"_id": order["_id"]})` with atomic CAS filter: `{"_id": order["_id"], "status": {"$in": [cur_status, raw_status]}}`.
+     - Catches concurrent mutations and safely raises `InvalidTransitionError` if state changed out-of-band.
+8. **Payment Gateway Webhook Concurrent Duplicate Key Crash Prevented:**
+   - In `backend-python/app/api/razorpay.py` & `backend-python/app/services/cashfree_payments_service.py`:
+     - Wrapped `insert_one(WEBHOOK_EVENTS_COLL)` in `try...except` handling duplicate key exceptions and returning `200 OK` (`already_processed`).
+
+### Verification & Automated Testing:
+- Created `backend-python/tests/test_concurrency_and_edge_cases.py` (6/6 tests passing):
+  - `test_order_cancellation_double_refund_prevention`
+  - `test_referral_reward_claim_is_atomic`
+  - `test_first_order_coupon_cannot_be_reused`
+  - `test_rider_active_trips_limit`
+  - `test_order_lifecycle_cas_conflict_handling`
+  - `test_razorpay_webhook_concurrent_duplicate_handling`
+- Verified `test_idempotency_double_click.py`, `test_wallet_concurrency.py`, `test_rider_concurrent_claim_lock.py`, `test_referral_engine_e2e.py`, `test_order_lifecycle_e2e.py` (17/17 tests passing).
+- Production build verified with zero errors for all 4 frontends (`customer-frontend`, `rider-frontend`, `partner-frontend`, `admin-frontend`).
+

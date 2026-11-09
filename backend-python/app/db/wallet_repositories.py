@@ -319,6 +319,19 @@ class WalletRepository:
     ) -> tuple[Dict[str, Any], WalletTransaction]:
         user_lock = self._user_locks.setdefault(user.id, asyncio.Lock())
         async with user_lock:
+            if reference:
+                existing_tx = await database.find_one(
+                    TRANSACTIONS, {"user_id": user.id, "reference": reference, "status": "success"}
+                )
+                if existing_tx:
+                    logger.info(
+                        "Transaction with reference %s already credited to user %s. Skipping duplicate credit.",
+                        reference,
+                        user.id,
+                    )
+                    wallet_doc = await self._wallet_document(user)
+                    return wallet_doc, self._to_transaction(existing_tx)
+
             amount = self._validate_amount(amount)
             document = await self._wallet_document(user)
             if status == "pending":
