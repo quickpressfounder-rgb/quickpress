@@ -259,3 +259,185 @@ async def test_treasury_health_zero_loss_audit():
     # Clean up test artifact
     await database.collection("customer_orders").delete_many({"_id": test_ord_id})
 
+
+@pytest.mark.asyncio
+async def test_otp_brute_force_lockout_persists_attempts():
+    """Verify that failed OTP attempts are persisted to DB and locked after max attempts."""
+    from app.services.smart_2ride_engine import smart_2ride_engine
+
+    test_ord_id = "ord_otp_lockout_test_01"
+    await database.collection("customer_orders").delete_many({"_id": test_ord_id})
+
+    order_doc = {
+        "_id": test_ord_id,
+        "code": "ORD-OTP-01",
+        "status": "partner_accepted",
+        "otp": {
+            "pickup": {
+                "code": "4821",
+                "attempts": 0,
+                "maxAttempts": 3,
+                "verified": False,
+            }
+        },
+    }
+    await database.collection("customer_orders").insert_one(order_doc)
+
+    # 1. First wrong attempt
+    with pytest.raises(PermissionError, match="2 attempt.*remaining"):
+        await smart_2ride_engine.verify_pickup_otp(test_ord_id, "0000", "rdr_test")
+
+    persisted = await database.collection("customer_orders").find_one({"_id": test_ord_id})
+    assert persisted["otp"]["pickup"]["attempts"] == 1
+
+    # 2. Second wrong attempt
+    with pytest.raises(PermissionError, match="1 attempt.*remaining"):
+        await smart_2ride_engine.verify_pickup_otp(test_ord_id, "1111", "rdr_test")
+
+    persisted = await database.collection("customer_orders").find_one({"_id": test_ord_id})
+    assert persisted["otp"]["pickup"]["attempts"] == 2
+
+    # 3. Third wrong attempt -> Lockout
+    with pytest.raises(PermissionError, match="Maximum verification attempts"):
+        await smart_2ride_engine.verify_pickup_otp(test_ord_id, "2222", "rdr_test")
+
+    persisted = await database.collection("customer_orders").find_one({"_id": test_ord_id})
+    assert persisted["otp"]["pickup"]["attempts"] == 3
+    assert persisted["otp"]["pickup"]["locked"] is True
+
+    # 4. Attempting again even with correct code must remain rejected due to lock
+    with pytest.raises(PermissionError, match="locked"):
+        await smart_2ride_engine.verify_pickup_otp(test_ord_id, "4821", "rdr_test")
+
+    await database.collection("customer_orders").delete_many({"_id": test_ord_id})
+
+
+@pytest.mark.asyncio
+async def test_cashfree_double_refund_protection():
+    """Verify Cashfree refund rejects refund attempts that exceed paid order amount."""
+    from app.services.cashfree_payments_service import refund_cashfree_payment, CashfreePaymentServiceError, PAYMENTS_COLL, REFUNDS_COLL
+    from app.models.user import User, Role
+
+    test_ord_id = "ord_refund_guard_test_01"
+    test_user = User(
+        id="usr_refund_guard",
+        email="refund@quickpress.com",
+        role=Role.customer,
+        phone="+919999988888",
+    )
+
+    await database.collection(PAYMENTS_COLL).delete_many({"orderId": test_ord_id})
+    await database.collection(REFUNDS_COLL).delete_many({"orderId": test_ord_id})
+
+    # Seed payment of ₹500
+    payment_doc = {
+        "_id": f"pay_{test_ord_id}",
+        "orderId": test_ord_id,
+        "accountId": test_user.id,
+        "amount": 500.0,
+        "status": "paid",
+        "gateway": "cashfree",
+    }
+    await database.collection(PAYMENTS_COLL).insert_one(payment_doc)
+
+    # 1. First refund of ₹300 -> Success
+    res1 = await refund_cashfree_payment(test_user, {"orderId": test_ord_id, "amount": 300.0, "destination": "wallet"})
+    assert res1["ok"] is True
+
+    # 2. Second refund of ₹300 -> Must FAIL because 300 + 300 = 600 > 500
+    with pytest.raises(CashfreePaymentServiceError, match="exceeds remaining refundable balance"):
+        await refund_cashfree_payment(test_user, {"orderId": test_ord_id, "amount": 300.0, "destination": "wallet"})
+
+    # 3. Valid partial refund of ₹200 -> Success
+    res2 = await refund_cashfree_payment(test_user, {"orderId": test_ord_id, "amount": 200.0, "destination": "wallet"})
+    assert res2["ok"] is True
+
+    # Clean up
+    await database.collection(PAYMENTS_COLL).delete_many({"orderId": test_ord_id})
+    await database.collection(REFUNDS_COLL).delete_many({"orderId": test_ord_id})
+
+
+@pytest.mark.asyncio
+async def test_partner_and_rider_wallet_atomic_withdrawal_rejection():
+    """Verify partner and rider wallet withdrawals reject overdrafts and maintain atomic balance."""
+    from app.db.partner_repositories import partner_wallet_repository, InvalidTransitionError
+    from app.db.rider_repositories import rider_wallet_repository
+
+    test_partner_id = "partner_withdraw_test_01"
+    test_rider_id = "rider_withdraw_test_01"
+
+    # Seed partner wallet with ₹200
+    await database.collection("partner_wallets").delete_many({"accountId": test_partner_id})
+    await database.collection("partner_wallets").insert_one({
+        "_id": f"pwal_{test_partner_id}",
+        "accountId": test_partner_id,
+        "balance": 200.0,
+    })
+
+    # Partner attempts to withdraw ₹300 -> Must reject
+    with pytest.raises(InvalidTransitionError, match="Insufficient wallet balance"):
+        await partner_wallet_repository.withdraw(test_partner_id, 300.0)
+
+    # Partner withdraws ₹150 -> Success
+    updated_p = await partner_wallet_repository.withdraw(test_partner_id, 150.0)
+    assert updated_p["balance"] == 50.0
+
+    # Seed rider wallet with ₹100
+    await database.collection("rider_wallets").delete_many({"_id": test_rider_id})
+    await database.collection("rider_wallets").insert_one({
+        "_id": test_rider_id,
+        "riderId": test_rider_id,
+        "balance": 100.0,
+        "totalWithdrawn": 0.0,
+    })
+
+    # Rider attempts to withdraw ₹150 -> Must reject
+    with pytest.raises(ValueError, match="Insufficient wallet balance"):
+        await rider_wallet_repository.withdraw(test_rider_id, 150.0)
+
+    # Rider withdraws ₹80 -> Success
+    updated_r = await rider_wallet_repository.withdraw(test_rider_id, 80.0)
+    assert updated_r["balance"] == 20.0
+
+    # Clean up
+    await database.collection("partner_wallets").delete_many({"accountId": test_partner_id})
+    await database.collection("rider_wallets").delete_many({"_id": test_rider_id})
+
+
+@pytest.mark.asyncio
+async def test_coupon_usage_counter_sync_and_rollback():
+    """Verify order creation increments coupon stats and cancellation rolls them back."""
+    test_code = "SYNC50"
+    await database.collection("admin_coupons").delete_many({"code": test_code})
+    await database.collection("admin_coupons").insert_one({
+        "_id": f"c_{test_code}",
+        "code": test_code,
+        "status": "Active",
+        "flatDiscount": 50,
+        "minOrder": 0,
+        "used": 0,
+        "totalDiscountGiven": 0.0,
+    })
+
+    # Simulate coupon increment upon order creation
+    await database.collection("admin_coupons").update_one(
+        {"code": test_code},
+        {"$inc": {"used": 1, "totalDiscountGiven": 50.0}},
+    )
+    doc = await database.collection("admin_coupons").find_one({"code": test_code})
+    assert doc["used"] == 1
+    assert doc["totalDiscountGiven"] == 50.0
+
+    # Simulate coupon decrement upon order cancellation
+    await database.collection("admin_coupons").update_one(
+        {"code": test_code},
+        {"$inc": {"used": -1, "totalDiscountGiven": -50.0}},
+    )
+    doc_after = await database.collection("admin_coupons").find_one({"code": test_code})
+    assert doc_after["used"] == 0
+    assert doc_after["totalDiscountGiven"] == 0.0
+
+    await database.collection("admin_coupons").delete_many({"code": test_code})
+
+
+

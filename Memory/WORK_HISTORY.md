@@ -1,5 +1,35 @@
 # QuickPress — Engineering Work History
 
+## Session: November 9, 2026 (Part 4)
+
+### Deep Forensic Audit & Critical Edge-Case Hardening (5 Core Loopholes Resolved)
+1. **OTP Brute-Force Rate Limiting & Lockout Persistence Bug (Security & Order Custody):**
+   - **File:** `backend-python/app/services/smart_2ride_engine.py`
+   - **Bug:** `_verify_otp_record` previously raised `PermissionError` before saving the incremented `attempts` counter to MongoDB, leaving the database attempt counter permanently at `0` and allowing infinite brute force guessing (0000–9999).
+   - **Fix:** Converted `_verify_otp_record` to async, persisting `attempts` and `lastFailedAttemptAt` immediately to MongoDB on any failed attempt. After 5 failed attempts, the OTP is permanently locked (`"locked": True`) preventing any further verification attempts.
+   - **Applied Across All Lifecycles:** Customer Pickup OTP, Store Handover OTP, Partner Dispatch OTP, and Customer Delivery OTP.
+2. **Cashfree Double / Excess Refund Prevention (Zero Monetary Leakage):**
+   - **File:** `backend-python/app/services/cashfree_payments_service.py`
+   - **Bug:** `refund_cashfree_payment()` did not check prior refunds against original paid amount, allowing multiple refunds of the same order to disburse platform funds repeatedly.
+   - **Fix:** Aggregated existing refunds from `gateway_refunds`, enforcing `max_refundable = round(max(0.0, paid_amount - total_already_refunded), 2)`. Rejects excess refunds with a clear `400 Bad Request`.
+3. **COD Cash Collection Double-Debt Accounting Bug (Rider Floating Cash):**
+   - **File:** `backend-python/app/services/smart_2ride_engine.py`
+   - **Bug:** `verify_delivery_otp()` incremented the rider's `floatingCash` for COD orders without setting `"cashCollectedByRider": True` on the order document, causing subsequent calls or app triggers to double-increment rider debt.
+   - **Fix:** Added atomic updates setting `"cashCollectedByRider": True` and `"cashCollectedAmount": collected_amount` in `customer_orders`. Also fixed rider query to safely support both `_id` and `riderId`.
+4. **Partner & Rider Wallet Withdrawal Atomic Balance Protection (Negative Balance Race Condition):**
+   - **Files:** `backend-python/app/db/partner_repositories.py` and `backend-python/app/db/rider_repositories.py`
+   - **Bug:** Partner and Rider withdrawals previously computed `new_balance = balance - amount` in Python and used non-conditional `$set: {"balance": new_balance}`, which in distributed/concurrent scenarios allowed balances to plunge negative.
+   - **Fix:** Enforced atomic conditional updates:
+     `{"_id": wallet_id, "balance": {"$gte": amount}}` with `{"$inc": {"balance": -amount}}`
+     verifying `modified_count > 0` before inserting transaction ledger entries.
+5. **Admin Coupon Redemption Tracking & Discount Disbursed Analytics Sync:**
+   - **File:** `backend-python/app/db/order_repositories.py`
+   - **Bug:** Placing orders with coupon codes did not increment `used` and `totalDiscountGiven` on `admin_coupons`, leaving promotions analytics at 0.
+   - **Fix:** Atomically incremented `admin_coupons` metrics on order placement, and automatically rolled back metrics upon order cancellation.
+6. **Automated Verification:**
+   - Added `test_otp_brute_force_lockout_persists_attempts`, `test_cashfree_double_refund_protection`, `test_partner_and_rider_wallet_atomic_withdrawal_rejection`, and `test_coupon_usage_counter_sync_and_rollback` in `test_concurrency_and_edge_cases.py`.
+   - Verified 11/11 tests passing in `test_concurrency_and_edge_cases.py` and 23/23 tests passing in authorization/idempotency suites (34/34 total passed).
+
 ## Session: November 9, 2026 (Part 3)
 
 ### Production Security, Console Sanitization & Double-Entry Treasury Integrity Engine (Launch Audit Pillars 1 & 2)

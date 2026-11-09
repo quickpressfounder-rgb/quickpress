@@ -674,6 +674,21 @@ async def refund_cashfree_payment(user: User, payload: Dict[str, Any]) -> Dict[s
     if refund_amount <= 0:
         raise CashfreePaymentServiceError("Refund amount must be greater than ₹0.", 400)
 
+    # Prevent Double / Excess Refund (Financial Precision & Zero Leakage)
+    paid_amount = ledger.money(payment.get("amount", 0))
+    existing_refunds = await database.find_many(
+        REFUNDS_COLL,
+        {"orderId": order_id, "status": {"$in": ["processed", "success", "processing", "pending"]}},
+    )
+    total_already_refunded = sum(ledger.money(r.get("amount", 0)) for r in existing_refunds)
+    max_refundable = round(max(0.0, paid_amount - total_already_refunded), 2)
+
+    if refund_amount > max_refundable:
+        raise CashfreePaymentServiceError(
+            f"Refund amount (₹{refund_amount:.2f}) exceeds remaining refundable balance (₹{max_refundable:.2f}). Total paid: ₹{paid_amount:.2f}, already refunded: ₹{total_already_refunded:.2f}.",
+            400,
+        )
+
     refund_id = f"ref_{uuid.uuid4().hex[:12]}"
     destination = payload.get("destination", "source")
     reason = payload.get("reason", "Order cancellation refund")

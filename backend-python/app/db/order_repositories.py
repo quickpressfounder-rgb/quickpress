@@ -791,6 +791,20 @@ class OrderRepository:
                     logger.critical("CRITICAL: Failed to auto-refund debited wallet for user %s: %s", user.id, ref_err)
             raise
 
+        if verified_coupon_code and verified_coupon_discount > 0:
+            try:
+                clean_c = verified_coupon_code.strip().upper()
+                await database.collection("admin_coupons").update_one(
+                    {"code": {"$regex": f"^{clean_c}$", "$options": "i"}},
+                    {"$inc": {"used": 1, "totalDiscountGiven": float(verified_coupon_discount)}},
+                )
+                await database.collection("coupons").update_one(
+                    {"code": {"$regex": f"^{clean_c}$", "$options": "i"}},
+                    {"$inc": {"used": 1, "totalDiscountGiven": float(verified_coupon_discount)}},
+                )
+            except Exception as c_err:
+                logger.warning("Failed to increment coupon stats for %s: %s", verified_coupon_code, c_err)
+
         from app.core.async_queue import async_task_queue
 
         # High-Speed Non-blocking Offload: Background Audit & Unified Finance Tracking
@@ -958,6 +972,23 @@ class OrderRepository:
                         )
                 except Exception as e:
                     logger.warning("Error processing unified cancellation refund for %s: %s", order.id, e)
+
+            # If a coupon was applied, restore coupon redemption metrics
+            applied_coupon = order.couponCode if hasattr(order, "couponCode") else getattr(order, "coupon_code", None)
+            applied_discount = float(order.couponDiscount if hasattr(order, "couponDiscount") else getattr(order, "coupon_discount", 0.0) or 0.0)
+            if applied_coupon and applied_discount > 0:
+                try:
+                    clean_c = str(applied_coupon).strip().upper()
+                    await database.collection("admin_coupons").update_one(
+                        {"code": {"$regex": f"^{clean_c}$", "$options": "i"}},
+                        {"$inc": {"used": -1, "totalDiscountGiven": -applied_discount}},
+                    )
+                    await database.collection("coupons").update_one(
+                        {"code": {"$regex": f"^{clean_c}$", "$options": "i"}},
+                        {"$inc": {"used": -1, "totalDiscountGiven": -applied_discount}},
+                    )
+                except Exception as rev_err:
+                    logger.warning("Error rolling back coupon redemption for %s: %s", applied_coupon, rev_err)
 
             res = await self.by_id(user_id, order_id)
             await idempotency_engine.complete("order_cancel", f"{user_id}:{order_id}", {"ok": True})

@@ -17,6 +17,7 @@ MongoDB Atlas and the in-memory preview store.
 
 from __future__ import annotations
 
+import asyncio
 import random
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -1283,12 +1284,21 @@ class PartnerWalletRepository:
             wallet = await self.wallet(partner_id)
             if wallet is None:
                 raise PartnerNotFoundError("Wallet not found")
+            amount = round(float(amount), 2)
             if amount <= 0:
                 raise InvalidTransitionError("Withdrawal amount must be greater than zero")
-            if amount > wallet.get("balance", 0):
-                raise InvalidTransitionError("Insufficient wallet balance")
-            new_balance = wallet["balance"] - amount
-            await database.update(WALLETS, {"accountId": partner_id}, {"balance": new_balance})
+            curr_bal = float(wallet.get("balance", 0.0))
+            if amount > curr_bal:
+                raise InvalidTransitionError(f"Insufficient wallet balance. Available: ₹{curr_bal:.2f}")
+
+            # Atomic conditional deduction: balance must be >= amount to prevent race conditions & negative balances
+            res = await database.collection(WALLETS).update_one(
+                {"accountId": partner_id, "balance": {"$gte": amount}},
+                {"$inc": {"balance": -amount}, "$set": {"updatedAt": _now()}},
+            )
+            if getattr(res, "modified_count", 0) == 0:
+                raise InvalidTransitionError("Insufficient wallet balance or concurrent transaction in progress")
+
             txn = {
                 "_id": _uid("wtx"),
                 "accountId": partner_id,

@@ -16,6 +16,7 @@ preview app is never blank even before a real rider signs in.
 
 from __future__ import annotations
 
+import asyncio
 import random
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -736,17 +737,20 @@ class RiderWalletRepository:
             target_holder = account_holder or bank_details.get("accountHolderName") or prof.get("accountHolder") or prof.get("fullName") or "Captain"
             target_last4 = target_acc[-4:] if len(target_acc) >= 4 else (target_acc or "Primary")
             
-            new_balance = round(curr_balance - amount, 2)
-            curr_withdrawn = float(wallet.get("totalWithdrawn", 0.0))
-            new_withdrawn = round(curr_withdrawn + amount, 2)
-            
             now_iso = _now()
-            await database.update(
-                WALLETS,
-                {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"rider_id": rider_id}]},
-                {"balance": new_balance, "totalWithdrawn": new_withdrawn, "updatedAt": now_iso},
-                upsert=True,
+            wallet_id = wallet.get("_id") or rider_id
+            res = await database.collection(WALLETS).update_one(
+                {"_id": wallet_id, "balance": {"$gte": amount}},
+                {
+                    "$inc": {"balance": -amount, "totalWithdrawn": amount},
+                    "$set": {"updatedAt": now_iso},
+                },
             )
+            if getattr(res, "modified_count", 0) == 0:
+                raise ValueError("Insufficient wallet balance or concurrent transaction in progress")
+
+            new_balance = round(curr_balance - amount, 2)
+            new_withdrawn = round(float(wallet.get("totalWithdrawn", 0.0)) + amount, 2)
             
             now_ts = int(datetime.now(timezone.utc).timestamp())
             random_suffix = random.randint(1000, 9999)

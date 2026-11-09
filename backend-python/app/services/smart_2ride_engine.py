@@ -1591,8 +1591,15 @@ class Smart2RideEngine:
     # -------------------------------------------------------------------------
     # 6. SECURE OTP VERIFICATION LIFECYCLE
     # -------------------------------------------------------------------------
-    def _verify_otp_record(self, otp_record: Any, code: str, label: str) -> None:
-        if not code or not code.strip():
+    async def _verify_otp_record(
+        self,
+        order_id: str,
+        otp_field: str,
+        otp_record: Any,
+        code: str,
+        label: str,
+    ) -> None:
+        if not code or not str(code).strip():
             raise PermissionError(f"{label} is required.")
         if isinstance(otp_record, str):
             otp_record = {"code": otp_record, "verified": False, "attempts": 0, "maxAttempts": 5}
@@ -1600,22 +1607,39 @@ class Smart2RideEngine:
             raise PermissionError(f"{label} has not been generated for this order yet.")
         if otp_record.get("verified"):
             raise ValueError(f"{label} has already been verified and used.")
+        if otp_record.get("locked"):
+            raise PermissionError(f"{label} is locked due to too many failed attempts (5/5). Please contact support.")
 
         actual_code = str(otp_record.get("code", "")).strip()
-        user_code = code.strip()
+        user_code = str(code).strip()
         if user_code == actual_code:
             otp_record["verified"] = True
             otp_record["attempts"] = 0
             otp_record["verifiedAt"] = lifecycle.now_iso()
             return
 
-        attempts = int(otp_record.get("attempts", 0))
+        attempts = int(otp_record.get("attempts", 0)) + 1
         max_attempts = int(otp_record.get("maxAttempts", 5))
-        if attempts >= max_attempts:
-            raise PermissionError(f"Maximum verification attempts exceeded for {label}.")
+        otp_record["attempts"] = attempts
+        otp_record["lastFailedAttemptAt"] = lifecycle.now_iso()
 
-        otp_record["attempts"] = attempts + 1
-        remaining = max(0, max_attempts - otp_record["attempts"])
+        is_locked = attempts >= max_attempts
+        if is_locked:
+            otp_record["locked"] = True
+
+        # Persist failed attempt immediately to database to stop brute-forcing
+        try:
+            await database.collection(ORDERS_COLLECTION).update_one(
+                {"_id": order_id},
+                {"$set": {f"otp.{otp_field}": otp_record, "updatedAt": lifecycle.now_iso()}},
+            )
+        except Exception as exc:
+            logger.warning("Failed to persist failed OTP attempt for %s: %s", order_id, exc)
+
+        if is_locked:
+            raise PermissionError(f"Maximum verification attempts ({max_attempts}) exceeded for {label}. Account/order OTP is locked for security.")
+
+        remaining = max(0, max_attempts - attempts)
         raise PermissionError(f"Invalid {label}. {remaining} attempt(s) remaining.")
 
     async def verify_pickup_otp(
@@ -1690,7 +1714,7 @@ class Smart2RideEngine:
             pickup_record = {"code": str(pickup_code), "attempts": 0, "verified": False}
         elif isinstance(pickup_record, str):
             pickup_record = {"code": pickup_record, "attempts": 0, "verified": False}
-        self._verify_otp_record(pickup_record, otp, "Customer Pickup OTP")
+        await self._verify_otp_record(canonical_id, "pickup", pickup_record, otp, "Customer Pickup OTP")
 
         now = lifecycle.now_iso()
         order_set_updates: Dict[str, Any] = {
@@ -1772,7 +1796,7 @@ class Smart2RideEngine:
             if not handover_code:
                 raise PermissionError("Store Handover OTP has not been generated for this order yet.")
             handover_record = {"code": str(handover_code), "attempts": 0, "verified": False}
-        self._verify_otp_record(handover_record, otp, "Store Handover OTP")
+        await self._verify_otp_record(canonical_id, "handover", handover_record, otp, "Store Handover OTP")
 
         now = lifecycle.now_iso()
 
@@ -1923,7 +1947,7 @@ class Smart2RideEngine:
                 raise ValueError("Dispatch OTP has not been generated for this order yet. Ensure order is packed & ready for delivery.")
             dispatch_record = {"code": str(dispatch_code), "attempts": 0, "verified": False}
 
-        self._verify_otp_record(dispatch_record, clean_otp, "Partner Dispatch OTP")
+        await self._verify_otp_record(canonical_id, "dispatch", dispatch_record, clean_otp, "Partner Dispatch OTP")
         dispatch_record["verified"] = True
 
         now = lifecycle.now_iso()
@@ -1995,7 +2019,7 @@ class Smart2RideEngine:
                 raise ValueError("Dispatch OTP has not been generated for this order yet. Ensure order is packed & ready for delivery.")
             dispatch_record = {"code": str(dispatch_code), "attempts": 0, "verified": False}
 
-        self._verify_otp_record(dispatch_record, clean_otp, "Partner Dispatch OTP")
+        await self._verify_otp_record(canonical_id, "dispatch", dispatch_record, clean_otp, "Partner Dispatch OTP")
         dispatch_record["verified"] = True
 
         now = lifecycle.now_iso()
@@ -2204,7 +2228,7 @@ class Smart2RideEngine:
         elif isinstance(delivery_record, str):
             delivery_record = {"code": delivery_record, "attempts": 0, "verified": False}
 
-        self._verify_otp_record(delivery_record, clean_otp, "Customer Delivery OTP")
+        await self._verify_otp_record(canonical_id, "delivery", delivery_record, clean_otp, "Customer Delivery OTP")
 
         now = lifecycle.now_iso()
 
@@ -2281,8 +2305,19 @@ class Smart2RideEngine:
             )
             if collected_amount > 0:
                 await database.collection(RIDERS_COLLECTION).update_one(
-                    {"_id": rider_id},
+                    {"$or": [{"_id": rider_id}, {"riderId": rider_id}]},
                     {"$inc": {"floatingCash": collected_amount, "cashInHand": collected_amount}},
+                )
+                await database.collection(ORDERS_COLLECTION).update_one(
+                    {"_id": canonical_id},
+                    {
+                        "$set": {
+                            "cashCollectedByRider": True,
+                            "cashCollectedAmount": collected_amount,
+                            "cashCollectedAt": now,
+                            "updatedAt": now,
+                        }
+                    },
                 )
                 logger.info("Captain %s collected COD cash: ₹%.2f (added to floating cash)", rider_id, collected_amount)
 
