@@ -118,25 +118,6 @@ async def get_email_stats() -> Dict[str, Any]:
     return stats
 
 
-@router.get("/{email_id}")
-async def get_email_detail(email_id: str) -> Dict[str, Any]:
-    """Fetch single email details including full rendered HTML."""
-    doc = await email_repository.get_by_id(email_id)
-    if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Email record #{email_id} not found",
-        )
-    return doc
-
-
-@router.get("/{email_id}/thread")
-async def get_email_thread(email_id: str) -> Dict[str, Any]:
-    """Retrieve full chronological conversation thread between admin and recipient."""
-    thread_items = await email_repository.get_thread(email_id)
-    return {"items": thread_items, "count": len(thread_items)}
-
-
 @router.post("/send")
 async def send_custom_email(payload: SendCustomEmailPayload, request: Request) -> Dict[str, Any]:
     """Dispatch custom admin email to any customer, partner, rider, or staff."""
@@ -571,6 +552,25 @@ async def download_agreement_pdf(agreement_id: str) -> Response:
         )
 
     raise HTTPException(status_code=404, detail="Agreement record not found")
+
+
+@router.get("/{email_id}")
+async def get_email_detail(email_id: str) -> Dict[str, Any]:
+    """Fetch single email details including full rendered HTML."""
+    doc = await email_repository.get_by_id(email_id)
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Email record #{email_id} not found",
+        )
+    return doc
+
+
+@router.get("/{email_id}/thread")
+async def get_email_thread(email_id: str) -> Dict[str, Any]:
+    """Retrieve full chronological conversation thread between admin and recipient."""
+    thread_items = await email_repository.get_thread(email_id)
+    return {"items": thread_items, "count": len(thread_items)}
 
 
 @router.post("/agreements/{agreement_id}/resend")

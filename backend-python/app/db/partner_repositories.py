@@ -656,11 +656,17 @@ class PartnerOrderRepository:
             raise PartnerNotFoundError("Order not found")
 
         current_status = lifecycle.order_status(order)
+        order_partner = order.get("partner") or {}
+        existing_pid = str(order_partner.get("id") or order.get("partner_id") or order.get("partnerId") or "")
+
+        if current_status in (lifecycle.PARTNER_ACCEPTED, "partner_accepted", "accepted"):
+            if not existing_pid or existing_pid == partner_id or existing_pid.lower() == partner_id.lower():
+                # Idempotent replay: this store has already accepted this order
+                return order
+
         if current_status not in (lifecycle.PENDING, lifecycle.PLACED):
             raise InvalidTransitionError(f"This order is already {current_status} and cannot be accepted again.")
 
-        order_partner = order.get("partner") or {}
-        existing_pid = str(order_partner.get("id") or order.get("partner_id") or order.get("partnerId") or "")
         if existing_pid and existing_pid != partner_id and existing_pid.lower() != partner_id.lower():
             raise PartnerAccessError("This order is already accepted by another partner store.")
 

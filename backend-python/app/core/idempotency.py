@@ -148,6 +148,54 @@ class IdempotencyEngine:
             }
             return IdempotencyResult(is_duplicate=False, is_processing=False)
 
+    async def acquire_or_wait(
+        self,
+        scope: str,
+        key: str,
+        processing_ttl: int = 60,
+        timeout_seconds: float = 4.0,
+        poll_interval: float = 0.08,
+    ) -> IdempotencyResult:
+        """Atomically acquires an idempotency lock for processing, OR awaits the
+        result of an in-flight concurrent request with the same idempotency key.
+
+        Returns:
+            IdempotencyResult:
+                - is_duplicate=False, is_processing=False: Lock acquired, caller must execute.
+                - is_duplicate=True, is_processing=False, cached_data=...: Completed (either earlier or awaited from in-flight task).
+                - is_duplicate=True, is_processing=True, cached_data=None: Timed out waiting for in-flight task.
+        """
+        res = await self.acquire(scope, key, processing_ttl=processing_ttl)
+        if not res.is_duplicate or not res.is_processing:
+            return res
+
+        # An identical request is currently executing in-flight.
+        # Poll every `poll_interval` until completed or timeout.
+        start_time = time.time()
+        while (time.time() - start_time) < timeout_seconds:
+            await asyncio.sleep(poll_interval)
+            cached = await self.get(scope, key)
+            if cached is not None:
+                return IdempotencyResult(
+                    is_duplicate=True,
+                    is_processing=False,
+                    cached_data=cached,
+                )
+            # Re-check status in case the in-flight request completed or failed/released lock
+            retry = await self.acquire(scope, key, processing_ttl=processing_ttl)
+            if not retry.is_duplicate:
+                # Previous execution released the lock (e.g. error/rollback), so this caller can proceed
+                return retry
+            if not retry.is_processing and retry.cached_data:
+                return retry
+
+        # Timed out waiting
+        return IdempotencyResult(
+            is_duplicate=True,
+            is_processing=True,
+            cached_data=None,
+        )
+
     async def complete(
         self, scope: str, key: str, payload: Dict[str, Any], ttl_seconds: int = 86400
     ) -> None:

@@ -92,15 +92,15 @@ async def create_payment(
     idemp_key = payload.paymentReference or header_key or (f"{payload.orderId}:{payload.amount}:{payload.method}" if payload.orderId else None)
     if idemp_key:
         from app.core.idempotency import idempotency_engine
-        idemp = await idempotency_engine.acquire("payment", f"{user.id}:{idemp_key}")
+        idemp = await idempotency_engine.acquire_or_wait("payment", f"{user.id}:{idemp_key}")
         if idemp.is_duplicate:
+            if idemp.cached_data:
+                return CreatePaymentResponse.model_validate(idemp.cached_data)
             if idemp.is_processing:
                 raise HTTPException(
                     status_code=409,
                     detail="A payment transaction with this reference is currently processing. Please wait.",
                 )
-            if idemp.cached_data:
-                return CreatePaymentResponse.model_validate(idemp.cached_data)
 
     try:
         payment, wallet = await wallet_repository.create_payment(

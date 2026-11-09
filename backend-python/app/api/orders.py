@@ -56,20 +56,27 @@ async def place_order(
 
     if payload.idempotencyKey:
         from app.core.idempotency import idempotency_engine
-        idemp = await idempotency_engine.acquire("order", f"{user.id}:{payload.idempotencyKey}")
+        idemp = await idempotency_engine.acquire_or_wait("order", f"{user.id}:{payload.idempotencyKey}")
         if idemp.is_duplicate:
+            if idemp.cached_data:
+                cached_order = OrderResponse.model_validate(idemp.cached_data)
+                return _place_order_response(cached_order)
             if idemp.is_processing:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail="A transaction with this idempotency key is currently processing. Please do not double submit.",
                 )
-            if idemp.cached_data:
-                cached_order = OrderResponse.model_validate(idemp.cached_data)
-                return _place_order_response(cached_order)
 
     duplicate = await order_repository.find_recent_duplicate(user.id, payload.idempotencyKey)
     if duplicate is not None:
         # Same request replayed — return the original order instead of a new one.
+        if payload.idempotencyKey:
+            from app.core.idempotency import idempotency_engine
+            await idempotency_engine.complete(
+                "order",
+                f"{user.id}:{payload.idempotencyKey}",
+                duplicate.model_dump(mode="json"),
+            )
         return _place_order_response(duplicate)
 
     if payload.address is None:
@@ -98,6 +105,13 @@ async def place_order(
 
     try:
         order = await order_repository.create(user, payload)
+        if payload.idempotencyKey:
+            from app.core.idempotency import idempotency_engine
+            await idempotency_engine.complete(
+                "order",
+                f"{user.id}:{payload.idempotencyKey}",
+                order.model_dump(mode="json"),
+            )
     except Exception as error:
         if payload.idempotencyKey:
             from app.core.idempotency import idempotency_engine

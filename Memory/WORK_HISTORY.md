@@ -1,6 +1,49 @@
 # QuickPress — Engineering Work History
 
-## Session: November 9, 2026
+## Session: November 9, 2026 (Part 2)
+
+### 2-Tier Request Coalescing & Idempotency Engine (Double-Click & Concurrent Race Protection)
+1. **Double-Click Problem & Architectural Resolution:**
+   - **The Problem:** When users double-clicked checkout, payment, or acceptance buttons due to latency or impatient taps, in-flight race conditions previously caused duplicate requests to hit the server before the first completed, returning confusing `409 Conflict` errors or risking duplicate charges and orders.
+   - **2-Tier Request Coalescing Architecture:**
+     - **Tier 1 (Client-side Mutex & Debounce):** Instant synchronous ref locks (`isPlacingOrderRef.current = true`, `isAcceptingRef.current = true`, `busyActionRef.current = true`), immediate button disabled states (`disabled={placingOrder}`), and inline spinners (`<Loader2 className="animate-spin" />`).
+     - **Tier 2 (Server-side Distributed Request Coalescing):** Enhanced `IdempotencyEngine` with `acquire_or_wait()`. When an identical in-flight request arrives, instead of throwing `409 Conflict`, it asynchronously awaits the first request (polling every 80ms up to 4s) and returns the exact same successful `200/201 OK` response payload with zero duplicate DB entities or charges.
+2. **Backend Engine Upgrades:**
+   - `backend-python/app/core/idempotency.py`:
+     - Added `acquire_or_wait(scope, key, processing_ttl, timeout_seconds, poll_interval)`.
+   - `backend-python/app/core/redis_limiter.py`:
+     - Fixed `_upstash_command` and `_upstash_pipeline` to raise on connection failure and added circuit breaker (`_is_upstash_offline()`), allowing clean immediate fallback to in-memory store when Redis is unreachable or running offline.
+     - Protected `DistributedRateLimiter` methods (`is_locked`, `check_limit`, `record_failed_attempt`, `reset_failed_attempts`) with `try...except` to safely fallback to `_in_memory_limiter`.
+   - `backend-python/app/api/orders.py`:
+     - Switched `place_order` from `acquire` to `acquire_or_wait`.
+     - Added `idempotency_engine.complete()` on successful order creation to cache response payload.
+   - `backend-python/app/api/payments.py`:
+     - Switched `create_payment` to `acquire_or_wait`.
+   - `backend-python/app/db/partner_repositories.py`:
+     - Made `partner_order_repository.accept` idempotent: if the store has already accepted the order, it returns the existing order rather than raising `InvalidTransitionError`.
+   - `backend-python/app/api/admin_emails.py`:
+     - Fixed route collision where `/{email_id}` intercepted `/agreements` and returned 404. Moved `get_email_detail` and `get_email_thread` after agreement static endpoints.
+   - `backend-python/app/db/admin_repositories.py` & `automation_repositories.py`:
+     - Fixed `activity()` by replacing nonexistent `get_activity_stream` with `list_events(limit=10)` and added backward-compatible alias.
+3. **Frontend UI Locking:**
+   - `customer-frontend/src/routes/checkout.tsx`: Verified synchronous ref guard + button lock with spinner.
+   - `rider-frontend/src/components/orders/FlashTripOfferModal.tsx`: Added synchronous `isAcceptingRef` guard in addition to `isAccepting` state and disabled styling.
+   - `partner-frontend/src/hooks/use-order-action-handler.tsx`: Verified `busyActionRef` synchronous mutex and `OrderCard` busy spinner.
+4. **Automated Concurrency & Idempotency Test Suite:**
+   - Created `backend-python/tests/test_idempotency_double_click.py`:
+     - `test_double_click_acquire_or_wait_awaits_in_flight_completion` (PASSED)
+     - `test_double_click_acquire_or_wait_recovers_if_first_fails` (PASSED)
+     - `test_concurrent_order_placement_creates_only_one_order_in_database` (PASSED - verified 1 single order in `customer_orders`)
+     - `test_concurrent_payment_creation_is_idempotent` (PASSED - identical payment ID and wallet deduction)
+     - `test_partner_accept_double_submit_is_idempotent` (PASSED - 200 OK on re-accept)
+   - 23/23 tests passed across all critical suites (`test_idempotency_double_click.py`, `test_idempotency_engine.py`, `test_logical_fixes.py`, `test_admin_authorization.py`, `test_rider_authorization.py`).
+5. **Full Multi-App Build Verification:**
+   - `npm run build:customer` (exit code 0)
+   - `npm run build:rider` (exit code 0)
+   - `npm run build:partner` (exit code 0)
+   - `npm run build:admin` (exit code 0)
+
+## Session: November 9, 2026 (Part 1)
 
 ### Production Launch Readiness Phase 3: Total Purge of Hardcoded Demo Data, Seed Locations & Synthetic Names
 1. **Total Elimination of Demo Identities, Phones & Locations:**

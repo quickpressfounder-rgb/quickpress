@@ -574,7 +574,7 @@ export function BlinkitPaymentDrawer({
       setIsGeneratingQr(true);
       generateUpiQrDataUrl(upiUri)
         .then((url) => setQrDataUrl(url))
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => setIsGeneratingQr(false));
     }
   }, [currentView, upiTab, upiUri, qrDataUrl]);
@@ -891,9 +891,8 @@ export function BlinkitPaymentDrawer({
                 <button
                   type="button"
                   onClick={() => setUpiTab("id")}
-                  className={`flex-1 py-2 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    upiTab === "id" ? "bg-white text-zinc-950 shadow-xs" : "text-zinc-600 hover:text-zinc-900"
-                  }`}
+                  className={`flex-1 py-2 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${upiTab === "id" ? "bg-white text-zinc-950 shadow-xs" : "text-zinc-600 hover:text-zinc-900"
+                    }`}
                 >
                   <span>@</span>
                   <span>Enter UPI ID</span>
@@ -901,9 +900,8 @@ export function BlinkitPaymentDrawer({
                 <button
                   type="button"
                   onClick={() => setUpiTab("qr")}
-                  className={`flex-1 py-2 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    upiTab === "qr" ? "bg-white text-zinc-950 shadow-xs" : "text-zinc-600 hover:text-zinc-900"
-                  }`}
+                  className={`flex-1 py-2 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${upiTab === "qr" ? "bg-white text-zinc-950 shadow-xs" : "text-zinc-600 hover:text-zinc-900"
+                    }`}
                 >
                   <QrCode className="size-3.5" />
                   <span>Scan QR Code</span>
@@ -1043,11 +1041,10 @@ export function BlinkitPaymentDrawer({
                         key={b.code}
                         type="button"
                         onClick={() => setSelectedBank(b.name)}
-                        className={`p-3 rounded-2xl border text-center transition-all cursor-pointer relative flex flex-col items-center justify-center gap-1.5 ${
-                          isSelected
-                            ? "bg-emerald-50/70 border-[#0c831f] shadow-xs"
-                            : "bg-white border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
-                        }`}
+                        className={`p-3 rounded-2xl border text-center transition-all cursor-pointer relative flex flex-col items-center justify-center gap-1.5 ${isSelected
+                          ? "bg-emerald-50/70 border-[#0c831f] shadow-xs"
+                          : "bg-white border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
+                          }`}
                       >
                         {isSelected && (
                           <div className="absolute top-1.5 right-1.5 size-4 rounded-full bg-[#0c831f] text-white flex items-center justify-center">
@@ -1093,9 +1090,8 @@ export function BlinkitPaymentDrawer({
                         key={b}
                         type="button"
                         onClick={() => setSelectedBank(b)}
-                        className={`w-full p-2.5 px-3.5 text-left text-xs font-bold transition flex items-center justify-between cursor-pointer ${
-                          isSelected ? "bg-emerald-50 text-[#0c831f]" : "text-zinc-800 hover:bg-zinc-50"
-                        }`}
+                        className={`w-full p-2.5 px-3.5 text-left text-xs font-bold transition flex items-center justify-between cursor-pointer ${isSelected ? "bg-emerald-50 text-[#0c831f]" : "text-zinc-800 hover:bg-zinc-50"
+                          }`}
                       >
                         <span>{b}</span>
                         {isSelected && <Check className="size-4 text-[#0c831f] stroke-[3]" />}

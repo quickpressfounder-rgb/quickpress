@@ -114,6 +114,9 @@ class AutomationRepository:
             logger.error(f"[AutomationRepository] Query failed: {err}")
             return []
 
+    # Compatibility alias
+    get_activity_stream = list_events
+
     async def get_stats(self) -> Dict[str, Any]:
         """Aggregate automation metrics across all 7 engines."""
         try:

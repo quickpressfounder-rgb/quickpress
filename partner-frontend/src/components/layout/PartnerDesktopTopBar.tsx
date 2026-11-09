@@ -188,22 +188,19 @@ export function PartnerDesktopTopBar({
           <button
             type="button"
             onClick={() => setStatusDropdownOpen((prev) => !prev)}
-            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold transition-all cursor-pointer shadow-2xs ${
-              isOnline
-                ? "border-emerald-300 bg-white text-emerald-700 hover:bg-emerald-50"
-                : "border-rose-300 bg-white text-rose-600 hover:bg-rose-50"
-            }`}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold transition-all cursor-pointer shadow-2xs ${isOnline
+              ? "border-emerald-300 bg-white text-emerald-700 hover:bg-emerald-50"
+              : "border-rose-300 bg-white text-rose-600 hover:bg-rose-50"
+              }`}
           >
             <span
-              className={`size-2 rounded-full ${
-                isOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
-              }`}
+              className={`size-2 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
+                }`}
             />
             <span>{isOnline ? "Online" : "Offline"}</span>
             <ChevronDown
-              className={`size-3 transition-transform duration-200 ${
-                statusDropdownOpen ? "rotate-180" : ""
-              }`}
+              className={`size-3 transition-transform duration-200 ${statusDropdownOpen ? "rotate-180" : ""
+                }`}
             />
           </button>
 
@@ -216,11 +213,10 @@ export function PartnerDesktopTopBar({
                   if (!isOnline && onToggleStatus) onToggleStatus();
                   setStatusDropdownOpen(false);
                 }}
-                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left font-bold transition-colors cursor-pointer ${
-                  isOnline
-                    ? "bg-emerald-50 text-emerald-800"
-                    : "text-zinc-700 hover:bg-zinc-50"
-                }`}
+                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left font-bold transition-colors cursor-pointer ${isOnline
+                  ? "bg-emerald-50 text-emerald-800"
+                  : "text-zinc-700 hover:bg-zinc-50"
+                  }`}
               >
                 <span className="size-2 rounded-full bg-emerald-500" />
                 <span>Online (Accepting Orders)</span>
@@ -231,11 +227,10 @@ export function PartnerDesktopTopBar({
                   if (isOnline && onToggleStatus) onToggleStatus();
                   setStatusDropdownOpen(false);
                 }}
-                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left font-bold transition-colors cursor-pointer ${
-                  !isOnline
-                    ? "bg-rose-50 text-rose-700"
-                    : "text-zinc-700 hover:bg-zinc-50"
-                }`}
+                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left font-bold transition-colors cursor-pointer ${!isOnline
+                  ? "bg-rose-50 text-rose-700"
+                  : "text-zinc-700 hover:bg-zinc-50"
+                  }`}
               >
                 <span className="size-2 rounded-full bg-rose-500" />
                 <span>Offline (Paused / Closed)</span>
@@ -268,9 +263,8 @@ export function PartnerDesktopTopBar({
               {displayName}
             </span>
             <ChevronDown
-              className={`size-3 text-zinc-400 transition-transform duration-200 ${
-                dropdownOpen ? "rotate-180" : ""
-              }`}
+              className={`size-3 text-zinc-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""
+                }`}
             />
           </button>
 

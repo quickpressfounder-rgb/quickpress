@@ -68,9 +68,24 @@ def _get_standard_redis() -> Any:
     return _standard_redis_client
 
 
+_upstash_offline_until: float = 0.0
+
+
+def _mark_upstash_offline(seconds: float = 30.0) -> None:
+    global _upstash_offline_until
+    _upstash_offline_until = time.time() + seconds
+
+
+def _is_upstash_offline() -> bool:
+    return time.time() < _upstash_offline_until
+
+
 def _get_upstash_client() -> Optional[httpx.AsyncClient]:
     """Returns or creates persistent httpx client for Upstash REST API."""
     global _upstash_http_client, _upstash_client_loop
+    if _is_upstash_offline():
+        return None
+
     settings = get_settings()
     if not settings.upstash_redis_rest_url.strip() or not settings.upstash_redis_rest_token.strip():
         return None
@@ -129,8 +144,9 @@ async def _upstash_pipeline(commands: List[List[Any]]) -> Optional[List[Any]]:
         _log.warning("Upstash REST pipeline returned %s: %s", resp.status_code, resp.text)
         return None
     except Exception as exc:
+        _mark_upstash_offline(30.0)
         _log.warning("Upstash REST pipeline call failed (%s). Falling back to in-memory.", exc)
-        return None
+        raise
 
 
 async def _upstash_command(*args: Any) -> Optional[Any]:
@@ -155,8 +171,9 @@ async def _upstash_command(*args: Any) -> Optional[Any]:
             return data.get("result")
         return None
     except Exception as exc:
+        _mark_upstash_offline(30.0)
         _log.warning("Upstash REST command call failed (%s). Falling back to in-memory.", exc)
-        return None
+        raise
 
 
 class DistributedRateLimiter:
@@ -167,11 +184,14 @@ class DistributedRateLimiter:
         """Checks whether the given IP or phone number is currently locked out."""
         client = _get_upstash_client()
         if client is not None:
-            lock_key = f"qp:lockout:{key}"
-            ttl = await _upstash_command("TTL", lock_key)
-            if isinstance(ttl, (int, float)) and ttl > 0:
-                return True, int(ttl)
-            return False, 0
+            try:
+                lock_key = f"qp:lockout:{key}"
+                ttl = await _upstash_command("TTL", lock_key)
+                if isinstance(ttl, (int, float)) and ttl > 0:
+                    return True, int(ttl)
+                return False, 0
+            except Exception:
+                pass
 
         return _in_memory_limiter.is_locked(key)
 
@@ -185,21 +205,24 @@ class DistributedRateLimiter:
         """
         client = _get_upstash_client()
         if client is not None:
-            now = time.time()
-            cutoff = now - window_seconds
-            set_key = f"qp:ratelimit:{key}"
+            try:
+                now = time.time()
+                cutoff = now - window_seconds
+                set_key = f"qp:ratelimit:{key}"
 
-            # Pipeline: [ZREMRANGEBYSCORE, ZADD, ZCARD, EXPIRE]
-            results = await _upstash_pipeline([
-                ["ZREMRANGEBYSCORE", set_key, 0, cutoff],
-                ["ZADD", set_key, now, str(now)],
-                ["ZCARD", set_key],
-                ["EXPIRE", set_key, window_seconds + 5],
-            ])
+                # Pipeline: [ZREMRANGEBYSCORE, ZADD, ZCARD, EXPIRE]
+                results = await _upstash_pipeline([
+                    ["ZREMRANGEBYSCORE", set_key, 0, cutoff],
+                    ["ZADD", set_key, now, str(now)],
+                    ["ZCARD", set_key],
+                    ["EXPIRE", set_key, window_seconds + 5],
+                ])
 
-            if results and len(results) >= 3 and results[2] is not None:
-                count = results[2]
-                return count <= max_requests
+                if results and len(results) >= 3 and results[2] is not None:
+                    count = results[2]
+                    return count <= max_requests
+            except Exception:
+                pass
 
         return _in_memory_limiter.check_limit(key, max_requests, window_seconds)
 
@@ -212,24 +235,27 @@ class DistributedRateLimiter:
         """Records a failed authentication attempt with lockout trigger."""
         client = _get_upstash_client()
         if client is not None:
-            attempt_key = f"qp:fail_attempts:{key}"
-            lock_key = f"qp:lockout:{key}"
+            try:
+                attempt_key = f"qp:fail_attempts:{key}"
+                lock_key = f"qp:lockout:{key}"
 
-            # Increment attempt counter (sliding 10 min window)
-            results = await _upstash_pipeline([
-                ["INCR", attempt_key],
-                ["EXPIRE", attempt_key, 600],
-            ])
+                # Increment attempt counter (sliding 10 min window)
+                results = await _upstash_pipeline([
+                    ["INCR", attempt_key],
+                    ["EXPIRE", attempt_key, 600],
+                ])
 
-            if results and results[0] is not None:
-                attempts = results[0]
-                if attempts >= max_failures:
-                    await _upstash_pipeline([
-                        ["SET", lock_key, "1", "EX", lock_duration],
-                        ["DEL", attempt_key],
-                    ])
-                    return attempts, lock_duration
-                return attempts, None
+                if results and results[0] is not None:
+                    attempts = results[0]
+                    if attempts >= max_failures:
+                        await _upstash_pipeline([
+                            ["SET", lock_key, "1", "EX", lock_duration],
+                            ["DEL", attempt_key],
+                        ])
+                        return attempts, lock_duration
+                    return attempts, None
+            except Exception:
+                pass
 
         return _in_memory_limiter.record_failed_attempt(key, max_failures, lock_duration)
 
@@ -238,13 +264,16 @@ class DistributedRateLimiter:
         """Resets failed attempt counters upon successful authentication."""
         client = _get_upstash_client()
         if client is not None:
-            attempt_key = f"qp:fail_attempts:{key}"
-            lock_key = f"qp:lockout:{key}"
-            await _upstash_pipeline([
-                ["DEL", attempt_key],
-                ["DEL", lock_key],
-            ])
-            return
+            try:
+                attempt_key = f"qp:fail_attempts:{key}"
+                lock_key = f"qp:lockout:{key}"
+                await _upstash_pipeline([
+                    ["DEL", attempt_key],
+                    ["DEL", lock_key],
+                ])
+                return
+            except Exception:
+                pass
 
         _in_memory_limiter.reset_failed_attempts(key)
 

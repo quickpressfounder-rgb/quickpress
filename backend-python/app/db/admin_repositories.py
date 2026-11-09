@@ -3455,7 +3455,7 @@ class AdminDashboardRepository:
 
     async def activity(self) -> List[Dict[str, Any]]:
         from app.db.automation_repositories import automation_repository
-        logs = await automation_repository.get_activity_stream(limit=10)
+        logs = await automation_repository.list_events(limit=10)
         results = []
         for log in logs:
             tone = log.get("severity") or "info"

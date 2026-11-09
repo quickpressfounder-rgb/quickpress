@@ -78,6 +78,7 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
 }) => {
   const [timeLeft, setTimeLeft] = useState(TOTAL_COUNTDOWN_SECONDS);
   const [isAccepting, setIsAccepting] = useState(false);
+  const isAcceptingRef = useRef(false);
   const [isDeclining, setIsDeclining] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const hasTriggeredAudioRef = useRef(false);
@@ -160,7 +161,8 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
   };
 
   const handleAccept = async () => {
-    if (isAccepting || isDeclining) return;
+    if (isAcceptingRef.current || isAccepting || isDeclining) return;
+    isAcceptingRef.current = true;
     setIsAccepting(true);
     stopOrderAlertSound();
     triggerHaptic([120, 60, 240]);
@@ -199,6 +201,7 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
         onAccepted(offer.orderId, offer);
       }
     } finally {
+      isAcceptingRef.current = false;
       setIsAccepting(false);
     }
   };
