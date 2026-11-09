@@ -50,7 +50,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const handleTryAgain = () => {
     try {
       safeStorage.clearCorruptedCache();
-    } catch {}
+    } catch { }
     router.invalidate();
     reset();
   };
@@ -59,7 +59,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     try {
       localStorage.clear();
       sessionStorage.clear();
-    } catch {}
+    } catch { }
     window.location.href = "/";
   };
 
@@ -141,14 +141,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     scripts: [
       ...(typeof import.meta !== "undefined" &&
-      (import.meta as any).env?.VITE_ONESIGNAL_APP_ID &&
-      !(import.meta as any).env?.VITE_ONESIGNAL_APP_ID.includes("184bda82")
+        (import.meta as any).env?.VITE_ONESIGNAL_APP_ID &&
+        !(import.meta as any).env?.VITE_ONESIGNAL_APP_ID.includes("184bda82")
         ? [
-            {
-              src: "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js",
-              defer: true,
-            },
-          ]
+          {
+            src: "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js",
+            defer: true,
+          },
+        ]
         : []),
     ],
   }),
@@ -212,12 +212,12 @@ function RootComponent() {
 
   useEffect(() => {
     installGlobalAudioUnlocker();
-    import("@/api/core/onesignal").then((m) => m.initOneSignal()).catch(() => {});
+    import("@/api/core/onesignal").then((m) => m.initOneSignal()).catch(() => { });
     import("@/api/core/firebase-messaging").then((m) => {
       m.requestPushNotificationPermission();
       m.setupForegroundMessageListener();
-    }).catch(() => {});
-    import("@/api/core/native-push").then((m) => m.initCapacitorPush("rider")).catch(() => {});
+    }).catch(() => { });
+    import("@/api/core/native-push").then((m) => m.initCapacitorPush("rider")).catch(() => { });
   }, []);
 
   return (

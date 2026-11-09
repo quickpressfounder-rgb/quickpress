@@ -2054,17 +2054,18 @@ async def get_rider_support() -> dict:
     }
 
 
-@public_router.get("/tickets")
 @router.get("/tickets")
 async def get_rider_tickets(
     user: Optional[User] = Depends(optional_user),
 ) -> list[dict]:
-    r_id = "rider_demo_1"
+    r_id = ""
     if user:
         try:
             r_id = await rider_profile_repository.resolve_rider_id(user)
         except Exception:
             r_id = user.id
+    if not r_id:
+        return []
     docs = await database.find_sorted("rider_support_tickets", {"$or": [{"riderId": r_id}, {"userId": r_id}]}, sort=[("createdAt", -1)])
     clean_docs = []
     for d in (docs or []):
@@ -2081,16 +2082,16 @@ async def create_rider_ticket(
     body: dict,
     user: Optional[User] = Depends(optional_user),
 ) -> dict:
-    r_id = "rider_demo_1"
+    r_id = ""
     r_name = "Fleet Captain"
-    r_phone = "+91 98719 62596"
+    r_phone = ""
     if user:
         try:
             r_id = await rider_profile_repository.resolve_rider_id(user)
         except Exception:
             r_id = user.id
         r_name = user.display_name or user.name or "Fleet Captain"
-        r_phone = user.phone or r_phone
+        r_phone = user.phone or ""
 
     now = datetime.now(timezone.utc).isoformat()
     ticket_id = body.get("id") or f"TKT-RDR-{int(datetime.now(timezone.utc).timestamp()) % 10000:04d}"
@@ -3279,9 +3280,9 @@ async def get_route_batch(
         try:
             resolved_id = await _rider_id(user)
         except Exception:
-            pass
+            resolved_id = user.id
     if not resolved_id:
-        resolved_id = "rider_demo_001"
+        return {"stops": [], "orders": [], "cargo": [], "totalDistanceKm": 0.0}
 
     from app.services.smart_batch_route_service import smart_batch_route_service
     return await smart_batch_route_service.get_rider_active_batch(
@@ -3302,9 +3303,11 @@ async def prioritize_route_stop(
         try:
             resolved_id = await _rider_id(user)
         except Exception:
-            pass
+            resolved_id = user.id
     if not resolved_id:
-        resolved_id = payload.get("riderId") or "rider_demo_001"
+        resolved_id = payload.get("riderId") or ""
+    if not resolved_id:
+        return {"ok": False, "error": "Rider identification required"}
 
     stop_id = payload.get("stopId") or payload.get("orderId")
     if not stop_id:
@@ -3325,9 +3328,9 @@ async def clear_route_stop_priority(
         try:
             resolved_id = await _rider_id(user)
         except Exception:
-            pass
+            resolved_id = user.id
     if not resolved_id:
-        resolved_id = "rider_demo_001"
+        return {"ok": True}
 
     from app.services.smart_batch_route_service import smart_batch_route_service
     smart_batch_route_service.clear_priority(resolved_id)
@@ -3349,9 +3352,11 @@ async def list_orders(
         try:
             resolved_id = await _rider_id(user)
         except Exception:
-            pass
+            resolved_id = user.id
     if not resolved_id:
-        resolved_id = rider_id or "rider_demo_001"
+        resolved_id = rider_id or ""
+    if not resolved_id:
+        return [] if scope == "history" else {"items": [], "total": 0, "page": page, "pageSize": page_size}
 
     if scope == "history":
         return await rider_delivery_repository.history(resolved_id)
@@ -3863,7 +3868,7 @@ async def get_handover_status(
             "name": r_doc.get("fullName") or r_doc.get("name") or "QuickPress Captain",
             "phone": r_doc.get("phone") or "",
             "vehicle": r_doc.get("vehicleType") or "Bike",
-            "plate": r_doc.get("vehicleNumber") or "UP-87-QP-1001",
+            "plate": r_doc.get("vehicleNumber") or r_doc.get("plate") or "",
         }
     return {
         "ok": True,
@@ -4101,9 +4106,11 @@ async def submit_rider_order_review(order_id: str, body: dict, user: Optional[Us
         try:
             rider_id = await _rider_id(user)
         except Exception:
-            pass
+            rider_id = user.id
     if not rider_id:
-        rider_id = str(body.get("riderId") or "rider_demo_001")
+        rider_id = str(body.get("riderId") or "")
+    if not rider_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Rider authentication required")
 
     from app.db.review_repositories import SubmitRiderReviewPayload, review_repository
     payload = SubmitRiderReviewPayload(
@@ -4133,9 +4140,9 @@ async def get_rider_order_review(order_id: str, user: Optional[User] = Depends(o
         try:
             rider_id = await _rider_id(user)
         except Exception:
-            pass
+            rider_id = user.id
     if not rider_id:
-        rider_id = "rider_demo_001"
+        return None
     from app.db.review_repositories import review_repository
     return await review_repository.get_rider_review(order_id, rider_id)
 
@@ -4157,9 +4164,11 @@ async def history(
         try:
             resolved_id = await _rider_id(user)
         except Exception:
-            pass
+            resolved_id = user.id
     if not resolved_id:
-        resolved_id = rider_id or "rider_demo_001"
+        resolved_id = rider_id or ""
+    if not resolved_id:
+        return []
     return await rider_delivery_repository.history(resolved_id)
 
 
@@ -4218,9 +4227,11 @@ async def create_deposit_razorpay_order(body: dict, user: Optional[User] = Depen
         try:
             resolved_id = await _rider_id(user)
         except Exception:
-            pass
+            resolved_id = user.id
     if not resolved_id:
-        resolved_id = (body or {}).get("riderId") or "rider_demo_001"
+        resolved_id = (body or {}).get("riderId") or ""
+    if not resolved_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Rider authentication required")
 
     amount = float((body or {}).get("amount", 0))
     if amount <= 0:
@@ -4256,9 +4267,11 @@ async def verify_deposit_razorpay_payment(body: dict, user: Optional[User] = Dep
         try:
             resolved_id = await _rider_id(user)
         except Exception:
-            pass
+            resolved_id = user.id
     if not resolved_id:
-        resolved_id = (body or {}).get("riderId") or "rider_demo_001"
+        resolved_id = (body or {}).get("riderId") or ""
+    if not resolved_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Rider authentication required")
 
     amount = float((body or {}).get("amount", 0))
     order_id = str((body or {}).get("orderId") or (body or {}).get("razorpay_order_id") or "")
@@ -4374,9 +4387,11 @@ async def deposit_cash(body: dict, user: Optional[User] = Depends(optional_user)
         try:
             resolved_id = await _rider_id(user)
         except Exception:
-            pass
+            resolved_id = user.id
     if not resolved_id:
-        resolved_id = (body or {}).get("riderId") or "rider_demo_001"
+        resolved_id = (body or {}).get("riderId") or ""
+    if not resolved_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Rider authentication required")
 
     amount = float((body or {}).get("amount", 0))
     if amount <= 0:
@@ -4447,9 +4462,11 @@ async def add_funds(body: dict, user: Optional[User] = Depends(optional_user)) -
         try:
             resolved_id = await _rider_id(user)
         except Exception:
-            pass
+            resolved_id = user.id
     if not resolved_id:
-        resolved_id = (body or {}).get("riderId") or "rider_demo_001"
+        resolved_id = (body or {}).get("riderId") or ""
+    if not resolved_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Rider authentication required")
 
     amount = float((body or {}).get("amount", 0))
     if amount <= 0:
@@ -5088,14 +5105,13 @@ async def analytics(
         except Exception:
             pass
     if not resolved_id:
-        resolved_id = rider_id or "rider_demo_001"
+        resolved_id = rider_id or ""
 
     if period:
         return await rider_analytics_repository.summary(resolved_id, period=period)
     return await rider_analytics_repository.list(resolved_id, limit=limit)
 
 
-@public_router.get("/analytics/summary")
 @router.get("/analytics/summary")
 async def analytics_summary(
     period: str = Query("today", description="today | week | month | all"),
@@ -5109,7 +5125,7 @@ async def analytics_summary(
         except Exception:
             pass
     if not resolved_id:
-        resolved_id = rider_id or "rider_demo_001"
+        resolved_id = rider_id or ""
     
     try:
         data = await rider_analytics_repository.summary(resolved_id, period=period)

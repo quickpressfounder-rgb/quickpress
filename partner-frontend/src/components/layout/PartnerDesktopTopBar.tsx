@@ -107,7 +107,7 @@ export function PartnerDesktopTopBar({
     }
   };
 
-  const displayName = (shopName || "Himanshu").split(" ")[0];
+  const displayName = (shopName || "Partner").split(" ")[0];
 
   return (
     <header className="sticky top-0 z-30 hidden h-14 w-full items-center justify-between border-b border-zinc-200/80 bg-white px-5 md:flex select-none">

@@ -289,7 +289,7 @@ export function PartnerHelpScreen() {
           </a>
 
           <a
-            href="https://wa.me/919876543210?text=Hi%20QuickPress%20Support,%20I%20need%20help%20with%20my%20partner%20store."
+            href="https://wa.me/918006000000?text=Hi%20QuickPress%20Support,%20I%20need%20help%20with%20my%20partner%20store."
             target="_blank"
             rel="noopener noreferrer"
             className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-white py-2.5 px-1 shadow-2xs active:scale-95 text-center group"
@@ -330,7 +330,7 @@ export function PartnerHelpScreen() {
           </a>
 
           <a
-            href="https://wa.me/919876543210?text=Hi%20QuickPress%20Support,%20I%20need%20help%20with%20my%20partner%20store."
+            href="https://wa.me/918006000000?text=Hi%20QuickPress%20Support,%20I%20need%20help%20with%20my%20partner%20store."
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3.5 rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs hover:border-zinc-300 transition-all cursor-pointer group"

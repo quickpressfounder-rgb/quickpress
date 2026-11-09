@@ -144,6 +144,16 @@ export function WalletPage() {
   const [globalAdjustOpen, setGlobalAdjustOpen] = useState(false);
 
   const allWallets = walletsQuery.data ?? [];
+
+  const totalRiderCodCash = useMemo(() => {
+    return allWallets
+      .filter((w) => w.role.toLowerCase() === "rider")
+      .reduce((sum, w) => sum + (Number((w as any).codCash) || 0), 0);
+  }, [allWallets]);
+
+  const activeRidersCount = useMemo(() => {
+    return allWallets.filter((w) => w.role.toLowerCase() === "rider").length;
+  }, [allWallets]);
   const allWithdrawals = withdrawalsQuery.data ?? [];
   const allTxns = transactionsQuery.data ?? [];
   const allRefunds = refundsQuery.data ?? [];
@@ -1291,8 +1301,8 @@ export function WalletPage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
               <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 space-y-1">
                 <span className="text-[10px] font-bold uppercase text-amber-800">Total COD Cash in Hand</span>
-                <p className="text-2xl font-black text-amber-950">₹120.00</p>
-                <p className="text-[10px] text-amber-800">Rahul Express Rider (Kasganj)</p>
+                <p className="text-2xl font-black text-amber-950">₹{totalRiderCodCash.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
+                <p className="text-[10px] text-amber-800">Active Fleet Cash Float ({activeRidersCount} Captains)</p>
               </div>
 
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 space-y-1">

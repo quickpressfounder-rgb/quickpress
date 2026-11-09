@@ -111,12 +111,12 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
 
   // Vehicle Details
   const vehicle = p.vehicle || p.vehicleDetails || {};
-  const vehicleType = vehicle.type || vehicle.vehicleType || p.vehicleType || "Motorbike / Two-Wheeler";
-  const vehicleBrand = vehicle.brand || vehicle.vehicleBrand || p.vehicleBrand || "Hero MotoCorp";
-  const vehicleModel = vehicle.model || vehicle.vehicleModel || p.vehicleModel || "Splendor Plus XTEC";
-  const vehiclePlate = vehicle.plate || vehicle.vehiclePlate || p.vehicleNumber || p.plate || "UP87R6390";
-  const vehicleFuel = vehicle.fuelType || p.fuelType || "Petrol (Standard Fleet)";
-  const vehicleDL = p.dlNumber || vehicle.drivingLicenseNumber || "UP-87-DL-VERIFIED";
+  const vehicleType = vehicle.type || vehicle.vehicleType || p.vehicleType || "Motorbike";
+  const vehicleBrand = vehicle.brand || vehicle.vehicleBrand || p.vehicleBrand || "—";
+  const vehicleModel = vehicle.model || vehicle.vehicleModel || p.vehicleModel || "—";
+  const vehiclePlate = vehicle.plate || vehicle.vehiclePlate || p.vehicleNumber || p.plate || "—";
+  const vehicleFuel = vehicle.fuelType || p.fuelType || "—";
+  const vehicleDL = p.dlNumber || vehicle.drivingLicenseNumber || "—";
   const vehicleRC = vehicle.rcNumber || vehiclePlate;
 
   // Personal Details

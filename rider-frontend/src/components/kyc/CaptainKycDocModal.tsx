@@ -343,8 +343,7 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
                       <div>
                         <p className="text-[9px] text-zinc-500 font-semibold">पता / Address</p>
                         <p className="font-bold text-zinc-800 leading-relaxed text-[11px]">
-                          Station Road, Soron Gate Area, Near Gandhi Murti, {city || "Kasganj"},{" "}
-                          Uttar Pradesh, PIN - 207123
+                          {profile?.address || (city ? `${city}, India` : "Registered Permanent Address on UIDAI Record")}
                         </p>
                       </div>
 
@@ -594,7 +593,7 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
                         <p className="text-[9px] text-zinc-500 font-bold uppercase">DL Number</p>
                         <p className="font-mono font-black text-sm text-zinc-950">{cleanDl}</p>
                         <p className="text-[11px] font-bold text-zinc-800">{fullName}</p>
-                        <p className="text-[10px] text-zinc-600">Issued at: RTO Kasganj (UP-87)</p>
+                        <p className="text-[10px] text-zinc-600">Issued at: {profile?.rto || "Regional Transport Office (RTO)"}</p>
                       </div>
                     </div>
 

@@ -7,8 +7,8 @@ and on-bike cargo inventory for active Delivery Captain shifts.
 from typing import Any, Dict, List, Optional, Tuple
 import logging
 from app.core.maps import haversine_km
-from app.db.mongodb import database
-from app.domain import lifecycle
+from app.db.client import database
+from app.services import order_lifecycle as lifecycle
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,8 @@ class SmartBatchRouteService:
                 cur_lng = live_doc.get("longitude")
 
         # 2. Query all active orders assigned to this rider
-        orders_cursor = database.collection("customer_orders").find(
+        orders = await database.find_many(
+            "customer_orders",
             {
                 "$or": [
                     {"rider.id": rider_id},
@@ -99,18 +100,17 @@ class SmartBatchRouteService:
                         "delivery_otp_pending",
                     ]
                 },
-            }
+            },
         )
-        orders = await orders_cursor.to_list(length=20)
 
         # Also merge active rides from smart_2ride_engine if any missing
-        rides_cursor = database.collection("rides").find(
+        active_rides = await database.find_many(
+            "rides",
             {
                 "assignedRiderId": rider_id,
                 "status": {"$in": ["ACCEPTED", "EN_ROUTE", "ARRIVED", "PICKED_UP", "OUT_FOR_DELIVERY"]},
-            }
+            },
         )
-        active_rides = await rides_cursor.to_list(length=20)
         existing_order_ids = {lifecycle.order_id_of(o) for o in orders}
 
         for ride in active_rides:

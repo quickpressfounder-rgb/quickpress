@@ -1,5 +1,55 @@
 # QuickPress — Engineering Work History
 
+## Session: November 9, 2026
+
+### Production Launch Readiness Phase 3: Total Purge of Hardcoded Demo Data, Seed Locations & Synthetic Names
+1. **Total Elimination of Demo Identities, Phones & Locations:**
+   - **Backend Python:**
+     - `app/db/rider_repositories.py`: Purged lines synthesizing fake completed orders for "Priya Saxena", "Amitabh Agrawal", and "Dr. Vikas Chauhan" with fake Prabhu Park addresses and phone numbers. Cleaned fallback dummy phone numbers (`+91 98765 43210`, `+91 92587 30561`).
+     - `app/db/admin_repositories.py`: Purged synthetic 6-item KYC document dossier synthesizing "UP-87-DL-VERIFIED", "UP87R6390", "HDFC Bank 093311", and "Hero Splendor Plus". Removed hardcoded fallback phone `+91 98719 62596` across refunds, rider directory, and support tickets.
+     - `app/api/admin.py`: Purged hardcoded plates (`UP-87-QP-1001`, `UP-87-QP-1002`) and fallback phones.
+     - `app/api/rider.py`: Purged all hardcoded `"rider_demo_001"` and `"rider_demo_1"` fallbacks; eliminated duplicate `@public_router.get("/analytics/summary")` and `@public_router.get("/tickets")` routes.
+     - `app/api/auth.py`, `app/core/deps.py`, `app/services/unified_finance_service.py`, `app/db/support_repositories.py`, `app/api/finance_engine.py`: Purged dummy fallback phone numbers and bank details.
+     - `app/services/cashfree_verification.py`: Removed fake default vehicle attributes ("Hero MotoCorp", "Splendor Plus", "Petrol").
+     - `app/services/smart_batch_route_service.py`: Fixed broken imports (`app.db.mongodb` -> `app.db.client`, `app.domain` -> `app.services.order_lifecycle`), switched cursor calls to `database.find_many(...)`.
+     - `app/api/commission.py` & `app/api/promotions.py`: Secured admin-only routes with `Depends(require_roles(Role.admin))` so no unauthorized or anonymous requests reach admin analytics, banners, or stories.
+   - **Admin Console (`admin-frontend`):**
+     - `AdminLiveMap.tsx`: Purged hardcoded rider locations (Rahul, Sudhanshu Pal), fake hub locations ("QuickPress Kasganj Main Hub", "Bilram Gate Laundry Partner", "Soron Gate Express Laundromat"), and fake in-transit order `#QP-1092`. Only plots real riders, stores, and orders with active coordinates from live database.
+     - `-b2b-partners-box.tsx`: Emptied `SEED_B2B_PARTNERS` array; screen now shows honest empty state when no leads exist.
+     - `crm.tsx` & `api/crm.ts`: Replaced synthesized fake KYC dossier with empty state message; replaced fallback plates and DLs with `"—"`; removed fabricated `trips * 55` wallet calculation.
+     - `lib/crm-pdf-export.ts`: Removed fallback fake vehicle and license numbers.
+     - `notifications.tsx`: Replaced hardcoded "Captain Rahul Sharma", "UP-87-AB-1234", "4821" with dynamic tokens (`{riderName}`, `{vehicleNumber}`, `{deliveryOtp}`).
+     - `cities.tsx` & `wallet.tsx`: Replaced static ₹120.00 and dummy names with dynamic fleet cash summation over `allWallets`.
+   - **Customer Frontend (`customer-frontend`):**
+     - `cart-api.ts`: Removed fallback `"Main Road"`, `"9876543210"`, `"partner-1"`, `"QuickPress Partner Store"`.
+     - `BlinkitPaymentDrawer.tsx`: Replaced `9876543210@paytm` placeholder with generic `mobile@upi`.
+     - `addresses.tsx` & `login.tsx`: Replaced example city/name placeholders with clean instructional placeholders.
+   - **Partner Frontend (`partner-frontend`):**
+     - `OrderCard.tsx` & `OrderQuickTools.tsx`: Removed fallback OTP `"1376"`, fallback phone `"9876543210"`, and `"5 riders nearby"`.
+     - `PartnerDesktopTopBar.tsx`: Replaced `shopName || "Himanshu"` with `shopName || "Partner"`.
+     - `PartnerHelpScreen.tsx` & `PartnerSuspendedScreen.tsx`: Replaced dummy WhatsApp `919876543210` with official support desk number.
+   - **Rider / Captain Frontend (`rider-frontend`):**
+     - `rider-orders-api.ts`: Removed fake fallback pickup addresses ("Soron Gate Commercial Complex"), store addresses, fake OTPs 4821/7392/9042, and fake item summaries.
+     - `rider-surge-api.ts`: Removed 4 fake fallback surge hotspots ("Kasganj Junction Station Hub", "Main Bazaar", etc.); returns empty array when surge is turned off by admin.
+     - `RiderWalletScreen.tsx`: Removed fallback synthetic trip with fake OTPs (7244/8313/1014) and fake Soron Gate address.
+     - `CaptainKycDocModal.tsx` & `CaptainRouteBookingModal.tsx`: Removed hardcoded addresses and mock RTO office names.
+
+2. **Automated Testing & Security Verification:**
+   - Appended test cases to `backend-python/tests/test_logical_fixes.py`:
+     - `test_zero_fake_rider_history_when_empty`: Verifies that newly registered captains receive an empty order history list with zero synthetic rides.
+     - `test_zero_fake_kyc_docs_synthesized`: Verifies that unverified riders have zero fabricated KYC documents.
+   - Verified 100% pass on security regression suites:
+     - `test_admin_authorization.py`: 4/4 passed (all `/api/admin/*` endpoints strictly require admin role).
+     - `test_rider_authorization.py`: 6/6 passed (all authenticated `/api/rider/*` endpoints strictly require rider role).
+     - `test_logical_fixes.py`: 5/5 passed.
+
+3. **Frontends & Native iOS Build Verification:**
+   - `npm run build:customer` (exit code 0)
+   - `npm run build:admin` (exit code 0)
+   - `npm run build:partner` (exit code 0)
+   - `npm run build:rider` (exit code 0)
+   - `python3 build_all_ios.py` synchronized native iOS Capacitor assets across Customer, Partner, and Captain workspaces.
+
 ## Session: November 4, 2026
 
 ### Customer App Cart & Checkout Redesign & iOS Viewport Optimization

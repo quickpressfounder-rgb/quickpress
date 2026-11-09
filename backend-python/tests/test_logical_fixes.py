@@ -89,3 +89,35 @@ async def test_suspended_or_offline_rider_cannot_claim_ride():
     with pytest.raises(ValueError) as exc2:
         await smart_2ride_engine.handle_rider_accept(ride_id, rider_off_id)
     assert "RIDER_OFFLINE" in str(exc2.value)
+
+
+@pytest.mark.asyncio
+async def test_zero_fake_rider_history_when_empty():
+    """Ensure newly registered or empty riders get an honest empty list, zero fake orders synthesized."""
+    from app.db.rider_repositories import rider_delivery_repository
+
+    history = await rider_delivery_repository.history("test-rider-empty-999")
+    assert isinstance(history, list)
+    assert len(history) == 0
+
+
+@pytest.mark.asyncio
+async def test_zero_fake_kyc_docs_synthesized():
+    """Ensure rider with no uploaded documents has an empty documents dossier, zero fake KYC synthesized."""
+    from app.db.admin_repositories import admin_rider_repository
+
+    rider_id = "test-rider-nokyc-001"
+    # Seed rider with no documents
+    await database.collection("riders").update_one(
+        {"_id": rider_id},
+        {"$set": {"_id": rider_id, "name": "Fresh Captain", "phone": "+91 99999 11111", "status": "pending"}},
+        upsert=True,
+    )
+
+    rider_detail = await admin_rider_repository.detail(rider_id)
+    assert rider_detail is not None
+    docs = rider_detail.get("documents", [])
+    # Zero fake docs must be synthesized
+    assert docs == []
+
+

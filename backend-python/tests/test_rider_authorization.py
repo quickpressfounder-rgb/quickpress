@@ -26,6 +26,7 @@ from app.models.user import Role, User, UserStatus
 PUBLIC_RIDER_PATHS = {
     "/api/rider/auth/existing-numbers",
     "/api/rider/auth/registration",
+    "/api/rider/auth/check-registered",
     "/api/rider/onboarding/status",
     "/api/rider/surge/zones",
     "/api/rider/surge/check-location",

@@ -922,7 +922,7 @@ export function BlinkitPaymentDrawer({
                         type="text"
                         value={customVpa}
                         onChange={(e) => setCustomVpa(e.target.value.toLowerCase().trim())}
-                        placeholder="yourname@okhdfcbank or 9876543210@paytm"
+                        placeholder="yourname@bank or mobile@upi"
                         className="w-full pl-9 pr-3.5 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs sm:text-sm font-bold text-zinc-900 placeholder:text-zinc-400 focus:border-[#0c831f] focus:ring-1 focus:ring-[#0c831f] outline-hidden shadow-2xs"
                       />
                     </div>

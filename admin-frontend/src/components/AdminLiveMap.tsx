@@ -150,44 +150,25 @@ export function AdminLiveMap({
     refetchInterval: 15000,
   });
 
-  // Merge and synthesize real Kasganj telemetry data
+  // Merge real telemetry data from live collections
   const telemetryUnits: TelemetryUnit[] = useMemo(() => {
     const units: TelemetryUnit[] = [];
 
-    // Map known locations in Kasganj for online riders
-    const riderLocationsMap: Record<string, [number, number]> = {
-      "RDR-977689": [27.8252635, 78.6419113], // Rahul (real backend GPS ping)
-      rahul: [27.8252635, 78.6419113],
-      usr_3d441113: [27.8125, 78.649], // Sudhanshu Pal (Bilram Gate standby)
-      default: [27.8095, 78.6445],
-    };
-
-    // A) Process Riders
+    // A) Process Riders with actual live GPS coordinates
     const allRiders = ridersQuery.data || [];
     const liveFixes = liveMap.data?.riders || [];
 
-    allRiders.forEach((r, idx) => {
+    allRiders.forEach((r) => {
       // Find matching live fix
       const fix = liveFixes.find(
         (f) => f.id === r.id || f.label.toLowerCase() === r.name.toLowerCase(),
       );
 
-      const isLive = r.live === "Online" || r.live === "On delivery" || Boolean(fix);
-      if (!isLive && allRiders.length > 3 && idx > 2) return; // only plot relevant active units
+      const lat = fix?.latitude ?? (r as any).latitude ?? (r as any).lat;
+      const lng = fix?.longitude ?? (r as any).longitude ?? (r as any).lng;
 
-      let lat = fix?.latitude;
-      let lng = fix?.longitude;
-
-      if (!lat || !lng) {
-        const preset =
-          riderLocationsMap[r.id] ||
-          riderLocationsMap[r.name.toLowerCase()] ||
-          riderLocationsMap["default"] ||
-          [27.8083, 78.6473];
-        // Add tiny deterministic offset based on index
-        lat = preset[0] + (idx % 2 === 0 ? 0.003 : -0.002) * (idx + 1);
-        lng = preset[1] + (idx % 2 === 0 ? -0.0025 : 0.003) * (idx + 1);
-      }
+      // Only plot if authentic GPS telemetry fix exists
+      if (typeof lat !== "number" || typeof lng !== "number") return;
 
       const riderUnit: TelemetryUnit = {
         id: r.id,
@@ -199,112 +180,63 @@ export function AdminLiveMap({
         phone: r.phone,
         vehicle: r.vehicle || "Motorbike",
         plate: r.plate && r.plate !== "—" ? r.plate : "PENDING-KYC",
-        speed: r.live === "On delivery" ? "24 km/h" : "0 km/h (Standby)",
-        battery: 88 - (idx % 3) * 6,
-        address: `${r.zone}, ${r.city}`,
-        lastUpdated: "Just now (12s ago)",
+        speed: fix?.speed ? `${fix.speed} km/h` : (r.live === "On delivery" ? "In Motion" : "0 km/h (Standby)"),
+        battery: (fix as any)?.battery,
+        address: [r.zone, r.city].filter(Boolean).join(", "),
+        lastUpdated: fix?.updatedAt ? new Date(fix.updatedAt).toLocaleTimeString() : "Live",
         riderId: r.id,
+        orderId: (r as any).currentOrderId,
       };
-      if (r.live === "On delivery") {
-        riderUnit.orderId = "#QP-1092";
-      }
       units.push(riderUnit);
     });
 
-    // B) Process Partner Store Hubs in Kasganj
+    // B) Process Partner Store Hubs with real database locations
     const partners = partnersQuery.data || [];
-    const defaultHubLocations: Array<{ name: string; lat: number; lng: number; address: string }> =
-      [
-        {
-          name: "QuickPress Kasganj Main Hub",
-          lat: 27.8083,
-          lng: 78.6473,
-          address: "Station Road, Kasganj Central",
-        },
-        {
-          name: "Bilram Gate Laundry Partner",
-          lat: 27.818,
-          lng: 78.649,
-          address: "Bilram Gate Road, Near Market",
-        },
-        {
-          name: "Soron Gate Express Laundromat",
-          lat: 27.801,
-          lng: 78.652,
-          address: "Soron Gate Bypass, Kasganj",
-        },
-      ];
+    partners.forEach((p) => {
+      const lat = (p as any).location?.latitude ?? (p as any).latitude ?? (p as any).lat;
+      const lng = (p as any).location?.longitude ?? (p as any).longitude ?? (p as any).lng;
 
-    if (partners.length > 0) {
-      partners.slice(0, 3).forEach((p, idx) => {
-        const loc = defaultHubLocations[idx % defaultHubLocations.length] ?? {
-          lat: 27.8083,
-          lng: 78.6473,
-          address: "Kasganj Hub",
-        };
-        units.push({
-          id: p.id,
-          type: "partner",
-          name: p.businessName || p.ownerName,
-          lat: loc.lat,
-          lng: loc.lng,
-          status: "Operational · Accepting Orders",
-          phone: p.phone,
-          address: `${p.zone || ""}, ${p.city || loc.address}`,
-          lastUpdated: "Active Hub",
-        });
-      });
-    } else {
-      defaultHubLocations.forEach((h, idx) => {
-        units.push({
-          id: `hub-${idx + 1}`,
-          type: "partner",
-          name: h.name,
-          lat: h.lat,
-          lng: h.lng,
-          status: "Operational · Hub Active",
-          address: h.address,
-          lastUpdated: "Active Hub",
-        });
-      });
-    }
+      // Only plot if store has genuine geocoded coordinates
+      if (typeof lat !== "number" || typeof lng !== "number") return;
 
-    // C) Process Active Orders in Transit
+      units.push({
+        id: p.id,
+        type: "partner",
+        name: p.businessName || p.ownerName,
+        lat,
+        lng,
+        status: p.status === "active" ? "Operational · Accepting Orders" : (p.status || "Store Hub"),
+        phone: p.phone,
+        address: [p.address, p.zone, p.city].filter(Boolean).join(", "),
+        lastUpdated: "Active Hub",
+      });
+    });
+
+    // C) Process Active Orders in Transit with real destination coordinates
     const orders: AdminOrder[] = Array.isArray(ordersQuery.data) ? ordersQuery.data : [];
     const activeInTransit = orders.filter((o: AdminOrder) =>
       ["picked up", "processing", "out for delivery", "delivery assigned"].includes(o.status?.toLowerCase() || ""),
     );
 
-    if (activeInTransit.length > 0) {
-      activeInTransit.slice(0, 2).forEach((o: AdminOrder, idx: number) => {
-        units.push({
-          id: o.id,
-          type: "order",
-          name: `Order #${o.id.slice(-6).toUpperCase()}`,
-          lat: 27.819 + idx * 0.005,
-          lng: 78.636 - idx * 0.004,
-          status: o.status || "Out for Delivery",
-          orderId: o.id,
-          address: `${o.city || "Kasganj"} Operations Hub`,
-          speed: "ETA: 14 Mins",
-          lastUpdated: "Live Order Delivery",
-        });
-      });
-    } else {
-      // Provide live delivery drop demo point for Kasganj operations
+    activeInTransit.forEach((o: AdminOrder) => {
+      const lat = (o as any).address?.latitude ?? (o as any).deliveryAddress?.latitude ?? (o as any).latitude;
+      const lng = (o as any).address?.longitude ?? (o as any).deliveryAddress?.longitude ?? (o as any).longitude;
+
+      if (typeof lat !== "number" || typeof lng !== "number") return;
+
       units.push({
-        id: "ord-live-transit",
+        id: o.id,
         type: "order",
-        name: "Order #QP-1092 (Delivery Drop)",
-        lat: 27.819,
-        lng: 78.636,
-        status: "Out for Delivery",
-        orderId: "QP-1092",
-        address: "Prabhu Park, Kasganj",
-        speed: "ETA: 12 Mins",
-        lastUpdated: "Active Transit",
+        name: `Order #${o.id.slice(-6).toUpperCase()}`,
+        lat,
+        lng,
+        status: o.status || "Out for Delivery",
+        orderId: o.id,
+        address: (o as any).address?.line || o.city || "",
+        speed: (o as any).eta ? `ETA: ${(o as any).eta}` : "In Transit",
+        lastUpdated: "Live Order Delivery",
       });
-    }
+    });
 
     return units;
   }, [ridersQuery.data, liveMap.data, partnersQuery.data, ordersQuery.data]);

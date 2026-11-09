@@ -530,7 +530,7 @@ async def admin_login(payload: dict, request: Request) -> dict:
         user = await users.create(
             User(
                 id=staff_doc.get("_id") or f"usr-staff-{uuid.uuid4().hex[:8]}",
-                phone=staff_doc.get("phone", "+919999999999"),
+                phone=staff_doc.get("phone", ""),
                 email=email,
                 display_name=staff_doc.get("name", "Staff Member"),
                 role=Role.admin,
@@ -721,7 +721,7 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
                 User(
                     id=staff_id,
                     email=email,
-                    phone=staff_doc.get("phone", "+919999999999"),
+                    phone=staff_doc.get("phone", ""),
                     display_name=staff_doc.get("name", "Staff Administrator"),
                     role=Role.admin,
                     status=UserStatus.active,
@@ -765,7 +765,7 @@ async def staff_register(payload: dict, request: Request) -> dict:
 
     email = str(payload.get("email", "")).strip().lower()
     name = str(payload.get("name", "")).strip()
-    phone = str(payload.get("phone", "+91 98719 62596")).strip()
+    phone = str(payload.get("phone", "")).strip()
     password = str(payload.get("password", ""))
     role_name = str(payload.get("role", "Operations Admin")).strip()
     scope = str(payload.get("scope", "All India Hubs")).strip()

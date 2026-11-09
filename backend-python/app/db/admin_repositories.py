@@ -463,10 +463,10 @@ class AdminCustomerRepository:
             enhanced.append({
                 "id": uid,
                 "name": raw_name,
-                "phone": phone or "+91 98000 00000",
-                "email": email or f"{uid[:8]}@quickpress.online",
+                "phone": phone or "",
+                "email": email or "",
                 "city": city_val,
-                "zone": doc.get("zone") or "Central Zone",
+                "zone": doc.get("zone") or "",
                 "orders": len(u_orders),
                 "completedOrders": len(completed_orders),
                 "cancelledOrders": len(cancelled_orders),
@@ -888,10 +888,10 @@ class AdminPartnerRepository:
                 "code": clean_partner_code,
                 "businessName": name,
                 "ownerName": owner,
-                "phone": clean_phone or "+91 92587 30561",
-                "email": doc.get("email") or f"{pid[:8]}@quickpress.online",
+                "phone": clean_phone or "",
+                "email": doc.get("email") or "",
                 "city": clean_city,
-                "zone": doc.get("zone") or "Central Zone",
+                "zone": doc.get("zone") or "",
                 "serviceCategories": [s.get("name") for s in (doc.get("services") or []) if isinstance(s, dict) and s.get("name")] or ["Wash & Fold", "Dry Cleaning", "Steam Iron"],
                 "totalOrders": len(p_orders),
                 "completedOrders": len(deliv_orders),
@@ -1236,10 +1236,10 @@ class AdminPartnerRepository:
                 "id": pid,
                 "businessName": name,
                 "ownerName": owner,
-                "phone": doc.get("phone") or doc.get("ownerPhone") or doc.get("mobile") or "+91 92587 30561",
-                "email": doc.get("email") or f"{pid[:8]}@quickpress.online",
+                "phone": doc.get("phone") or doc.get("ownerPhone") or doc.get("mobile") or "",
+                "email": doc.get("email") or "",
                 "city": doc.get("city") or "Kasganj",
-                "zone": doc.get("zone") or "Central Zone",
+                "zone": doc.get("zone") or "",
                 "status": raw_status,
                 "kycStatus": "Verified" if doc.get("isVerified") else "Pending",
                 "rating": calc_rating,
@@ -2402,73 +2402,6 @@ class AdminRiderRepository:
         register_doc("bank_passbook", "Bank Passbook (Front Page)", "Bank Passbook", "passbookPhoto", "passbookUrl", "passbook", "bank_passbook")
         register_doc("cancelled_cheque", "Cancelled Cheque", "Cancelled Cheque", "cancelledCheque", "cancelledChequeUrl", "cheque")
         register_doc("agreement_signature", "Digital Agreement Signature", "E-Signature", "agreementSignature", "signatureUrl", "signature")
-
-        # Standard verified KYC Documents dossier (guarantee 6 verified items)
-        if "aadhaar_card" not in doc_map and "aadhaar_front" not in doc_map:
-            doc_map["aadhaar_card"] = {
-                "id": "aadhaar_card",
-                "type": "Government ID (UIDAI)",
-                "name": "Aadhaar Card (UIDAI)",
-                "documentUrl": pdoc.get("aadhaarFront") or pdoc.get("aadhaarFrontUrl") or "",
-                "status": "Verified",
-                "uploadedAt": str(doc.get("registrationTimestamp") or "2026-09-29T15:34:15.355Z")[:10],
-                "documentNumber": pdoc.get("aadhaarNumber") or pdoc.get("aadhaar") or "Verified On-File",
-            }
-
-        if "driving_license" not in doc_map and "dl_front" not in doc_map:
-            doc_map["driving_license"] = {
-                "id": "driving_license",
-                "type": "Driving License (MoRTH)",
-                "name": "Driving License",
-                "documentUrl": pdoc.get("dlFront") or pdoc.get("dlFrontUrl") or "",
-                "status": "Verified",
-                "uploadedAt": str(doc.get("registrationTimestamp") or "2026-09-29T15:34:15.355Z")[:10],
-                "documentNumber": pdoc.get("drivingLicenseNumber") or pdoc.get("dlNumber") or "UP-87-DL-VERIFIED",
-            }
-
-        if "rc_certificate" not in doc_map and "rc_front" not in doc_map:
-            doc_map["rc_certificate"] = {
-                "id": "rc_certificate",
-                "type": "Vehicle Registration (RC)",
-                "name": "Vehicle RC Certificate",
-                "documentUrl": pdoc.get("rcFront") or pdoc.get("rcFrontUrl") or "",
-                "status": "Verified",
-                "uploadedAt": str(doc.get("registrationTimestamp") or "2026-09-29T15:34:15.355Z")[:10],
-                "documentNumber": pdoc.get("vehicleNumber") or pdoc.get("rcNumber") or "UP87R6390",
-            }
-
-        if "bank_passbook" not in doc_map:
-            doc_map["bank_passbook"] = {
-                "id": "bank_passbook",
-                "type": "Bank Verification Document",
-                "name": f"Bank Verification ({bank_account_doc.get('bankName') if bank_account_doc else pdoc.get('bankName', 'HDFC Bank')})",
-                "documentUrl": pdoc.get("passbookPhoto") or "",
-                "status": "Verified",
-                "uploadedAt": str(doc.get("registrationTimestamp") or "2026-09-29T15:34:15.355Z")[:10],
-                "documentNumber": f"A/C: •••• {str(pdoc.get('accountNumber') or (bank_account_doc or {}).get('accountNumber') or '093311')[-4:]}",
-            }
-
-        if "bike_photo" not in doc_map and "vehicle_photo" not in doc_map:
-            doc_map["vehicle_photo"] = {
-                "id": "vehicle_photo",
-                "type": "Vehicle Fleet Inspection",
-                "name": f"Fleet Vehicle Inspection ({pdoc.get('vehicleBrand', 'Hero')} {pdoc.get('vehicleModel', 'Splendor Plus')})",
-                "documentUrl": pdoc.get("vehiclePhoto") or "",
-                "status": "Verified",
-                "uploadedAt": str(doc.get("registrationTimestamp") or "2026-09-29T15:34:15.355Z")[:10],
-                "documentNumber": pdoc.get("vehicleNumber", "UP87R6390"),
-            }
-
-        if "agreement_signature" not in doc_map and "digital_agreement" not in doc_map:
-            doc_map["digital_agreement"] = {
-                "id": "digital_agreement",
-                "type": "Legal MSA Agreement",
-                "name": "Signed Captain Partnership Agreement",
-                "documentUrl": pdoc.get("agreementSignature") or "",
-                "status": "Verified",
-                "uploadedAt": str(pdoc.get("agreementSignedAt") or doc.get("registrationTimestamp") or "2026-09-29")[:10],
-                "documentNumber": "Digitally Signed & Timestamped",
-            }
 
         kyc_docs = list(doc_map.values())
 
@@ -4051,7 +3984,7 @@ class AdminRefundRepository:
                 "orderNumber": r.get("orderNumber") or (r.get("orderId") or "—")[-6:].upper(),
                 "userId": r.get("userId") or r.get("user_id") or "—",
                 "customerName": r.get("customerName") or r.get("customer") or "Customer",
-                "customerPhone": r.get("customerPhone") or r.get("phone") or "+91 98719 62596",
+                "customerPhone": r.get("customerPhone") or r.get("phone") or "",
                 "amount": float(r.get("amount") or 0.0),
                 "method": r.get("method") or "wallet",
                 "methodLabel": "QuickPress Wallet (Instant)" if r.get("method") == "wallet" else "Razorpay UPI Reversal",
@@ -5931,7 +5864,7 @@ class AdminServiceRepository:
             r_info = {
                 "id": uid,
                 "name": name,
-                "phone": phone or "+91 98719 62596",
+                "phone": phone or "",
                 "vehicle": r.get("vehicle") or r.get("vehicleType") or "Motorbike",
                 "plate": r.get("plate") or r.get("vehicleNumber") or r.get("vehicle_number") or "—",
                 "rating": float(r.get("rating") or 4.9),
@@ -5984,7 +5917,7 @@ class AdminServiceRepository:
                     r_entry = riders_by_key.get(rid) or riders_by_key.get(r_name) or {
                         "id": rid or "rdr-temp",
                         "name": r_name,
-                        "phone": r_obj.get("phone") or "+91 98719 62596",
+                        "phone": r_obj.get("phone") or "",
                         "vehicle": r_obj.get("vehicle") or "Motorbike",
                         "plate": r_obj.get("plate") or r_obj.get("vehicleNumber") or r_obj.get("vehicle_number") or "—",
                         "rating": 4.9,
@@ -6453,7 +6386,7 @@ class SupportRepository:
                 "subject": t.get("subject") or "Support Request",
                 "description": t.get("description") or "",
                 "raisedBy": t.get("raisedBy") or udoc.get("name") or udoc.get("display_name") or "User",
-                "phone": t.get("phone") or udoc.get("phone") or "+91 98719 62596",
+                "phone": t.get("phone") or udoc.get("phone") or "",
                 "email": t.get("email") or udoc.get("email") or "",
                 "role": (t.get("role") or t.get("source") or "Customer").capitalize(),
                 "source": (t.get("source") or t.get("role") or "Customer").capitalize(),
@@ -6522,7 +6455,7 @@ class SupportRepository:
                     "subject": t.get("subject") or t.get("description") or "Customer Issue",
                     "description": t.get("description") or "",
                     "raisedBy": udoc.get("name") or udoc.get("display_name") or uid or "Customer",
-                    "phone": udoc.get("phone") or "+91 98719 62596",
+                    "phone": udoc.get("phone") or "",
                     "email": udoc.get("email") or "",
                     "role": ticket_role,
                     "source": ticket_role,
@@ -6558,7 +6491,7 @@ class SupportRepository:
                 pid = str(t.get("partnerId") or t.get("partner_id") or "")
                 pdoc = partner_map.get(pid, {})
                 partner_name = pdoc.get("name") or pdoc.get("businessName") or t.get("partnerName") or f"Store Partner #{pid[:6]}"
-                partner_phone = pdoc.get("phone") or t.get("phone") or "+91 98719 62596"
+                partner_phone = pdoc.get("phone") or t.get("phone") or ""
                 partner_email = pdoc.get("email") or t.get("email") or ""
 
                 replies = list(t.get("replies") or [])
@@ -6620,7 +6553,7 @@ class SupportRepository:
                 rid = str(t.get("riderId") or t.get("rider_id") or "")
                 rdoc = rider_map.get(rid, {})
                 rider_name = rdoc.get("name") or rdoc.get("fullName") or t.get("riderName") or f"Captain #{rid[:6]}"
-                rider_phone = rdoc.get("phone") or t.get("phone") or "+91 98719 62596"
+                rider_phone = rdoc.get("phone") or t.get("phone") or ""
                 rider_email = rdoc.get("email") or t.get("email") or ""
 
                 replies = list(t.get("replies") or [])
@@ -6794,7 +6727,7 @@ class SupportRepository:
             "subject": doc.get("subject") or doc.get("description") or "Support Request",
             "description": doc.get("description") or "",
             "raisedBy": doc.get("raisedBy") or (udoc or {}).get("name") or (udoc or {}).get("display_name") or "User",
-            "phone": doc.get("phone") or (udoc or {}).get("phone") or "+91 98719 62596",
+            "phone": doc.get("phone") or (udoc or {}).get("phone") or "",
             "email": doc.get("email") or (udoc or {}).get("email") or "",
             "userId": uid,
             "role": raw_role,
@@ -6838,7 +6771,7 @@ class SupportRepository:
             "subject": payload.subject,
             "description": payload.description or payload.subject,
             "raisedBy": payload.raisedBy or "User",
-            "phone": payload.phone or "+91 98719 62596",
+            "phone": payload.phone or "",
             "email": payload.email or "",
             "userId": payload.userId,
             "role": (payload.role or "Customer").capitalize(),

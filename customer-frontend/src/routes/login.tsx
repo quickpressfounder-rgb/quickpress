@@ -957,7 +957,7 @@ function NameStep({
             type="text"
             autoComplete="name"
             autoFocus
-            placeholder="e.g. Rahul Sharma"
+            placeholder="Enter your full name"
             value={name}
             onBlur={() => setTouched(true)}
             onChange={(e) => {

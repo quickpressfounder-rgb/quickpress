@@ -118,7 +118,7 @@ async def current_user(
             user = User(
                 id=str(staff_doc.get("_id") or staff_doc.get("id")),
                 email=staff_doc.get("email", ""),
-                phone=staff_doc.get("phone", "+919871962596"),
+                phone=staff_doc.get("phone", ""),
                 display_name=staff_doc.get("name") or staff_doc.get("fullName", "Admin"),
                 role=Role.admin,
                 status=UserStatus.active,
@@ -207,7 +207,7 @@ async def optional_user(
                 user = User(
                     id=str(staff_doc.get("_id") or staff_doc.get("id")),
                     email=staff_doc.get("email", ""),
-                    phone=staff_doc.get("phone", "+919871962596"),
+                    phone=staff_doc.get("phone", ""),
                     display_name=staff_doc.get("name") or staff_doc.get("fullName", "Admin"),
                     role=Role.admin,
                     status=UserStatus.active,

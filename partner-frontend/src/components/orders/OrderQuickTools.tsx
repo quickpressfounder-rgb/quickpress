@@ -217,7 +217,7 @@ export function DirectContactActions({
   riderName?: string;
   riderPhone?: string;
 }) {
-  const cleanPhone = (customerPhone || "9876543210").replace(/\D/g, "").slice(-10);
+  const cleanPhone = (customerPhone || "").replace(/\D/g, "").slice(-10);
   const cleanRiderPhone = (riderPhone || "").replace(/\D/g, "").slice(-10);
 
   return (
@@ -226,14 +226,16 @@ export function DirectContactActions({
       className="flex flex-wrap items-center gap-1.5 pt-1"
     >
       {/* 1-Tap Call Customer */}
-      <a
-        href={`tel:+91${cleanPhone}`}
-        className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 text-[11px] font-black text-black active:scale-95 transition-all shadow-2xs"
-        title={`Call Customer (+91 ${cleanPhone})`}
-      >
-        <Phone className="size-3 text-emerald-700" />
-        <span>Call</span>
-      </a>
+      {cleanPhone && (
+        <a
+          href={`tel:+91${cleanPhone}`}
+          className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 text-[11px] font-black text-black active:scale-95 transition-all shadow-2xs"
+          title={`Call Customer (+91 ${cleanPhone})`}
+        >
+          <Phone className="size-3 text-emerald-700" />
+          <span>Call</span>
+        </a>
+      )}
 
       {/* 1-Tap Call Captain (If Rider Assigned) */}
       {cleanRiderPhone ? (

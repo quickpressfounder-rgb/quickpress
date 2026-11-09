@@ -1590,7 +1590,7 @@ export function PayoutsCommandCenter() {
                 <Input
                   value={compCustomerName}
                   onChange={(e) => setCompCustomerName(e.target.value)}
-                  placeholder="e.g. Rahul Sharma"
+                  placeholder="Enter customer name"
                   className="text-xs border-zinc-200 focus:border-zinc-950 rounded-xl h-10"
                 />
               </div>

@@ -206,7 +206,7 @@ async def get_rider_order_commission_slip(
 # --------------------------------------------------------------------------
 
 @router.get("/api/admin/commission/analytics")
-async def get_admin_commission_analytics(user: Optional[User] = Depends(optional_user)) -> dict:
+async def get_admin_commission_analytics(user: User = Depends(require_roles(Role.admin))) -> dict:
     """Master platform commission ledger & KPIs from Supabase PostgreSQL."""
     return await commission_engine.get_platform_commission_analytics()
 

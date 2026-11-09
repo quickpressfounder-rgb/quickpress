@@ -324,7 +324,7 @@ export function ShopEditSheet({
           inputMode="numeric"
           value={form.contactNumber}
           error={errors.contactNumber}
-          placeholder="9876543210"
+          placeholder="10-digit mobile number"
           onChange={(event) => set("contactNumber", event.target.value)}
         />
         <FormField

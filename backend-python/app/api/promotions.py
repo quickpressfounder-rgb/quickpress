@@ -14,10 +14,12 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
+from app.core.deps import require_roles
 from app.db.client import database
+from app.models.user import Role, User
 
 logger = logging.getLogger(__name__)
 
@@ -265,7 +267,7 @@ async def get_public_banners(audience: Optional[str] = Query("riders")):
 # =========================================================================
 
 @router.get("/admin/promotions/stories")
-async def admin_list_stories():
+async def admin_list_stories(_user: User = Depends(require_roles(Role.admin))):
     """Admin: List all stories (active & inactive)."""
     try:
         docs = await database.find_many("promotions_stories")
@@ -281,7 +283,7 @@ async def admin_list_stories():
 
 
 @router.post("/admin/promotions/stories", status_code=status.HTTP_201_CREATED)
-async def admin_create_story(payload: StoryPayload):
+async def admin_create_story(payload: StoryPayload, _user: User = Depends(require_roles(Role.admin))):
     """Admin: Create a new story."""
     story_id = f"story_{uuid4().hex[:10]}"
     doc = {
@@ -296,7 +298,7 @@ async def admin_create_story(payload: StoryPayload):
 
 
 @router.put("/admin/promotions/stories/{story_id}")
-async def admin_update_story(story_id: str, payload: StoryPayload):
+async def admin_update_story(story_id: str, payload: StoryPayload, _user: User = Depends(require_roles(Role.admin))):
     """Admin: Update an existing story."""
     changes = {
         **payload.model_dump(),
@@ -317,7 +319,7 @@ async def admin_update_story(story_id: str, payload: StoryPayload):
 
 
 @router.delete("/admin/promotions/stories/{story_id}")
-async def admin_delete_story(story_id: str):
+async def admin_delete_story(story_id: str, _user: User = Depends(require_roles(Role.admin))):
     """Admin: Delete a story."""
     res = await database.delete_one("promotions_stories", {"_id": story_id})
     if not res:
@@ -326,7 +328,7 @@ async def admin_delete_story(story_id: str):
 
 
 @router.get("/admin/promotions/banners")
-async def admin_list_banners():
+async def admin_list_banners(_user: User = Depends(require_roles(Role.admin))):
     """Admin: List all offer banners."""
     try:
         docs = await database.find_many("promotions_banners")
@@ -342,7 +344,7 @@ async def admin_list_banners():
 
 
 @router.post("/admin/promotions/banners", status_code=status.HTTP_201_CREATED)
-async def admin_create_banner(payload: BannerPayload):
+async def admin_create_banner(payload: BannerPayload, _user: User = Depends(require_roles(Role.admin))):
     """Admin: Create an offer banner."""
     banner_id = f"banner_{uuid4().hex[:10]}"
     doc = {
@@ -357,7 +359,7 @@ async def admin_create_banner(payload: BannerPayload):
 
 
 @router.put("/admin/promotions/banners/{banner_id}")
-async def admin_update_banner(banner_id: str, payload: BannerPayload):
+async def admin_update_banner(banner_id: str, payload: BannerPayload, _user: User = Depends(require_roles(Role.admin))):
     """Admin: Update an offer banner."""
     changes = {
         **payload.model_dump(),
@@ -376,7 +378,7 @@ async def admin_update_banner(banner_id: str, payload: BannerPayload):
 
 
 @router.delete("/admin/promotions/banners/{banner_id}")
-async def admin_delete_banner(banner_id: str):
+async def admin_delete_banner(banner_id: str, _user: User = Depends(require_roles(Role.admin))):
     """Admin: Delete an offer banner."""
     res = await database.delete_one("promotions_banners", {"_id": banner_id})
     if not res:

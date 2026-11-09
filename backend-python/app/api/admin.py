@@ -246,7 +246,7 @@ async def get_order(order_id: str, user: User = Depends(current_user)):
                 "name": r1_doc.get("fullName") or r1_doc.get("name") or "Rider 1 (Pickup Captain)",
                 "phone": r1_doc.get("phone") or "",
                 "vehicle": r1_doc.get("vehicleType") or "Bike",
-                "plate": r1_doc.get("vehicleNumber") or "UP-87-QP-1001",
+                "plate": r1_doc.get("vehicleNumber") or r1_doc.get("plate") or "",
                 "payout": float(reassignment.get("pickupLegPayout") or 35.0),
                 "role": "Pickup Only (Opted out at store)",
             }
@@ -258,7 +258,7 @@ async def get_order(order_id: str, user: User = Depends(current_user)):
                 "name": r2_doc.get("fullName") or r2_doc.get("name") or "Rider 2 (Delivery Captain)",
                 "phone": r2_doc.get("phone") or "",
                 "vehicle": r2_doc.get("vehicleType") or "Bike",
-                "plate": r2_doc.get("vehicleNumber") or "UP-87-QP-1002",
+                "plate": r2_doc.get("vehicleNumber") or r2_doc.get("plate") or "",
                 "payout": float(reassignment.get("deliveryLegPayout") or 35.0),
                 "role": "Delivery Only (+20% Bonus)",
             }
@@ -278,7 +278,7 @@ async def get_order(order_id: str, user: User = Depends(current_user)):
                 "name": c1_doc.get("fullName") or c1_doc.get("name") or "Captain 1 (Continuous Ride)",
                 "phone": c1_doc.get("phone") or "",
                 "vehicle": c1_doc.get("vehicleType") or "Bike",
-                "plate": c1_doc.get("vehicleNumber") or "UP-87-QP-1001",
+                "plate": c1_doc.get("vehicleNumber") or c1_doc.get("plate") or "",
                 "payout": total_fare,
                 "role": "Continuous Ride (Full Pickup & Doorstep Delivery)",
             }
@@ -1657,7 +1657,7 @@ async def create_staff(payload: StaffPayload, user: User = Depends(current_user)
         "_id": staff_id,
         "name": name,
         "email": email,
-        "phone": payload.phone or "+91 98719 62596",
+        "phone": payload.phone or "",
         "role": payload.role or "Operations Admin",
         "scope": payload.scope or "All India Hubs",
         "permissions": payload.permissions or ["orders", "partners", "riders", "support"],
@@ -2168,7 +2168,7 @@ async def initiate_admin_refund(payload: dict, user: User = Depends(current_user
     order_id = str(payload.get("orderId") or "—")
     user_id = str(payload.get("userId") or payload.get("customerId") or "")
     customer_name = str(payload.get("customerName") or "Customer")
-    customer_phone = str(payload.get("customerPhone") or "+91 98719 62596")
+    customer_phone = str(payload.get("customerPhone") or "")
     amount = float(payload.get("amount") or 0.0)
     method = str(payload.get("method") or "wallet").lower()
     reason = str(payload.get("reason") or "Order Cancellation")

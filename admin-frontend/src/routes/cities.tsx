@@ -1339,7 +1339,7 @@ export function CitiesPage() {
                       render: (r) => (
                         <div>
                           <p className="font-semibold text-xs text-zinc-900">{r.vehicle || "EV Scooter"}</p>
-                          <p className="font-mono text-[11px] text-zinc-500">{r.plate || "UP-16-QP-01"}</p>
+                          <p className="font-mono text-[11px] text-zinc-500">{r.plate || "Pending KYC"}</p>
                         </div>
                       ),
                     },

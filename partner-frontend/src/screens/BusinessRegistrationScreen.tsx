@@ -1659,7 +1659,7 @@ export function BusinessRegistrationScreen() {
                     type="tel"
                     value={mobile.replace(/^\+91/, "").replace(/\D/g, "").slice(0, 10)}
                     onChange={(e) => setMobile(`+91${e.target.value.replace(/\D/g, "").slice(0, 10)}`)}
-                    placeholder="9876543210"
+                    placeholder="10-digit mobile number"
                     className={`w-full pl-12 pr-24 py-2.5 rounded-xl border text-xs font-semibold focus:outline-hidden focus:ring-2 transition ${
                       fieldErrors["mobile"]
                         ? "border-red-400 bg-red-50/20 focus:ring-red-400"

@@ -393,31 +393,37 @@ export const OrderCard = React.memo(function OrderCard({
               <p className="text-xs font-bold text-zinc-900 truncate">
                 {riderName} {isReady ? "is waiting at store" : "is on the way"}
               </p>
-              <span className="inline-block mt-0.5 text-[11px] font-black text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded">
-                OTP: {(order as any).pickupOtp || (order as any).dispatchOtp || (order as any).handoverOtp || "1376"}
-              </span>
+              {Boolean((order as any).pickupOtp || (order as any).dispatchOtp || (order as any).handoverOtp) && (
+                <span className="inline-block mt-0.5 text-[11px] font-black text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded">
+                  OTP: {(order as any).pickupOtp || (order as any).dispatchOtp || (order as any).handoverOtp}
+                </span>
+              )}
             </div>
           </div>
 
           {/* Call Rider Button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              const phone = (rawRider as any)?.phone || order.riderPhone || "9876543210";
-              window.open(`tel:${phone.replace(/\s/g, "")}`);
-            }}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-black text-zinc-800 shadow-2xs hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shrink-0"
-          >
-            <Phone className="size-3.5 text-zinc-700" />
-            <span>Call</span>
-          </button>
+          {Boolean((rawRider as any)?.phone || order.riderPhone) && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const phone = (rawRider as any)?.phone || order.riderPhone || "";
+                if (phone) {
+                  window.open(`tel:${phone.replace(/\s/g, "")}`);
+                }
+              }}
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-black text-zinc-800 shadow-2xs hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shrink-0"
+            >
+              <Phone className="size-3.5 text-zinc-700" />
+              <span>Call</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2.5 text-xs text-zinc-700 font-medium">
           <span className="text-base shrink-0 select-none">🛵</span>
           <span className="truncate font-semibold text-zinc-800">
-            5 riders nearby, assigning one soon
+            Assigning delivery captain soon
           </span>
         </div>
       )}

@@ -1248,7 +1248,7 @@ export function PartnerProfileScreen() {
                 <p className="font-black text-zinc-800">Add New Staff</p>
                 <input
                   type="text"
-                  placeholder="Staff Name (e.g. Rahul Sharma)"
+                  placeholder="Staff Full Name"
                   value={newStaffName}
                   onChange={(e) => setNewStaffName(e.target.value)}
                   className="w-full rounded-xl border border-zinc-200 bg-white p-2 text-xs"

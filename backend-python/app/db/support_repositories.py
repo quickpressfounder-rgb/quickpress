@@ -487,7 +487,7 @@ class SupportRepository:
                 "subject": payload.subject.strip(),
                 "description": payload.description.strip(),
                 "raisedBy": user.name or "Customer",
-                "phone": user.phone or "+91 98719 62596",
+                "phone": user.phone or "",
                 "email": user.email or "",
                 "userId": user.id,
                 "role": "Customer",

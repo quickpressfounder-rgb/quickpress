@@ -283,10 +283,10 @@ export const CaptainRouteBookingModal: React.FC<CaptainRouteBookingModalProps> =
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-black text-zinc-950 truncate">
-                  {selectedDest?.name || "Soron Gate (Home)"}
+                  {selectedDest?.name || "Home"}
                 </p>
                 <p className="text-[11px] text-zinc-500 truncate">
-                  {selectedDest?.address || "Kasganj, Uttar Pradesh"}
+                  {selectedDest?.address || "Registered Address"}
                 </p>
               </div>
             </div>

@@ -64,89 +64,15 @@ export interface B2BPartnerLeadItem {
   createdAt: string;
 }
 
-// Sample initial institutional contracts for demo & testing if DB is empty
-const SEED_B2B_PARTNERS: B2BPartnerLeadItem[] = [
-  {
-    id: "QP-B2B-849201",
-    b2bId: "QP-B2B-849201",
-    businessName: "The Grand Heritage Hotel & Suites",
-    category: "Hotels & Hospitality",
-    address: "Civil Lines, Near Bilram Gate",
-    city: "Kasganj",
-    pincode: "207123",
-    unitsCount: "1 Location",
-    contactName: "Vikram Singhania",
-    designation: "General Manager",
-    phone: "9876543210",
-    whatsapp: "9876543210",
-    email: "gm@grandheritagehotel.com",
-    dailyVolume: "150 - 500 kg / day",
-    frequency: "Daily 2x (Morning & Evening)",
-    services: [
-      "Commercial Bed Linen & Bath Towels (Flatwork Steam Iron)",
-      "High-Pressure Roller Calendaring Flatwork Press",
-    ],
-    sla: "24 Hours Express Turnaround",
-    gstin: "09AAACH7821K1Z4",
-    pan: "AAACH7821K",
-    billingModel: "Per Kg Weight Basis",
-    creditTerms: "Weekly Invoicing",
-    trialRequested: true,
-    trialDate: "2026-10-25",
-    specialNotes: "High-thread-count Egyptian cotton bedsheets. Require starching and shrink-wrapped bundles.",
-    status: "NEW_INQUIRY",
-    accountManager: "Corporate Relations Desk",
-    contactLogs: [],
-    createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-  },
-  {
-    id: "QP-B2B-631092",
-    b2bId: "QP-B2B-631092",
-    businessName: "City Care Multi-Specialty Hospital",
-    category: "Hospitals & Healthcare",
-    address: "GT Road, Sector 4",
-    city: "Aligarh",
-    pincode: "202001",
-    unitsCount: "2 Locations",
-    contactName: "Dr. Arvind Mehta",
-    designation: "Operations Director",
-    phone: "9837123456",
-    whatsapp: "9837123456",
-    email: "admin@citycarehospital.in",
-    dailyVolume: "500 - 1,500+ kg / day",
-    frequency: "Daily 2x (Morning & Evening)",
-    services: [
-      "Medical Grade 80°C Thermal Anti-Bacterial Sanitization",
-      "Commercial Bed Linen & Bath Towels (Flatwork Steam Iron)",
-    ],
-    sla: "24 Hours Express Turnaround",
-    gstin: "09BBAAC9012M1Z2",
-    pan: "BBAAC9012M",
-    billingModel: "Per Kg Weight Basis",
-    creditTerms: "Net 30 Days Monthly Invoicing",
-    trialRequested: true,
-    trialDate: "2026-10-24",
-    specialNotes: "Strict medical sanitization with thermal test certification report per batch.",
-    status: "TRIAL_SCHEDULED",
-    accountManager: "Aman Saxena",
-    contactLogs: [
-      {
-        timestamp: new Date(Date.now() - 86400000).toISOString(),
-        note: "Called Operations Director Dr. Mehta. Scheduled 40kg sample wash pickup for OT gowns.",
-        status: "TRIAL_SCHEDULED",
-        manager: "Aman Saxena",
-      },
-    ],
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-];
+// Institutional contracts collection (hydrated from API or local submissions)
+const SEED_B2B_PARTNERS: B2BPartnerLeadItem[] = [];
 
 async function fetchB2BPartnersApi(): Promise<B2BPartnerLeadItem[]> {
   try {
     const res = await fetch("/api/b2b/partners");
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data.items) && data.items.length > 0) {
+      if (Array.isArray(data.items)) {
         return data.items;
       }
     }
@@ -154,20 +80,12 @@ async function fetchB2BPartnersApi(): Promise<B2BPartnerLeadItem[]> {
     // ignore network errors and fallback
   }
 
-  // Fallback to local storage + seed items
+  // Fallback to local storage
   try {
     const local = JSON.parse(localStorage.getItem("qp_b2b_leads") || "[]");
-    const merged = [...local, ...SEED_B2B_PARTNERS];
-    // Deduplicate by b2bId
-    const seen = new Set<string>();
-    return merged.filter((item) => {
-      const key = item.b2bId || item.id;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    return Array.isArray(local) ? local : [];
   } catch {
-    return SEED_B2B_PARTNERS;
+    return [];
   }
 }
 

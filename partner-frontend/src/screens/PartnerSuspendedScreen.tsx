@@ -123,7 +123,7 @@ export function PartnerSuspendedScreen() {
     const text = encodeURIComponent(
       `Hello QuickPress Trust & Safety Team, my Partner Store ID is: ${partnerId}. My store is suspended and I would like assistance regarding my appeal.`
     );
-    window.open(`https://wa.me/919876543210?text=${text}`, "_blank");
+    window.open(`https://wa.me/918006000000?text=${text}`, "_blank");
   };
 
   const handleLogout = () => {

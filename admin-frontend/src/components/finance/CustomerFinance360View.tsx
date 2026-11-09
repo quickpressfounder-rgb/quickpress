@@ -83,7 +83,7 @@ export function CustomerFinance360View({ onInspectOrder, initialIdentifier = "" 
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
               <Input
                 type="text"
-                placeholder="Phone (e.g. 9876543210) or User ID..."
+                placeholder="Phone number or User ID..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 className="pl-9 text-xs rounded-xl h-9"

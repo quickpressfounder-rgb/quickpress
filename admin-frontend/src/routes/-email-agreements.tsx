@@ -674,7 +674,7 @@ export function DispatchAgreementModal({ isOpen, onClose, onSuccess }: DispatchA
               <Input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. 9876543210"
+                placeholder="10-digit mobile number"
                 className="mt-1 h-9 text-xs"
               />
             </div>

@@ -426,9 +426,9 @@ export async function postOrder(payload: PostOrderPayload): Promise<{ ok: true; 
         totals: { grandTotal: payload.total },
         address: {
           label: address.label || "Home",
-          line: address.line || "Main Road",
+          line: address.line || "",
           city: address.city || readLocation()?.city || "",
-          phone: payload.customerPhone || address.phone || "9876543210",
+          phone: payload.customerPhone || address.phone || "",
         },
         pickup: {
           date: payload.pickup?.day || "Today",
@@ -491,16 +491,16 @@ export async function postOrder(payload: PostOrderPayload): Promise<{ ok: true; 
     createdAt: nowIso,
     status: "pending_partner_acceptance",
     partner: {
-      id: "partner-1",
-      name: "QuickPress Partner Store",
-      phone: "+91 98765 43210",
+      id: (payload as any).partnerId || "partner-hub",
+      name: (payload as any).partnerName || "QuickPress Partner Store",
+      phone: (payload as any).partnerPhone || "",
       city: address.city || readLocation()?.city || "",
     },
     address: {
       label: address.label || "Home",
-      line: address.line || "Main Road",
+      line: address.line || "",
       city: address.city || readLocation()?.city || "",
-      phone: payload.customerPhone || address.phone || "9876543210",
+      phone: payload.customerPhone || address.phone || "",
     },
     pickup: {
       date: payload.pickup?.day || "Today",

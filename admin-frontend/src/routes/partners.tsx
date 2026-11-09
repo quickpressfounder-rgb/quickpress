@@ -3672,7 +3672,7 @@ function PartnersPage() {
               <Input
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
-                placeholder="9876543210"
+                placeholder="10-digit mobile number"
                 className="mt-1 bg-zinc-50 border-zinc-200 font-mono font-bold"
               />
             </div>

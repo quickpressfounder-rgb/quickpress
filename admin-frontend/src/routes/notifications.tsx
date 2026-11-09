@@ -92,7 +92,7 @@ const WA_TEMPLATE_PRESETS = [
   {
     id: "captain_assigned",
     name: "Captain Assigned",
-    body: "Hello {name}, Captain Rahul Sharma has been assigned for your laundry pickup. Bike: UP-87-AB-1234.",
+    body: "Hello {name}, Captain {riderName} has been assigned for your laundry pickup. Bike: {vehicleNumber}.",
   },
   {
     id: "clothes_inspected",
@@ -102,7 +102,7 @@ const WA_TEMPLATE_PRESETS = [
   {
     id: "out_for_delivery",
     name: "Out For Delivery with OTP",
-    body: "Hello {name}, your freshly laundered clothes are out for delivery! Share OTP 4821 with Captain upon arrival.",
+    body: "Hello {name}, your freshly laundered clothes are out for delivery! Share OTP {deliveryOtp} with Captain upon arrival.",
   },
   {
     id: "order_delivered",
@@ -1288,7 +1288,7 @@ export function NotificationsPage() {
                             Recipient Phone (+91)
                           </Label>
                           <Input
-                            placeholder="e.g. 9876543210"
+                            placeholder="10-digit mobile number"
                             value={waForm.toPhone}
                             onChange={(e) => setWaForm({ ...waForm, toPhone: e.target.value })}
                             className="h-10 text-xs font-mono font-bold bg-white border-zinc-200"
@@ -1609,7 +1609,7 @@ export function NotificationsPage() {
                       Recipient Mobile Number
                     </Label>
                     <Input
-                      placeholder="e.g. 9876543210"
+                      placeholder="10-digit mobile number"
                       value={smsForm.toPhone}
                       onChange={(e) => setSmsForm({ ...smsForm, toPhone: e.target.value })}
                       className="h-10 text-xs font-mono font-bold bg-white border-zinc-200"

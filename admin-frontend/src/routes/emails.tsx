@@ -1135,7 +1135,7 @@ function EmailHubPage() {
                 <Label className="text-xs font-bold text-zinc-800">Recipient Name</Label>
                 <Input
                   type="text"
-                  placeholder="e.g. Rahul Verma"
+                  placeholder="Enter recipient name"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   className="bg-white border-zinc-300 text-zinc-900 text-xs mt-1 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"

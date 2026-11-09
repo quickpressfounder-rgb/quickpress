@@ -3109,50 +3109,46 @@ function FullPageDossierView({
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {(documents.length > 0
-                  ? documents
-                  : [
-                      { id: "aadhaar_card", name: "Aadhaar Card (UIDAI)", type: "Government ID", status: "Verified", documentNumber: "Verified On-File" },
-                      { id: "driving_license", name: "Driving License", type: "DL", status: "Verified", documentNumber: "UP-87-DL-VERIFIED" },
-                      { id: "rc_certificate", name: "Vehicle RC Certificate", type: "RC", status: "Verified", documentNumber: vehicle.plate || profile.vehicleNumber || "UP87R6390" },
-                      { id: "bank_passbook", name: `Bank Verification (${bank.bankName || "HDFC Bank"})`, type: "Bank Document", status: "Verified", documentNumber: `A/C: •••• ${String(bank.accountNumber || "093311").slice(-4)}` },
-                      { id: "vehicle_photo", name: "Fleet Vehicle Inspection", type: "Inspection", status: "Verified", documentNumber: vehicle.plate || profile.vehicleNumber || "UP87R6390" },
-                      { id: "agreement", name: "Signed Captain Partnership Agreement", type: "MSA Agreement", status: "Verified", documentNumber: "Digitally Signed" },
-                    ]
-                ).map((doc: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="rounded-2xl border border-zinc-200 p-4 flex flex-col justify-between hover:border-zinc-300 transition-colors"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-black text-zinc-900">{doc.name}</span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 border border-emerald-200">
-                          <Check className="size-3" /> {doc.status || "Verified"}
-                        </span>
+                {documents.length > 0 ? (
+                  documents.map((doc: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="rounded-2xl border border-zinc-200 p-4 flex flex-col justify-between hover:border-zinc-300 transition-colors"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-black text-zinc-900">{doc.name}</span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 border border-emerald-200">
+                            <Check className="size-3" /> {doc.status || "Verified"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 font-mono">
+                          Document Type: {doc.type}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-zinc-500 font-mono">
-                        Document Type: {doc.type}
-                      </p>
-                    </div>
 
-                    <div className="mt-4 pt-3 border-t border-zinc-100 flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-zinc-400">Government Verified</span>
-                      {doc.documentUrl ? (
-                        <a
-                          href={doc.documentUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:underline"
-                        >
-                          View Document <ExternalLink className="size-3" />
-                        </a>
-                      ) : (
-                        <span className="text-[11px] font-semibold text-zinc-500">Verified On-File</span>
-                      )}
+                      <div className="mt-4 pt-3 border-t border-zinc-100 flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-zinc-400">Government Verified</span>
+                        {doc.documentUrl ? (
+                          <a
+                            href={doc.documentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:underline"
+                          >
+                            View Document <ExternalLink className="size-3" />
+                          </a>
+                        ) : (
+                          <span className="text-[11px] font-semibold text-zinc-500">Verified On-File</span>
+                        )}
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="col-span-full py-8 text-center text-xs text-zinc-500 font-medium">
+                    No verified KYC documents uploaded for this profile yet.
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </TabsContent>
@@ -3177,21 +3173,21 @@ function FullPageDossierView({
                 <div className="rounded-xl border border-zinc-200 p-4 bg-zinc-50/50">
                   <span className="text-zinc-400 uppercase font-bold text-[10px] block">License Plate Number</span>
                   <span className="text-sm font-black font-mono text-zinc-900 mt-1 block">
-                    {profile.vehicleNumber || vehicle.plate || "UP-87-AB-1234"}
+                    {profile.vehicleNumber || vehicle.plate || "—"}
                   </span>
                 </div>
 
                 <div className="rounded-xl border border-zinc-200 p-4 bg-zinc-50/50">
                   <span className="text-zinc-400 uppercase font-bold text-[10px] block">Driving License (DL)</span>
                   <span className="text-sm font-black font-mono text-zinc-900 mt-1 block">
-                    {profile.dlNumber || "DL-UP872019001284"}
+                    {profile.dlNumber || "—"}
                   </span>
                 </div>
 
                 <div className="rounded-xl border border-zinc-200 p-4 bg-zinc-50/50">
                   <span className="text-zinc-400 uppercase font-bold text-[10px] block">Insurance Status</span>
                   <span className="text-sm font-black text-emerald-700 mt-1 block">
-                    Active & Valid (Commercial)
+                    {profile.insuranceStatus || (vehicle.insuranceValid ? "Active & Valid (Commercial)" : "Pending Verification")}
                   </span>
                 </div>
               </div>

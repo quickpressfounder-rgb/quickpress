@@ -81,9 +81,9 @@ const FIELDS: { key: AddressTextField; label: string; placeholder: string; half?
   { key: "street", label: "Street", placeholder: "Main Road / Street Name" },
   { key: "area", label: "Area", placeholder: "Kisroli Road / Market" },
   { key: "landmark", label: "Landmark", placeholder: "Near Clock Tower / Hospital" },
-  { key: "city", label: "City", placeholder: "Kasganj", half: true },
-  { key: "state", label: "State", placeholder: "Uttar Pradesh", half: true },
-  { key: "pincode", label: "PIN Code", placeholder: "207123", half: true },
+  { key: "city", label: "City", placeholder: "City Name", half: true },
+  { key: "state", label: "State", placeholder: "State", half: true },
+  { key: "pincode", label: "PIN Code", placeholder: "6-digit PIN Code", half: true },
   { key: "contactName", label: "Contact Name", placeholder: "Your Name", half: true },
   { key: "phone", label: "Phone Number", placeholder: "10-digit Mobile Number" },
 ];

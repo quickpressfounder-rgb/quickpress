@@ -3341,7 +3341,7 @@ class UnifiedFinanceService:
         customer_ledger = []
         for w in wallets:
             uid = str(w.get("user_id") or w.get("_id") or "")
-            u_info = user_map.get(uid, {"name": f"Customer {uid[:6]}", "phone": "+91 98719 62596", "email": "customer@withquickpress.com"})
+            u_info = user_map.get(uid, {"name": f"Customer {uid[:6]}", "phone": "", "email": ""})
             u_txns = user_txns_map.get(uid, [])
             u_deposits = sum(t["amount"] for t in u_txns if t["direction"] == "credit")
             u_spent = sum(t["amount"] for t in u_txns if t["direction"] == "debit")
