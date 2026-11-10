@@ -45,6 +45,8 @@ import {
   ArrowRight,
   Wallet,
   Navigation,
+  Package,
+  PackageCheck,
   CloudRain,
   Moon,
   Timer,
@@ -4085,6 +4087,119 @@ export function FinanceEnginePage() {
                         }}
                         className="font-mono font-bold mt-1 text-emerald-700"
                       />
+                    </div>
+                  </div>
+                </SectionCard>
+
+                {/* Delivery Kit Pricing & Installment Policy */}
+                <SectionCard
+                  title="Captain Delivery Kit Pricing & Installment Policy"
+                  description="Set official starter kit prices for registering captains, upfront down-payment, weekly installment deductions, and enforce mandatory onboarding gear selection."
+                >
+                  <div className="space-y-4">
+                    <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-xs font-black text-emerald-950 uppercase tracking-wide flex items-center gap-2">
+                          <PackageCheck className="w-4 h-4 text-emerald-700" />
+                          <span>Mandatory Kit Selection on Registration</span>
+                        </h4>
+                        <p className="text-[11px] text-emerald-800/80 font-medium mt-0.5">
+                          When enabled, registering captains MUST select a delivery kit and complete Razorpay payment (Full or Part) before proceeding to the Partner Agreement step.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-emerald-900">
+                          {editableRules?.deliveryKit?.mandatoryForOnboarding !== false ? "Enforced (Zero-Bypass)" : "Optional"}
+                        </span>
+                        <Switch
+                          checked={editableRules?.deliveryKit?.mandatoryForOnboarding !== false}
+                          onCheckedChange={(val) => {
+                            updateField("deliveryKit.mandatoryForOnboarding", val);
+                            updateField("deliveryKit.enabled", val);
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Standard Kit Configuration */}
+                    <div className="p-4 bg-white rounded-2xl border border-zinc-200/80 shadow-2xs space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                        <span className="text-xs font-black text-zinc-900 flex items-center gap-1.5">
+                          <Package className="w-4 h-4 text-emerald-600" />
+                          Standard Captain Starter Kit (Bag + 2 T-Shirts + ID Card + Raincoat)
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                          Active Package
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <Label className="text-xs font-bold text-zinc-700">Full Payment Flat Price (₹)</Label>
+                          <div className="relative mt-1">
+                            <span className="absolute left-2.5 top-2 text-xs font-bold text-zinc-400">₹</span>
+                            <Input
+                              type="number"
+                              value={editableRules?.deliveryKit?.standardKit?.totalPrice ?? "999"}
+                              onChange={(e) => updateField("deliveryKit.standardKit.totalPrice", e.target.value)}
+                              className="pl-7 font-mono font-bold text-emerald-700"
+                            />
+                          </div>
+                          <p className="text-[10px] text-zinc-400 mt-1">One-shot payment price</p>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs font-bold text-zinc-700">Part Payment Total Price (₹)</Label>
+                          <div className="relative mt-1">
+                            <span className="absolute left-2.5 top-2 text-xs font-bold text-zinc-400">₹</span>
+                            <Input
+                              type="number"
+                              value={editableRules?.deliveryKit?.standardKit?.partPaymentTotalPrice ?? "1200"}
+                              onChange={(e) => {
+                                const total = Number(e.target.value) || 1200;
+                                updateField("deliveryKit.standardKit.partPaymentTotalPrice", e.target.value);
+                                const upfront = Number(editableRules?.deliveryKit?.standardKit?.partPaymentUpfront) || 300;
+                                updateField("deliveryKit.standardKit.remainingBalance", String(total - upfront));
+                              }}
+                              className="pl-7 font-mono font-bold text-zinc-900"
+                            />
+                          </div>
+                          <p className="text-[10px] text-zinc-400 mt-1">Total EMI cost (₹1,200 default)</p>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs font-bold text-zinc-700">Upfront Registration Pay (₹)</Label>
+                          <div className="relative mt-1">
+                            <span className="absolute left-2.5 top-2 text-xs font-bold text-zinc-400">₹</span>
+                            <Input
+                              type="number"
+                              value={editableRules?.deliveryKit?.standardKit?.partPaymentUpfront ?? "300"}
+                              onChange={(e) => {
+                                const upfront = Number(e.target.value) || 300;
+                                updateField("deliveryKit.standardKit.partPaymentUpfront", e.target.value);
+                                const total = Number(editableRules?.deliveryKit?.standardKit?.partPaymentTotalPrice) || 1200;
+                                updateField("deliveryKit.standardKit.remainingBalance", String(total - upfront));
+                              }}
+                              className="pl-7 font-mono font-bold text-emerald-700"
+                            />
+                          </div>
+                          <p className="text-[10px] text-zinc-400 mt-1">Charged via Razorpay at signup</p>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs font-bold text-zinc-700">Weekly Auto-Deduction (₹)</Label>
+                          <div className="relative mt-1">
+                            <span className="absolute left-2.5 top-2 text-xs font-bold text-zinc-400">₹</span>
+                            <Input
+                              type="number"
+                              value={editableRules?.deliveryKit?.standardKit?.deductionWeekly ?? "300"}
+                              onChange={(e) => updateField("deliveryKit.standardKit.deductionWeekly", e.target.value)}
+                              className="pl-7 font-mono font-bold text-purple-700"
+                            />
+                          </div>
+                          <p className="text-[10px] text-zinc-400 mt-1">Deducted from weekly captain payout</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </SectionCard>

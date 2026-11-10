@@ -17,6 +17,7 @@ import { Route as CouponsRouteImport } from './routes/coupons'
 import { Route as CrmRouteImport } from './routes/crm'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DeliveryKitsRouteImport } from './routes/delivery-kits'
 import { Route as EmailsRouteImport } from './routes/emails'
 import { Route as FinanceEngineRouteImport } from './routes/finance-engine'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -71,6 +72,11 @@ const CustomersRoute = CustomersRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeliveryKitsRoute = DeliveryKitsRouteImport.update({
+  id: '/delivery-kits',
+  path: '/delivery-kits',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmailsRoute = EmailsRouteImport.update({
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/crm': typeof CrmRoute
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
+  '/delivery-kits': typeof DeliveryKitsRoute
   '/emails': typeof EmailsRoute
   '/finance-engine': typeof FinanceEngineRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/crm': typeof CrmRoute
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
+  '/delivery-kits': typeof DeliveryKitsRoute
   '/emails': typeof EmailsRoute
   '/finance-engine': typeof FinanceEngineRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/crm': typeof CrmRoute
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
+  '/delivery-kits': typeof DeliveryKitsRoute
   '/emails': typeof EmailsRoute
   '/finance-engine': typeof FinanceEngineRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -236,6 +245,7 @@ export interface FileRouteTypes {
     | '/crm'
     | '/customers'
     | '/dashboard'
+    | '/delivery-kits'
     | '/emails'
     | '/finance-engine'
     | '/forgot-password'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/crm'
     | '/customers'
     | '/dashboard'
+    | '/delivery-kits'
     | '/emails'
     | '/finance-engine'
     | '/forgot-password'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/crm'
     | '/customers'
     | '/dashboard'
+    | '/delivery-kits'
     | '/emails'
     | '/finance-engine'
     | '/forgot-password'
@@ -312,6 +324,7 @@ export interface RootRouteChildren {
   CrmRoute: typeof CrmRoute
   CustomersRoute: typeof CustomersRoute
   DashboardRoute: typeof DashboardRoute
+  DeliveryKitsRoute: typeof DeliveryKitsRoute
   EmailsRoute: typeof EmailsRoute
   FinanceEngineRoute: typeof FinanceEngineRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -385,6 +398,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delivery-kits': {
+      id: '/delivery-kits'
+      path: '/delivery-kits'
+      fullPath: '/delivery-kits'
+      preLoaderRoute: typeof DeliveryKitsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/emails': {
@@ -504,6 +524,7 @@ const rootRouteChildren: RootRouteChildren = {
   CrmRoute: CrmRoute,
   CustomersRoute: CustomersRoute,
   DashboardRoute: DashboardRoute,
+  DeliveryKitsRoute: DeliveryKitsRoute,
   EmailsRoute: EmailsRoute,
   FinanceEngineRoute: FinanceEngineRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,

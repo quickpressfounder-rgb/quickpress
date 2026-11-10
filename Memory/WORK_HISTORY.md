@@ -1,5 +1,56 @@
 # QuickPress — Engineering Work History
 
+## Session: November 10, 2026 (Part 1)
+
+### Rider Delivery Kit Onboarding Gear Selection, Part-Payment (EMI) Rails & Admin Operations Hub
+
+1. **Context & Business Requirements:**
+   - Introduced a mandatory **Delivery Kit Gear Selection & Payment** step in the Rider Registration flow immediately before the Agreement step.
+   - Provided two payment options:
+     - **Option 1 (Full Payment):** ₹999 flat one-time payment via Razorpay.
+     - **Option 2 (Part Payment / EMI):** ₹1,200 total (₹300 upfront via Razorpay during registration + ₹900 deducted at ₹300/week from rider's weekly payout across 3 consecutive weeks).
+   - Dynamic Legal Agreement: Appended mandatory legal Clause 14 authorizing automated weekly deductions of ₹300 for 3 weeks when Part Payment is chosen.
+   - Zero-Bypass Security: Strictly blocked riders from accessing or verifying the Agreement step if Delivery Kit payment is missing or unverified.
+   - Operations Console Hub: Created a dedicated Delivery Kits section (`/delivery-kits`) in the Admin Console with real-time KPIs, status tabs, search, dispatch modal (courier & tracking number), and delivered status tracking.
+   - Financial Engine: Added Delivery Kit pricing & installment policies inside Admin Finance Rules.
+
+2. **Backend Implementations & APIs:**
+   - `backend-python/app/services/unified_finance_service.py`: Added default configuration for `deliveryKit` (standardKit: ₹999 full / ₹1200 part with ₹300 upfront and 3 weeks of ₹300 deduction; proKit: ₹1499 / ₹1800), and added `get_rules` alias.
+   - `backend-python/app/services/razorpay_client.py`: Added `verify_payment_signature = verify_signature` alias for payment signature verification.
+   - `backend-python/app/api/rider_delivery_kit.py`:
+     - `GET /api/rider/delivery-kit/config`: Live kit pricing, items, and installment terms.
+     - `POST /api/rider/delivery-kit/create-order`: Server-side Razorpay order generation with metadata.
+     - `POST /api/rider/delivery-kit/verify-payment`: Cryptographic HMAC-SHA256 signature verification, idempotency locking, and database storage in `rider_delivery_kits` and `rider_profiles`.
+     - `GET /api/rider/delivery-kit/my-kit`: Retrieves kit status and fulfillment progress.
+   - `backend-python/app/api/admin_delivery_kits.py`:
+     - `GET /api/admin/delivery-kits/stats`: Aggregate metrics (Total Orders, Pending Dispatch, In Transit, Delivered, Total Collected, Outstanding Debt).
+     - `GET /api/admin/delivery-kits`: Searchable, filterable list of delivery kit orders.
+     - `PATCH /api/admin/delivery-kits/{id}/dispatch`: Records courier name, tracking number, and dispatch timestamps.
+     - `PATCH /api/admin/delivery-kits/{id}/deliver`: Marks kit order as delivered upon hub handover or courier delivery.
+   - `backend-python/app/api/rider.py`:
+     - In `/agreement/send-otp`: Checks `rider_delivery_kits` collection for `status in ("PAID", "PARTIALLY_PAID")`; raises `403 Forbidden` if unpaid.
+     - In `/agreement/verify-otp`: Validates delivery kit payment state before allowing agreement verification.
+     - In `/auth/registration`: Syncs kit order ID, payment status, payment type, amount paid, and remaining balance to rider profile.
+   - `backend-python/app/main.py`: Mounted `rider_delivery_kit_router` and `admin_delivery_kits_router`.
+
+3. **Frontend Implementations:**
+   - **Rider Web App (`rider-frontend`):**
+     - `rider-frontend/src/api/rider/rider-auth-api.ts`: Added `fetchDeliveryKitConfig`, `createDeliveryKitOrder`, `verifyDeliveryKitPayment`, and `fetchMyKit`.
+     - `rider-frontend/src/components/registration/DeliveryKitSelectionStep.tsx`: Built high-conversion, `#00C853` branded kit selection step with official gear highlights (Bag, 2 T-Shirts, ID Card, Raincoat), T-shirt size selector (M, L, XL, XXL), delivery preference toggle (Home Delivery vs Hub Pickup), Full Payment vs Part Payment cards, and Razorpay Checkout modal with double-click locking.
+     - `rider-frontend/src/screens/RiderRegistrationScreen.tsx`: Expanded stepper to 7 steps, inserted `DeliveryKitSelectionStep` as Step 6, dynamic Clause 14 in Step 7 Agreement, and synced kit order details with registration payload.
+   - **Admin Console (`admin-frontend`):**
+     - `admin-frontend/src/api/delivery-kits.ts`: Typed admin API client.
+     - `admin-frontend/src/routes/delivery-kits.tsx`: Full operations hub with 5 KPI cards, tabs (`ALL`, `PENDING_DISPATCH`, `DISPATCHED`, `DELIVERED`, `PART_PAYMENT`), search, data table, dispatch modal, and mark delivered action.
+     - `admin-frontend/src/components/AdminShell.tsx` & `admin-frontend/src/navigation/admin-routes.ts`: Added Delivery Kits navigation item with `PackageCheck` icon under `OPERATIONS`.
+     - `admin-frontend/src/routes/finance-engine.tsx`: Added Delivery Kit Pricing & Installment Policy configuration card under Finance Rules (Tab 7 - Riders).
+
+4. **Testing & Verification:**
+   - Created `backend-python/tests/test_rider_delivery_kit.py` covering kit configuration, Razorpay order creation, payment verification, zero-bypass security check (403 when unpaid, 200 when paid), and admin dispatch/delivery lifecycle.
+   - Verified 5/5 tests passing in `backend-python/tests/test_rider_delivery_kit.py`.
+   - Verified production builds succeed with 0 errors across `rider-frontend` (`vite build`) and `admin-frontend` (`vite build`).
+
+---
+
 ## Session: November 9, 2026 (Part 4)
 
 ### Deep Forensic Audit & Critical Edge-Case Hardening (5 Core Loopholes Resolved)

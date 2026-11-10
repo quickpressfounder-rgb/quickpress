@@ -45,7 +45,7 @@ import type { Account, AuthSession } from "@/shared/types";
 const NAV_GROUPS = [
   {
     title: "OPERATIONS",
-    items: ["dashboard", "crm", "orders", "customers", "partners", "riders"],
+    items: ["dashboard", "crm", "orders", "customers", "partners", "riders", "delivery-kits"],
   },
   {
     title: "CATALOG & NETWORK",

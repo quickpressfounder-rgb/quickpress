@@ -476,6 +476,30 @@ async def send_rider_agreement_otp(body: dict) -> dict:
     if not raw_email or "@" not in raw_email or "." not in raw_email:
         raise HTTPException(status_code=400, detail="Please enter a valid email address")
 
+    # Zero-Bypass Security Check: Delivery Kit Selection & Payment is MANDATORY before signing agreement
+    rider_phone = str(body.get("phone") or body.get("phoneNumber") or body.get("mobile") or "").strip()
+    clean_phone = "".join(c for c in rider_phone if c.isdigit())
+    if len(clean_phone) > 10:
+        clean_phone = clean_phone[-10:]
+
+    kit_query: Dict[str, Any] = {"payment.status": {"$in": ["PAID", "PARTIALLY_PAID"]}}
+    if clean_phone:
+        kit_query["riderPhone"] = clean_phone
+    else:
+        rider_prof = await database.find_one("rider_profiles", {"email": raw_email})
+        if rider_prof and rider_prof.get("phone"):
+            p = "".join(c for c in str(rider_prof["phone"]) if c.isdigit())
+            kit_query["riderPhone"] = p[-10:] if len(p) > 10 else p
+        else:
+            kit_query["riderPhone"] = raw_email
+
+    kit_order = await database.find_one("rider_delivery_kits", kit_query)
+    if not kit_order:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Delivery Kit selection and payment is mandatory before signing partner agreement. Please complete Step 6 (Delivery Kit) first.",
+        )
+
     rider_name = str(body.get("name") or body.get("fullName") or "Delivery Captain")
     import random
     import asyncio
@@ -525,6 +549,30 @@ async def verify_rider_agreement_otp(body: dict) -> dict:
         raise HTTPException(status_code=400, detail="Please provide a valid email address")
     if not otp or len(otp) != 6 or not otp.isdigit():
         raise HTTPException(status_code=400, detail="Please enter a valid 6-digit Agreement OTP")
+
+    # Zero-Bypass Security Check: Delivery Kit Selection & Payment is MANDATORY
+    rider_phone = str(body.get("phone") or body.get("phoneNumber") or body.get("mobile") or "").strip()
+    clean_phone = "".join(c for c in rider_phone if c.isdigit())
+    if len(clean_phone) > 10:
+        clean_phone = clean_phone[-10:]
+
+    kit_query: Dict[str, Any] = {"payment.status": {"$in": ["PAID", "PARTIALLY_PAID"]}}
+    if clean_phone:
+        kit_query["riderPhone"] = clean_phone
+    else:
+        rider_prof = await database.find_one("rider_profiles", {"email": raw_email})
+        if rider_prof and rider_prof.get("phone"):
+            p = "".join(c for c in str(rider_prof["phone"]) if c.isdigit())
+            kit_query["riderPhone"] = p[-10:] if len(p) > 10 else p
+        else:
+            kit_query["riderPhone"] = raw_email
+
+    kit_order = await database.find_one("rider_delivery_kits", kit_query)
+    if not kit_order:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Delivery Kit selection and payment is mandatory before verifying partner agreement. Please complete Step 6 (Delivery Kit) first.",
+        )
 
     record = await database.find_one("rider_agreement_otps", {"email": raw_email})
     now_ts = datetime.now(timezone.utc).timestamp()
@@ -1244,6 +1292,15 @@ async def submit_registration(body: dict) -> dict:
         "agreementSignature": payload.get("signatureUrl") or payload.get("agreementSignature", ""),
         "agreementSignedAt": payload.get("signedAt") or payload.get("agreementSignedAt", now_iso),
         "termsAccepted": bool(payload.get("termsAccepted", True)),
+        # Delivery Kit Onboarding Linkage
+        "kitOrderId": payload.get("kitOrderId"),
+        "kitPaymentStatus": payload.get("kitPaymentStatus"),
+        "kitPaymentType": payload.get("kitPaymentType"),
+        "kitAmountPaid": payload.get("kitAmountPaid"),
+        "kitBalanceRemaining": payload.get("kitBalanceRemaining"),
+        "kitTshirtSize": payload.get("kitTshirtSize"),
+        "kitDeliveryPreference": payload.get("kitDeliveryPreference"),
+        "kitFulfillmentStatus": payload.get("kitFulfillmentStatus", "PENDING_DISPATCH"),
         # Status & Resubmission Tracking
         "resubmitted": is_resubmission,
         "resubmittedAt": now_iso if is_resubmission else None,

@@ -479,3 +479,114 @@ export async function checkRiderRegistered(phone: string): Promise<{
   }
 }
 
+// ============================================================================
+// Captain Delivery Kit API (Selection, Part-Payment, Razorpay Gateway)
+// ============================================================================
+
+export interface DeliveryKitPackage {
+  id: string;
+  name: string;
+  totalPrice: number;
+  allowPartPayment: boolean;
+  partPaymentTotalPrice: number;
+  partPaymentUpfront: number;
+  remainingBalance: number;
+  deductionWeekly: number;
+  deductionWeeks: number;
+  active: boolean;
+}
+
+export interface DeliveryKitConfig {
+  ok: boolean;
+  enabled: boolean;
+  mandatoryForOnboarding: boolean;
+  items: string[];
+  standardKit: DeliveryKitPackage;
+  proKit: DeliveryKitPackage;
+  keyId: string;
+  currency: string;
+  sizes: string[];
+}
+
+export interface CreateKitOrderResponse {
+  ok: boolean;
+  razorpayOrderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+  paymentType: "FULL_PAYMENT" | "PART_PAYMENT";
+  totalPrice: number;
+  remainingBalance: number;
+  notes: Record<string, any>;
+}
+
+export interface VerifyKitPaymentResponse {
+  ok: boolean;
+  status: "PAID" | "PARTIALLY_PAID";
+  kitOrderId: string;
+  paymentType: "FULL_PAYMENT" | "PART_PAYMENT";
+  amountPaid: number;
+  remainingBalance: number;
+  message: string;
+  kitOrder: any;
+}
+
+export async function fetchDeliveryKitConfig(): Promise<DeliveryKitConfig> {
+  return apiGetJson<DeliveryKitConfig>("/api/rider/delivery-kit/config", {
+    anonymous: true,
+    timeoutMs: 10000,
+  });
+}
+
+export async function createDeliveryKitOrder(payload: {
+  riderPhone: string;
+  riderName?: string;
+  riderId?: string;
+  city?: string;
+  kitId: string;
+  paymentType: "FULL_PAYMENT" | "PART_PAYMENT";
+  tshirtSize: string;
+  deliveryPreference: "home_delivery" | "hub_pickup";
+  shippingAddress?: Record<string, any>;
+}): Promise<CreateKitOrderResponse> {
+  return apiPostJson<CreateKitOrderResponse>(
+    "/api/rider/delivery-kit/create-order",
+    payload,
+    { anonymous: true }
+  );
+}
+
+export async function verifyDeliveryKitPayment(payload: {
+  riderPhone: string;
+  riderName?: string;
+  riderId?: string;
+  city?: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+  paymentType: "FULL_PAYMENT" | "PART_PAYMENT";
+  kitId: string;
+  tshirtSize: string;
+  deliveryPreference: "home_delivery" | "hub_pickup";
+  shippingAddress?: Record<string, any>;
+}): Promise<VerifyKitPaymentResponse> {
+  return apiPostJson<VerifyKitPaymentResponse>(
+    "/api/rider/delivery-kit/verify-payment",
+    payload,
+    { anonymous: true }
+  );
+}
+
+export async function fetchMyKit(phone: string): Promise<{
+  ok: boolean;
+  hasKitOrder: boolean;
+  status?: string;
+  kitOrder?: any;
+}> {
+  return apiGetJson(
+    `/api/rider/delivery-kit/my-kit?phone=${encodeURIComponent(phone)}`,
+    { anonymous: true }
+  );
+}
+
+

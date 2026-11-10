@@ -22,6 +22,7 @@ import {
   Loader2,
   Mail,
   MapPin,
+  Package,
   PenTool,
   RefreshCw,
   RotateCcw,
@@ -51,6 +52,7 @@ import { readSession, writeSession } from "../api/core/session-store";
 import { QuickPressLogo } from "../components/common/QuickPressLogo";
 import { useLanguage } from "../lib/i18n";
 import { SimpleSelfieCaptureModal } from "../components/kyc/SimpleSelfieCaptureModal";
+import { DeliveryKitSelectionStep } from "../components/registration/DeliveryKitSelectionStep";
 import { compareKycNames } from "../lib/kyc-name-matcher";
 import { Toaster } from "@/shared/ui/sonner";
 import { triggerHaptic } from "../lib/captain-audio";
@@ -524,7 +526,12 @@ export function RiderRegistrationScreen() {
   const [upiId, setUpiId] = useState<string>("");
   const [termsAccepted, setTermsAccepted] = useState<boolean>(true);
 
-  // STEP 6: Partner Agreement & E-Signature
+  // STEP 6: Delivery Kit Selection & Razorpay Payment
+  const [kitPaid, setKitPaid] = useState<boolean>(false);
+  const [kitOrderData, setKitOrderData] = useState<any>(null);
+  const [selectedKitPlan, setSelectedKitPlan] = useState<"FULL_PAYMENT" | "PART_PAYMENT">("PART_PAYMENT");
+
+  // STEP 7: Partner Agreement & E-Signature
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState<boolean>(false);
   const [agreementConsent, setAgreementConsent] = useState<boolean>(false);
   const [signatureDataUrl, setSignatureDataUrl] = useState<string>("");
@@ -601,9 +608,9 @@ export function RiderRegistrationScreen() {
     setHasSignature(false);
   };
 
-  // Setup / re-setup signature canvas whenever step 6 becomes active
+  // Setup / re-setup signature canvas whenever step 7 (Agreement) becomes active
   useEffect(() => {
-    if (currentStep === 6 && sigCanvasRef.current) {
+    if (currentStep === 7 && sigCanvasRef.current) {
       const canvas = sigCanvasRef.current;
       const ctx = canvas.getContext("2d");
       if (ctx) {
@@ -1408,7 +1415,19 @@ export function RiderRegistrationScreen() {
       setMissingSummary([]);
       setCurrentStep(6);
       triggerHaptic();
-      toast.success("Bank details saved. Moving to Step 6 (Partner Agreement & E-Signature)");
+      toast.success("Bank details saved. Moving to Step 6 (Delivery Kit Gear)");
+    } else if (currentStep === 6) {
+      // Step 6: Delivery Kit Payment Validation -> Move to Step 7
+      if (!kitPaid) {
+        toast.error("Kripya aage badhne se pehle Delivery Kit select karke payment complete karein!");
+        triggerHaptic();
+        return;
+      }
+      setFieldErrors({});
+      setMissingSummary([]);
+      setCurrentStep(7);
+      triggerHaptic();
+      toast.success("Delivery Kit payment verified! Moving to Step 7 (Partner Agreement & E-Signature)");
     }
   };
 
@@ -1570,7 +1589,17 @@ export function RiderRegistrationScreen() {
         cancelledChequeUrl: cancelledChequeUrl,
         bankVerified: true,
 
-        // Step 6 Legal Agreement & Signature
+        // Step 6 Delivery Kit Details
+        kitOrderId: kitOrderData?.id,
+        kitPaymentStatus: kitOrderData?.payment?.status || (kitPaid ? "PAID" : "UNPAID"),
+        kitPaymentType: selectedKitPlan,
+        kitAmountPaid: kitOrderData?.pricing?.amountPaid || (selectedKitPlan === "PART_PAYMENT" ? 300 : 999),
+        kitBalanceRemaining: kitOrderData?.pricing?.remainingBalance || (selectedKitPlan === "PART_PAYMENT" ? 900 : 0),
+        kitTshirtSize: kitOrderData?.tshirtSize || "L",
+        kitDeliveryPreference: kitOrderData?.deliveryPreference || "home_delivery",
+        kitFulfillmentStatus: kitOrderData?.fulfillment?.status || "PENDING_DISPATCH",
+
+        // Step 7 Legal Agreement & Signature
         termsAccepted: true,
         agreementConsent: true,
         agreementSignature: finalSig || signatureDataUrl,
@@ -1617,14 +1646,15 @@ export function RiderRegistrationScreen() {
   const matchedCityObj = liveCities.find((c) => (c.city || c.name) === selectedCity);
   const cityPincodes = matchedCityObj?.pincodes || [];
 
-  // Step Bar Titles (6 Steps)
+  // Step Bar Titles (7 Steps)
   const stepTitles = [
     { num: 1, title: "Personal", short: "Profile", icon: User },
     { num: 2, title: "Aadhaar & Photo", short: "Identity", icon: ShieldCheck },
     { num: 3, title: "Vehicle & RC", short: "Vehicle", icon: Bike },
     { num: 4, title: "Driving Licence", short: "Licence", icon: IdCard },
     { num: 5, title: "Bank Payout", short: "Bank", icon: CreditCard },
-    { num: 6, title: "Partner Agreement", short: "Agreement", icon: FileCheck2 },
+    { num: 6, title: "Delivery Kit", short: "Kit Gear", icon: Package },
+    { num: 7, title: "Partner Agreement", short: "Agreement", icon: FileCheck2 },
   ];
 
   return (
@@ -1652,7 +1682,7 @@ export function RiderRegistrationScreen() {
         </div>
 
         <span className="text-[11px] font-bold px-2.5 py-1 bg-neutral-100 border border-neutral-200 text-neutral-700 rounded-md">
-          Step {currentStep} of 6
+          Step {currentStep} of 7
         </span>
       </header>
 
@@ -1669,12 +1699,12 @@ export function RiderRegistrationScreen() {
         <div className="w-full h-1 bg-neutral-100 rounded-full overflow-hidden mb-3">
           <div
             className="h-full bg-[#00C853] transition-all duration-300"
-            style={{ width: `${(currentStep / 6) * 100}%` }}
+            style={{ width: `${(currentStep / 7) * 100}%` }}
           />
         </div>
 
-        {/* 6 Step Indicator Tabs */}
-        <div className="grid grid-cols-6 gap-1 text-center">
+        {/* 7 Step Indicator Tabs */}
+        <div className="grid grid-cols-7 gap-1 text-center">
           {stepTitles.map((st) => {
             const isDone = currentStep > st.num;
             const isCurrent = currentStep === st.num;
@@ -3094,9 +3124,36 @@ export function RiderRegistrationScreen() {
         )}
 
         {/* ========================================================
-            STEP 6: PARTNER AGREEMENT & DIGITAL SIGNATURE
+            STEP 6: DELIVERY KIT SELECTION & RAZORPAY PAYMENT
         ======================================================== */}
         {currentStep === 6 && (
+          <div className="space-y-4">
+            <DeliveryKitSelectionStep
+              riderPhone={targetPhone}
+              riderName={officialApplicantName || fullName}
+              city={selectedCity}
+              shippingAddress={{
+                city: selectedCity,
+                pincode: pincode,
+                state: "Uttar Pradesh",
+              }}
+              isAlreadyPaid={kitPaid}
+              existingKitOrder={kitOrderData}
+              onPaymentSuccess={(order) => {
+                setKitPaid(true);
+                setKitOrderData(order);
+                if (order?.pricing?.paymentType) {
+                  setSelectedKitPlan(order.pricing.paymentType);
+                }
+              }}
+            />
+          </div>
+        )}
+
+        {/* ========================================================
+            STEP 7: PARTNER AGREEMENT & DIGITAL SIGNATURE
+        ======================================================== */}
+        {currentStep === 7 && (
           <form onSubmit={handleFinalSubmit} noValidate className="space-y-4">
             <MissingFieldsAlert missingList={missingSummary} />
 
@@ -3105,7 +3162,7 @@ export function RiderRegistrationScreen() {
                 <div>
                   <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-1.5">
                     <Scale className="w-4 h-4 text-[#00C853]" />
-                    <span>Step 6: Delivery Partner Agreement & E-Sign</span>
+                    <span>Step 7: Delivery Partner Agreement & E-Sign</span>
                   </h3>
                   <p className="text-[11px] text-neutral-500">
                     Service level agreement, legal terms, and mandatory digital signature
@@ -3227,6 +3284,18 @@ export function RiderRegistrationScreen() {
                     सूचना प्रौद्योगिकी अधिनियम, 2000 (Information Technology Act, 2000) के तहत इस स्क्रीन पर किया गया आपका इलेक्ट्रॉनिक हस्ताक्षर (E-Signature) कानूनी रूप से भौतिक हस्ताक्षर के समान वैध व बाध्यकारी है।
                   </p>
                 </div>
+
+                {selectedKitPlan === "PART_PAYMENT" && (
+                  <div className="space-y-1 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-950">
+                    <p className="font-bold text-amber-900 flex items-center gap-1.5">
+                      <Package className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>14. डिलीवरी किट किस्त एवं शेष राशि कटौती (Delivery Kit Installment & Balance Settlement):</span>
+                    </p>
+                    <p className="text-[10px] leading-relaxed text-amber-900">
+                      कैप्टन द्वारा QuickPress डिलीवरी किट का पार्ट-पेमेंट विकल्प (₹300 अग्रिम भुगतान) चुना गया है। कैप्टन इसके द्वारा QuickPress लॉजिस्टिक्स को शेष राशि ₹900 की वसूली हेतु कैप्टन के साप्ताहिक भुगतान (Weekly Payout) से लगातार 3 हफ्तों तक ₹300 प्रति सप्ताह की स्वचालित कटौती (Automated Weekly Deduction) करने के लिए स्पष्ट व कानूनी सहमति (Legal Consent) प्रदान करता है।
+                    </p>
+                  </div>
+                )}
 
                 <div className="pt-2 text-center border-t border-dashed border-neutral-300 text-neutral-500 font-bold text-[10px]">
                   [ *** END OF CONTRACT / अनुबंध का समापन *** ]
@@ -3494,7 +3563,7 @@ export function RiderRegistrationScreen() {
                 onClick={handlePrevStep}
                 className="w-full py-2.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 transition-colors"
               >
-                ← Back to Bank Details
+                ← Back to Delivery Kit Gear
               </button>
 
               <p className="text-[10px] text-center text-neutral-500 font-medium">
@@ -3505,8 +3574,8 @@ export function RiderRegistrationScreen() {
         )}
       </div>
 
-      {/* 4. Bottom Navigation Action Bar (Steps 1 to 5) */}
-      {currentStep < 6 && (
+      {/* 4. Bottom Navigation Action Bar (Steps 1 to 6) */}
+      {currentStep < 7 && (
         <div
           className="sticky bottom-0 z-40 px-4 pt-3 bg-white border-t border-neutral-200 flex items-center justify-between gap-3 shadow-md"
           style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 12px, 16px)" }}
@@ -3529,7 +3598,11 @@ export function RiderRegistrationScreen() {
             className="flex-1 h-11 flex items-center justify-center gap-2 bg-[#00C853] hover:bg-[#00B248] text-white font-bold text-xs rounded-xl shadow-xs active:scale-98 transition-all"
           >
             <span>
-              {currentStep === 5 ? "Continue to Step 6 (Partner Agreement)" : `Continue to Step ${currentStep + 1}`}
+              {currentStep === 5
+                ? "Continue to Step 6 (Delivery Kit)"
+                : currentStep === 6
+                ? "Continue to Step 7 (Partner Agreement)"
+                : `Continue to Step ${currentStep + 1}`}
             </span>
             <ArrowRight className="w-4 h-4 stroke-[2.5]" />
           </button>

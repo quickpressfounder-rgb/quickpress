@@ -392,6 +392,42 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
         "tdsRate": 0.01,
         "adjustmentRules": "Late pickup penalties and damage claims are automatically deducted from the weekly cycle payout.",
     },
+
+    # 12. DELIVERY KIT PRICING & INSTALLMENT POLICY
+    "deliveryKit": {
+        "enabled": True,
+        "mandatoryForOnboarding": True,
+        "items": [
+            "QuickPress Heavy-Duty Waterproof Delivery Bag (Hot/Cold Insulated)",
+            "2x QuickPress Premium Dry-Fit Captain T-Shirts",
+            "Official RFID / QR Captain ID Card with Lanyard",
+            "High-Visibility Reflective Rain Jacket",
+        ],
+        "standardKit": {
+            "id": "kit_standard",
+            "name": "Standard Captain Starter Kit",
+            "totalPrice": 999.0,
+            "allowPartPayment": True,
+            "partPaymentTotalPrice": 1200.0,
+            "partPaymentUpfront": 300.0,
+            "remainingBalance": 900.0,
+            "deductionWeekly": 300.0,
+            "deductionWeeks": 3,
+            "active": True,
+        },
+        "proKit": {
+            "id": "kit_pro",
+            "name": "Pro All-Weather Armor Kit",
+            "totalPrice": 1499.0,
+            "allowPartPayment": True,
+            "partPaymentTotalPrice": 1800.0,
+            "partPaymentUpfront": 450.0,
+            "remainingBalance": 1350.0,
+            "deductionWeekly": 450.0,
+            "deductionWeeks": 3,
+            "active": True,
+        },
+    },
 }
 
 
@@ -450,6 +486,9 @@ class UnifiedFinanceService:
         self._rules_cache = merged
         self._cache_time = now
         return merged
+
+    async def get_rules(self, force_refresh: bool = False) -> Dict[str, Any]:
+        return await self.get_active_rules(force_refresh=force_refresh)
 
     async def update_rules(
         self,

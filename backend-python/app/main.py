@@ -56,6 +56,8 @@ from app.api.referral import router as referral_router
 from app.api.reviews import router as reviews_router
 from app.api.rider import public_router as rider_public_router
 from app.api.rider import router as rider_router
+from app.api.rider_delivery_kit import router as rider_delivery_kit_router
+from app.api.admin_delivery_kits import router as admin_delivery_kits_router
 from app.api.services import router as services_router
 from app.api.uploads import router as uploads_router
 from app.api.wallet import router as wallet_router
@@ -274,8 +276,11 @@ def create_app() -> FastAPI:
     # Sprint 5.2: rider domain (dashboard, orders, wallet, notifications).
     app.include_router(rider_public_router, prefix=settings.api_prefix)
     app.include_router(rider_router, prefix=settings.api_prefix)
+    app.include_router(rider_delivery_kit_router, prefix=settings.api_prefix)
+    app.include_router(rider_delivery_kit_router)
     # Sprint 5.2: admin domain — dashboard, orders, customers, partners, riders.
     app.include_router(admin_router, prefix=settings.api_prefix)
+    app.include_router(admin_delivery_kits_router, prefix=settings.api_prefix)
     # QuickPress Enterprise CRM & Geo-Intelligence (360 lookup, live pulse, leaderboard)
     app.include_router(admin_crm_router, prefix=settings.api_prefix)
     # QuickPress Email Surveillance, Tracking, Template Studio & Campaigns

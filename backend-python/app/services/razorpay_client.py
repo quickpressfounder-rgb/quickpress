@@ -143,6 +143,9 @@ def verify_signature(
     return hmac.compare_digest(signature.strip(), expected_sig)
 
 
+verify_payment_signature = verify_signature
+
+
 def verify_webhook_signature(
     raw_body: Union[str, bytes],
     signature: str,
