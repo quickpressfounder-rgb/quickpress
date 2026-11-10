@@ -4,6 +4,7 @@ import {
   Layers,
   Plus,
   Search,
+  Shirt,
   Sparkles,
   X,
 } from "lucide-react";
@@ -29,13 +30,13 @@ type CatalogTemplate = {
 };
 
 export const STANDARD_CATALOG: CatalogTemplate[] = [
-  // ⚡ 1. Steam Ironing (Pressing by Piece)
+  
   {
     id: "std-iron-shirt",
     name: "Shirt Steam Iron",
     category: "iron",
     categoryName: "Steam Iron",
-    iconEmoji: "👔",
+    iconEmoji: "",
     price: 15,
     unit: "piece",
     estimatedHours: 12,
@@ -47,7 +48,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "T-Shirt Steam Iron",
     category: "iron",
     categoryName: "Steam Iron",
-    iconEmoji: "👕",
+    iconEmoji: "",
     price: 12,
     unit: "piece",
     estimatedHours: 12,
@@ -59,7 +60,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Trouser / Jeans Steam Iron",
     category: "iron",
     categoryName: "Steam Iron",
-    iconEmoji: "👖",
+    iconEmoji: "",
     price: 15,
     unit: "piece",
     estimatedHours: 12,
@@ -71,7 +72,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Kurta / Pyjama Steam Iron",
     category: "iron",
     categoryName: "Steam Iron",
-    iconEmoji: "🥻",
+    iconEmoji: "",
     price: 25,
     unit: "piece",
     estimatedHours: 12,
@@ -83,7 +84,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Saree Steam Press",
     category: "iron",
     categoryName: "Steam Iron",
-    iconEmoji: "✨",
+    iconEmoji: "",
     price: 59,
     unit: "piece",
     estimatedHours: 12,
@@ -95,7 +96,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Blazer / Coat Steam Iron",
     category: "iron",
     categoryName: "Steam Iron",
-    iconEmoji: "🧥",
+    iconEmoji: "",
     price: 69,
     unit: "piece",
     estimatedHours: 12,
@@ -107,7 +108,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Bedsheet Steam Iron",
     category: "iron",
     categoryName: "Steam Iron",
-    iconEmoji: "🛏️",
+    iconEmoji: "",
     price: 29,
     unit: "piece",
     estimatedHours: 12,
@@ -115,13 +116,13 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     minOrderValue: 58,
   },
 
-  // 👔 2. Dry Cleaning (Special Care by Piece)
+  
   {
     id: "std-dc-shirt",
     name: "Shirt Dry Clean",
     category: "dry-clean",
     categoryName: "Dry Clean",
-    iconEmoji: "👔",
+    iconEmoji: "",
     price: 79,
     unit: "piece",
     estimatedHours: 36,
@@ -133,7 +134,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Trouser / Jeans Dry Clean",
     category: "dry-clean",
     categoryName: "Dry Clean",
-    iconEmoji: "👖",
+    iconEmoji: "",
     price: 79,
     unit: "piece",
     estimatedHours: 36,
@@ -145,7 +146,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "2-Piece Suit Dry Clean",
     category: "dry-clean",
     categoryName: "Dry Clean",
-    iconEmoji: "🤵",
+    iconEmoji: "",
     price: 249,
     unit: "piece",
     estimatedHours: 48,
@@ -157,7 +158,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "3-Piece Suit Dry Clean",
     category: "dry-clean",
     categoryName: "Dry Clean",
-    iconEmoji: "🤵",
+    iconEmoji: "",
     price: 349,
     unit: "piece",
     estimatedHours: 48,
@@ -169,7 +170,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Blazer / Coat Dry Clean",
     category: "dry-clean",
     categoryName: "Dry Clean",
-    iconEmoji: "🧥",
+    iconEmoji: "",
     price: 149,
     unit: "piece",
     estimatedHours: 48,
@@ -181,7 +182,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Winter Jacket / Bomber Dry Clean",
     category: "dry-clean",
     categoryName: "Dry Clean",
-    iconEmoji: "🧥",
+    iconEmoji: "",
     price: 199,
     unit: "piece",
     estimatedHours: 48,
@@ -193,7 +194,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Woolen Sweater / Cardigan Dry Clean",
     category: "dry-clean",
     categoryName: "Dry Clean",
-    iconEmoji: "🧶",
+    iconEmoji: "",
     price: 119,
     unit: "piece",
     estimatedHours: 36,
@@ -205,7 +206,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Sherwani / Indo-Western Dry Clean",
     category: "dry-clean",
     categoryName: "Dry Clean",
-    iconEmoji: "👑",
+    iconEmoji: "",
     price: 399,
     unit: "piece",
     estimatedHours: 48,
@@ -213,13 +214,13 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     minOrderValue: 399,
   },
 
-  // 🧺 3. Wash & Fold / Laundry (Per Kg & Daily Wear)
+  
   {
     id: "std-wf-kg",
     name: "Wash & Fold (Per Kg)",
     category: "wash",
     categoryName: "Wash & Fold",
-    iconEmoji: "🧺",
+    iconEmoji: "",
     price: 79,
     unit: "kg",
     estimatedHours: 24,
@@ -231,7 +232,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Wash & Steam Iron (Per Kg)",
     category: "wash",
     categoryName: "Wash & Fold",
-    iconEmoji: "👔",
+    iconEmoji: "",
     price: 99,
     unit: "kg",
     estimatedHours: 24,
@@ -243,7 +244,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Bed Sheet Wash & Fold",
     category: "wash",
     categoryName: "Wash & Fold",
-    iconEmoji: "🛏️",
+    iconEmoji: "",
     price: 59,
     unit: "piece",
     estimatedHours: 24,
@@ -255,7 +256,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Towel & Bath Linen Wash",
     category: "wash",
     categoryName: "Wash & Fold",
-    iconEmoji: "🧖",
+    iconEmoji: "",
     price: 29,
     unit: "piece",
     estimatedHours: 24,
@@ -263,13 +264,13 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     minOrderValue: 58,
   },
 
-  // ✨ 4. Premium Saree & Silk Care
+  
   {
     id: "std-prem-saree",
     name: "Silk Saree Dry Clean & Roll Polish",
     category: "premium",
     categoryName: "Premium",
-    iconEmoji: "✨",
+    iconEmoji: "",
     price: 249,
     unit: "piece",
     estimatedHours: 48,
@@ -281,7 +282,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Heavy Zari / Bridal Lehenga Spa",
     category: "premium",
     categoryName: "Premium",
-    iconEmoji: "👑",
+    iconEmoji: "",
     price: 499,
     unit: "piece",
     estimatedHours: 72,
@@ -293,7 +294,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Designer Gown / Anarkali Dry Clean",
     category: "premium",
     categoryName: "Premium",
-    iconEmoji: "👗",
+    iconEmoji: "",
     price: 299,
     unit: "piece",
     estimatedHours: 48,
@@ -301,13 +302,13 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     minOrderValue: 299,
   },
 
-  // 👟 5. Footwear & Bag Spa
+  
   {
     id: "std-shoe-sneaker",
     name: "Sneakers & Sports Shoes Deep Clean",
     category: "shoe-care",
     categoryName: "Shoe Care",
-    iconEmoji: "👟",
+    iconEmoji: "",
     price: 249,
     unit: "pair",
     estimatedHours: 48,
@@ -319,7 +320,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Leather Shoes Cleaning & Polish",
     category: "shoe-care",
     categoryName: "Shoe Care",
-    iconEmoji: "👞",
+    iconEmoji: "",
     price: 299,
     unit: "pair",
     estimatedHours: 48,
@@ -331,7 +332,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Backpack & Handbag Cleaning",
     category: "shoe-care",
     categoryName: "Shoe Care",
-    iconEmoji: "🎒",
+    iconEmoji: "",
     price: 199,
     unit: "piece",
     estimatedHours: 48,
@@ -339,13 +340,13 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     minOrderValue: 199,
   },
 
-  // 🪟 6. Home Care, Blankets & Curtains
+  
   {
     id: "std-home-blanket-single",
     name: "Single Blanket / Quilt Wash",
     category: "home-care",
     categoryName: "Home Care",
-    iconEmoji: "🛏️",
+    iconEmoji: "",
     price: 249,
     unit: "piece",
     estimatedHours: 48,
@@ -357,7 +358,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Double Blanket / Heavy Rajai Wash",
     category: "home-care",
     categoryName: "Home Care",
-    iconEmoji: "🛏️",
+    iconEmoji: "",
     price: 349,
     unit: "piece",
     estimatedHours: 48,
@@ -369,7 +370,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Curtain Cleaning (Per Panel)",
     category: "home-care",
     categoryName: "Home Care",
-    iconEmoji: "🪟",
+    iconEmoji: "",
     price: 199,
     unit: "piece",
     estimatedHours: 36,
@@ -381,7 +382,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Carpet / Rug Deep Shampoo",
     category: "home-care",
     categoryName: "Home Care",
-    iconEmoji: "🧶",
+    iconEmoji: "",
     price: 449,
     unit: "piece",
     estimatedHours: 48,
@@ -389,13 +390,13 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     minOrderValue: 449,
   },
 
-  // 👜 7. Bag & Leather Cleaning
+  
   {
     id: "std-bag-leather-jacket",
     name: "Leather Jacket & Coat Spa",
     category: "leather",
     categoryName: "Bag & Leather Cleaning",
-    iconEmoji: "🧥",
+    iconEmoji: "",
     price: 499,
     unit: "piece",
     estimatedHours: 72,
@@ -407,7 +408,7 @@ export const STANDARD_CATALOG: CatalogTemplate[] = [
     name: "Luxury Handbag & Purse Spa",
     category: "leather",
     categoryName: "Bag & Leather Cleaning",
-    iconEmoji: "👜",
+    iconEmoji: "",
     price: 399,
     unit: "piece",
     estimatedHours: 48,
@@ -450,7 +451,7 @@ export function QuickAddCatalogModal({
             name: it.name,
             category,
             categoryName: it.name,
-            iconEmoji: "🧺",
+            iconEmoji: "",
             price: it.price,
             unit: (it.unit as any) || "piece",
             estimatedHours: it.defaultHours || 24,
@@ -585,8 +586,8 @@ export function QuickAddCatalogModal({
                 className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-200/90 bg-white p-3 shadow-2xs transition-all hover:border-amber-400/80"
               >
                 <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-base">
-                    {tpl.iconEmoji}
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
+                    <Shirt className="size-4.5 text-zinc-700" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">

@@ -513,7 +513,7 @@ export function PartnerDashboardScreen() {
   // Instant real-time listener: when a customer places an order, update dashboard KPI numbers instantly (<10ms)
   useEffect(() => {
     const handleNewOrder = () => {
-      console.log("[PartnerDashboard] ⚡ Realtime order received, updating summary cards instantly");
+      console.log("[PartnerDashboard] Realtime order received, updating summary cards instantly");
       void load();
       void refreshOrders();
     };
@@ -703,7 +703,7 @@ export function PartnerDashboardScreen() {
     toggleOnline();
     toast.success(
       nextState
-        ? "⚡ Store is now ONLINE! Ready to receive laundry orders."
+        ? "Store is now ONLINE! Ready to receive laundry orders."
         : "Store is now OFFLINE. New customer orders are paused."
     );
   }, [isOnline, toggleOnline]);

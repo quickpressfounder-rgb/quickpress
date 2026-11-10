@@ -23,6 +23,7 @@ import {
   CAPTAIN_SUPPORT_EMAIL,
   CAPTAIN_SUPPORT_EMAIL_OFFICIAL,
 } from "../api/rider/rider-support-api";
+import { apiGetJson } from "../api/core/transport";
 import { triggerHaptic } from "../lib/captain-audio";
 
 export const Route = createFileRoute("/legal/$docSlug")({
@@ -53,8 +54,15 @@ function CaptainLegalDocScreen() {
   const { docSlug } = useParams({ from: "/legal/$docSlug" });
   const navigate = useNavigate();
   const [doc, setDoc] = useState<PublicLegalDoc | null>(null);
+  const [companyProfile, setCompanyProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiGetJson<any>("/api/public/company-legal-profile", { anonymous: true })
+      .then((res) => setCompanyProfile(res))
+      .catch(() => null);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -294,7 +302,8 @@ function CaptainLegalDocScreen() {
                 <span>QuickPress Statutory & Grievance Desk</span>
               </div>
               <p className="text-[11px] text-slate-300 font-medium leading-relaxed">
-                Operating Entity: <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (CIN: <strong>U74999UP2024PTC198141</strong>).
+                Operating Entity: <strong>{companyProfile?.legalName || "QuickPress"}</strong>
+                {companyProfile?.cin ? <> (CIN: <strong>{companyProfile.cin}</strong>)</> : null}.
                 For compliance or grievance inquiries, reach out to our legal officer.
               </p>
               <div className="pt-1 flex flex-wrap items-center gap-3 text-xs">

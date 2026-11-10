@@ -386,7 +386,7 @@ export function OrderTimeline({
                   <div className="mt-2 p-2 bg-zinc-50 dark:bg-zinc-800/60 rounded-xl border border-zinc-200/80 dark:border-zinc-700 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
                       <div className="size-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-[10px]">
-                        🛵
+                        
                       </div>
                       <div>
                         <p className="font-black text-zinc-900 dark:text-white text-[11px]">

@@ -154,7 +154,7 @@ export function RiderOtpScreen() {
       inputRefs.current[index + 1]?.focus();
     }
 
-    // ⚡ Instant Auto-Accept when all 6 digits are filled!
+    // Instant Auto-Accept when all 6 digits are filled!
     if (cleanDigit && newDigits.every((d) => d.length === 1)) {
       const fullCode = newDigits.join("");
       triggerHaptic([30, 50]);
@@ -185,7 +185,7 @@ export function RiderOtpScreen() {
     const nextIndex = Math.min(pastedData.length, 5);
     inputRefs.current[nextIndex]?.focus();
 
-    // ⚡ If 6 digits pasted, auto-accept immediately!
+    // If 6 digits pasted, auto-accept immediately!
     if (pastedData.length === 6) {
       triggerHaptic([30, 50]);
       handleVerify(pastedData);

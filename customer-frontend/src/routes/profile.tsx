@@ -422,7 +422,7 @@ function ProfileScreen() {
       const res = await requestDeviceNotificationPermission();
       setDevicePermission(res);
       if (res === "granted") {
-        toast.success("Device notification permission allowed! 🎉");
+        toast.success("Device notification permission allowed!");
         void sendTestNotification();
       } else if (res === "denied") {
         const opened = await openDeviceNotificationSettings();
@@ -819,7 +819,7 @@ function ProfileScreen() {
         onRequestDevicePermission={handleRequestDevicePermission}
         onSendTestNotification={async () => {
           const sent = await sendTestNotification();
-          if (sent) toast.success("Test notification sent to your phone's notification bar! 🔔");
+          if (sent) toast.success("Test notification sent to your phone's notification bar!");
           else toast.info("Notification triggered!");
         }}
         notificationRows={NOTIFICATION_ROWS}
@@ -1301,7 +1301,7 @@ function ProfileScreen() {
                 This action is <span className="font-bold text-destructive">permanent and irreversible</span>. All your saved addresses, payment methods, profile details, active orders, and wallet balance will be deleted immediately.
               </p>
               <div className="mt-3 p-2.5 rounded-xl bg-muted/60 border border-border text-[11px] text-muted-foreground text-left leading-relaxed">
-                ⚖️ <strong>Statutory Notice:</strong> Deleting your account may not immediately remove information that QuickPress is required or permitted to retain for legal, security, transaction, fraud-prevention or dispute-resolution purposes.
+                <strong>Statutory Notice:</strong> Deleting your account may not immediately remove information that QuickPress is required or permitted to retain for legal, security, transaction, fraud-prevention or dispute-resolution purposes.
               </div>
               <a
                 href="https://withquickpress.com/#privacy"
@@ -1732,14 +1732,14 @@ function NotificationSettingsPage({
 
           // Trigger test system notification
           void sendTestNotification(
-            "QuickPress Notifications Active 🔔",
+            "QuickPress Notifications Active",
             "You will now receive live pickup, wash, rider arrival & delivery alerts!"
           );
 
           if (!notifications.push) {
             onToggleNotification("push");
           }
-          toast.success("Push notifications enabled on this device! 🔔");
+          toast.success("Push notifications enabled on this device!");
         } else {
           toast.info("Notification permission was not granted.");
         }

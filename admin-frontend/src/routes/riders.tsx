@@ -381,9 +381,9 @@ export function RidersPage() {
     onSuccess: (_d, vars) => {
       toast.success(
         vars.action === "approve"
-          ? "🎉 Rider Approved & Activated!"
+          ? "Rider Approved & Activated!"
           : vars.action === "reject"
-          ? "❌ Application Rejected & Notification Dispatched"
+          ? "Application Rejected & Notification Dispatched"
           : `Rider ${vars.action}d successfully!`
       );
       queryClient.invalidateQueries({ queryKey: ["admin", "riders"] });
@@ -409,7 +409,7 @@ export function RidersPage() {
   const updateMutation = useMutation({
     mutationFn: (payload: Record<string, any>) => updateRider(selectedId!, payload),
     onSuccess: () => {
-      toast.success("Rider profile details updated successfully! 🎉");
+      toast.success("Rider profile details updated successfully!");
       setIsEditing(false);
       queryClient.invalidateQueries({ queryKey: ["admin", "riders"] });
       if (selectedId) queryClient.invalidateQueries({ queryKey: ["admin", "riders", "360", selectedId] });
@@ -434,7 +434,7 @@ export function RidersPage() {
   const notifMutation = useMutation({
     mutationFn: ({ title, body }: { title: string; body: string }) => sendRiderNotification(selectedId!, title, body),
     onSuccess: () => {
-      toast.success("Push notification dispatched to Captain's device! 📲");
+      toast.success("Push notification dispatched to Captain's device!");
       setNotifyModalOpen(false);
       setNotifTitle("");
       setNotifBody("");
@@ -794,7 +794,7 @@ export function RidersPage() {
     a.download = `QuickPress_Fleet_Riders_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Master Fleet CSV exported successfully! 🚀");
+    toast.success("Master Fleet CSV exported successfully!");
   };
 
   const handleExportRiderDossier = () => {
@@ -836,7 +836,7 @@ export function RidersPage() {
       "",
       "3. FINANCIAL LEDGER, EARNINGS & CASH FLOAT",
       `  - Completed Delivery Trips:${r.trips}`,
-      `  - Customer CSAT Rating:    ★ ${r.rating} / 5.0`,
+      `  - Customer CSAT Rating:    ${r.rating} / 5.0`,
       `  - Available Wallet Balance:${r.wallet}`,
       `  - Fleet COD Cash In Hand:  ${r.codCash} (Float to settle)`,
       `  - Lifetime Payouts Drawn:  ₹${(d?.wallet?.lifetimeEarnings || metrics.totalPayouts).toLocaleString("en-IN")}`,
@@ -870,7 +870,7 @@ export function RidersPage() {
     a.download = `QuickPress_Captain_Dossier_${r.name.replace(/\s+/g, "_")}_${r.id}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Captain Audit Dossier downloaded successfully! 📄");
+    toast.success("Captain Audit Dossier downloaded successfully!");
   };
 
   return (
@@ -1079,8 +1079,9 @@ export function RidersPage() {
                           {selectedRider.city} ({selectedRider.zone})
                         </span>
                         <span>·</span>
-                        <span className="font-bold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded-md">
-                          🏍️ {selectedRider.vehicle || "Motorbike"}
+                        <span className="font-bold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <Bike className="size-3 text-zinc-600" />
+                          <span>{selectedRider.vehicle || "Motorbike"}</span>
                         </span>
                       </div>
                     </div>
@@ -1223,7 +1224,7 @@ export function RidersPage() {
                       {selectedRider.status === "Active"
                         ? "Captain account is verified and fully active for live dispatch and daily earnings."
                         : selectedRider.resubmitted
-                        ? `🔄 Captain has re-filled and updated registration details${selectedRider.resubmittedAt ? ` on ${new Date(selectedRider.resubmittedAt).toLocaleString("en-IN")}` : ""}. Review revised documents below and approve.`
+                        ? `Captain has re-filled and updated registration details${selectedRider.resubmittedAt ? ` on ${new Date(selectedRider.resubmittedAt).toLocaleString("en-IN")}` : ""}. Review revised documents below and approve.`
                         : data360?.kyc.rejectionReason
                         ? `Admin Reason: ${data360.kyc.rejectionReason}`
                         : "Review all uploaded KYC documents below and approve or reject with a reason note."}
@@ -1261,7 +1262,7 @@ export function RidersPage() {
                         onClick={() => setApproveConfirmOpen(true)}
                       >
                         <Check className="size-3.5 mr-1" />
-                        Approve Rider ✅
+                        Approve Rider
                       </Button>
                       <Button
                         size="sm"
@@ -1275,7 +1276,7 @@ export function RidersPage() {
                         }}
                       >
                         <X className="size-3.5 mr-1 text-rose-600" />
-                        Reject Application ❌
+                        Reject Application
                       </Button>
                     </>
                   )}
@@ -1380,7 +1381,10 @@ export function RidersPage() {
                 </div>
                 <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-center shadow-xs">
                   <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Customer Rating</p>
-                  <p className="text-xl font-black text-amber-600 mt-1">★ {selectedRider.rating}</p>
+                  <p className="text-xl font-black text-amber-600 mt-1 flex items-center justify-center gap-1">
+                    <Star className="size-4 fill-amber-500 text-amber-500" />
+                    <span>{selectedRider.rating}</span>
+                  </p>
                   <p className="text-[10px] text-zinc-500 mt-0.5">Average customer score</p>
                 </div>
                 <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-center shadow-xs">
@@ -1805,7 +1809,10 @@ export function RidersPage() {
                                 <div className="text-right space-y-1">
                                   <p className="font-mono text-base font-black text-emerald-600">+₹{trip.earning.toFixed(2)}</p>
                                   {trip.tip > 0 && <p className="text-[10px] font-bold text-amber-700">Tip: +₹{trip.tip.toFixed(2)}</p>}
-                                  <span className="text-xs text-amber-600 font-black">★ {trip.rating.toFixed(1)}</span>
+                                  <span className="text-xs text-amber-600 font-black flex items-center justify-end gap-1">
+                                    <Star className="size-3 fill-amber-500 text-amber-500" />
+                                    <span>{trip.rating.toFixed(1)}</span>
+                                  </span>
                                 </div>
                               </div>
                             ))
@@ -2413,7 +2420,7 @@ export function RidersPage() {
                       <SelectValue placeholder="Select City" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">🏙️ All Cities ({allRiders.length})</SelectItem>
+                      <SelectItem value="all">All Cities ({allRiders.length})</SelectItem>
                       {cities.map((c) => (
                         <SelectItem key={c} value={c}>
                           {c} ({allRiders.filter((r) => r.city.toLowerCase() === c.toLowerCase()).length})
@@ -2430,7 +2437,7 @@ export function RidersPage() {
                       <SelectValue placeholder="All Areas / Zones" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">📍 All Zones ({availableZones.length})</SelectItem>
+                      <SelectItem value="all">All Zones ({availableZones.length})</SelectItem>
                       {availableZones.map((z) => (
                         <SelectItem key={z} value={z}>
                           {z}
@@ -2447,7 +2454,7 @@ export function RidersPage() {
                       <SelectValue placeholder="Timeframe" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="today">⚡ Today (Live)</SelectItem>
+                      <SelectItem value="today">Today (Live)</SelectItem>
                       <SelectItem value="yesterday">Yesterday</SelectItem>
                       <SelectItem value="7days">Last 7 Days</SelectItem>
                       <SelectItem value="month">This Month</SelectItem>
@@ -2609,8 +2616,9 @@ export function RidersPage() {
                           </td>
                           <td className="py-2.5 px-4">
                             {row.flagged > 0 ? (
-                              <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[11px] border border-rose-200">
-                                ⚠️ {row.flagged} flagged
+                              <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[11px] border border-rose-200 inline-flex items-center gap-1">
+                                <AlertTriangle className="size-3 text-rose-600" />
+                                <span>{row.flagged} flagged</span>
                               </span>
                             ) : (
                               <span className="text-zinc-400 text-[11px]">Compliant</span>
@@ -2704,10 +2712,10 @@ export function RidersPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Vehicles</SelectItem>
-                    <SelectItem value="bike">🏍️ Motorbike</SelectItem>
-                    <SelectItem value="scooter">🛵 Scooter</SelectItem>
-                    <SelectItem value="ev">⚡ Electric (EV)</SelectItem>
-                    <SelectItem value="bicycle">🚲 Bicycle</SelectItem>
+                    <SelectItem value="bike">Motorbike</SelectItem>
+                    <SelectItem value="scooter">Scooter</SelectItem>
+                    <SelectItem value="ev">Electric (EV)</SelectItem>
+                    <SelectItem value="bicycle">Bicycle</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -2730,10 +2738,10 @@ export function RidersPage() {
                     <SelectValue placeholder="Sort By" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="newest">🕒 Newest</SelectItem>
-                    <SelectItem value="trips">🏆 Most Trips</SelectItem>
-                    <SelectItem value="rating">★ Rating</SelectItem>
-                    <SelectItem value="wallet">💰 Balance</SelectItem>
+                    <SelectItem value="newest">Newest</SelectItem>
+                    <SelectItem value="trips">Most Trips</SelectItem>
+                    <SelectItem value="rating">Rating</SelectItem>
+                    <SelectItem value="wallet">Balance</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -2754,9 +2762,9 @@ export function RidersPage() {
             <div className="flex items-center gap-1.5 pb-3 mb-4 overflow-x-auto text-xs scrollbar-thin">
               {[
                 { id: "all", label: "All Captains", count: allRiders.length },
-                { id: "online", label: "🟢 Live Online", count: allRiders.filter((r) => r.live === "Online" || r.live === "On delivery").length },
-                { id: "delivery", label: "🚀 In Transit", count: allRiders.filter((r) => r.live === "On delivery").length },
-                { id: "resubmitted", label: "🔄 Re-Submitted", count: allRiders.filter((r) => r.resubmitted).length },
+                { id: "online", label: "Live Online", count: allRiders.filter((r) => r.live === "Online" || r.live === "On delivery").length },
+                { id: "delivery", label: "In Transit", count: allRiders.filter((r) => r.live === "On delivery").length },
+                { id: "resubmitted", label: "Re-Submitted", count: allRiders.filter((r) => r.resubmitted).length },
                 { id: "pending", label: "KYC Pending", count: allRiders.filter((r) => r.kyc === "Pending" || r.status === "Pending").length },
                 { id: "verified", label: "KYC Verified", count: allRiders.filter((r) => r.kyc === "Verified").length },
                 { id: "suspended", label: "Suspended", count: allRiders.filter((r) => r.status === "Suspended").length },
@@ -2946,7 +2954,10 @@ export function RidersPage() {
                   render: (r) => (
                     <div className="text-xs">
                       <span className="font-black text-zinc-900">{r.trips} trips</span>
-                      <span className="ml-2 font-bold text-amber-600">★ {r.rating}</span>
+                      <span className="ml-2 font-bold text-amber-600 inline-flex items-center gap-0.5">
+                        <Star className="size-3 fill-amber-500 text-amber-500" />
+                        <span>{r.rating}</span>
+                      </span>
                     </div>
                   ),
                 },
@@ -3132,7 +3143,7 @@ export function RidersPage() {
                                   {isKycVerified
                                     ? "KYC ✓"
                                     : r.resubmitted
-                                    ? "🔄 Resubmitted"
+                                    ? "Resubmitted"
                                     : isKycPending
                                     ? "KYC Pending"
                                     : isKycRejected
@@ -3379,7 +3390,7 @@ export function RidersPage() {
               }}
             >
               <X className="size-3.5 mr-1" />
-              Submit Rejection ❌
+              Submit Rejection
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3433,7 +3444,7 @@ export function RidersPage() {
               }}
             >
               <Check className="size-3.5 mr-1" />
-              Confirm &amp; Approve ✅
+              Confirm &amp; Approve
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3750,7 +3761,7 @@ export function RidersPage() {
                         ? "bg-emerald-100 text-emerald-900 border-emerald-300"
                         : "bg-amber-100 text-amber-900 border-amber-300"
                     }`}>
-                      {selectedRider.status === "Active" ? "✓ VERIFIED ACTIVE FLEET CAPTAIN" : `⚠ STATUS: ${selectedRider.status.toUpperCase()}`}
+                      {selectedRider.status === "Active" ? "✓ VERIFIED ACTIVE FLEET CAPTAIN" : `STATUS: ${selectedRider.status.toUpperCase()}`}
                     </span>
                     <span className="text-[10px] font-mono text-zinc-500">Ref: QP-LOG-DOSSIER-{selectedRider.id}-{new Date().getFullYear()}</span>
                   </div>
@@ -3855,7 +3866,10 @@ export function RidersPage() {
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-zinc-500 block">Customer CSAT Rating</span>
-                      <span className="font-black text-amber-600 text-sm">★ {selectedRider.rating} / 5.0</span>
+                      <span className="font-black text-amber-600 text-sm flex items-center gap-1">
+                        <Star className="size-3.5 fill-amber-500 text-amber-500" />
+                        <span>{selectedRider.rating} / 5.0</span>
+                      </span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-zinc-500 block">Current Wallet Balance</span>
@@ -3957,7 +3971,7 @@ export function RidersPage() {
                         {(data360?.trips || []).slice(0, 5).map((trip: any, idx: number) => (
                           <tr key={idx}>
                             <td className="p-2.5 font-mono font-bold text-zinc-900">#{trip.orderId || trip.id || `ORD-${1040 + idx}`}</td>
-                            <td className="p-2.5 text-zinc-700">{trip.pickupHub || selectedRider.zone} ➔ {trip.deliveryAddress || selectedRider.city}</td>
+                            <td className="p-2.5 text-zinc-700">{trip.pickupHub || selectedRider.zone} → {trip.deliveryAddress || selectedRider.city}</td>
                             <td className="p-2.5 font-mono font-bold text-emerald-700">₹{trip.earning || 45}</td>
                             <td className="p-2.5 font-mono font-bold text-amber-700">₹{trip.codCollected || 0}</td>
                             <td className="p-2.5">

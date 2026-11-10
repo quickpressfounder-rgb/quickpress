@@ -101,7 +101,7 @@ export const RiderOrderTimelineModal: React.FC<RiderOrderTimelineModalProps> = (
     try {
       navigator.clipboard.writeText(text);
       triggerHaptic(30);
-      toast.success(`${label} copied! 📋`);
+      toast.success(`${label} copied!`);
     } catch {}
   };
 
@@ -451,7 +451,7 @@ export const RiderOrderTimelineModal: React.FC<RiderOrderTimelineModalProps> = (
         {/* 5. Footer */}
         <div className="p-3.5 border-t border-zinc-100 bg-white flex items-center justify-between">
           <span className="text-[11px] font-semibold text-zinc-500">
-            QuickPress Real-Time GPS Tracking 🛵
+            QuickPress Real-Time GPS Tracking
           </span>
           <button
             type="button"

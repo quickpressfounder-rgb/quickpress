@@ -290,10 +290,10 @@ export function TaxComplianceCenterView() {
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="px-3 py-1.5 bg-zinc-50 rounded-xl border border-zinc-200 text-xs font-mono text-zinc-700 flex items-center gap-1.5">
             <span className="text-zinc-400 font-sans text-[11px]">GSTIN:</span>
-            <span className="font-bold text-zinc-950">{data?.gstin || "09AADCB1234K1Z8"}</span>
+            <span className="font-bold text-zinc-950">{data?.gstin || "—"}</span>
             <button
               type="button"
-              onClick={() => copyToClipboard(data?.gstin || "09AADCB1234K1Z8", "gstin")}
+              onClick={() => copyToClipboard(data?.gstin || "—", "gstin")}
               className="text-zinc-400 hover:text-zinc-800 ml-1"
               title="Copy GSTIN"
             >
@@ -303,7 +303,7 @@ export function TaxComplianceCenterView() {
 
           <div className="px-3 py-1.5 bg-zinc-50 rounded-xl border border-zinc-200 text-xs font-mono text-zinc-700">
             <span className="text-zinc-400 font-sans text-[11px]">PAN:</span>{" "}
-            <span className="font-bold text-zinc-950">{data?.pan || "AADCB1234K"}</span>
+            <span className="font-bold text-zinc-950">{data?.pan || "—"}</span>
           </div>
 
           <Button
@@ -2083,7 +2083,7 @@ export function TaxComplianceCenterView() {
                   <span>3. QuickPress Platform Convenience Fee</span>
                   <span className="font-mono">{selectedInvoice.platformInvoiceNo}</span>
                 </div>
-                <div className="text-[11px] text-zinc-500 mt-1">{data?.legalEntity || "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"} ({data?.gstin || "09AADCB1234K1Z8"})</div>
+                <div className="text-[11px] text-zinc-500 mt-1">{data?.legalEntity || "QuickPress Platform"} ({data?.gstin || "—"})</div>
                 <div className="flex justify-between mt-2 pt-2 border-t border-zinc-200 font-mono">
                   <span>Platform Fee: ₹{selectedInvoice.platformFee}</span>
                   <span className="font-bold text-emerald-700">18% GST: ₹{selectedInvoice.platformGst}</span>

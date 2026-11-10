@@ -230,13 +230,13 @@ export function PartnerIncomingOrderAlertModal({
               </span>
               {order.expressDelivery && (
                 <div className="mt-1 text-[11px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                  ⚡ Express Order
+                  Express Priority Order
                 </div>
               )}
             </div>
           </div>
 
-          {/* ⚡ Express Priority Alert Banner */}
+          {/* Express Priority Alert Banner */}
           {(order.isExpress || order.expressDelivery) && (
             <div className="rounded-2xl border-2 border-amber-400/80 bg-gradient-to-r from-amber-50 to-amber-100/70 dark:from-amber-950/30 dark:to-amber-900/20 p-4 shadow-sm">
               <div className="flex items-center justify-between gap-3">
@@ -246,7 +246,7 @@ export function PartnerIncomingOrderAlertModal({
                   </span>
                   <div>
                     <span className="text-xs sm:text-sm font-black text-amber-900 dark:text-amber-200 tracking-wide block uppercase">
-                      ⚡ EXPRESS + EXPRESS CHARGES KA {order.expressPartnerSharePercent || 50}% BONUS
+                      EXPRESS + EXPRESS CHARGES KA {order.expressPartnerSharePercent || 50}% BONUS
                     </span>
                     <span className="text-xs font-medium text-amber-800/90 dark:text-amber-300/80">
                       Priority express order! Surcharge bonus credited directly to your store payout.

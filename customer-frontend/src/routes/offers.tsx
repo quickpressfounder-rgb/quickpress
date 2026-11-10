@@ -100,7 +100,7 @@ function OffersScreen() {
               : c,
           ),
         );
-        toast.success(`🎉 You won ${res.points} Loyalty Points (₹${res.rupeeValue.toFixed(2)})!`, {
+        toast.success(`You won ${res.points} Loyalty Points (₹${res.rupeeValue.toFixed(2)})!`, {
           description: "Added to your points balance. Transfer anytime into real wallet money.",
         });
       }

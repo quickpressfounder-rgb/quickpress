@@ -389,7 +389,7 @@ export function RiderOrdersScreen() {
   // Real-time Socket.IO subscription for order lifecycle updates
   useEffect(() => {
     const unsub = subscribeRiderOrders((eventData: any) => {
-      console.log("[RiderOrdersScreen] ⚡ Realtime order update:", eventData);
+      console.log("[RiderOrdersScreen] Realtime order update:", eventData);
       const ev = eventData?.event || eventData?.type;
       const targetOrderId = eventData?.orderId || eventData?.order?._id;
 
@@ -579,7 +579,7 @@ export function RiderOrdersScreen() {
     } catch {}
 
     const targetId = offer.orderId || offer.id;
-    toast.success(`Order Accepted for ${offer.pickupTitle || "Pickup"}! Moving to pickup... 🛵`);
+    toast.success(`Order Accepted for ${offer.pickupTitle || "Pickup"}! Moving to pickup...`);
 
     // Remove from queue
     setOffers((prev) => prev.filter((o) => o.id !== offer.id));
@@ -699,7 +699,7 @@ export function RiderOrdersScreen() {
         /already accepted|already assigned|another|claimed|not available/i.test(err?.message || "");
 
       if (isConflict) {
-        toast.error("❌ Yeh trip kisi aur Captain ne accept kar li!", { duration: 4000 });
+        toast.error("Yeh trip kisi aur Captain ne accept kar li!", { duration: 4000 });
       } else {
         toast.error("Trip could not be claimed or is no longer available.");
       }
@@ -809,7 +809,7 @@ export function RiderOrdersScreen() {
           type="button"
           onClick={() => {
             triggerHaptic(20);
-            toast.info("Set Preferred Destination: Receive rides on your route home 🛵");
+            toast.info("Set Preferred Destination: Receive rides on your route home");
           }}
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-zinc-50 border border-zinc-200/90 shadow-2xs text-xs font-bold text-zinc-800 active:scale-95 transition-all cursor-pointer shrink-0"
         >
@@ -839,7 +839,7 @@ export function RiderOrdersScreen() {
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs text-xs font-black active:scale-95 transition-all cursor-pointer shrink-0 animate-pulse"
           >
             <span className="size-2 rounded-full bg-white animate-ping" />
-            <span>Active Trip #{activeOrder.orderCode || activeOrder.orderId?.slice(-6)?.toUpperCase()} 🛵</span>
+            <span>Active Trip #{activeOrder.orderCode || activeOrder.orderId?.slice(-6)?.toUpperCase()}</span>
           </button>
         )}
       </div>
@@ -852,7 +852,7 @@ export function RiderOrdersScreen() {
             className="p-3.5 rounded-2xl bg-zinc-900 text-white border border-zinc-700 shadow-md flex items-center justify-between cursor-pointer active:scale-98 transition-all"
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="text-lg">🛵</span>
+              <Bike className="size-5 shrink-0 text-amber-400" />
               <div className="min-w-0">
                 <p className="text-xs font-black truncate">Active Trip #{activeOrder.orderCode}</p>
                 <p className="text-[11px] text-zinc-400 truncate">{activeOrder.dropTitle || activeOrder.dropAddress}</p>

@@ -208,11 +208,11 @@ function PlanCard({
       {/* Top Banner Ribbon */}
       {plan.popular ? (
         <div className="absolute right-0 top-0 rounded-bl-xl bg-gradient-to-r from-amber-500 to-amber-600 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-2xs">
-          ⭐ Most Popular
+          Most Popular
         </div>
       ) : isPlatinum ? (
         <div className="absolute right-0 top-0 rounded-bl-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-2xs">
-          👑 Ultimate VIP
+          Ultimate VIP
         </div>
       ) : null}
 
@@ -546,7 +546,7 @@ function MembershipScreen() {
         });
 
         if (outcome.status === "success") {
-          toast.success(outcome.message || `🎉 Welcome to QuickPress ${selectedPlan?.name || "VIP"}!`);
+          toast.success(outcome.message || `Welcome to QuickPress ${selectedPlan?.name || "VIP"}!`);
           setHistory(null);
           await load({ refresh: true });
           setTab("overview");
@@ -881,7 +881,7 @@ function MembershipScreen() {
                   {(
                     [
                       { id: "monthly", label: "Monthly" },
-                      { id: "quarterly", label: "3-Month Pass 🔥" },
+                      { id: "quarterly", label: "3-Month Pass" },
                       { id: "yearly", label: "Annual Pass (Save 60%)" },
                     ] as { id: BillingCycle; label: string }[]
                   ).map((item) => (

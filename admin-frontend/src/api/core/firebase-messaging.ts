@@ -127,7 +127,7 @@ export async function setupForegroundMessageListener(
       const notification = payload.notification || {};
       const data = payload.data || {};
 
-      const title = notification.title || data.title || "🛡️ QuickPress System Alert";
+      const title = notification.title || data.title || "QuickPress System Alert";
       const body = notification.body || data.body || data.message || "Admin broadcast event received.";
       const clickUrl = data.url || "/notifications";
 

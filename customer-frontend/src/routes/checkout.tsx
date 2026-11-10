@@ -405,7 +405,7 @@ export function CheckoutPage() {
 
   // Called ONLY when Online Payment (UPI / Card / Netbanking / Wallet) is 100% verified
   const handlePaymentSuccess = async (method: string, paymentId: string) => {
-    // 🛑 Double-click protection: Drop instant duplicate requests
+    // Double-click protection: Drop instant duplicate requests
     if (isPlacingOrderRef.current || placingOrder) return;
     if (!selectedPickup) {
       toast.error("Please select a pickup address.");
@@ -431,7 +431,7 @@ export function CheckoutPage() {
         deliveryAddress: selectedDelivery,
         pickup: {
           day: "Today",
-          slot: isExpressActive ? "⚡ 15-Min Express Pickup" : "Standard (30–60 mins)",
+          slot: isExpressActive ? "15-Min Express Pickup" : "Standard (30–60 mins)",
           express: isExpressActive,
         },
         isExpress: isExpressActive,
@@ -453,7 +453,7 @@ export function CheckoutPage() {
 
       // Trigger native iOS mobile notification on iPhone
       void triggerMobileOsNotification({
-        title: "Order Placed Successfully! 👕",
+        title: "Order Placed Successfully!",
         body: `Order #${(result.orderId || "").slice(-6).toUpperCase()} is confirmed! Nearest captain arriving in 15 mins.`,
         orderId: result.orderId,
       });
@@ -482,7 +482,7 @@ export function CheckoutPage() {
 
   // Called when Customer explicitly selects Pay on Delivery (COD)
   const handleSelectCod = async () => {
-    // 🛑 Double-click protection: Drop instant duplicate requests
+    // Double-click protection: Drop instant duplicate requests
     if (isPlacingOrderRef.current || placingOrder) return;
     if (!customerName.trim()) {
       toast.error("Please enter your name for delivery contact.");
@@ -517,7 +517,7 @@ export function CheckoutPage() {
         deliveryAddress: selectedDelivery,
         pickup: {
           day: "Today",
-          slot: isExpressActive ? "⚡ 15-Min Express Pickup" : "Standard (30–60 mins)",
+          slot: isExpressActive ? "15-Min Express Pickup" : "Standard (30–60 mins)",
           express: isExpressActive,
         },
         isExpress: isExpressActive,
@@ -539,7 +539,7 @@ export function CheckoutPage() {
 
       // Trigger native iOS mobile notification on iPhone
       void triggerMobileOsNotification({
-        title: "Order Placed Successfully! 👕",
+        title: "Order Placed Successfully!",
         body: `Order #${(result.orderId || "").slice(-6).toUpperCase()} is confirmed! Nearest captain arriving in 15 mins.`,
         orderId: result.orderId,
       });
@@ -1128,7 +1128,7 @@ export function CheckoutPage() {
                 <div className="flex justify-between items-center text-emerald-900 font-bold bg-emerald-50/80 px-2 py-1.5 rounded-lg border border-emerald-200">
                   <span className="flex items-center gap-1.5">
                     <Zap className="size-3.5 text-[#0c831f] fill-[#0c831f]" />
-                    ⚡ Express 15-Min Priority Pickup
+                    Express 15-Min Priority Pickup
                   </span>
                   <span className="font-black text-[#0c831f]">+₹{expressFee}</span>
                 </div>
@@ -1172,7 +1172,7 @@ export function CheckoutPage() {
 
             {savings > 0 ? (
               <div className="rounded-xl bg-emerald-50 p-2 text-center text-xs font-black text-[#0c831f] border border-emerald-200">
-                🎉 Total Savings: ₹{savings}
+                Total Savings: ₹{savings}
               </div>
             ) : null}
           </section>

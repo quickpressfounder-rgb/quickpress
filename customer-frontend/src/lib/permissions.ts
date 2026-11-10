@@ -105,7 +105,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
     // 3. Show welcoming mobile OS notification
     void triggerMobileOsNotification({
-      title: "QuickPress Notifications Active 🔔",
+      title: "QuickPress Notifications Active",
       body: "You will now get live pickup, wash, and 15-minute delivery alerts!",
     });
 

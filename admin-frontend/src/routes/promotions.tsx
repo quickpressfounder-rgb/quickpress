@@ -94,12 +94,12 @@ export function PromotionsPage() {
   // --- Story Handlers ---
   const handleOpenCreateStory = (isGoogleForm = false) => {
     setEditingStory({
-      title: isGoogleForm ? "Captain Feedback Survey 📝" : "Special Announcement ✨",
+      title: isGoogleForm ? "Captain Feedback Survey" : "Special Announcement",
       tagline: isGoogleForm ? "Help us improve Kasganj delivery routes" : "Exclusive opportunity for QuickPress riders",
       badge: isGoogleForm ? "GOOGLE FORM" : "FEATURED",
       badgeBg: isGoogleForm ? "bg-blue-600" : "bg-emerald-600",
       gradient: isGoogleForm ? "from-blue-700 via-indigo-900 to-slate-950" : "from-emerald-700 via-teal-800 to-slate-900",
-      icon: isGoogleForm ? "📋" : "🚀",
+      icon: isGoogleForm ? "" : "",
       imageUrl: "",
       points: [
         "Takes less than 2 minutes to complete",
@@ -389,7 +389,7 @@ export function PromotionsPage() {
                       {story.imageUrl ? (
                         <img src={story.imageUrl} alt={story.title} className="size-full object-cover" />
                       ) : (
-                        <span>{story.icon || "✨"}</span>
+                        <span>{story.icon || ""}</span>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -525,7 +525,7 @@ export function PromotionsPage() {
             <div className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-zinc-200 space-y-4 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">{editingStory.icon || "✨"}</span>
+                  <span className="text-xl">{editingStory.icon || ""}</span>
                   <h3 className="text-base font-black text-zinc-950">
                     {editingStory._id ? "Edit Story" : "Create New Story"}
                   </h3>
@@ -547,7 +547,7 @@ export function PromotionsPage() {
                     type="text"
                     value={editingStory.title || ""}
                     onChange={(e) => setEditingStory({ ...editingStory, title: e.target.value })}
-                    placeholder="e.g. Join QuickPress Captains 🛵"
+                    placeholder="e.g. Join QuickPress Captains"
                     className="w-full px-3 py-2 rounded-xl border border-zinc-300 font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -572,7 +572,7 @@ export function PromotionsPage() {
                       type="text"
                       value={editingStory.icon || ""}
                       onChange={(e) => setEditingStory({ ...editingStory, icon: e.target.value })}
-                      placeholder="🛵, 💰, ⚡, 📋"
+                      placeholder="tier1, prime, express"
                       className="w-full px-3 py-2 rounded-xl border border-zinc-300 text-zinc-900"
                     />
                   </div>
@@ -753,7 +753,7 @@ export function PromotionsPage() {
 
               <div className="flex flex-col items-center text-center space-y-4 my-auto">
                 <div className="size-20 rounded-3xl bg-white/10 backdrop-blur-md flex items-center justify-center text-4xl border border-white/20">
-                  {previewStory.icon || "✨"}
+                  {previewStory.icon || ""}
                 </div>
                 <h2 className="text-xl font-black">{previewStory.title}</h2>
                 <p className="text-xs text-white/80">{previewStory.tagline}</p>

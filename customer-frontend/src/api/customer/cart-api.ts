@@ -432,7 +432,7 @@ export async function postOrder(payload: PostOrderPayload): Promise<{ ok: true; 
         },
         pickup: {
           date: payload.pickup?.day || "Today",
-          slot: payload.pickup?.slot || (isExpressSelected ? "⚡ 15-Min Express Pickup" : "15-30 mins"),
+          slot: payload.pickup?.slot || (isExpressSelected ? "15-Min Express Pickup" : "15-30 mins"),
           express: isExpressSelected,
         },
         isExpress: isExpressSelected,

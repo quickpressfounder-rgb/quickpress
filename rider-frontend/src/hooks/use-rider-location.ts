@@ -4,7 +4,7 @@ import { riderLocationEngine, type RiderLocationData } from "@/lib/rider-locatio
 export type RiderLocationState = RiderLocationData;
 
 /**
- * 📍 High-Performance 120 FPS GPS Location Hook for Delivery Partner.
+ * High-Performance 120 FPS GPS Location Hook for Delivery Partner.
  * Powered by singleton RiderLocationEngine with hardware RAF scheduling,
  * stationary drift suppression, and throttled bridge dispatches.
  */

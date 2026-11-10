@@ -53,7 +53,7 @@ export function RedeemPointsModal({
           walletBalance: res.walletBalance,
         });
         onRedeemSuccess(res.redeemedPoints, res.creditedRupees, res.remainingPoints);
-        toast.success(`₹${res.creditedRupees.toFixed(2)} transferred to your wallet! 🎉`);
+        toast.success(`₹${res.creditedRupees.toFixed(2)} transferred to your wallet!`);
       }
     } catch (err: any) {
       console.error("Redeem points failed:", err);

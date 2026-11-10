@@ -57,7 +57,7 @@ export function getFlowMilestone(stage: string): {
         label: "Incoming Order Awaiting Store Acceptance",
         subtext: "Customer placed the booking. Accept promptly to dispatch pickup captain.",
         statusTheme: "amber",
-        badgeText: "Pending Acceptance ⏱️",
+        badgeText: "Pending Acceptance",
       };
     case "accepted":
       return {
@@ -75,7 +75,7 @@ export function getFlowMilestone(stage: string): {
         label: "Captain En Route for Customer Pickup",
         subtext: "Captain is traveling to the customer address to collect laundry bag.",
         statusTheme: "blue",
-        badgeText: "Pickup in Progress 🛵",
+        badgeText: "Pickup in Progress",
       };
     case "picked":
     case "picked_up":
@@ -84,7 +84,7 @@ export function getFlowMilestone(stage: string): {
         label: "Clothes Collected from Customer",
         subtext: "Captain has collected the bag and is on the way to your store.",
         statusTheme: "blue",
-        badgeText: "En Route to Store 🛵",
+        badgeText: "En Route to Store",
       };
     case "at_partner":
       return {
@@ -92,7 +92,7 @@ export function getFlowMilestone(stage: string): {
         label: "Clothes Arrived at Store",
         subtext: "Laundry package delivered to your store. Verify items and begin processing.",
         statusTheme: "emerald",
-        badgeText: "Reached Store 🧺",
+        badgeText: "Reached Store",
       };
     case "processing":
     case "washing":
@@ -103,7 +103,7 @@ export function getFlowMilestone(stage: string): {
         label: "Laundry Cleaning & Care in Progress",
         subtext: "Clothes are in washing machine / steam press. Once packed in bag, mark ready.",
         statusTheme: "emerald",
-        badgeText: "In Processing ✨",
+        badgeText: "In Processing",
       };
     case "ready":
     case "ready_for_delivery":
@@ -115,7 +115,7 @@ export function getFlowMilestone(stage: string): {
         label: "Order Packed & Ready for Pickup",
         subtext: "Delivery captain is arriving to collect. Verify the 4-digit Dispatch OTP to handover.",
         statusTheme: "purple",
-        badgeText: "Ready for Handover 📦",
+        badgeText: "Ready for Handover",
       };
     case "out_for_delivery":
       return {
@@ -123,7 +123,7 @@ export function getFlowMilestone(stage: string): {
         label: "Out for Doorstep Delivery",
         subtext: "Delivery captain is en route to customer doorstep. Wallet settlement follows delivery.",
         statusTheme: "blue",
-        badgeText: "Out for Delivery 🚀",
+        badgeText: "Out for Delivery",
       };
     case "delivered":
     case "completed":
@@ -132,7 +132,7 @@ export function getFlowMilestone(stage: string): {
         label: "Order Delivered & Wallet Settled",
         subtext: "Customer received clean laundry. Payment has been credited to your store balance.",
         statusTheme: "emerald",
-        badgeText: "Delivered & Settled 🎉",
+        badgeText: "Delivered & Settled",
       };
     case "cancelled":
       return {
@@ -446,7 +446,7 @@ export function OrderFlowCard({
                 className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 py-3 text-xs font-black text-white shadow-md shadow-emerald-600/25 active:scale-95 transition-all cursor-pointer"
               >
                 <PackageCheck className="size-4" />
-                <span>Mark Cleaned & Ready for Delivery ✨</span>
+                <span>Mark Cleaned & Ready for Delivery</span>
               </button>
             </div>
           )}
@@ -458,7 +458,7 @@ export function OrderFlowCard({
             <div className="mt-3.5 pt-2 border-t border-purple-200/60 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black text-purple-950 dark:text-purple-300">
-                  🔑 Captain Dispatch Handover OTP
+                  Captain Dispatch Handover OTP
                 </span>
                 <span className="text-[10px] font-bold text-purple-700 bg-purple-100 dark:bg-purple-950/60 px-2 py-0.5 rounded-full">
                   Handover Verification

@@ -1,6 +1,6 @@
 import { apiGetJson, apiPostJson } from "../core/transport";
 
-export const CAPTAIN_HELPLINE_PHONE = "1800 012 3456";
+export const CAPTAIN_HELPLINE_PHONE = "";
 export const CAPTAIN_SUPPORT_EMAIL = "official.quickpress@gmail.com";
 export const CAPTAIN_SUPPORT_EMAIL_OFFICIAL = "official.quickpress@gmail.com";
 export const CAPTAIN_EMERGENCY_SOS = "112";
@@ -111,7 +111,7 @@ export async function fetchCaptainGuidelines(): Promise<CaptainGuidelinesRespons
           title: "Zero Commission, 100% Earnings",
           subtitle:
             "All trip fares and customer tips go straight to your wallet. Zero platform commission deductions!",
-          highlight: "Daily Direct Bank Payouts 💰",
+          highlight: "Daily Direct Bank Payouts",
           color: "emerald",
         },
         {
@@ -120,7 +120,7 @@ export async function fetchCaptainGuidelines(): Promise<CaptainGuidelinesRespons
           title: "Live Ride & Delivery Dispatches",
           subtitle:
             "Receive instant orders on your mobile with live GPS tracking directly in your work zone.",
-          highlight: "High Demand Work Zones 📍",
+          highlight: "High Demand Work Zones",
           color: "amber",
         },
         {
@@ -129,29 +129,29 @@ export async function fetchCaptainGuidelines(): Promise<CaptainGuidelinesRespons
           title: "Flexible Working Hours",
           subtitle:
             "Work whenever you want. Turn ON DUTY and start earning on your own schedule.",
-          highlight: "Be Your Own Boss 🛵",
+          highlight: "Be Your Own Boss",
           color: "blue",
         },
       ],
       guidelines: [
         {
-          title: "1. Customer Doorstep Pickup 🧺",
+          title: "1. Customer Doorstep Pickup",
           desc: "Reach customer doorstep on time. Count garments and enter 6-digit Customer Pickup OTP.",
         },
         {
-          title: "2. Store Drop & Washing Handover 🏪",
+          title: "2. Store Drop & Washing Handover",
           desc: "Safely drop garments at partner store. Swipe 'Arrival to Store & Handover'.",
         },
         {
-          title: "3. Store Drop Opt-Out Choice 🔄",
+          title: "3. Store Drop Opt-Out Choice",
           desc: "If leaving trip after drop, select opt-out to collect 75% net pickup payout.",
         },
         {
-          title: "4. Partner Dispatch OTP & Ready Delivery 📦",
+          title: "4. Partner Dispatch OTP & Ready Delivery",
           desc: "Pick ready garments from partner store using Partner Dispatch OTP.",
         },
         {
-          title: "5. Customer Delivery OTP & Instant Payout 🚀",
+          title: "5. Customer Delivery OTP & Instant Payout",
           desc: "Deliver clean garments, enter Customer Delivery OTP, and receive instant 100% payout.",
         },
       ],

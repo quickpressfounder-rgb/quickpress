@@ -67,7 +67,7 @@ export const RiderNotificationsScreen: React.FC = () => {
   // Real-time Socket.IO subscription for instant live notification deliveries
   useEffect(() => {
     const unsub = subscribeRiderNotifications((notif) => {
-      console.log("[RiderNotificationsScreen] ⚡ Realtime notification received:", notif);
+      console.log("[RiderNotificationsScreen] Realtime notification received:", notif);
       try {
         playArrivalChime();
         triggerHaptic(40);

@@ -77,7 +77,7 @@ export const RiderCustomerOtpInput: React.FC<RiderCustomerOtpInputProps> = ({
             if (clean.length === 4) {
               const spl = clean.split("");
               updateDigits(spl);
-              toast.success(`⚡ SMS OTP Auto-detected: ${clean}`);
+              toast.success(`SMS OTP Auto-detected: ${clean}`);
               triggerAutoAccept(clean);
             }
           }

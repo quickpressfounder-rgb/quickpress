@@ -227,7 +227,7 @@ export const ANALYTICS_METRICS: AnalyticsMetric[] = [
     label: "Customer Rating",
     value: 5.0,
     decimals: 1,
-    suffix: " ★",
+    suffix: " ",
     hint: "Average rating",
     trend: 0,
     group: "quality",
@@ -315,7 +315,7 @@ export const ANALYTICS_TRENDS: TrendSeries[] = [
 export const RIDER_ACHIEVEMENTS: RiderAchievement[] = [
   {
     id: "first-delivery",
-    emoji: "🏅",
+    emoji: "Badge",
     title: "First Delivery",
     body: "Completed your very first QuickPress trip.",
     tier: "bronze",
@@ -326,7 +326,7 @@ export const RIDER_ACHIEVEMENTS: RiderAchievement[] = [
   },
   {
     id: "100-deliveries",
-    emoji: "🏅",
+    emoji: "Badge",
     title: "100 Deliveries",
     body: "A hundred happy customers served.",
     tier: "bronze",
@@ -337,7 +337,7 @@ export const RIDER_ACHIEVEMENTS: RiderAchievement[] = [
   },
   {
     id: "500-deliveries",
-    emoji: "🏅",
+    emoji: "Badge",
     title: "500 Deliveries",
     body: "Half a thousand trips completed.",
     tier: "silver",
@@ -348,7 +348,7 @@ export const RIDER_ACHIEVEMENTS: RiderAchievement[] = [
   },
   {
     id: "1000-deliveries",
-    emoji: "🏅",
+    emoji: "Badge",
     title: "1000 Deliveries",
     body: "Elite delivery milestone unlocked.",
     tier: "gold",
@@ -359,7 +359,7 @@ export const RIDER_ACHIEVEMENTS: RiderAchievement[] = [
   },
   {
     id: "fast-rider",
-    emoji: "🏅",
+    emoji: "Badge",
     title: "Fast Rider",
     body: "50 deliveries under 20 minutes.",
     tier: "silver",
@@ -369,7 +369,7 @@ export const RIDER_ACHIEVEMENTS: RiderAchievement[] = [
   },
   {
     id: "top-performer",
-    emoji: "🏅",
+    emoji: "Badge",
     title: "Top Performer",
     body: "Finish a month inside the city top 10.",
     tier: "gold",
@@ -379,9 +379,9 @@ export const RIDER_ACHIEVEMENTS: RiderAchievement[] = [
   },
   {
     id: "rating-49",
-    emoji: "🏅",
+    emoji: "Badge",
     title: "4.9 Rating",
-    body: "Hold a 4.9★ average across 200 ratings.",
+    body: "Hold a 4.9 average across 200 ratings.",
     tier: "gold",
     progress: 186,
     target: 200,
@@ -389,7 +389,7 @@ export const RIDER_ACHIEVEMENTS: RiderAchievement[] = [
   },
   {
     id: "perfect-week",
-    emoji: "🏅",
+    emoji: "Badge",
     title: "Perfect Week",
     body: "7 days, zero cancellations, 100% completion.",
     tier: "platinum",
@@ -399,7 +399,7 @@ export const RIDER_ACHIEVEMENTS: RiderAchievement[] = [
   },
   {
     id: "weekend-hero",
-    emoji: "🏅",
+    emoji: "Badge",
     title: "Weekend Hero",
     body: "40 weekend deliveries in a single month.",
     tier: "silver",
@@ -410,7 +410,7 @@ export const RIDER_ACHIEVEMENTS: RiderAchievement[] = [
   },
   {
     id: "night-champion",
-    emoji: "🏅",
+    emoji: "Badge",
     title: "Night Champion",
     body: "100 deliveries after 9 PM.",
     tier: "platinum",

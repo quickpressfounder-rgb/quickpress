@@ -78,7 +78,7 @@ export function NotificationManager() {
 
       const notif = payload?.notification || {};
       const data = payload?.data || {};
-      const title = notif.title || data.title || "🔔 QuickPress Order Update";
+      const title = notif.title || data.title || "QuickPress Order Update";
       const message = notif.body || data.body || data.message || "Your laundry order has an update.";
       const orderId = data.orderId;
 
@@ -144,7 +144,7 @@ export function NotificationManager() {
       const title =
         payload?.title ||
         payload?.event ||
-        (isSupport ? "💬 QuickPress Support Reply" : "🔔 QuickPress Order Update");
+        (isSupport ? "QuickPress Support Reply" : "QuickPress Order Update");
       const message =
         payload?.body ||
         payload?.message ||

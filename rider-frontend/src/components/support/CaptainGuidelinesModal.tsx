@@ -17,7 +17,7 @@ export const CaptainGuidelinesModal: React.FC<CaptainGuidelinesModalProps> = ({ 
         badge: "0% COMMISSION",
         title: "Zero Commission, 100% Earnings",
         subtitle: "All trip fares and customer tips go straight to your wallet. Zero platform commission deductions!",
-        highlight: "Daily Direct Bank Payouts 💰",
+        highlight: "Daily Direct Bank Payouts",
         color: "emerald",
       },
       {
@@ -25,7 +25,7 @@ export const CaptainGuidelinesModal: React.FC<CaptainGuidelinesModalProps> = ({ 
         badge: "SMART DISPATCH",
         title: "Live Ride & Delivery Dispatches",
         subtitle: "Receive instant orders on your mobile with live GPS tracking directly in your work zone.",
-        highlight: "High Demand Work Zones 📍",
+        highlight: "High Demand Work Zones",
         color: "amber",
       },
       {
@@ -33,29 +33,29 @@ export const CaptainGuidelinesModal: React.FC<CaptainGuidelinesModalProps> = ({ 
         badge: "FULL FLEXIBILITY",
         title: "Flexible Working Hours",
         subtitle: "Work whenever you want. Turn ON DUTY and start earning on your own schedule.",
-        highlight: "Be Your Own Boss 🛵",
+        highlight: "Be Your Own Boss",
         color: "blue",
       },
     ],
     guidelines: [
       {
-        title: "1. Customer Doorstep Pickup 🧺",
+        title: "1. Customer Doorstep Pickup",
         desc: "Reach customer doorstep on time. Count items with customer and enter the 6-digit Customer Pickup OTP before picking up clothes.",
       },
       {
-        title: "2. Store Drop & Washing Handover 🏪",
+        title: "2. Store Drop & Washing Handover",
         desc: "Drop clothes safely at the partner store. Swipe 'Arrival to Store & Handover'. Partner cannot start washing until you reach store.",
       },
       {
-        title: "3. Store Drop Opt-Out Choice 🔄",
+        title: "3. Store Drop Opt-Out Choice",
         desc: "Need to leave after store drop? Select 'Leave Trip at Store' to collect 75% net pickup payout (25% fee deducted). The delivery leg is reassigned to a new captain with a +20% bonus incentive.",
       },
       {
-        title: "4. Partner Dispatch OTP & Ready Delivery 📦",
+        title: "4. Partner Dispatch OTP & Ready Delivery",
         desc: "When clothes are washed and ironed, pick them from the partner store using the Partner Dispatch OTP.",
       },
       {
-        title: "5. Customer Delivery OTP & Instant Payout 🚀",
+        title: "5. Customer Delivery OTP & Instant Payout",
         desc: "Deliver clean clothes to the customer, enter Customer Delivery OTP, and receive instant earnings credited to your wallet with 0% deduction.",
       },
     ],

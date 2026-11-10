@@ -288,3 +288,4 @@ async def test_admin_delivery_kits_management(client: TestClient):
     deliver_data = deliver_res.json()
     assert deliver_data["ok"] is True
     assert deliver_data["kitOrder"]["fulfillment"]["status"] == "DELIVERED"
+

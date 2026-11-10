@@ -68,11 +68,11 @@ export const CaptainCustomerChatModal: React.FC<CaptainCustomerChatModalProps> =
   };
 
   const handleCall = () => {
-    toast.info("Connecting via QuickPress Privacy Call Bridge (Customer phone is shielded 🔒)");
+    toast.info("Connecting via QuickPress Privacy Call Bridge (Customer phone is shielded)");
     if (customerPhone && !customerPhone.includes("••")) {
       window.open(`tel:${customerPhone.replace(/\s/g, "")}`);
     } else {
-      toast.success("Privacy Call: Patching through to customer via virtual bridge 📞");
+      toast.success("Privacy Call: Patching through to customer via virtual bridge");
     }
   };
 
@@ -151,7 +151,7 @@ export const CaptainCustomerChatModal: React.FC<CaptainCustomerChatModalProps> =
             className="w-full flex items-center justify-between px-3.5 py-2.5 bg-amber-50/50 border-b border-neutral-100 hover:bg-amber-100/60 transition-colors text-left"
           >
             <div className="flex items-center gap-2">
-              <span className="text-base">💬</span>
+              <MessageSquare className="w-4 h-4 text-amber-600" />
               <span className="text-xs font-black text-neutral-900">Quick chat</span>
             </div>
             {showQuickChat ? (

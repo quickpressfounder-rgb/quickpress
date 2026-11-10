@@ -858,7 +858,7 @@ export function OrdersPage() {
                 }}
                 className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-bold text-zinc-900 focus:border-zinc-950 focus:outline-none"
               >
-                <option value="all">🏙️ All Cities ({allOrders.length})</option>
+                <option value="all">All Cities ({allOrders.length})</option>
                 {cities.map((c) => (
                   <option key={c} value={c}>
                     {c} ({allOrders.filter((o) => o.city.toLowerCase() === c.toLowerCase()).length})
@@ -871,7 +871,7 @@ export function OrdersPage() {
                 onChange={(e) => setServiceFilter(e.target.value)}
                 className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-bold text-zinc-900 focus:border-zinc-950 focus:outline-none"
               >
-                <option value="all">🧺 All Services</option>
+                <option value="all">All Services</option>
                 <option value="wash">Wash &amp; Iron</option>
                 <option value="dry">Dry Cleaning</option>
                 <option value="iron">Steam Press</option>
@@ -1060,7 +1060,7 @@ export function OrdersPage() {
                   >
                     <div className="flex items-center justify-between w-full mb-1">
                       <span className="text-[9px] font-black text-zinc-400 font-mono">
-                        {isCancelled ? "⚠️ #10" : isRefunded ? "↺ #11" : `#${stage.id}`}
+                        {isCancelled ? "#10" : isRefunded ? "#11" : `#${stage.id}`}
                       </span>
                       {hasItems && (
                         <span
@@ -1142,7 +1142,7 @@ export function OrdersPage() {
                     : "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100"
                 }`}
               >
-                <span>🚨 Needs Rider</span>
+                <span>Needs Rider</span>
                 <span className="rounded-full bg-rose-200/60 px-1.5 py-0.2 text-[10px] font-black">
                   {actionCounts.newReq}
                 </span>
@@ -1160,7 +1160,7 @@ export function OrdersPage() {
                     : "bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100"
                 }`}
               >
-                <span>🧺 In Wash &amp; Hub</span>
+                <span>In Wash &amp; Hub</span>
                 <span className="rounded-full bg-purple-200/60 px-1.5 py-0.2 text-[10px] font-black">
                   {(pipelineCounts[5] ?? 0) + (pipelineCounts[6] ?? 0)}
                 </span>
@@ -1178,7 +1178,7 @@ export function OrdersPage() {
                     : "bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100"
                 }`}
               >
-                <span>🚚 In Transit</span>
+                <span>In Transit</span>
                 <span className="rounded-full bg-sky-200/60 px-1.5 py-0.2 text-[10px] font-black">
                   {(pipelineCounts[3] ?? 0) + (pipelineCounts[8] ?? 0)}
                 </span>
@@ -1196,7 +1196,7 @@ export function OrdersPage() {
                     : "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
                 }`}
               >
-                <span>⚠️ Issues / Cancelled</span>
+                <span>Issues / Cancelled</span>
                 <span className="rounded-full bg-amber-200/60 px-1.5 py-0.2 text-[10px] font-black">
                   {actionCounts.cancelled + actionCounts.refund}
                 </span>
@@ -1257,7 +1257,7 @@ export function OrdersPage() {
                       <SelectValue placeholder="Select City" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">🏙️ All Cities ({allOrders.length})</SelectItem>
+                      <SelectItem value="all">All Cities ({allOrders.length})</SelectItem>
                       {cities.map((c) => (
                         <SelectItem key={c} value={c}>
                           {c} ({allOrders.filter((o) => o.city.toLowerCase() === c.toLowerCase()).length})
@@ -1274,7 +1274,7 @@ export function OrdersPage() {
                       <SelectValue placeholder="All Areas / Zones" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">📍 All Areas ({availableAreas.length})</SelectItem>
+                      <SelectItem value="all">All Areas ({availableAreas.length})</SelectItem>
                       {availableAreas.map((a) => (
                         <SelectItem key={a} value={a}>
                           {a}
@@ -1291,7 +1291,7 @@ export function OrdersPage() {
                       <SelectValue placeholder="Timeframe" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="today">⚡ Today (Live)</SelectItem>
+                      <SelectItem value="today">Today (Live)</SelectItem>
                       <SelectItem value="yesterday">Yesterday</SelectItem>
                       <SelectItem value="7days">Last 7 Days</SelectItem>
                       <SelectItem value="month">This Month</SelectItem>
@@ -1465,7 +1465,7 @@ export function OrdersPage() {
                           <td className="py-2.5 px-4">
                             {row.dayCancelled > 0 ? (
                               <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[11px] border border-rose-200">
-                                ⚠️ {row.dayCancelled} cancelled
+                                {row.dayCancelled} cancelled
                               </span>
                             ) : (
                               <span className="text-zinc-400 text-[11px]">0 cancelled</span>
@@ -1536,7 +1536,7 @@ export function OrdersPage() {
                   <SelectValue placeholder="City" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">🏙️ All Cities</SelectItem>
+                  <SelectItem value="all">All Cities</SelectItem>
                   {cities.map((c) => (
                     <SelectItem key={c} value={c}>
                       {c}
@@ -1550,7 +1550,7 @@ export function OrdersPage() {
                   <SelectValue placeholder="Service" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">🧺 All Services</SelectItem>
+                  <SelectItem value="all">All Services</SelectItem>
                   <SelectItem value="wash">Wash &amp; Iron</SelectItem>
                   <SelectItem value="dry">Dry Cleaning</SelectItem>
                   <SelectItem value="iron">Steam Press</SelectItem>
@@ -1628,7 +1628,7 @@ export function OrdersPage() {
                           )}
                           {r.hasDefectsReported && (
                             <span className="inline-flex items-center rounded bg-rose-50 px-1.5 py-0.5 text-[9px] font-black text-rose-700 border border-rose-300">
-                              ⚠️ Defect
+                              Defect
                             </span>
                           )}
                           {r.bagTag && (
@@ -1636,7 +1636,7 @@ export function OrdersPage() {
                               className="inline-flex items-center rounded bg-zinc-100 px-1.5 py-0.5 text-[9px] font-mono font-bold text-zinc-700 border border-zinc-200"
                               title={`Bag Seal Tag: ${r.bagTag}`}
                             >
-                              🏷️ {r.bagTag}
+                              {r.bagTag}
                             </span>
                           )}
                         </div>
@@ -1807,12 +1807,12 @@ export function OrdersPage() {
                                 )}
                                 {r.hasDefectsReported && (
                                   <span className="inline-flex items-center rounded-md bg-rose-100 px-1.5 py-0.5 text-[9px] font-black text-rose-800 border border-rose-300">
-                                    ⚠️ Defect
+                                    Defect
                                   </span>
                                 )}
                                 {r.bagTag && (
                                   <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[9px] font-mono font-bold text-zinc-700 border border-zinc-200">
-                                    🏷️ {r.bagTag}
+                                    {r.bagTag}
                                   </span>
                                 )}
                               </div>
@@ -2736,7 +2736,7 @@ function Order360FullPage({
               <SelectContent>
                 {availablePartners.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    🏪 {p.businessName} ({p.city}) • {p.phone}
+                    {p.businessName} ({p.city}) • {p.phone}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -2781,10 +2781,10 @@ function Order360FullPage({
                 <SelectValue placeholder="Select available rider" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="rdr-auto">⚡ Smart Auto-Dispatch (Proximity Match)</SelectItem>
+                <SelectItem value="rdr-auto">Smart Auto-Dispatch (Proximity Match)</SelectItem>
                 {availableRiders.map((r) => (
                   <SelectItem key={r.id} value={r.id}>
-                    🛵 {r.name} ({r.city} • {r.vehicle}) • {r.live}
+                    {r.name} ({r.city} • {r.vehicle}) • {r.live}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -39,7 +39,7 @@ export async function loadRiderPerformance(): Promise<RiderPerformanceData> {
       label: "Average Rating",
       value: dashboard.rating,
       decimals: 1,
-      suffix: " ★",
+      suffix: " ",
       hint: "Reported by the backend",
       tone: "primary",
     });

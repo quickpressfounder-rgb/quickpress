@@ -441,7 +441,7 @@ export function EarningsScreen() {
                     Current Cycle Payout
                   </span>
                   <span className="rounded-full bg-amber-200/60 px-2 py-0.5 text-[10px] font-black text-amber-900">
-                    Accruing ⏳
+                    Accruing
                   </span>
                 </div>
                 <p className="text-2xl font-black text-amber-950 mt-1">
@@ -603,7 +603,7 @@ export function EarningsScreen() {
                     : "bg-zinc-50 border border-zinc-200 text-zinc-600 hover:text-zinc-950"
                 }`}
               >
-                Accruing ⏳
+                Accruing
               </button>
             </div>
           </div>
@@ -639,7 +639,7 @@ export function EarningsScreen() {
                                   : "bg-emerald-50 text-emerald-800 border border-emerald-200"
                               }`}
                             >
-                              {isAccruing ? "ACCRUING ⏳" : "SETTLED TO BANK ✓"}
+                              {isAccruing ? "ACCRUING" : "SETTLED TO BANK ✓"}
                             </span>
                           </div>
 

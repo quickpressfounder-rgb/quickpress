@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { Gift, Headphones, Sparkles } from "lucide-react";
 import { triggerHaptic } from "../../lib/captain-audio";
 import { CaptainStoryModal } from "./CaptainStoryModal";
 import {
@@ -336,8 +337,8 @@ export const CaptainHomeOfflineScreen: React.FC<CaptainHomeOfflineScreenProps> =
               className="flex items-center gap-3 px-3.5 h-[52px] rounded-[18px] bg-[#F4F6F8] hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer shadow-2xs border border-zinc-200/50 flex-1 min-w-0"
               aria-label="Refer & Earn"
             >
-              <div className="size-8 rounded-xl bg-neutral-900 text-white flex items-center justify-center text-sm font-black shrink-0">
-                🎁
+              <div className="size-8 rounded-xl bg-neutral-900 text-white flex items-center justify-center shrink-0">
+                <Gift className="w-4 h-4" />
               </div>
               <div className="text-left min-w-0">
                 <p className="text-xs font-black text-neutral-900 truncate">Refer & Earn</p>
@@ -376,7 +377,7 @@ export const CaptainHomeOfflineScreen: React.FC<CaptainHomeOfflineScreenProps> =
                   className="flex items-center gap-3 p-3 rounded-2xl border border-zinc-200/80 bg-zinc-50 hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer text-left"
                 >
                   <div className="size-9 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm">
-                    🎧
+                    <Headphones className="w-4 h-4" />
                   </div>
                   <div>
                     <p className="text-xs font-bold text-zinc-900">Captain Help</p>
@@ -389,7 +390,7 @@ export const CaptainHomeOfflineScreen: React.FC<CaptainHomeOfflineScreenProps> =
               <div className="pt-4 pb-6 text-center select-none flex flex-col items-center">
                 <div className="flex items-center justify-center gap-1 text-xs font-black text-zinc-800 mb-2">
                   <span>Proudly made</span>
-                  <span className="text-amber-500">✨</span>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                   <span className="font-extrabold text-sm text-zinc-950">in India</span>
                 </div>
 

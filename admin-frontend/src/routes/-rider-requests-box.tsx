@@ -178,7 +178,7 @@ export function RiderRequestsBox({ onSelectRider }: RiderRequestsBoxProps) {
   const approveMutation = useMutation({
     mutationFn: (id: string) => setRiderStatus(id, "approve"),
     onSuccess: (_, id) => {
-      toast.success("Rider Candidate Approved! Pilot account is now active for order assignments. 🎉");
+      toast.success("Rider Candidate Approved! Pilot account is now active for order assignments.");
       queryClient.invalidateQueries({ queryKey: ["admin", "riders"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "riders", "stats"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "riders", "360", id] });
@@ -193,7 +193,7 @@ export function RiderRequestsBox({ onSelectRider }: RiderRequestsBoxProps) {
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       setRiderStatus(id, "reject", reason),
     onSuccess: (_, { id }) => {
-      toast.success("Rider Application Rejected & Notice Logged. ❌");
+      toast.success("Rider Application Rejected & Notice Logged.");
       queryClient.invalidateQueries({ queryKey: ["admin", "riders"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "riders", "stats"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "riders", "360", id] });
@@ -345,10 +345,10 @@ export function RiderRequestsBox({ onSelectRider }: RiderRequestsBoxProps) {
               className="h-9 text-xs bg-white border border-zinc-200 rounded-xl px-3 font-bold text-zinc-800 shadow-2xs cursor-pointer focus:outline-none"
             >
               <option value="all">All Vehicles</option>
-              <option value="bike">🏍️ Motorbike</option>
-              <option value="scooter">🛵 Scooter</option>
-              <option value="ev">⚡ Electric (EV)</option>
-              <option value="bicycle">🚲 Bicycle</option>
+              <option value="bike">Motorbike</option>
+              <option value="scooter">Scooter</option>
+              <option value="ev">Electric (EV)</option>
+              <option value="bicycle">Bicycle</option>
             </select>
 
             <Button
@@ -356,7 +356,7 @@ export function RiderRequestsBox({ onSelectRider }: RiderRequestsBoxProps) {
               size="sm"
               onClick={() => {
                 ridersQuery.refetch();
-                toast.success("Rider requests queue refreshed! 🔄");
+                toast.success("Rider requests queue refreshed!");
               }}
               disabled={ridersQuery.isRefetching}
               className="h-9 gap-1.5 text-xs font-bold rounded-xl border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50 shadow-2xs"
@@ -371,7 +371,7 @@ export function RiderRequestsBox({ onSelectRider }: RiderRequestsBoxProps) {
         <div className="flex items-center gap-1.5 pt-1 overflow-x-auto text-xs scrollbar-thin">
           {[
             { id: "pending", label: "Pending Initial Review", count: metrics.pending },
-            { id: "resubmitted", label: "🔄 Re-Submitted by Candidate", count: metrics.resubmitted },
+            { id: "resubmitted", label: "Re-Submitted by Candidate", count: metrics.resubmitted },
             { id: "flagged", label: "KYC Flagged / Blocked", count: metrics.flagged },
             { id: "all", label: "All Queue Requests", count: metrics.total },
           ].map((t) => {

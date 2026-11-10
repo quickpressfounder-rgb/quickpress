@@ -73,10 +73,10 @@ export async function fetchCityLeaderboard(
       topThree: [],
       leaderboard: [],
       prizes: [
-        { place: "1st Place", reward: "₹500 Cash + Gold Champion Crown", icon: "👑", color: "amber" },
-        { place: "2nd Place", reward: "₹300 Cash + Silver Medal", icon: "🥈", color: "slate" },
-        { place: "3rd Place", reward: "₹150 Cash + Bronze Medal", icon: "🥉", color: "amber" },
-        { place: "Top 10", reward: "Priority Smart Dispatch & 0 Platform Fee", icon: "🚀", color: "emerald" },
+        { place: "1st Place", reward: "₹500 Cash + Gold Champion Crown", icon: "", color: "amber" },
+        { place: "2nd Place", reward: "₹300 Cash + Silver Medal", icon: "", color: "slate" },
+        { place: "3rd Place", reward: "₹150 Cash + Bronze Medal", icon: "", color: "amber" },
+        { place: "Top 10", reward: "Priority Smart Dispatch & 0 Platform Fee", icon: "", color: "emerald" },
       ],
     };
   }

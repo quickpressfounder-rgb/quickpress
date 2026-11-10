@@ -255,7 +255,7 @@ export const RiderUnableToDeliverModal: React.FC<RiderUnableToDeliverModalProps>
               {addressPreview}
             </p>
             <p className="text-[11px] text-slate-500 italic">
-              ⚠️ Please stay safely at this exact spot. The replacement Captain will navigate directly to these
+              Please stay safely at this exact spot. The replacement Captain will navigate directly to these
               coordinates.
             </p>
           </div>

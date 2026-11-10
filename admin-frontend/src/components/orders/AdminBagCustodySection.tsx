@@ -289,7 +289,7 @@ export function AdminBagCustodySection({ order }: AdminBagCustodySectionProps) {
               className="w-full h-auto max-h-[80vh] object-contain rounded-xl"
             />
             <div className="p-3 text-center text-xs font-mono text-zinc-300">
-              🏷️ Doorstep Bag Seal Photo Proof · Order #{order.id}
+              Doorstep Bag Seal Photo Proof · Order #{order.id}
             </div>
           </div>
         </div>

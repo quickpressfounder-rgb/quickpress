@@ -711,8 +711,8 @@ export function DispatchAgreementModal({ isOpen, onClose, onSuccess }: DispatchA
                 <span className="text-[10px] font-black uppercase tracking-wider text-blue-700">
                   Platform Signatory Stamp
                 </span>
-                <div className="font-bold text-zinc-900">QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</div>
-                <div className="text-[11px] text-zinc-600">Signatory: {stats.signatory || "Himanshu Pal"} (Director &amp; Authorized Signatory)</div>
+                <div className="font-bold text-zinc-900">{stats.legalName || "QuickPress"}</div>
+                <div className="text-[11px] text-zinc-600">Signatory: {stats.signatory || "Authorized Signatory"}</div>
               </div>
             </div>
 

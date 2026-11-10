@@ -48,7 +48,7 @@ export function StoreStatusConfirmModal({
 
         {currentOnline ? (
           /* ============================================================== */
-          /* 🔴 CONFIRMATION TO GO OFFLINE                                  */
+          /* CONFIRMATION TO GO OFFLINE                                  */
           /* ============================================================== */
           <div className="space-y-4">
             {/* Flat Caution Icon */}
@@ -78,7 +78,7 @@ export function StoreStatusConfirmModal({
             </p>
 
             <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-[11px] text-black font-semibold text-left flex items-start gap-2">
-              <span className="text-black text-sm shrink-0">ℹ️</span>
+              
               <span>Existing in-wash and ready orders will NOT be affected and can still be completed and handed over to Captains.</span>
             </div>
 
@@ -108,7 +108,7 @@ export function StoreStatusConfirmModal({
           </div>
         ) : (
           /* ============================================================== */
-          /* ⚡ CONFIRMATION TO GO ONLINE (CLEAN ROYAL BLUE)                 */
+          /* CONFIRMATION TO GO ONLINE (CLEAN ROYAL BLUE)                 */
           /* ============================================================== */
           <div className="space-y-4">
             {/* Flat Royal Blue Icon */}
@@ -138,7 +138,7 @@ export function StoreStatusConfirmModal({
             </p>
 
             <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-[11px] text-black font-semibold text-left flex items-start gap-2">
-              <span className="text-blue-600 text-sm shrink-0">⚡</span>
+              
               <span>Chime alerts are active. Keep your device volume audible to accept incoming orders within deadline.</span>
             </div>
 

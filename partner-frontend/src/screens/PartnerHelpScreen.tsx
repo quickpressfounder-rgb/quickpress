@@ -630,13 +630,13 @@ export function PartnerHelpScreen() {
 
               <div className="space-y-2 text-xs text-zinc-700">
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="font-bold text-zinc-950">📅 Automated 7-Day Weekly Cycle</p>
+                  <p className="font-bold text-zinc-950">Automated 7-Day Weekly Cycle</p>
                   <p className="mt-0.5 text-zinc-600">
                     All completed orders are settled weekly into your verified bank account via direct IMPS bank transfer every Monday.
                   </p>
                 </div>
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="font-bold text-zinc-950">📑 Itemized GST &amp; Tax Reconciliations</p>
+                  <p className="font-bold text-zinc-950">Itemized GST &amp; Tax Reconciliations</p>
                   <p className="mt-0.5 text-zinc-600">
                     Download official double-entry settlement statements (PDF &amp; Excel) and Monthly SAC 998311 GST Invoices for Input Tax Credit (ITC).
                   </p>
@@ -674,13 +674,13 @@ export function PartnerHelpScreen() {
 
               <div className="space-y-2 text-xs text-zinc-700">
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="font-bold text-zinc-950">🔒 Physical Handshake Dispatch OTP</p>
+                  <p className="font-bold text-zinc-950">Physical Handshake Dispatch OTP</p>
                   <p className="mt-0.5 text-zinc-600">
                     Never release packed clothes to a captain without entering their 4-digit code in your console. This transfers legal custody and protects your store.
                   </p>
                 </div>
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="font-bold text-zinc-950">🛵 Captain Breakdown / Delay SOP</p>
+                  <p className="font-bold text-zinc-950">Captain Breakdown / Delay SOP</p>
                   <p className="mt-0.5 text-zinc-600">
                     If an assigned captain does not reach your store within 15 minutes, the system auto-reassigns to a standby fleet captain.
                   </p>
@@ -718,13 +718,13 @@ export function PartnerHelpScreen() {
 
               <div className="space-y-2 text-xs text-zinc-700">
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="font-bold text-zinc-950">✨ QuickPress Quality Guidelines</p>
+                  <p className="font-bold text-zinc-950">QuickPress Quality Guidelines</p>
                   <p className="mt-0.5 text-zinc-600">
                     Formal shirts require crisp collar steam pressing; silk sarees must be wrapped in breathable tissue before bag sealing.
                   </p>
                 </div>
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="font-bold text-zinc-950">📦 Ordering Official Packaging Bags</p>
+                  <p className="font-bold text-zinc-950">Ordering Official Packaging Bags</p>
                   <p className="mt-0.5 text-zinc-600">
                     Store hubs can order subsidized QuickPress laundry bags, garment tags, and hangers delivered in bundles of 250.
                   </p>
@@ -762,13 +762,13 @@ export function PartnerHelpScreen() {
 
               <div className="space-y-2 text-xs text-zinc-700">
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="font-bold text-zinc-950">🛑 Peak Capacity Pause</p>
+                  <p className="font-bold text-zinc-950">Peak Capacity Pause</p>
                   <p className="mt-0.5 text-zinc-600">
                     If your drying lines or steam boilers are at maximum capacity, toggle your outlet to 'Offline' to temporarily pause incoming bookings.
                   </p>
                 </div>
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="font-bold text-zinc-950">🗓️ Setting Weekly Holiday or Leave</p>
+                  <p className="font-bold text-zinc-950">Setting Weekly Holiday or Leave</p>
                   <p className="mt-0.5 text-zinc-600">
                     Plan your weekly store closure in advance from Outlet Info so customers cannot schedule pickup slots on off days.
                   </p>

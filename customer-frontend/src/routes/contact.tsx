@@ -140,7 +140,7 @@ function ContactScreen() {
                     <Phone className="size-4" />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 text-sm">{companyProfile?.tollFreePhone || "1800 012 3456"}</p>
+                    <p className="font-bold text-slate-900 text-sm">{companyProfile?.tollFreePhone || "—"}</p>
                     <p className="text-slate-500 mt-0.5">QuickPress Helpdesk (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
                   </div>
                 </a>
@@ -199,9 +199,9 @@ function ContactScreen() {
                 <div className="flex items-start gap-2.5">
                   <MapPin className="size-4 text-slate-400 shrink-0 mt-0.5" />
                   <p>
-                    <strong>{companyProfile?.legalName || "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"}</strong><br />
-                    <span className="text-slate-500">CIN: {companyProfile?.cin || "U74999UP2024PTC198141"}</span><br />
-                    {companyProfile?.registeredAddress || "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India"}
+                    <strong>{companyProfile?.legalName || "QuickPress"}</strong><br />
+                    {companyProfile?.cin ? <><span className="text-slate-500">CIN: {companyProfile.cin}</span><br /></> : null}
+                    {companyProfile?.registeredAddress || "Platform Operations Desk"}
                   </p>
                 </div>
               </div>

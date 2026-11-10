@@ -380,7 +380,7 @@ export function PartnerReviewsScreen() {
             </div>
 
             <div className="mt-4 pt-3 border-t border-zinc-100 text-[11px] text-zinc-500">
-              💡 Replying to reviews boosts repeat customer bookings by 24%.
+              Replying to reviews boosts repeat customer bookings by 24%.
             </div>
           </div>
         </div>
@@ -604,7 +604,7 @@ export function PartnerReviewsScreen() {
                   {!hasReplied && !isReplying && (
                     <div className="mt-4 pt-3 border-t border-zinc-100 flex items-center justify-between">
                       <span className="text-[11px] text-amber-800 font-bold bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200">
-                        ⚡ Customer is waiting for store response
+                        Customer is waiting for store response
                       </span>
                       <button
                         type="button"
@@ -663,7 +663,7 @@ export function PartnerReviewsScreen() {
 
                       <div className="flex items-center justify-between">
                         <p className="text-[10px] text-zinc-500">
-                          🔒 This response will be shown publicly to customers viewing your store.
+                          This response will be shown publicly to customers viewing your store.
                         </p>
                         <div className="flex items-center gap-2">
                           <button

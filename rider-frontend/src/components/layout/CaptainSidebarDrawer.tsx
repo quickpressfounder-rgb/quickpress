@@ -71,7 +71,7 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
       onLogout();
     } else {
       signOut();
-      toast.success("Logged out successfully. See you soon, Captain! 🛵");
+      toast.success("Logged out successfully. See you soon, Captain!");
       navigate({ to: "/auth" });
     }
   };
@@ -156,7 +156,7 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                   <div className="flex items-center gap-1.5 mt-1">
                     {session?.isVerified ? (
                       <span className="text-[10px] font-black text-emerald-800 bg-emerald-100/90 border border-emerald-200 px-2 py-0.5 rounded-full">
-                        {rating && rating > 0 ? `${rating.toFixed(1)} ★ ` : ""}Verified Captain
+                        {rating && rating > 0 ? `${rating.toFixed(1)}  ` : ""}Verified Captain
                       </span>
                     ) : (
                       <span className="text-[10px] font-black text-amber-900 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">
@@ -348,7 +348,7 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                 className="w-full flex items-center justify-between p-2.5 bg-[#F8F9FA] hover:bg-zinc-100 border border-zinc-200/90 rounded-xl text-xs font-bold text-zinc-800 shadow-2xs active:scale-98 transition-all cursor-pointer"
               >
                 <span className="flex items-center gap-2">
-                  <span>🌐</span>
+                  <span>Language</span>
                   <span>{t("common.language", "Language")} ({selectedLanguageObj.nativeName})</span>
                 </span>
                 <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">

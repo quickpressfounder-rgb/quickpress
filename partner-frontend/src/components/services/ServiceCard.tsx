@@ -142,7 +142,7 @@ export function ServiceCard({
               key={offer.id}
               className="rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[10.5px] font-black tracking-tight text-emerald-900"
             >
-              🏷️ {offer.type === "flat" ? `₹${offer.value} off` : `${offer.value}% off`}
+              {offer.type === "flat" ? `₹${offer.value} off` : `${offer.value}% off`}
             </span>
           ))}
         </div>
@@ -203,7 +203,7 @@ export function StatusPill({
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10.5px] font-black tracking-tight text-amber-800 border border-amber-300">
         <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
-        ⏳ Pending Approval
+        Pending Approval
       </span>
     );
   }
@@ -214,7 +214,7 @@ export function StatusPill({
         className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-0.5 text-[10.5px] font-black tracking-tight text-rose-800 border border-rose-300"
       >
         <span className="size-1.5 rounded-full bg-rose-500" />
-        ❌ Rejected
+        Rejected
       </span>
     );
   }
@@ -229,7 +229,7 @@ export function StatusPill({
       <span
         className={`size-1.5 rounded-full ${enabled ? "bg-emerald-600" : "bg-zinc-400"}`}
       />
-      {enabled ? "Live 🟢" : "Paused ⏸️"}
+      {enabled ? "Live Online" : "Paused"}
     </span>
   );
 }

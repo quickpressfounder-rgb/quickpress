@@ -488,7 +488,7 @@ function CartPage() {
 
           {savings > 0 ? (
             <div className="rounded-xl bg-emerald-50 p-2 text-center text-xs font-black text-[#0c831f] border border-emerald-100">
-              🎉 You will save ₹{savings} on this order!
+              You will save ₹{savings} on this order!
             </div>
           ) : null}
         </section>

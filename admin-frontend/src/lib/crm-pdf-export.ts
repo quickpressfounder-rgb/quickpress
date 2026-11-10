@@ -178,7 +178,7 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
       ? p.codCashRaw
       : 0;
 
-  const ratingStr = p.rating ? `${p.rating} ★` : "5.0 ★";
+  const ratingStr = p.rating ? `${p.rating} / 5.0` : "5.0 / 5.0";
 
   // Documents Dossier
   const rawDocs =
@@ -701,7 +701,7 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
         <div class="header-top">
           <div>
             <div class="brand-logo">
-              ⚡ QUICKPRESS OPERATIONS
+              QUICKPRESS OPERATIONS
             </div>
             <div class="doc-badge">${entityTitle}</div>
           </div>
@@ -861,7 +861,7 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
       <div class="avoid-break">
         <div class="header-top">
           <div>
-            <div class="brand-logo">⚡ QUICKPRESS OPERATIONS</div>
+            <div class="brand-logo">QUICKPRESS OPERATIONS</div>
             <div class="doc-badge">PAGE 2: VERIFIED KYC & LEGAL DOCUMENTS DOSSIER</div>
           </div>
           <div class="audit-meta">
@@ -927,7 +927,7 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
       <div class="avoid-break">
         <div class="header-top">
           <div>
-            <div class="brand-logo">⚡ QUICKPRESS OPERATIONS</div>
+            <div class="brand-logo">QUICKPRESS OPERATIONS</div>
             <div class="doc-badge">PAGE 3: CHRONOLOGICAL ACTIVITY TIMELINE & AUDIT TRAIL</div>
           </div>
           <div class="audit-meta">
@@ -1038,7 +1038,7 @@ export function exportLeaderboardPdf(data: any, timeframe: string, geoFilter: st
       <td style="padding: 6px 10px; font-weight: bold; text-align: center;">#${p.rank}</td>
       <td style="padding: 6px 10px; font-weight: 700;">${p.name}</td>
       <td style="padding: 6px 10px; color: #71717a;">${p.city}</td>
-      <td style="padding: 6px 10px; text-align: center;">${p.rating || 4.9} ★</td>
+      <td style="padding: 6px 10px; text-align: center;">${p.rating || 4.9} / 5.0</td>
       <td style="padding: 6px 10px; text-align: center;">${p.orders}</td>
       <td style="padding: 6px 10px; text-align: right; font-weight: bold; color: #047857;">₹${Number(p.gmv).toLocaleString("en-IN")}</td>
     </tr>
@@ -1049,7 +1049,7 @@ export function exportLeaderboardPdf(data: any, timeframe: string, geoFilter: st
       <td style="padding: 6px 10px; font-weight: bold; text-align: center;">#${r.rank}</td>
       <td style="padding: 6px 10px; font-weight: 700;">${r.name}</td>
       <td style="padding: 6px 10px; color: #71717a;">${r.city}</td>
-      <td style="padding: 6px 10px; text-align: center;">${r.rating || 4.8} ★</td>
+      <td style="padding: 6px 10px; text-align: center;">${r.rating || 4.8} / 5.0</td>
       <td style="padding: 6px 10px; text-align: center;">${r.deliveries}</td>
       <td style="padding: 6px 10px; text-align: right; font-weight: bold; color: #047857;">₹${Number(r.earnings).toLocaleString("en-IN")}</td>
     </tr>

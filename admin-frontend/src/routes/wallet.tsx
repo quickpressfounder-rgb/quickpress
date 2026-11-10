@@ -45,6 +45,9 @@ import {
   PlusCircle,
   MinusCircle,
   Sparkles,
+  Scale,
+  Landmark,
+  BarChart3,
   ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -164,7 +167,7 @@ export function WalletPage() {
   const approveRefundMutation = useMutation({
     mutationFn: (refundId: string) => approveAdminRefund(refundId),
     onSuccess: () => {
-      toast.success("Refund approved & executed successfully! 🎉");
+      toast.success("Refund approved & executed successfully!");
       queryClient.invalidateQueries({ queryKey: ["admin", "finance", "refunds"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "finance", "refund-stats"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "finance", "all-wallets"] });
@@ -197,7 +200,7 @@ export function WalletPage() {
   const batchDisburseMutation = useMutation({
     mutationFn: () => batchDisburseSettlements(),
     onSuccess: (res) => {
-      toast.success(`Batch settlement executed! Disbursed ${res.disbursedCount} payouts (₹${res.totalAmount}). 🎉`);
+      toast.success(`Batch settlement executed! Disbursed ${res.disbursedCount} payouts (₹${res.totalAmount}).`);
       queryClient.invalidateQueries({ queryKey: ["admin", "finance", "settlements-overview"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "finance", "withdrawals"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "finance", "kpis"] });
@@ -382,7 +385,7 @@ export function WalletPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success("Wallets directory exported as CSV! 📊");
+    toast.success("Wallets directory exported as CSV!");
   };
 
   const filteredRefunds = useMemo(() => {
@@ -520,26 +523,33 @@ export function WalletPage() {
           <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-zinc-100">
             <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
               <TabsList className="bg-zinc-100 p-1 rounded-xl">
-                <TabsTrigger value="settlements" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  ⚖️ Auto Settlement Engine ({settlementsOverview?.settlements?.length ?? 0})
+                <TabsTrigger value="settlements" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center gap-1.5">
+                  <Scale className="size-3.5" />
+                  <span>Auto Settlement Engine ({settlementsOverview?.settlements?.length ?? 0})</span>
                 </TabsTrigger>
-                <TabsTrigger value="wallets" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  💳 All Accounts ({allWallets.length})
+                <TabsTrigger value="wallets" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center gap-1.5">
+                  <CreditCard className="size-3.5" />
+                  <span>All Accounts ({allWallets.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="refunds" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  🔄 Customer Refunds Engine ({allRefunds.length})
+                <TabsTrigger value="refunds" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center gap-1.5">
+                  <RotateCcw className="size-3.5" />
+                  <span>Customer Refunds Engine ({allRefunds.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="withdrawals" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  🏦 Payout Requests ({allWithdrawals.length})
+                <TabsTrigger value="withdrawals" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center gap-1.5">
+                  <Landmark className="size-3.5" />
+                  <span>Payout Requests ({allWithdrawals.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="split" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  📊 3-Way Revenue Split
+                <TabsTrigger value="split" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center gap-1.5">
+                  <BarChart3 className="size-3.5" />
+                  <span>3-Way Revenue Split</span>
                 </TabsTrigger>
-                <TabsTrigger value="ledger" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  📜 Double-Entry Ledger ({allTxns.length})
+                <TabsTrigger value="ledger" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center gap-1.5">
+                  <FileText className="size-3.5" />
+                  <span>Double-Entry Ledger ({allTxns.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="cod" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  🛵 Fleet COD Settlement
+                <TabsTrigger value="cod" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center gap-1.5">
+                  <Bike className="size-3.5" />
+                  <span>Fleet COD Settlement</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -648,9 +658,9 @@ export function WalletPage() {
                       <SelectValue placeholder="All Roles" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">🌐 All Accounts</SelectItem>
-                      <SelectItem value="partner">🏪 Partner Stores Only</SelectItem>
-                      <SelectItem value="rider">🛵 Delivery Captains Only</SelectItem>
+                      <SelectItem value="all">All Accounts</SelectItem>
+                      <SelectItem value="partner">Partner Stores Only</SelectItem>
+                      <SelectItem value="rider">Delivery Captains Only</SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -659,9 +669,9 @@ export function WalletPage() {
                       <SelectValue placeholder="All Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">⚡ All Status</SelectItem>
-                      <SelectItem value="settled">✅ Settled</SelectItem>
-                      <SelectItem value="pending">⏳ Pending</SelectItem>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="settled">Settled</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -768,10 +778,10 @@ export function WalletPage() {
                     <SelectValue placeholder="All Roles" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">🌐 All Roles ({allWallets.length})</SelectItem>
-                    <SelectItem value="customer">👤 Customers ({allWallets.filter((w) => w.role === "customer").length})</SelectItem>
-                    <SelectItem value="partner">🏪 Partner Stores ({allWallets.filter((w) => w.role === "partner").length})</SelectItem>
-                    <SelectItem value="rider">🚴 Captains ({allWallets.filter((w) => w.role === "rider").length})</SelectItem>
+                    <SelectItem value="all">All Roles ({allWallets.length})</SelectItem>
+                    <SelectItem value="customer">Customers ({allWallets.filter((w) => w.role === "customer").length})</SelectItem>
+                    <SelectItem value="partner">Partner Stores ({allWallets.filter((w) => w.role === "partner").length})</SelectItem>
+                    <SelectItem value="rider">Captains ({allWallets.filter((w) => w.role === "rider").length})</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -781,9 +791,9 @@ export function WalletPage() {
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">🛡️ All Status</SelectItem>
-                    <SelectItem value="active">🟢 Active Accounts</SelectItem>
-                    <SelectItem value="blocked">🔴 Blocked / Frozen</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active Accounts</SelectItem>
+                    <SelectItem value="blocked">Blocked / Frozen</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -793,7 +803,7 @@ export function WalletPage() {
                     <SelectValue placeholder="All Hubs" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">📍 All Operating Hubs</SelectItem>
+                    <SelectItem value="all">All Operating Hubs</SelectItem>
                     {availableCities.map((city) => (
                       <SelectItem key={city} value={city}>
                         {city}
@@ -808,12 +818,12 @@ export function WalletPage() {
                     <SelectValue placeholder="Date Range" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">📅 All Time</SelectItem>
-                    <SelectItem value="today">⚡ Today</SelectItem>
-                    <SelectItem value="yesterday">⏳ Yesterday</SelectItem>
-                    <SelectItem value="7d">🗓️ Last 7 Days</SelectItem>
-                    <SelectItem value="30d">🗓️ Last 30 Days</SelectItem>
-                    <SelectItem value="this_month">📆 This Month</SelectItem>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="yesterday">Yesterday</SelectItem>
+                    <SelectItem value="7d">Last 7 Days</SelectItem>
+                    <SelectItem value="30d">Last 30 Days</SelectItem>
+                    <SelectItem value="this_month">This Month</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -847,11 +857,11 @@ export function WalletPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="balance_desc">💰 Balance (High to Low)</SelectItem>
-                      <SelectItem value="balance_asc">🪙 Balance (Low to High)</SelectItem>
-                      <SelectItem value="earned_desc">📈 Total Earned</SelectItem>
-                      <SelectItem value="spent_desc">🛍️ Total Spent</SelectItem>
-                      <SelectItem value="name_asc">🔤 Name (A - Z)</SelectItem>
+                      <SelectItem value="balance_desc">Balance (High to Low)</SelectItem>
+                      <SelectItem value="balance_asc">Balance (Low to High)</SelectItem>
+                      <SelectItem value="earned_desc">Total Earned</SelectItem>
+                      <SelectItem value="spent_desc">Total Spent</SelectItem>
+                      <SelectItem value="name_asc">Name (A - Z)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1366,7 +1376,7 @@ function IssueRefundDialog() {
         notes,
       }),
     onSuccess: (data) => {
-      toast.success(`Refund of ₹${data.amount} issued successfully via ${data.methodLabel}! 🎉`);
+      toast.success(`Refund of ₹${data.amount} issued successfully via ${data.methodLabel}!`);
       setOpen(false);
       queryClient.invalidateQueries({ queryKey: ["admin", "finance", "refunds"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "finance", "refund-stats"] });
@@ -1445,8 +1455,8 @@ function IssueRefundDialog() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="wallet">⚡ QuickPress Wallet (Instant 0-Sec Credit)</SelectItem>
-                <SelectItem value="gateway">💳 Original Payment Gateway (Razorpay UPI 3-5 Days)</SelectItem>
+                <SelectItem value="wallet">QuickPress Wallet (Instant 0-Sec Credit)</SelectItem>
+                <SelectItem value="gateway">Original Payment Gateway (Razorpay UPI 3-5 Days)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1458,11 +1468,11 @@ function IssueRefundDialog() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Pickup Slot Delay Cancellation">⏰ Pickup Slot Delay Cancellation</SelectItem>
-                <SelectItem value="Promotional Voucher Adjustment">🏷️ Promotional Voucher Adjustment</SelectItem>
-                <SelectItem value="Garment Stain Rework Claim">🧺 Garment Stain Rework / Quality Grievance</SelectItem>
-                <SelectItem value="Customer Initiated Order Cancel">❌ Customer Initiated Order Cancel</SelectItem>
-                <SelectItem value="Store Hub Capacity Rejection">🏪 Store Hub Capacity Rejection</SelectItem>
+                <SelectItem value="Pickup Slot Delay Cancellation">Pickup Slot Delay Cancellation</SelectItem>
+                <SelectItem value="Promotional Voucher Adjustment">Promotional Voucher Adjustment</SelectItem>
+                <SelectItem value="Garment Stain Rework Claim">Garment Stain Rework / Quality Grievance</SelectItem>
+                <SelectItem value="Customer Initiated Order Cancel">Customer Initiated Order Cancel</SelectItem>
+                <SelectItem value="Store Hub Capacity Rejection">Store Hub Capacity Rejection</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1576,7 +1586,7 @@ function AdjustBalanceDialog({ target, onClose }: { target: AccountWallet; onClo
               }`}
             >
               <PlusCircle className="size-3.5" />
-              <span>➕ Recharge (Credit)</span>
+              <span>Recharge (Credit)</span>
             </button>
             <button
               type="button"
@@ -1591,7 +1601,7 @@ function AdjustBalanceDialog({ target, onClose }: { target: AccountWallet; onClo
               }`}
             >
               <MinusCircle className="size-3.5" />
-              <span>➖ Deduct (Debit)</span>
+              <span>Deduct (Debit)</span>
             </button>
           </div>
 
@@ -1657,7 +1667,7 @@ function AdjustBalanceDialog({ target, onClose }: { target: AccountWallet; onClo
             </div>
             {type === "debit" && newBalance < 0 && (
               <p className="text-[10px] text-rose-700 font-semibold pt-1">
-                ⚠️ Warning: Balance will become negative (-₹{Math.abs(newBalance).toFixed(2)}).
+                Warning: Balance will become negative (-₹{Math.abs(newBalance).toFixed(2)}).
               </p>
             )}
           </div>
@@ -1672,19 +1682,19 @@ function AdjustBalanceDialog({ target, onClose }: { target: AccountWallet; onClo
               <SelectContent>
                 {type === "credit" ? (
                   <>
-                    <SelectItem value="Goodwill / Courtesy Credit">🎁 Goodwill / Courtesy Credit</SelectItem>
-                    <SelectItem value="Promotional Loyalty Bonus">🏷️ Promotional Loyalty Bonus</SelectItem>
-                    <SelectItem value="Offline Cash Direct Deposit">💵 Offline Cash Direct Deposit</SelectItem>
-                    <SelectItem value="Dispute Resolution Compensation">⚖️ Dispute Resolution Compensation</SelectItem>
-                    <SelectItem value="System Balance Correction">🔧 System Balance Correction</SelectItem>
+                    <SelectItem value="Goodwill / Courtesy Credit">Goodwill / Courtesy Credit</SelectItem>
+                    <SelectItem value="Promotional Loyalty Bonus">Promotional Loyalty Bonus</SelectItem>
+                    <SelectItem value="Offline Cash Direct Deposit">Offline Cash Direct Deposit</SelectItem>
+                    <SelectItem value="Dispute Resolution Compensation">Dispute Resolution Compensation</SelectItem>
+                    <SelectItem value="System Balance Correction">System Balance Correction</SelectItem>
                   </>
                 ) : (
                   <>
-                    <SelectItem value="Administrative Penalty / Surcharge">⚠️ Administrative Penalty / Surcharge</SelectItem>
-                    <SelectItem value="Dispute Rework / Damage Deduction">🧺 Dispute Rework / Damage Deduction</SelectItem>
-                    <SelectItem value="Duplicate Credit Reversal">🔄 Duplicate Credit Reversal</SelectItem>
-                    <SelectItem value="Order Cancellation Charge">❌ Order Cancellation Charge</SelectItem>
-                    <SelectItem value="Manual Float Recovery">💼 Manual Float Recovery</SelectItem>
+                    <SelectItem value="Administrative Penalty / Surcharge">Administrative Penalty / Surcharge</SelectItem>
+                    <SelectItem value="Dispute Rework / Damage Deduction">Dispute Rework / Damage Deduction</SelectItem>
+                    <SelectItem value="Duplicate Credit Reversal">Duplicate Credit Reversal</SelectItem>
+                    <SelectItem value="Order Cancellation Charge">Order Cancellation Charge</SelectItem>
+                    <SelectItem value="Manual Float Recovery">Manual Float Recovery</SelectItem>
                   </>
                 )}
               </SelectContent>
@@ -1768,7 +1778,7 @@ function UserWalletStatementDialog({ target, onClose }: { target: AccountWallet;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success("Statement CSV exported successfully! 📄");
+    toast.success("Statement CSV exported successfully!");
   };
 
   return (
@@ -1994,11 +2004,11 @@ function BlockWalletDialog({ target, onClose }: { target: AccountWallet; onClose
           >
             {isBlocked ? (
               <p className="font-medium">
-                ✅ Unfreezing will immediately restore this user's ability to place laundry orders, receive wallet recharges, and withdraw payout earnings.
+                Unfreezing will immediately restore this user's ability to place laundry orders, receive wallet recharges, and withdraw payout earnings.
               </p>
             ) : (
               <p className="font-medium">
-                ⚠️ Freezing locks this wallet. The user will not be able to use wallet balance for orders, receive credits, or disburse bank payouts until restored.
+                Freezing locks this wallet. The user will not be able to use wallet balance for orders, receive credits, or disburse bank payouts until restored.
               </p>
             )}
           </div>
@@ -2012,18 +2022,18 @@ function BlockWalletDialog({ target, onClose }: { target: AccountWallet; onClose
               <SelectContent>
                 {isBlocked ? (
                   <>
-                    <SelectItem value="Administrative Restriction Lifted">🟢 Administrative Restriction Lifted</SelectItem>
-                    <SelectItem value="KYC Verification Completed">🛡️ KYC Verification Completed</SelectItem>
-                    <SelectItem value="Dispute Resolved Favorably">⚖️ Dispute Resolved Favorably</SelectItem>
-                    <SelectItem value="User Identity Re-verified">👤 User Identity Re-verified</SelectItem>
+                    <SelectItem value="Administrative Restriction Lifted">Administrative Restriction Lifted</SelectItem>
+                    <SelectItem value="KYC Verification Completed">KYC Verification Completed</SelectItem>
+                    <SelectItem value="Dispute Resolved Favorably">Dispute Resolved Favorably</SelectItem>
+                    <SelectItem value="User Identity Re-verified">User Identity Re-verified</SelectItem>
                   </>
                 ) : (
                   <>
-                    <SelectItem value="Suspicious Order Fraud Activity">🚨 Suspicious Order Fraud Activity</SelectItem>
-                    <SelectItem value="Negative Cash Balance Default">💸 Negative Cash Balance Default</SelectItem>
-                    <SelectItem value="KYC Verification Non-Compliance">📋 KYC Verification Non-Compliance</SelectItem>
-                    <SelectItem value="Administrative Investigation">🔍 Administrative Investigation</SelectItem>
-                    <SelectItem value="Customer Requested Lock">🔒 Customer Requested Lock</SelectItem>
+                    <SelectItem value="Suspicious Order Fraud Activity">Suspicious Order Fraud Activity</SelectItem>
+                    <SelectItem value="Negative Cash Balance Default">Negative Cash Balance Default</SelectItem>
+                    <SelectItem value="KYC Verification Non-Compliance">KYC Verification Non-Compliance</SelectItem>
+                    <SelectItem value="Administrative Investigation">Administrative Investigation</SelectItem>
+                    <SelectItem value="Customer Requested Lock">Customer Requested Lock</SelectItem>
                   </>
                 )}
               </SelectContent>

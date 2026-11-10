@@ -321,7 +321,7 @@ function PhoneStep({
   return (
     <div>
       <h2 className="auth-rise text-[1.6rem] font-black leading-tight tracking-[-0.03em] text-foreground">
-        Welcome Back <span aria-hidden>👋</span>
+        Welcome Back
       </h2>
       <p className="auth-rise mt-1.5 text-[13.5px] font-medium text-muted-foreground [animation-delay:60ms]">
         Continue with your mobile number

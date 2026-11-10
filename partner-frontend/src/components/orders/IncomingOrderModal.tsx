@@ -180,7 +180,7 @@ export function IncomingOrderModal({
                   </span>
                   <div>
                     <span className="text-xs sm:text-sm font-black text-amber-700 dark:text-amber-300 uppercase tracking-wide block">
-                      ⚡ EXPRESS + EXPRESS CHARGES KA {order.expressPartnerSharePercent || 20}% BONUS
+                      EXPRESS + EXPRESS CHARGES KA {order.expressPartnerSharePercent || 20}% BONUS
                     </span>
                     <span className="text-xs text-muted-foreground">
                       Customer requested express priority. Extra laundry bonus credited.

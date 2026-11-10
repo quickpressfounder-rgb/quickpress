@@ -417,7 +417,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [showOrderCompleteRatingScreen, setShowOrderCompleteRatingScreen] = useState(false);
   const [currentSpeed, setCurrentSpeed] = useState<number>(0);
   const [customerRating, setCustomerRating] = useState<number>(5);
-  const [ratingReaction, setRatingReaction] = useState<string>("VERY GOOD 😍");
+  const [ratingReaction, setRatingReaction] = useState<string>("VERY GOOD");
   const [selectedRatingTags, setSelectedRatingTags] = useState<string[]>(["Polite", "Timely"]);
   const [isQrGenerated, setIsQrGenerated] = useState(false);
   const [quickMessageText, setQuickMessageText] = useState("I am on my way to your pickup location");
@@ -431,11 +431,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const handleRatingChange = (stars: number) => {
     setCustomerRating(stars);
     triggerHaptic(30);
-    if (stars === 5) setRatingReaction("EXCELLENT 🔥");
-    else if (stars === 4) setRatingReaction("VERY GOOD 😍");
-    else if (stars === 3) setRatingReaction("GOOD 🙂");
-    else if (stars === 2) setRatingReaction("AVERAGE 😐");
-    else setRatingReaction("POOR 😞");
+    if (stars === 5) setRatingReaction("EXCELLENT");
+    else if (stars === 4) setRatingReaction("VERY GOOD");
+    else if (stars === 3) setRatingReaction("GOOD");
+    else if (stars === 2) setRatingReaction("AVERAGE");
+    else setRatingReaction("POOR");
   };
 
   const handleCopyAddress = (address: string) => {
@@ -500,7 +500,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const handleBack = useCallback(() => {
     triggerHaptic(40);
     if (stage === "arrived_pickup" || showDedicatedOtpScreen) {
-      toast.info("📍 Arrived at location. Please verify OTP to proceed with the trip.");
+      toast.info("Arrived at location. Please verify OTP to proceed with the trip.");
       return;
     }
     if (onBackToTrips) {
@@ -561,14 +561,14 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       const handlePopState = () => {
         window.history.pushState({ qp_locked_stage: stage }, "", window.location.href);
         triggerHaptic(40);
-        toast.info("📍 Arrived at pickup. Please enter the 4-digit code given by customer to start ride.", { id: "arrived-lock-toast" });
+        toast.info("Arrived at pickup. Please enter the 4-digit code given by customer to start ride.", { id: "arrived-lock-toast" });
       };
 
       const handleAndroidBack = (e: any) => {
         try {
           if (typeof e?.preventDefault === "function") e.preventDefault();
         } catch { }
-        toast.info("📍 Arrived at pickup. Please enter the 4-digit code given by customer to start ride.", { id: "arrived-lock-toast" });
+        toast.info("Arrived at pickup. Please enter the 4-digit code given by customer to start ride.", { id: "arrived-lock-toast" });
       };
 
       window.addEventListener("popstate", handlePopState);
@@ -754,10 +754,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             playTripAssignedBell();
             playOrderAlertSound();
             speakLaundryReadyForDelivery();
-            toast.success("🎉 Order Packed & Ready! Go to Partner Store to collect package.");
+            toast.success("Order Packed & Ready! Go to Partner Store to collect package.");
           } else {
             speakStoreProcessingStarted(res?.processingEstimateMinutes || 120);
-            toast.success("🎉 Partner Confirmed Handover! ₹25 Pickup Payout Credited.");
+            toast.success("Partner Confirmed Handover! ₹25 Pickup Payout Credited.");
           }
         }
       } catch { }
@@ -788,7 +788,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           playOrderAlertSound();
           playSuccessChime();
           speakLaundryReadyForDelivery();
-          toast.success("🎉 Order Packed & Ready! Go to Partner Store to collect package.");
+          toast.success("Order Packed & Ready! Go to Partner Store to collect package.");
           setStage("ready_pickup_store");
         }
       } catch { }
@@ -851,7 +851,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             unlockAudioContext();
             playSuccessChime();
             speakStoreProcessingStarted(data.processingEstimateMinutes || 120);
-            toast.success("🎉 Partner Confirmed Handover! ₹25 Pickup Payout Credited.");
+            toast.success("Partner Confirmed Handover! ₹25 Pickup Payout Credited.");
           } else if (stage !== "store_processing") {
             setStage("store_processing");
             setCurrentLeg("store_to_customer");
@@ -867,7 +867,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           playOrderAlertSound();
           playSuccessChime();
           speakLaundryReadyForDelivery();
-          toast.success("🎉 Order Packed & Ready! Go to Partner Store to collect package.");
+          toast.success("Order Packed & Ready! Go to Partner Store to collect package.");
           setStage("ready_pickup_store");
         }
 
@@ -897,7 +897,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             localStorage.removeItem("qp_active_delivery_order");
             window.dispatchEvent(new CustomEvent("qp:active_order_updated", { detail: null }));
           } catch { }
-          toast.error("❌ Yeh order customer/store dwara cancel kar diya gaya.");
+          toast.error("Yeh order customer/store dwara cancel kar diya gaya.");
           if (onCancelTrip) {
             onCancelTrip();
           } else if (onTripCompleted) {
@@ -1361,7 +1361,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         html: `
           <div style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
             <div style="padding: 3px 10px; border-radius: 9999px; background-color: #0F172A; color: white; font-weight: 900; font-size: 11px; box-shadow: 0 2px 10px rgba(0,0,0,0.35); border: 1.5px solid #FACC15; white-space: nowrap; margin-bottom: 2px;">
-              📍 ${isStoreDrop ? partnerStoreName : (order.customerName || "Customer Pickup")}
+              ${isStoreDrop ? partnerStoreName : (order.customerName || "Customer Pickup")}
             </div>
             <div style="position: relative; display: flex; width: 38px; height: 38px; align-items: center; justify-content: center; border-radius: 9999px; background-color: ${isStoreDrop ? "#059669" : "#E11D48"}; color: white; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); border: 3px solid white;">
               <div style="width: 12px; height: 12px; border-radius: 9999px; background-color: white;"></div>
@@ -1450,13 +1450,13 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       mapInstanceRef.current.setView([captainCoords.lat, captainCoords.lng], 17, {
         animate: true,
       });
-      toast.info("Map centered on your real location 📍");
+      toast.info("Map centered on your real location");
       return;
     }
     if (mapEngineRef.current === "google" && googleMapInstanceRef.current) {
       googleMapInstanceRef.current.panTo({ lat: captainCoords.lat, lng: captainCoords.lng });
       googleMapInstanceRef.current.setZoom(17);
-      toast.info("Map centered on your location 📍");
+      toast.info("Map centered on your location");
       return;
     }
   };
@@ -1468,7 +1468,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     destName?: string
   ) => {
     triggerHaptic(40);
-    // ⚡ Rapido-style In-App Turn-by-Turn Navigation directly inside QuickPress (No external Google Maps redirect)
+    // Rapido-style In-App Turn-by-Turn Navigation directly inside QuickPress (No external Google Maps redirect)
     handleStartInAppNavigation();
   };
 
@@ -1527,7 +1527,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     setShowVoiceNavModal(true);
     const text = `नेविगेशन शुरू हुआ। ${activeDestTitle} की तरफ चलें।`;
     speakText(text);
-    toast.info(`📍 In-App GPS Navigation active to ${activeDestTitle}`);
+    toast.info(`In-App GPS Navigation active to ${activeDestTitle}`);
   };
 
   // Video Frame 00:29 Proximity Arrival Check
@@ -1586,7 +1586,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     setIsWaitingTimerActive(true);
     const nowTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     setArrivedTime(nowTime);
-    toast.success("You have arrived at Pickup location! 📍 Customer notified.");
+    toast.success("You have arrived at Pickup location! Customer notified.");
 
     // Direct transition to Full-Screen 4-Digit OTP Screen
     setDedicatedOtpMode("pickup");
@@ -1671,7 +1671,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       setIsInAppNavActive(true);
       const sTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       setStartTime(sTime);
-      toast.success("Pickup Done! 🛵 In-App Navigation active to Partner Store...");
+      toast.success("Pickup Done! In-App Navigation active to Partner Store...");
 
       try {
         const cur = localStorage.getItem("qp_active_rider_order");
@@ -1702,7 +1702,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     setIsWaitingPartnerHandoverConfirm(true);
     setIsInAppNavActive(false);
     toast.success(
-      `📦 Clothes Handed Over to ${partnerStoreName}! Waiting for store to confirm & start processing.`
+      `Clothes Handed Over to ${partnerStoreName}! Waiting for store to confirm & start processing.`
     );
 
     try {
@@ -1767,7 +1767,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         setIsWaitingPartnerHandoverConfirm(true);
         setIsInAppNavActive(false);
         toast.success(
-          `📦 Clothes Handed Over to ${partnerStoreName}! Waiting for partner to confirm & start processing.`
+          `Clothes Handed Over to ${partnerStoreName}! Waiting for partner to confirm & start processing.`
         );
 
         // Persist handover initiated state in localStorage
@@ -1835,7 +1835,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         setStage("completed");
         setIsInAppNavActive(false);
         setCompletedTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-        toast.success(`🎉 Delivery Completed! Collected ₹${safeFare.toFixed(2)} — Credited to Wallet`);
+        toast.success(`Delivery Completed! Collected ₹${safeFare.toFixed(2)} — Credited to Wallet`);
 
         try {
           localStorage.removeItem("qp_active_rider_order");
@@ -1855,7 +1855,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     setStage("in_trip");
     setIsInAppNavActive(true);
     setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-    toast.success("🛵 Package Collected! Heading to Customer Doorstep...");
+    toast.success("Package Collected! Heading to Customer Doorstep...");
 
     // Real Google Maps Turn-by-Turn Navigation Intent (keeping overlay HUD screen active)
     setTimeout(() => {
@@ -1897,7 +1897,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     ]);
     setInputMsg("");
     triggerHaptic();
-    toast.success("Message sent to customer 💬");
+    toast.success("Message sent to customer");
   };
 
   // 6-Step Upgraded QuickPress Lifecycle Stepper
@@ -2177,7 +2177,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 type="button"
                 onClick={() => {
                   triggerHaptic(50);
-                  toast.error("🚨 Emergency SOS Beacon Dispatched to Safety Team");
+                  toast.error("Emergency SOS Beacon Dispatched to Safety Team");
                 }}
                 className="flex items-center justify-center size-9 bg-rose-600 text-white rounded-xl shadow-lg border border-rose-700 active:scale-90 transition-transform hover:bg-rose-700 cursor-pointer text-xs font-black"
                 aria-label="SOS Emergency"
@@ -2553,7 +2553,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-300 rounded-2xl text-emerald-950 text-xs font-bold animate-in fade-in duration-300">
                   <div className="flex items-center gap-2">
                     <Sparkles className="size-4 text-emerald-600 shrink-0" />
-                    <span>Perfect Pick-up! ✨ You started the ride at the right location.</span>
+                    <span>Perfect Pick-up! You started the ride at the right location.</span>
                   </div>
                   <button
                     type="button"
@@ -3019,9 +3019,9 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                               setCurrentLeg("store_to_customer");
                               unlockAudioContext();
                               playSuccessChime();
-                              toast.success("🎉 Partner Confirmed Handover! ₹25 Pickup Payout Credited.");
+                              toast.success("Partner Confirmed Handover! ₹25 Pickup Payout Credited.");
                             } else {
-                              toast("Partner store hasn't clicked 'Start Processing' yet. Refreshing...", { icon: "⏳" });
+                              toast("Partner store hasn't clicked 'Start Processing' yet. Refreshing...", {});
                             }
                           } catch { }
                         }
@@ -3073,7 +3073,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     className="w-full h-13 rounded-full bg-slate-950 hover:bg-slate-900 text-white font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md cursor-pointer"
                   >
                     <Package className="size-4.5 text-yellow-400" />
-                    <span>Handover Clothes to Store Staff 🧺</span>
+                    <span>Handover Clothes to Store Staff </span>
                   </button>
                 </>
               )}
@@ -3473,7 +3473,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
                 {/* Quick Feedback Chips */}
                 <div className="flex flex-wrap justify-center gap-1.5 pt-1">
-                  {["⏰ Timely", "😊 Polite", "🤝 Friendly", "Other"].map((tag) => {
+                  {["Timely", "Polite", "Professional", "Other"].map((tag) => {
                     const isSelected = selectedRatingTags.includes(tag);
                     return (
                       <button
@@ -3632,12 +3632,12 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   type="button"
                   onClick={() => {
                     setShowCallModal(false);
-                    toast.info("Connecting via QuickPress Privacy Call Bridge (Customer phone is shielded 🔒)");
+                    toast.info("Connecting via QuickPress Privacy Call Bridge (Customer phone is shielded )");
                     const phone = activeDestPhone || order.customerPhone;
                     if (phone && !phone.includes("••")) {
                       window.open(`tel:${phone.replace(/\s/g, "")}`);
                     } else {
-                      toast.success("Privacy Call: Patching through via virtual bridge 📞");
+                      toast.success("Privacy Call: Patching through via virtual bridge");
                     }
                   }}
                   className="flex-1 h-11 bg-[#00C853] hover:bg-[#00B248] text-white font-black text-xs rounded-xl shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
@@ -3916,9 +3916,9 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               onClick={() => {
                 triggerHaptic(30);
                 if (stage === "arrived_pickup") {
-                  toast.info("📍 Aap pickup location par hain. Customer se OTP lekar ride start karein.");
+                  toast.info("Aap pickup location par hain. Customer se OTP lekar ride start karein.");
                 } else if (dedicatedOtpMode === "delivery") {
-                  toast.info("📍 Aap delivery location par hain. OTP verify karke ride complete karein.");
+                  toast.info("Aap delivery location par hain. OTP verify karke ride complete karein.");
                 } else {
                   setShowDedicatedOtpScreen(false);
                 }
@@ -3965,7 +3965,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   <span className="text-[#FACC15] font-black">₹{safeFare.toFixed(2)}</span>
                 </div>
 
-                {/* 2. Customer Pill (Screenshot Reference: [Auto] 👤 Customer Name) */}
+                {/* 2. Customer Pill (Screenshot Reference: [Auto]  Customer Name) */}
                 <div className="flex justify-center">
                   <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-900 text-white rounded-full text-xs font-bold shadow-xs">
                     <span className="text-[#FACC15] font-black">[Auto]</span>
@@ -4237,7 +4237,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       {/* 6. Order Complete Rating Screen (Video Frame 01:19 - 01:32, Screenshots 11.06.20 (1) & (2)) */}
       {showOrderCompleteRatingScreen && (
         <div className="fixed inset-0 z-50 flex flex-col bg-slate-50 animate-in fade-in duration-200">
-          {/* Top Bar: Left "Order Complete", Right "[🎧 Help]" button */}
+          {/* Top Bar: Left "Order Complete", Right "[ Help]" button */}
           <div className="flex items-center justify-between p-4 bg-white border-b border-slate-200 shadow-2xs">
             <h2 className="text-base font-black text-slate-950">Order Complete</h2>
             <button
@@ -4314,7 +4314,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
                 {/* Quick Feedback Chips */}
                 <div className="flex flex-wrap justify-center gap-1.5 pt-1">
-                  {["⏰ Timely", "😊 Polite", "🤝 Friendly", "Other"].map((tag) => {
+                  {["Timely", "Polite", "Professional", "Other"].map((tag) => {
                     const isSelected = selectedRatingTags.includes(tag);
                     return (
                       <button

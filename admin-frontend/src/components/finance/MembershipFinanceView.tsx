@@ -312,7 +312,7 @@ export function MembershipFinanceView() {
                       <td className="py-3 px-4">
                         {m.is_expiring_soon ? (
                           <Badge className="bg-rose-100 text-rose-800 font-bold text-[10px] animate-pulse">
-                            🔴 {m.days_remaining} Days Left
+                            {m.days_remaining} Days Left
                           </Badge>
                         ) : (
                           <Badge className="bg-emerald-100 text-emerald-800 font-bold text-[10px]">

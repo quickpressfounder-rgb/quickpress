@@ -1,12 +1,15 @@
 import React, { useState } from "react";
 import {
+  Bike,
   CheckCircle2,
   ChevronRight,
+  CreditCard,
   Download,
   ExternalLink,
   Eye,
   FileCheck,
   FileText,
+  Landmark,
   Lock,
   QrCode,
   Shield,
@@ -94,7 +97,7 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
   const handleDownload = () => {
     triggerHaptic();
     toast.success(
-      `${activeDoc === "aadhaar" ? "Aadhaar Card" : activeDoc === "pan" ? "PAN Card" : activeDoc === "dl" ? "Driving License" : "RC Certificate"} copy downloaded! 📄`
+      `${activeDoc === "aadhaar" ? "Aadhaar Card" : activeDoc === "pan" ? "PAN Card" : activeDoc === "dl" ? "Driving License" : "RC Certificate"} copy downloaded! `
     );
   };
 
@@ -136,12 +139,13 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
         <div className="p-2.5 bg-zinc-100 border-b border-zinc-200 shrink-0">
           <div className="grid grid-cols-4 gap-1">
             {[
-              { id: "aadhaar" as const, label: "Aadhaar", icon: "🪪" },
-              { id: "pan" as const, label: "PAN", icon: "💳" },
-              { id: "dl" as const, label: "DL", icon: "🛵" },
-              { id: "rc" as const, label: "RC", icon: "📄" },
+              { id: "aadhaar" as const, label: "Aadhaar", icon: FileText },
+              { id: "pan" as const, label: "PAN", icon: CreditCard },
+              { id: "dl" as const, label: "DL", icon: Bike },
+              { id: "rc" as const, label: "RC", icon: FileText },
             ].map((tab) => {
               const active = activeDoc === tab.id;
+              const TabIcon = tab.icon;
               return (
                 <button
                   key={tab.id}
@@ -157,7 +161,7 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
                       : "text-zinc-600 hover:text-zinc-900 hover:bg-white/50"
                   }`}
                 >
-                  <span className="text-xs">{tab.icon}</span>
+                  <TabIcon className="w-3.5 h-3.5 shrink-0" />
                   <span className="truncate">{tab.label}</span>
                 </button>
               );
@@ -421,7 +425,7 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
                   <div className="p-3 bg-gradient-to-r from-sky-700 to-blue-800 text-white flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="size-6 rounded-full bg-amber-400 text-zinc-950 font-black text-[10px] flex items-center justify-center">
-                        🏛️
+                        <Landmark className="w-3.5 h-3.5 text-zinc-950" />
                       </div>
                       <div className="leading-tight">
                         <p className="text-[10px] font-black">आयकर विभाग / INCOME TAX DEPARTMENT</p>

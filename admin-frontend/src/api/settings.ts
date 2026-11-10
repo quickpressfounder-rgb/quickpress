@@ -152,6 +152,11 @@ export type CompanyLegalSettings = {
   gstCertDocUrl?: string;
   panCardDocUrl?: string;
   msmeDocUrl?: string;
+  riderAgreement?: string;
+  partnerAgreement?: string;
+  termsAndConditions?: string;
+  privacyPolicy?: string;
+  refundPolicy?: string;
 };
 
 export type AdminSettings = {
@@ -205,34 +210,39 @@ const DEFAULTS: AdminSettings = {
   company: {
     brandName: "QuickPress",
     tagline: "Hyperlocal On-Demand Laundry & Garment Care Platform",
-    legalName: "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
-    cin: "U74999UP2024PTC198141",
-    pan: "AADCB1234K",
-    gstin: "09AADCB1234K1Z8",
-    registeredAddress: "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India",
-    operatingAddress: "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India",
+    legalName: "",
+    cin: "",
+    pan: "",
+    gstin: "",
+    registeredAddress: "",
+    operatingAddress: "",
     supportEmail: "official.quickpress@gmail.com",
-    corporateEmail: "info@withquickpress.com",
-    legalEmail: "legal@withquickpress.com",
-    supportPhone: "+91 90000 00000",
-    tollFreePhone: "1800 012 3456",
-    grievanceOfficerName: "Himanshu Pal",
-    grievanceOfficerPhone: "+91 90000 00000",
-    authorizedSignatoryName: "Himanshu Pal",
-    authorizedSignatoryDesignation: "Director & Authorized Signatory",
+    corporateEmail: "",
+    legalEmail: "",
+    supportPhone: "",
+    tollFreePhone: "",
+    grievanceOfficerName: "",
+    grievanceOfficerPhone: "",
+    authorizedSignatoryName: "",
+    authorizedSignatoryDesignation: "",
     digitalSignatureUrl: "",
     companySealUrl: "",
     state: "Uttar Pradesh",
     stateCode: "09",
-    websiteUrl: "https://withquickpress.com",
-    privacyPolicyUrl: "https://withquickpress.com/#privacy",
-    termsUrl: "https://withquickpress.com/#terms",
-    grievanceUrl: "https://withquickpress.com/#contact",
-    refundPolicyUrl: "https://withquickpress.com/#refund",
+    websiteUrl: "",
+    privacyPolicyUrl: "",
+    termsUrl: "",
+    grievanceUrl: "",
+    refundPolicyUrl: "",
     coiDocUrl: "",
     gstCertDocUrl: "",
     panCardDocUrl: "",
     msmeDocUrl: "",
+    riderAgreement: "",
+    partnerAgreement: "",
+    termsAndConditions: "",
+    privacyPolicy: "",
+    refundPolicy: "",
   },
   platform: {
     platformName: "QuickPress",

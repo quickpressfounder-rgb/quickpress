@@ -146,7 +146,7 @@ let activeStatusNotification: Notification | null = null;
 
 /**
  * Synchronizes store online/offline status with native Android notification tray
- * and Web Notifications (Exact Zomato Style: "🔴 Your store is temporarily offline").
+ * and Web Notifications (Exact Zomato Style: "Your store is temporarily offline").
  */
 export function syncStoreStatusNotification(isOnline: boolean) {
   if (typeof window === "undefined") return;
@@ -156,7 +156,7 @@ export function syncStoreStatusNotification(isOnline: boolean) {
     try {
       if (!isOnline) {
         (window as any).QuickPressNativeBridge.postStoreStatusNotification(
-          "🔴 Your store is temporarily offline",
+          "Your store is temporarily offline",
           "Go online now to receive orders",
           true
         );
@@ -178,7 +178,7 @@ export function syncStoreStatusNotification(isOnline: boolean) {
               activeStatusNotification.close();
             } catch {}
           }
-          activeStatusNotification = new Notification("🔴 Your store is temporarily offline", {
+          activeStatusNotification = new Notification("Your store is temporarily offline", {
             body: "Go online now to receive orders",
             icon: "/app-icon.png",
             tag: "qp-store-offline-status",
@@ -230,7 +230,7 @@ function triggerDesktopNotification(
       const code = orderCode || "NEW";
       const amtText = amount ? ` · ₹${amount}` : "";
       const custText = customerName ? ` from ${customerName}` : "";
-      const title = `🚨 NEW ORDER #${code}${amtText}`;
+      const title = `NEW ORDER #${code}${amtText}`;
       const options: NotificationOptions = {
         body: `Tap to accept incoming order${custText} within 5 minutes.`,
         icon: "/app-icon.png",

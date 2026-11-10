@@ -213,14 +213,14 @@ export const CaptainSurgeAreaModal: React.FC<CaptainSurgeAreaModalProps> = ({
             <div className="flex items-center gap-2.5 p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-900 text-xs font-bold shrink-0">
               <Sparkles className="size-4 shrink-0 text-emerald-600 stroke-[2.4]" />
               <span>
-                🔥 You are inside <strong>{surgeData.currentZone?.name}</strong>! Earning +₹{surgeData.activeSurgeBonus} extra per delivery!
+                You are inside <strong>{surgeData.currentZone?.name}</strong>! Earning +₹{surgeData.activeSurgeBonus} extra per delivery!
               </span>
             </div>
           ) : (
             <div className="flex items-center gap-2.5 p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-amber-950 text-xs font-bold shrink-0">
               <Zap className="size-4 shrink-0 text-amber-600 fill-amber-500" />
               <span>
-                ⚡ Nearest: <strong>{surgeData?.nearestZone?.name || "Kasganj Hub"}</strong> (+₹{surgeData?.nearestZone?.bonus || 20}) is {surgeData?.nearestZone?.distanceKm || 1.2} km away.
+                Nearest: <strong>{surgeData?.nearestZone?.name || "Kasganj Hub"}</strong> (+₹{surgeData?.nearestZone?.bonus || 20}) is {surgeData?.nearestZone?.distanceKm || 1.2} km away.
               </span>
             </div>
           )

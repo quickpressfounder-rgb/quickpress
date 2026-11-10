@@ -431,7 +431,7 @@ function PartnerDetailScreen() {
     try {
       const res = await toggleFavouritePartner(partnerId);
       setFavorite(res.isFavourite);
-      toast.success(res.isFavourite ? "Added store to favourites ❤️" : "Removed store from favourites");
+      toast.success(res.isFavourite ? "Added store to favourites" : "Removed store from favourites");
     } catch {
       setFavorite(!next);
       toast.error("Couldn't update favourite store");

@@ -313,7 +313,7 @@ export async function triggerMobileOsNotification(
 }
 
 export async function sendTestNotification(
-  title = "QuickPress Laundry Notifications Active 🎉",
+  title = "QuickPress Laundry Notifications Active ",
   body = "You will now get live pickup, wash, and delivery updates right in your mobile notifications."
 ): Promise<boolean> {
   return triggerMobileOsNotification({

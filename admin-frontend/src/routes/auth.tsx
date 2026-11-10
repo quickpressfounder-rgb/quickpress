@@ -410,7 +410,7 @@ export function AdminAuthPage() {
                   }}
                   className="font-bold text-emerald-700 hover:underline cursor-pointer text-[11px]"
                 >
-                  ⚡ Fill Super Admin
+                  Fill Super Admin
                 </button>
               </div>
 
@@ -516,7 +516,7 @@ export function AdminAuthPage() {
 
         {/* Security Footer Notice */}
         <p className="mt-5 text-center text-xs text-slate-400">
-          🔒 Protected by 256-bit AES encryption & 2FA security. Unregistered staff emails will be denied access.
+          Protected by 256-bit AES encryption & 2FA security. Unregistered staff emails will be denied access.
         </p>
       </div>
     </div>

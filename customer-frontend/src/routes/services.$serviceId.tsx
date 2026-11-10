@@ -202,7 +202,7 @@ function ServiceListingScreen() {
     try {
       const res = await toggleSavedService(serviceId);
       setSaved(res.isSaved);
-      toast.success(res.isSaved ? "Saved to favourite services ❤️" : "Removed from saved services");
+      toast.success(res.isSaved ? "Saved to favourite services" : "Removed from saved services");
     } catch {
       setSaved(!next);
       toast.error("Couldn't update saved service");

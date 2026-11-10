@@ -144,7 +144,7 @@ export function RiderMenuScreen() {
       playOrderAlertSound();
       startBackgroundOrderRing("TEST-001", "₹75", "Kasganj Customer", "Kasganj Market Hub");
       setIsTestingSound(true);
-      toast.success("⚡ Playing High-Priority Order Alarm Ringtone & Vibration", {
+      toast.success("Playing High-Priority Order Alarm Ringtone & Vibration", {
         description: "Checking emergency sound channels & lockscreen alert",
       });
     }
@@ -199,7 +199,7 @@ export function RiderMenuScreen() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* 🎧 Help Button Pill (Exact match to screenshot) */}
+            {/*  Help Button Pill (Exact match to screenshot) */}
             <button
               type="button"
               onClick={() => {
@@ -212,7 +212,7 @@ export function RiderMenuScreen() {
               <span>Help</span>
             </button>
 
-            {/* 🔄 Circular Refresh Button */}
+            {/*  Circular Refresh Button */}
             <button
               type="button"
               onClick={loadData}

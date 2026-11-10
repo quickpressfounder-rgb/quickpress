@@ -135,7 +135,7 @@ export const DEFAULT_FINANCIAL_RULES: FinancialRules = {
     laundryGstRate: 0.05,
     platformGstRate: 0.18,
     deliveryGstRate: 0.18,
-    quickpressGstin: "09AADCB1234K1Z8",
+    quickpressGstin: "",
     tcsRate: 0.01,
     tdsRate: 0.01,
   },

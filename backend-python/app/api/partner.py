@@ -2859,7 +2859,7 @@ async def get_gst_report(
         "period": period_str,
         "partnerId": partner_id,
         "storeName": profile.get("businessName") or "QuickPress Partner Store",
-        "gstin": profile.get("gstin") or "09AADCB1234K1Z8",
+        "gstin": profile.get("gstin") or "—",
         "sacCode": "999799",
         "orderCount": order_count,
         "deliveredCount": delivered_count,

@@ -137,7 +137,7 @@ export async function setupForegroundMessageListener(
       const notification = payload.notification || {};
       const data = (payload.data || {}) as Record<string, string | undefined>;
 
-      const title = notification.title || data["title"] || "🔔 QuickPress Update";
+      const title = notification.title || data["title"] || "QuickPress Update";
       const body = notification.body || data["body"] || data["message"] || "You have a new update.";
       const clickUrl = data["url"] || (data["orderId"] ? `/track/${data["orderId"]}` : "/notifications");
 

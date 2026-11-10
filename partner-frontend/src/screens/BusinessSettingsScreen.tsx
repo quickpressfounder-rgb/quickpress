@@ -551,7 +551,7 @@ export function BusinessSettingsScreen() {
                       type="button"
                       className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-black transition-all"
                     >
-                      Play Chime 🔊
+                      Play Chime
                     </button>
                   </div>
 
@@ -1035,7 +1035,7 @@ export function BusinessSettingsScreen() {
                       type="button"
                       className="px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-black transition-all cursor-pointer shadow-2xs"
                     >
-                      Play Chime 🔊
+                      Play Chime
                     </button>
                   </div>
                 </div>
@@ -1238,7 +1238,7 @@ export function BusinessSettingsScreen() {
 
             {/* Statutory Compliance Notice */}
             <div className="p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200 text-[11px] text-zinc-600 leading-relaxed">
-              ⚠️ <strong>Mandatory Security Verification:</strong> Under QuickPress Partner Guidelines, account closure requires verifying your registered <strong>Business PAN Card</strong> and <strong>Owner Date of Birth (DOB)</strong> against database records. All active/pending orders must be delivered or settled first.
+              <strong>Mandatory Security Verification:</strong> Under QuickPress Partner Guidelines, account closure requires verifying your registered <strong>Business PAN Card</strong> and <strong>Owner Date of Birth (DOB)</strong> against database records. All active/pending orders must be delivered or settled first.
             </div>
 
             {/* Error Banner */}

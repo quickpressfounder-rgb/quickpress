@@ -54,7 +54,7 @@ export const CaptainTripDetailView: React.FC<CaptainTripDetailViewProps> = ({
     try {
       navigator.clipboard.writeText(text);
       triggerHaptic(30);
-      toast.success(`${label} copied to clipboard! 📋`);
+      toast.success(`${label} copied to clipboard!`);
     } catch {}
   };
 
@@ -83,14 +83,14 @@ export const CaptainTripDetailView: React.FC<CaptainTripDetailViewProps> = ({
       if (res.ok) {
         setHasReviewed(true);
         triggerHaptic([40, 80, 120]);
-        toast.success("Trip review submitted successfully! ⭐⭐⭐⭐⭐");
+        toast.success("Trip review submitted successfully!");
       } else {
         toast.error("Could not submit review. Please try again.");
       }
     } catch {
       setHasReviewed(true);
       triggerHaptic([40, 80, 120]);
-      toast.success("Trip review saved successfully! ⭐");
+      toast.success("Trip review saved successfully!");
     } finally {
       setIsSubmittingReview(false);
     }
@@ -129,12 +129,12 @@ export const CaptainTripDetailView: React.FC<CaptainTripDetailViewProps> = ({
   };
 
   const customerQuickTags = [
-    "Polite Customer 😊",
-    "Fast Gate Entry 🚪",
-    "Accurate Map Pin 📍",
-    "Gave Cash Tip 💰",
-    "Safe Dropoff Area 🛡️",
-    "Delayed Response ⏳",
+    "Polite Customer",
+    "Fast Gate Entry",
+    "Accurate Map Pin",
+    "Gave Cash Tip",
+    "Safe Dropoff Area",
+    "Delayed Response",
   ];
 
   // Real or safely masked contact details
@@ -239,7 +239,7 @@ export const CaptainTripDetailView: React.FC<CaptainTripDetailViewProps> = ({
           <div className="p-2.5 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="size-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                ⚡
+               
               </div>
               <div>
                 <p className="text-xs font-black text-emerald-950">
@@ -535,7 +535,7 @@ export const CaptainTripDetailView: React.FC<CaptainTripDetailViewProps> = ({
               )}
               {Number(trip.tipAmount || 0) > 0 && (
                 <div className="flex justify-between text-emerald-700 font-bold">
-                  <span>Customer Tip 💖</span>
+                  <span>Customer Tip</span>
                   <span className="font-black">+₹{Number(trip.tipAmount).toFixed(2)}</span>
                 </div>
               )}
@@ -638,7 +638,7 @@ export const CaptainTripDetailView: React.FC<CaptainTripDetailViewProps> = ({
                     Rate Customer ({trip.customerName || "Customer"})
                   </span>
                   <span className="text-xs font-black text-amber-600">
-                    {customerRating}.0 ★
+                    {customerRating}.0 
                   </span>
                 </div>
                 <div className="flex items-center gap-2 pt-0.5">
@@ -671,7 +671,7 @@ export const CaptainTripDetailView: React.FC<CaptainTripDetailViewProps> = ({
                     Rate Store ({trip.storeName || trip.partnerName || "Partner Store"})
                   </span>
                   <span className="text-xs font-black text-amber-600">
-                    {storeRating}.0 ★
+                    {storeRating}.0 
                   </span>
                 </div>
                 <div className="flex items-center gap-2 pt-0.5">

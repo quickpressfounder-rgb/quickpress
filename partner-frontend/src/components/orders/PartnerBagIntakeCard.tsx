@@ -122,7 +122,7 @@ export function PartnerBagIntakeCard({ order, onIntakeVerified }: PartnerBagInta
               Bag Seal Tag
             </span>
             <span className="font-mono font-black text-zinc-900 text-xs">
-              🏷️ {partnerIntake?.bagTagReceived || order.bagTag || "QP-BAG-OK"}
+              {partnerIntake?.bagTagReceived || order.bagTag || "QP-BAG-OK"}
             </span>
           </div>
 
@@ -191,7 +191,7 @@ export function PartnerBagIntakeCard({ order, onIntakeVerified }: PartnerBagInta
         <div className="flex items-center justify-between text-xs">
           <span className="text-zinc-500 font-medium">Doorstep Bag Seal:</span>
           <span className="font-mono font-black text-zinc-950 px-2 py-0.5 bg-white border border-zinc-200 rounded-md">
-            {doorstepTag ? `🏷️ ${doorstepTag}` : "Untagged Bag"}
+            {doorstepTag ? `${doorstepTag}` : "Untagged Bag"}
           </span>
         </div>
         <div className="flex items-center justify-between text-xs">

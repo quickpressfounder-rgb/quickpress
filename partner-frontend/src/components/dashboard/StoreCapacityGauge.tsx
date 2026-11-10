@@ -28,11 +28,11 @@ export function StoreCapacityGauge({ orders, maxCapacity = 50 }: StoreCapacityGa
     setBusyMode(next);
     localStorage.setItem("qp_partner_busy_mode", String(next));
     if (next) {
-      toast.warning("⚡ Store High Surge / Busy Mode Enabled", {
+      toast.warning("Store High Surge / Busy Mode Enabled", {
         description: "Customer app indicates longer turnaround ETA to balance workload.",
       });
     } else {
-      toast.success("✅ Standard Capacity Restored", {
+      toast.success("Standard Capacity Restored", {
         description: "Normal delivery turnaround and auto-acceptance limits restored.",
       });
     }
@@ -69,7 +69,7 @@ export function StoreCapacityGauge({ orders, maxCapacity = 50 }: StoreCapacityGa
                     : "bg-emerald-50 border-emerald-200 text-emerald-700"
                 }`}
               >
-                {busyMode ? "⚡ Busy Surge" : isHighLoad ? "Near Max" : "Optimal Load"}
+                {busyMode ? "Busy Surge" : isHighLoad ? "Near Max" : "Optimal Load"}
               </span>
             </div>
 

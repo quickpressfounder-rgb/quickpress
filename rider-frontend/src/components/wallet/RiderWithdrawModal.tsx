@@ -9,6 +9,7 @@ import {
   X,
   Lock,
   AlertCircle,
+  Landmark,
 } from "lucide-react";
 import { toast } from "sonner";
 import { withdrawRiderEarnings } from "../../api/rider/rider-wallet-api";
@@ -84,7 +85,7 @@ export const RiderWithdrawModal: React.FC<RiderWithdrawModalProps> = ({
         triggerHaptic([40, 80, 120]);
         playSuccessChime();
         toast.success(
-          res.message || `Withdrawal request for ₹${amount} to ${registeredBankName} submitted! 💸`
+          res.message || `Withdrawal request for ₹${amount} to ${registeredBankName} submitted!`
         );
         onSuccess();
         onClose();
@@ -214,8 +215,8 @@ export const RiderWithdrawModal: React.FC<RiderWithdrawModalProps> = ({
             <div className="p-4 rounded-2xl border border-zinc-200/90 bg-gradient-to-br from-white to-zinc-50/60 shadow-2xs space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="size-9 rounded-xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center font-black text-xs border border-emerald-500/20">
-                    🏦
+                  <div className="size-9 rounded-xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center border border-emerald-500/20">
+                    <Landmark className="size-4 text-emerald-700" />
                   </div>
                   <div>
                     <h4 className="text-xs font-black text-zinc-900">{registeredBankName}</h4>

@@ -155,7 +155,7 @@ export function ZomatoPaymentSheet({
       });
 
       if (outcome.status === "success") {
-        toast.success("Payment Successful! 💳 Placing your order...");
+        toast.success("Payment Successful! Placing your order...");
         await onPaymentSuccess(preferredMethod, outcome.paymentId);
         onClose();
       } else if (outcome.status === "user_dropped") {

@@ -330,12 +330,12 @@ export function BlinkitPaymentDrawer({
     upiAppPackage?: string,
     wallet?: string
   ) => {
-    // 🛑 Synchronous Mutex Lock: Prevent double click gateway triggers
+    // Synchronous Mutex Lock: Prevent double click gateway triggers
     if (isProcessingRef.current || busyMethod) return;
     isProcessingRef.current = true;
 
     if (grandTotal <= 0) {
-      toast.success("100% Promo discount applied! Placing your free order... 🎉");
+      toast.success("100% Promo discount applied! Placing your free order...");
       await onPaymentSuccess("free_promo", `promo_free_${Date.now()}`);
       onClose();
       isProcessingRef.current = false;
@@ -362,7 +362,7 @@ export function BlinkitPaymentDrawer({
       });
 
       if (outcome.status === "success") {
-        toast.success(`Payment via ${methodLabel} Confirmed! 🎉`);
+        toast.success(`Payment via ${methodLabel} Confirmed!`);
         await onPaymentSuccess(preferredMethod, outcome.paymentId);
         onClose();
       } else if (outcome.status === "user_dropped") {
@@ -586,7 +586,7 @@ export function BlinkitPaymentDrawer({
     if (busyMethod) return;
 
     if (grandTotal <= 0) {
-      toast.success("100% Promo discount applied! Placing your free order... 🎉");
+      toast.success("100% Promo discount applied! Placing your free order...");
       await onPaymentSuccess("free_promo", `promo_free_${Date.now()}`);
       onClose();
       return;
@@ -635,7 +635,7 @@ export function BlinkitPaymentDrawer({
     isProcessingRef.current = true;
 
     if (grandTotal <= 0) {
-      toast.success("100% Promo discount applied! Placing your free order... 🎉");
+      toast.success("100% Promo discount applied! Placing your free order...");
       await onPaymentSuccess("free_promo", `promo_free_${Date.now()}`);
       onClose();
       isProcessingRef.current = false;
@@ -1137,7 +1137,7 @@ export function BlinkitPaymentDrawer({
               {/* FREE PROMO BANNER IF ₹0 */}
               {grandTotal <= 0 && (
                 <div className="rounded-2xl bg-[#0c831f] text-white p-4 shadow-sm text-center space-y-2">
-                  <p className="text-sm font-black">🎉 100% Discount Applied — Order is FREE!</p>
+                  <p className="text-sm font-black">100% Discount Applied — Order is FREE!</p>
                   <p className="text-xs text-emerald-100">No payment is required to place this order.</p>
                   <button
                     type="button"
@@ -1243,7 +1243,7 @@ export function BlinkitPaymentDrawer({
                         <span>Saved Payment Methods</span>
                       </h3>
                       <span className="bg-emerald-100 text-emerald-800 text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                        <span>⚡ 1-CLICK CHECKOUT</span>
+                        <span>1-CLICK CHECKOUT</span>
                       </span>
                     </div>
                   </div>

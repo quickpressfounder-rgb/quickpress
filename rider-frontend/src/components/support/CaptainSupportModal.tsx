@@ -98,7 +98,7 @@ export const CaptainSupportModal: React.FC<CaptainSupportModalProps> = ({ isOpen
         >
           <div className="flex items-center gap-2.5">
             <div className="size-8 rounded-xl bg-[#FFC700] text-zinc-950 flex items-center justify-center font-black text-sm">
-              💬
+              
             </div>
             <div className="text-left">
               <p className="text-xs font-black">Open Full Help & Ticket Desk</p>

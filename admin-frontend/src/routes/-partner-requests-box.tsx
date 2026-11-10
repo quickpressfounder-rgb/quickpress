@@ -204,7 +204,7 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
   const approveMutation = useMutation({
     mutationFn: (requestId: string) => approvePartnerRequest(requestId),
     onSuccess: (_, requestId) => {
-      toast.success("Request Approved! Live partner profile & records updated successfully. ✅");
+      toast.success("Request Approved! Live partner profile & records updated successfully.");
       queryClient.invalidateQueries({ queryKey: ["admin", "partner-approvals"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "partners"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "partners", "360"] });
@@ -220,7 +220,7 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
     mutationFn: ({ requestId, reason }: { requestId: string; reason: string }) =>
       rejectPartnerRequest(requestId, reason),
     onSuccess: () => {
-      toast.success("Request rejected. Feedback dispatched to partner client. ❌");
+      toast.success("Request rejected. Feedback dispatched to partner client.");
       setRejectingRequest(null);
       setRejectReason("");
       setSelectedQuickReason(null);
@@ -417,11 +417,11 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
             {[
               { id: "all", label: "All Types" },
-              { id: "bank", label: "🏦 Bank & Payouts" },
-              { id: "kyc", label: "📋 Full KYC" },
-              { id: "pan", label: "💳 PAN Card" },
-              { id: "profile", label: "🏪 Store Profile" },
-              { id: "service", label: "🧺 Services" },
+              { id: "bank", label: "Bank & Payouts" },
+              { id: "kyc", label: "Full KYC" },
+              { id: "pan", label: "PAN Card" },
+              { id: "profile", label: "Store Profile" },
+              { id: "service", label: "Services" },
             ].map((t) => (
               <button
                 key={t.id}
@@ -442,10 +442,10 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
         <div className="flex items-center gap-2 pt-2 border-t border-zinc-100">
           <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Status:</span>
           {[
-            { id: "pending", label: "⏳ Pending Review", count: metrics.pending },
+            { id: "pending", label: "Pending Review", count: metrics.pending },
             { id: "all", label: "All Requests", count: metrics.total },
-            { id: "approved", label: "✅ Approved", count: metrics.approved },
-            { id: "rejected", label: "❌ Rejected", count: metrics.rejected },
+            { id: "approved", label: "Approved", count: metrics.approved },
+            { id: "rejected", label: "Rejected", count: metrics.rejected },
           ].map((s) => (
             <button
               key={s.id}

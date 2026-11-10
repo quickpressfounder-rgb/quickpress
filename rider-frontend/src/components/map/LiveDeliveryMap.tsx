@@ -281,7 +281,7 @@ export function LiveDeliveryMap({
               zIndexOffset: 1000,
             }).addTo(map);
             markersRef.current["rider"].bindPopup(
-              `<b>${riderLocation.label || "QuickPress Captain"}</b><br/>Live GPS Telemetry Active 🟢`
+              `<b>${riderLocation.label || "QuickPress Captain"}</b><br/>Live GPS Telemetry Active`
             );
           }
         }
@@ -295,7 +295,7 @@ export function LiveDeliveryMap({
             html: `
               <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px;">
                 <div style="position: relative; display: flex; width: 34px; height: 34px; align-items: center; justify-content: center; border-radius: 9999px; background-color: #d97706; color: white; box-shadow: 0 4px 10px rgba(217, 119, 6, 0.4); border: 2.5px solid white; font-size: 16px;">
-                  🏠
+                 
                 </div>
               </div>
             `,
@@ -324,7 +324,7 @@ export function LiveDeliveryMap({
             html: `
               <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px;">
                 <div style="position: relative; display: flex; width: 34px; height: 34px; align-items: center; justify-content: center; border-radius: 9999px; background-color: #2563eb; color: white; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4); border: 2.5px solid white; font-size: 16px;">
-                  🧺
+                 
                 </div>
               </div>
             `,
@@ -408,14 +408,14 @@ export function LiveDeliveryMap({
                 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 190px; padding: 2px;">
                   <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom: 4px;">
                     <strong style="font-size:12px; color:#09090b;">${surge.name}</strong>
-                    <span style="background:${circleColor}; color:#ffffff; font-size:9px; font-weight:800; padding:1px 6px; border-radius:9999px;">${surge.demandLevel || "HOT 🔥"}</span>
+                    <span style="background:${circleColor}; color:#ffffff; font-size:9px; font-weight:800; padding:1px 6px; border-radius:9999px;">${surge.demandLevel || "HOT "}</span>
                   </div>
                   <div style="font-size:11px; color:#00873D; font-weight:700; margin-bottom:4px;">
                     ${surge.multiplier} Surge Active · +₹${surge.bonus} Extra per Ride
                   </div>
                   <div style="font-size:10px; color:#71717a; border-top:1px solid #f4f4f5; padding-top:4px; display:flex; justify-content:space-between;">
-                    <span>${surge.ordersWaiting !== undefined ? `📦 ${surge.ordersWaiting} Orders` : "High Orders"}</span>
-                    <span>${surge.distanceKm !== undefined ? `📍 ${surge.distanceKm} km away` : ""}</span>
+                    <span>${surge.ordersWaiting !== undefined ? `${surge.ordersWaiting} Orders` : "High Orders"}</span>
+                    <span>${surge.distanceKm !== undefined ? `${surge.distanceKm} km away` : ""}</span>
                   </div>
                 </div>
               `);
@@ -631,7 +631,7 @@ export function LiveDeliveryMap({
             title="Open Turn-by-Turn Road Navigation in Google Maps"
           >
             <ExternalLink className="size-4 text-blue-600" />
-            <span>Google Maps 🗺️</span>
+            <span>Google Maps</span>
           </button>
         ) : null}
 
@@ -643,7 +643,7 @@ export function LiveDeliveryMap({
             title="Start In-App Voice Turn-by-Turn GPS Navigation"
           >
             <Navigation className="size-4 fill-white stroke-none" />
-            <span>Turn-by-Turn GPS 🧭</span>
+            <span>Turn-by-Turn GPS</span>
           </button>
         ) : null}
       </div>

@@ -261,7 +261,7 @@ export const DEFAULT_FINANCIAL_RULES: any = {
     igstPercent: "5.0",
     tcsPercent: "1",
     tdsPercent: "1",
-    quickpressGstin: "09AADCB1234K1Z8",
+    quickpressGstin: "",
     defaultState: "Uttar Pradesh",
     categoryTaxOverrides: [
       { id: "tax-dryclean", category: "Dry Cleaning", gstRatePercent: "12", active: true },
@@ -369,16 +369,16 @@ export const DEFAULT_FINANCIAL_RULES: any = {
   },
   incentives: {
     candyCrushLevels: [
-      { level: 1, title: "Rookie Kickoff", target: "1", reward: "25", badge: "🍬", flavor: "Strawberry Jelly" },
-      { level: 2, title: "Sugar Street Cruiser", target: "3", reward: "60", badge: "🍭", flavor: "Citrus Swirl" },
-      { level: 3, title: "Speedster Star", target: "5", reward: "120", badge: "⭐", flavor: "Golden Honey" },
-      { level: 4, title: "Rush Hour Hero", target: "7", reward: "180", badge: "⚡", flavor: "Mint Sparkle" },
-      { level: 5, title: "Super Captain", target: "10", reward: "280", badge: "🚀", flavor: "Blueberry Blast" },
-      { level: 6, title: "Thunder Rider", target: "12", reward: "360", badge: "🔥", flavor: "Grape Punch" },
-      { level: 7, title: "Fleet Master", target: "15", reward: "480", badge: "💎", flavor: "Cotton Candy" },
-      { level: 8, title: "Grand Champion", target: "18", reward: "620", badge: "🏆", flavor: "Cherry Pop" },
-      { level: 9, title: "Legendary Streak", target: "22", reward: "820", badge: "👑", flavor: "Royal Velvet" },
-      { level: 10, title: "Kasganj Supreme King", target: "25", reward: "1100", badge: "✨", flavor: "Golden Jackpot" },
+      { level: 1, title: "Rookie Kickoff", target: "1", reward: "25", badge: "Tier 1", flavor: "Starter Tier" },
+      { level: 2, title: "Street Cruiser", target: "3", reward: "60", badge: "Tier 2", flavor: "Bronze Tier" },
+      { level: 3, title: "Speedster Star", target: "5", reward: "120", badge: "Tier 3", flavor: "Silver Tier" },
+      { level: 4, title: "Rush Hour Hero", target: "7", reward: "180", badge: "Tier 4", flavor: "Gold Tier" },
+      { level: 5, title: "Super Captain", target: "10", reward: "280", badge: "Tier 5", flavor: "Platinum Tier" },
+      { level: 6, title: "Thunder Rider", target: "12", reward: "360", badge: "Tier 6", flavor: "Diamond Tier" },
+      { level: 7, title: "Fleet Master", target: "15", reward: "480", badge: "Tier 7", flavor: "Master Tier" },
+      { level: 8, title: "Grand Champion", target: "18", reward: "620", badge: "Tier 8", flavor: "Champion Tier" },
+      { level: 9, title: "Legendary Streak", target: "22", reward: "820", badge: "Tier 9", flavor: "Legend Tier" },
+      { level: 10, title: "Platform Elite", target: "25", reward: "1100", badge: "Tier 10", flavor: "Apex Tier" },
     ],
     riderDaily: [
       { trips: "5", reward: "100" },
@@ -509,7 +509,7 @@ function mapServerRulesToForm(data: FinancialRules): any {
       igstPercent: String(Math.round((data.gst?.igstRate ?? 0.05) * 10000) / 100),
       tcsPercent: String(Math.round((data.gst?.tcsRate ?? 0.01) * 10000) / 100),
       tdsPercent: String(Math.round((data.gst?.tdsRate ?? 0.01) * 10000) / 100),
-      quickpressGstin: String(data.gst?.quickpressGstin ?? "09AADCB1234K1Z8"),
+      quickpressGstin: String(data.gst?.quickpressGstin ?? ""),
       defaultState: String(data.gst?.defaultState ?? "Uttar Pradesh"),
       categoryTaxOverrides: (data.gst?.categoryTaxOverrides || DEFAULT_FINANCIAL_RULES.gst.categoryTaxOverrides).map((t: any) => ({
         id: String(t.id ?? ""),
@@ -626,7 +626,7 @@ function mapServerRulesToForm(data: FinancialRules): any {
         title: String(l.title ?? `Level ${idx + 1}`),
         target: String(l.target ?? (idx + 1) * 2),
         reward: String(l.reward ?? (idx + 1) * 30),
-        badge: String(l.badge ?? "🍬"),
+        badge: String(l.badge ?? "Tier"),
         flavor: String(l.flavor ?? ""),
         description: String(l.description ?? ""),
       })),
@@ -871,7 +871,7 @@ function prepareRulesForSave(raw: any): FinancialRules {
         title: String(l.title || `Level ${idx + 1}`),
         target: Number(l.target) || 1,
         reward: Number(l.reward) || 0,
-        badge: String(l.badge || "🍬"),
+        badge: String(l.badge || "Tier"),
         flavor: String(l.flavor || ""),
         description: String(l.description || ""),
       })),
@@ -1092,7 +1092,7 @@ export function FinanceEnginePage() {
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ["finance", "loyalty"] });
       setLoyaltyForm(updated);
-      toast.success("Loyalty campaign rules & budget successfully updated! 🎉");
+      toast.success("Loyalty campaign rules & budget successfully updated! ");
     },
     onError: (err: any) => {
       toast.error(err?.message || "Failed to update loyalty campaign configuration");
@@ -1141,7 +1141,7 @@ export function FinanceEnginePage() {
   const updateFareEngineMutation = useMutation({
     mutationFn: updateFareEngineConfig,
     onSuccess: (data) => {
-      toast.success("⚡ Master Distance Rate & Dynamic Fare Engine updated successfully!");
+      toast.success("Master Distance Rate & Dynamic Fare Engine updated successfully!");
       setFareEngineForm(data);
       queryClient.setQueryData(["finance", "fareEngineConfig"], data);
     },
@@ -1399,7 +1399,7 @@ export function FinanceEnginePage() {
       setIsSaveModalOpen(false);
       setSaveReason("");
       setIsDirty(false);
-      toast.success("Financial rules updated & live across full project! 🚀");
+      toast.success("Financial rules updated & live across full project!");
     },
     onError: (err: any) => {
       toast.error(err?.message || "Failed to update rules");
@@ -1411,7 +1411,7 @@ export function FinanceEnginePage() {
     mutationFn: async () => await generateSettlementBatch(),
     onSuccess: (batch) => {
       queryClient.invalidateQueries({ queryKey: ["finance", "settlements"] });
-      toast.success(`Settlement Batch ${batch.cycleId} generated! 💰`);
+      toast.success(`Settlement Batch ${batch.cycleId} generated!`);
     },
     onError: (err: any) => {
       toast.error(err?.message || "Failed to generate settlement batch");
@@ -1422,7 +1422,7 @@ export function FinanceEnginePage() {
     mutationFn: async (batchId: string) => await approveSettlementBatch(batchId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["finance", "settlements"] });
-      toast.success("Settlement batch approved for disbursement! ✅");
+      toast.success("Settlement batch approved for disbursement!");
     },
   });
 
@@ -1431,7 +1431,7 @@ export function FinanceEnginePage() {
       await payoutSettlementBatch(batchId, payoutRef),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["finance", "settlements"] });
-      toast.success("Settlement batch marked as PAID! 💸");
+      toast.success("Settlement batch marked as PAID! ");
     },
   });
 
@@ -2634,7 +2634,7 @@ export function FinanceEnginePage() {
                             }`}
                           >
                             <Moon className="size-3.5" />
-                            <span>{simIsNight ? "🌙 Night (23:30)" : "☀️ Day (14:00)"}</span>
+                            <span>{simIsNight ? "Night (23:30)" : "Day (14:00)"}</span>
                           </button>
 
                           <button
@@ -2647,7 +2647,7 @@ export function FinanceEnginePage() {
                             }`}
                           >
                             <CloudRain className="size-3.5" />
-                            <span>{simIsRain ? "🌧️ Heavy Rain" : "☀️ Clear Sky"}</span>
+                            <span>{simIsRain ? "Heavy Rain" : "Clear Sky"}</span>
                           </button>
 
                           <button
@@ -2660,7 +2660,7 @@ export function FinanceEnginePage() {
                             }`}
                           >
                             <Zap className="size-3.5" />
-                            <span>{simIsExpress ? "⚡ Express Order" : "Standard Order"}</span>
+                            <span>{simIsExpress ? "Express Order" : "Standard Order"}</span>
                           </button>
 
                           <select
@@ -2668,11 +2668,11 @@ export function FinanceEnginePage() {
                             onChange={(e) => setSimVehicle(e.target.value)}
                             className="bg-white border border-zinc-200 text-xs font-bold text-zinc-900 rounded-xl px-2.5 py-2 focus:border-zinc-400 focus:outline-none"
                           >
-                            <option value="bike">🛵 Standard Bike (1.0x)</option>
-                            <option value="electric_bike">⚡ Electric Bike (1.0x)</option>
-                            <option value="bicycle">🚲 Bicycle (0.85x)</option>
-                            <option value="auto">🛺 Auto (1.25x)</option>
-                            <option value="cargo">🚐 Cargo (1.50x)</option>
+                            <option value="bike">Standard Bike (1.0x)</option>
+                            <option value="electric_bike">Electric Bike (1.0x)</option>
+                            <option value="bicycle">Bicycle (0.85x)</option>
+                            <option value="auto">Auto (1.25x)</option>
+                            <option value="cargo">Cargo (1.50x)</option>
                           </select>
                         </div>
                       </div>
@@ -2688,7 +2688,7 @@ export function FinanceEnginePage() {
 
                         {simResult?.breakdownText && (
                           <div className="text-[11px] font-semibold text-zinc-700 bg-white p-2.5 rounded-xl border border-zinc-200 shadow-2xs">
-                            🧾 {simResult.breakdownText}
+                            {simResult.breakdownText}
                           </div>
                         )}
 
@@ -2748,12 +2748,12 @@ export function FinanceEnginePage() {
                         {/* Clamping indicator */}
                         {simResult?.isClampedMin && (
                           <div className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 p-2 rounded-lg text-center">
-                            ⚠️ Clamped up to Minimum Floor Guarantee (₹{fareEngineForm.minimumFare})
+                            Clamped up to Minimum Floor Guarantee (₹{fareEngineForm.minimumFare})
                           </div>
                         )}
                         {simResult?.isClampedMax && (
                           <div className="text-[10px] font-bold text-red-800 bg-red-50 border border-red-200 p-2 rounded-lg text-center">
-                            ⚠️ Clamped down to Safety Ceiling Cap (₹{fareEngineForm.maximumFareCap})
+                            Clamped down to Safety Ceiling Cap (₹{fareEngineForm.maximumFareCap})
                           </div>
                         )}
                       </div>
@@ -3894,16 +3894,16 @@ export function FinanceEnginePage() {
                   </div>
                 </SectionCard>
 
-                {/* Candy Crush Ladder */}
+                {/* Tiered Performance Milestone Ladder */}
                 <SectionCard
-                  title="Candy Crush 10-Level Captain Milestone Ladder"
+                  title="10-Tier Captain Performance Milestone Ladder"
                   badge={`${(editableRules?.incentives?.candyCrushLevels || []).length} Levels Active`}
                 >
                   <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gradient-to-r from-amber-50 via-pink-50 to-emerald-50 rounded-2xl border border-amber-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gradient-to-r from-amber-50 via-zinc-50 to-emerald-50 rounded-2xl border border-amber-200">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xl">🍬</span>
+                          <Award className="size-5 text-amber-600" />
                           <h4 className="text-sm font-black text-zinc-900 leading-tight">
                             Live Level-Wise Bonus & Target Control
                           </h4>
@@ -3962,10 +3962,12 @@ export function FinanceEnginePage() {
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <span className="text-2xl drop-shadow-xs">{l.badge || "🍬"}</span>
+                                <div className="size-8 rounded-lg bg-zinc-900 text-white flex items-center justify-center font-bold font-mono text-xs shadow-2xs">
+                                  L{l.level || idx + 1}
+                                </div>
                                 <div>
-                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-zinc-900 text-white font-mono">
-                                    LEVEL {l.level || idx + 1}
+                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-800 border border-zinc-200 font-mono">
+                                    TIER {l.level || idx + 1}
                                   </span>
                                   <span className="text-[11px] font-medium text-zinc-500 ml-2">
                                     {l.flavor || "Milestone"}

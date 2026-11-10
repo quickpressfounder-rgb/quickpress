@@ -554,9 +554,9 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
               {banners.length > 0 && (
                 <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#0B2579] via-[#0E359E] to-[#08184C] p-5 text-white shadow-xl border border-blue-400/20">
                   <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-300 via-transparent to-transparent" />
-                  <div className="absolute top-2 left-6 text-amber-300 text-sm animate-pulse">✨</div>
-                  <div className="absolute top-4 right-8 text-amber-300 text-sm animate-bounce">🎊</div>
-                  <div className="absolute bottom-16 right-5 text-amber-400 text-xs">🎉</div>
+                  
+                  
+                  
 
                   <div className="relative z-10 flex flex-col items-center text-center space-y-4">
                     <div className="relative flex items-center justify-center w-full pt-1 pb-2">
@@ -565,7 +565,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
                       </div>
                       <div className="relative z-10 size-20 sm:size-22 rounded-2xl bg-gradient-to-b from-violet-600 to-indigo-900 border-2 border-amber-300/60 p-2 shadow-2xl flex flex-col items-center justify-center">
                         <div className="flex items-center justify-center size-7 rounded-full bg-white/10 mb-1 border border-white/20">
-                          <span className="text-amber-300 font-serif font-black text-sm">👑</span>
+                          
                         </div>
                         <span className="text-white font-serif font-black text-2xl leading-none">
                           ₹{banners[0].rewardAmount || 10}
@@ -630,7 +630,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
                   className="flex items-center gap-3 p-3 rounded-2xl border border-zinc-200/80 bg-zinc-50 hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer text-left"
                 >
                   <div className="size-9 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm">
-                    🎧
+                    
                   </div>
                   <div>
                     <p className="text-xs font-bold text-zinc-900">Captain Help</p>
@@ -643,7 +643,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
               <div className="pt-4 pb-4 text-center select-none flex flex-col items-center">
                 <div className="flex items-center justify-center gap-1 text-xs font-black text-zinc-800 mb-2">
                   <span>Proudly made</span>
-                  <span className="text-amber-500">✨</span>
+                  
                   <span className="font-extrabold text-sm text-zinc-950">in India</span>
                 </div>
 
@@ -701,7 +701,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
               onClick={() => {
                 triggerHaptic([40, 80, 120]);
                 setRewardScratched(true);
-                toast.success("🎉 ₹10 Captain Bonus added to your wallet!");
+                toast.success("₹10 Captain Bonus added to your wallet!");
               }}
               className={`p-6 rounded-2xl cursor-pointer transition-all border-2 ${
                 rewardScratched
@@ -711,7 +711,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
             >
               {!rewardScratched ? (
                 <div className="space-y-2">
-                  <div className="text-4xl">🎁</div>
+                  <div className="size-12 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 font-black text-lg mx-auto">QP</div>
                   <p className="text-sm font-black text-amber-300 uppercase">
                     Tap to Scratch & Reveal
                   </p>
@@ -721,7 +721,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
                 </div>
               ) : (
                 <div className="space-y-1 animate-in zoom-in-75 duration-200">
-                  <div className="text-4xl">💰</div>
+                  <div className="size-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 font-black text-lg mx-auto">₹</div>
                   <p className="text-xs font-bold text-amber-800">You Won!</p>
                   <p className="text-3xl font-black text-zinc-950">₹10 Cash</p>
                   <p className="text-[10px] text-emerald-700 font-bold">

@@ -132,7 +132,7 @@ export function RiderBottomNav({ active = "dashboard", ordersBadgeCount }: Rider
           </span>
         </Link>
 
-        {/* 2. Orders Tab (Capsule Pill Button [ 📋 Orders ]) - Screenshot Match */}
+        {/* 2. Orders Tab (Capsule Pill Button [ Orders ]) - Screenshot Match */}
         <Link
           to="/orders"
           preload="intent"

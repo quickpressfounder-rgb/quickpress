@@ -128,7 +128,7 @@ export function OfflineEmptyState({ onGoOnline }: { onGoOnline: () => void }) {
           onClick={onGoOnline}
           className="rounded-full bg-gradient-to-r from-[#00c6ff] via-[#0099ff] to-[#0072ff] px-5 py-2.5 text-xs font-black text-white shadow-[0_0_16px_rgba(0,198,255,0.4)] hover:opacity-95 transition-all duration-300 active:scale-[0.95] cursor-pointer"
         >
-          Go online ⚡
+          Go online
         </button>
       }
     />

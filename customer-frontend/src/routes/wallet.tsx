@@ -348,7 +348,7 @@ function WalletScreen() {
         // 2. Post real transaction credit to backend with idempotency key
         const result = await addFunds(value, "razorpay", outcome.paymentId, outcome.paymentId);
         setWallet(result.wallet);
-        toast.success(`₹${value} added to Quick Money successfully! 🎉`);
+        toast.success(`₹${value} added to Quick Money successfully!`);
         setAddOpen(false);
         setAmount("500");
         await load(true);

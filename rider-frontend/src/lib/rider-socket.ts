@@ -119,7 +119,7 @@ export function initRiderSocket(): Socket | null {
           }
           recentOffersMap.set(offerKey, now);
         }
-        console.log("[RiderSocket] ⚡ Realtime order offer received:", data);
+        console.log("[RiderSocket] Realtime order offer received:", data);
         offerListeners.forEach((listener) => {
           try {
             listener(data);
@@ -130,7 +130,7 @@ export function initRiderSocket(): Socket | null {
       };
 
       const handleStatus = (data: any) => {
-        console.log("[RiderSocket] ⚡ Realtime rider status update received:", data);
+        console.log("[RiderSocket] Realtime rider status update received:", data);
         statusListeners.forEach((listener) => {
           try {
             listener(data);
@@ -141,7 +141,7 @@ export function initRiderSocket(): Socket | null {
       };
 
       const handleOrderEvent = (data: any) => {
-        console.log("[RiderSocket] 📦 Realtime order event received:", data);
+        console.log("[RiderSocket] Realtime order event received:", data);
         orderListeners.forEach((listener) => {
           try {
             listener(data);
@@ -152,7 +152,7 @@ export function initRiderSocket(): Socket | null {
       };
 
       const handleWalletEvent = (data: any) => {
-        console.log("[RiderSocket] 💳 Realtime wallet event received:", data);
+        console.log("[RiderSocket] Realtime wallet event received:", data);
         walletListeners.forEach((listener) => {
           try {
             listener(data);
@@ -163,7 +163,7 @@ export function initRiderSocket(): Socket | null {
       };
 
       const handleNotifEvent = (data: any) => {
-        console.log("[RiderSocket] 🔔 Realtime notification received:", data);
+        console.log("[RiderSocket] Realtime notification received:", data);
         notificationListeners.forEach((listener) => {
           try {
             listener(data);
@@ -175,16 +175,16 @@ export function initRiderSocket(): Socket | null {
 
       // Order Offer & Direct Trip Assignment events
       socket.on("order.trip_assigned", (data) => {
-        console.log("[RiderSocket] 🚀 Direct Trip Assigned event:", data);
+        console.log("[RiderSocket] Direct Trip Assigned event:", data);
         handleOrderEvent({ ...data, event: "order.trip_assigned" });
         handleOffer({ ...data, autoAssigned: true });
       });
       socket.on("order.rider_assigned", (data) => {
-        console.log("[RiderSocket] 🎯 Rider Assigned event:", data);
+        console.log("[RiderSocket] Rider Assigned event:", data);
         handleOrderEvent({ ...data, event: "order.rider_assigned" });
       });
       socket.on("ride.claimed", (data) => {
-        console.log("[RiderSocket] 🏁 Ride Claimed event:", data);
+        console.log("[RiderSocket] Ride Claimed event:", data);
         handleOrderEvent({ ...data, event: "ride.claimed" });
       });
       socket.on("order.rider_offer", handleOffer);

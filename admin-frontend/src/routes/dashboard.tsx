@@ -45,6 +45,13 @@ import {
   HelpCircle,
   Headphones,
   CheckSquare,
+  Award,
+  Briefcase,
+  Crown,
+  Footprints,
+  Package,
+  Shirt,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -62,6 +69,18 @@ import { adminRoutes } from "../navigation/admin-routes";
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
+
+const getCategoryIconComponent = (category: string) => {
+  const c = (category || "").toLowerCase();
+  if (c.includes("wash") || c.includes("fold")) return <Shirt className="size-5 text-sky-600" />;
+  if (c.includes("steam") || c.includes("iron")) return <Flame className="size-5 text-amber-600" />;
+  if (c.includes("dry") || c.includes("clean")) return <Sparkles className="size-5 text-purple-600" />;
+  if (c.includes("saree") || c.includes("silk")) return <Crown className="size-5 text-rose-600" />;
+  if (c.includes("shoe") || c.includes("footwear")) return <Footprints className="size-5 text-emerald-600" />;
+  if (c.includes("blanket") || c.includes("home") || c.includes("bulky")) return <Layers className="size-5 text-indigo-600" />;
+  if (c.includes("bag") || c.includes("leather")) return <Briefcase className="size-5 text-amber-700" />;
+  return <ShoppingBag className="size-5 text-zinc-600" />;
+};
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: requireAdminSession,
@@ -303,13 +322,13 @@ export function DashboardPage() {
   const categoriesList = useMemo(() => {
     const raw = data?.categoryBreakdown || [];
     const defaults = [
-      { category: "Wash & Fold", icon: "👕", servicesCount: 3, orders: 0, revenue: 0, topService: "Wash & Fold (Per Kg)", sharePct: 0 },
-      { category: "Steam Iron", icon: "👔", servicesCount: 6, orders: 0, revenue: 0, topService: "Shirt Steam Iron", sharePct: 0 },
-      { category: "Dry Clean", icon: "🧥", servicesCount: 5, orders: 0, revenue: 0, topService: "2-Piece Suit Dry Clean", sharePct: 0 },
-      { category: "Premium Saree & Silk Care", icon: "🥻", servicesCount: 3, orders: 0, revenue: 0, topService: "Silk Saree Dry Clean & Roll Polish", sharePct: 0 },
-      { category: "Shoes & Footwear Spa", icon: "👟", servicesCount: 2, orders: 0, revenue: 0, topService: "Sneaker Deep Spa & Restoration", sharePct: 0 },
-      { category: "Blankets & Home Care", icon: "🛏️", servicesCount: 2, orders: 0, revenue: 0, topService: "Double Blanket / Quilt Dry Clean", sharePct: 0 },
-      { category: "Bag & Leather Cleaning", icon: "👜", servicesCount: 2, orders: 0, revenue: 0, topService: "Leather Jacket Cleaning & Conditioning", sharePct: 0 },
+      { category: "Wash & Fold", servicesCount: 3, orders: 0, revenue: 0, topService: "Wash & Fold (Per Kg)", sharePct: 0 },
+      { category: "Steam Iron", servicesCount: 6, orders: 0, revenue: 0, topService: "Shirt Steam Iron", sharePct: 0 },
+      { category: "Dry Clean", servicesCount: 5, orders: 0, revenue: 0, topService: "2-Piece Suit Dry Clean", sharePct: 0 },
+      { category: "Premium Saree & Silk Care", servicesCount: 3, orders: 0, revenue: 0, topService: "Silk Saree Dry Clean & Roll Polish", sharePct: 0 },
+      { category: "Shoes & Footwear Spa", servicesCount: 2, orders: 0, revenue: 0, topService: "Sneaker Deep Spa & Restoration", sharePct: 0 },
+      { category: "Blankets & Home Care", servicesCount: 2, orders: 0, revenue: 0, topService: "Double Blanket / Quilt Dry Clean", sharePct: 0 },
+      { category: "Bag & Leather Cleaning", servicesCount: 2, orders: 0, revenue: 0, topService: "Leather Jacket Cleaning & Conditioning", sharePct: 0 },
     ];
     if (!raw.length) return defaults;
     return defaults.map((d) => {
@@ -318,7 +337,6 @@ export function DashboardPage() {
         return {
           ...d,
           ...found,
-          icon: d.icon,
         };
       }
       return d;
@@ -441,13 +459,13 @@ export function DashboardPage() {
                 className="bg-transparent text-xs font-black text-zinc-950 focus:outline-none cursor-pointer"
               >
                 <option value="all">All Service Verticals</option>
-                <option value="Wash & Fold">👕 Wash &amp; Fold</option>
-                <option value="Steam Iron">👔 Steam Iron &amp; Press</option>
-                <option value="Dry Clean">🧥 Dry Cleaning</option>
-                <option value="Premium Saree & Silk Care">🥻 Premium Saree &amp; Silk</option>
-                <option value="Shoes & Footwear Spa">👟 Shoes &amp; Footwear Spa</option>
-                <option value="Blankets & Home Care">🛏️ Blankets &amp; Home Care</option>
-                <option value="Bag & Leather Cleaning">👜 Bag &amp; Leather Cleaning</option>
+                <option value="Wash & Fold">Wash &amp; Fold</option>
+                <option value="Steam Iron">Steam Iron &amp; Press</option>
+                <option value="Dry Clean">Dry Cleaning</option>
+                <option value="Premium Saree & Silk Care">Premium Saree &amp; Silk</option>
+                <option value="Shoes & Footwear Spa">Shoes &amp; Footwear Spa</option>
+                <option value="Blankets & Home Care">Blankets &amp; Home Care</option>
+                <option value="Bag & Leather Cleaning">Bag &amp; Leather Cleaning</option>
               </select>
             </div>
           </div>
@@ -1258,7 +1276,11 @@ export function DashboardPage() {
                     </div>
                     <div>
                       <p className="text-xs font-black text-zinc-950">{partner.name}</p>
-                      <p className="text-[11px] text-zinc-700 font-bold">{partner.city} · ★ {partner.rating} Rating</p>
+                      <p className="text-[11px] text-zinc-700 font-bold flex items-center gap-1">
+                        <span>{partner.city} ·</span>
+                        <Star className="size-3 text-amber-500 fill-amber-500 shrink-0" />
+                        <span>{partner.rating} Rating</span>
+                      </p>
                     </div>
                   </div>
                   <div className="text-right text-xs">
@@ -1302,7 +1324,11 @@ export function DashboardPage() {
                     </div>
                     <div>
                       <p className="text-xs font-black text-zinc-950">{rider.name}</p>
-                      <p className="text-[11px] text-zinc-700 font-bold">On-Time: {rider.onTimeRate} · ★ {rider.rating}</p>
+                      <p className="text-[11px] text-zinc-700 font-bold flex items-center gap-1">
+                        <span>On-Time: {rider.onTimeRate} ·</span>
+                        <Star className="size-3 text-amber-500 fill-amber-500 shrink-0" />
+                        <span>{rider.rating}</span>
+                      </p>
                     </div>
                   </div>
                   <div className="text-right text-xs">
@@ -1371,8 +1397,15 @@ export function DashboardPage() {
                 <span className="text-[11px] font-black uppercase text-amber-900">#1 Top Grossing SKU</span>
                 <span className="rounded-md bg-amber-200 px-1.5 py-0.5 text-[10px] font-black text-amber-950">Revenue</span>
               </div>
-              <p className="text-sm font-black text-zinc-950 mt-1.5 truncate">
-                {data?.topGrossingService ? `⭐ ${data.topGrossingService}` : "No sales recorded yet"}
+              <p className="text-sm font-black text-zinc-950 mt-1.5 truncate flex items-center gap-1.5">
+                {data?.topGrossingService ? (
+                  <>
+                    <Award className="size-4 text-amber-600 shrink-0" />
+                    <span className="truncate">{data.topGrossingService}</span>
+                  </>
+                ) : (
+                  "No sales recorded yet"
+                )}
               </p>
               <p className="text-xs font-black text-emerald-800 mt-0.5">
                 {currency(data?.topGrossingRevenue ?? 0)} GMV transacted
@@ -1384,8 +1417,15 @@ export function DashboardPage() {
                 <span className="text-[11px] font-black uppercase text-purple-900">Highest Volume SKU</span>
                 <span className="rounded-md bg-purple-200 px-1.5 py-0.5 text-[10px] font-black text-purple-950">Orders</span>
               </div>
-              <p className="text-sm font-black text-zinc-950 mt-1.5 truncate">
-                {data?.topOrderService ? `📦 ${data.topOrderService}` : "No orders recorded yet"}
+              <p className="text-sm font-black text-zinc-950 mt-1.5 truncate flex items-center gap-1.5">
+                {data?.topOrderService ? (
+                  <>
+                    <Package className="size-4 text-purple-600 shrink-0" />
+                    <span className="truncate">{data.topOrderService}</span>
+                  </>
+                ) : (
+                  "No orders recorded yet"
+                )}
               </p>
               <p className="text-xs font-black text-purple-950 mt-0.5">
                 {data?.topOrderOrders || 0} completed orders
@@ -1420,8 +1460,12 @@ export function DashboardPage() {
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{cat.icon}</span>
+                    <div className="flex items-center gap-2.5">
+                      <div className={`flex size-10 items-center justify-center rounded-xl border shrink-0 ${
+                        isSelected ? "bg-zinc-800 border-zinc-700" : "bg-zinc-100 border-zinc-200"
+                      }`}>
+                        {getCategoryIconComponent(cat.category)}
+                      </div>
                       <div>
                         <h4 className={`text-xs font-black ${isSelected ? "text-white" : "text-zinc-950"}`}>
                           {cat.category}
@@ -1464,8 +1508,9 @@ export function DashboardPage() {
 
                     <div className={`mt-2 rounded-lg p-2 text-[11px] ${isSelected ? "bg-zinc-900 border border-zinc-800" : "bg-zinc-50 border border-zinc-100"}`}>
                       <p className={`text-[10px] font-bold ${isSelected ? "text-zinc-400" : "text-zinc-600"}`}>Top Performer in Vertical:</p>
-                      <p className={`font-black truncate mt-0.5 ${isSelected ? "text-amber-300" : "text-zinc-950"}`}>
-                        ⭐ {cat.topService || "Standard Service"}
+                      <p className={`font-black truncate mt-0.5 flex items-center gap-1 ${isSelected ? "text-amber-300" : "text-zinc-950"}`}>
+                        <Award className="size-3 text-amber-500 shrink-0" />
+                        <span className="truncate">{cat.topService || "Standard Service"}</span>
                       </p>
                     </div>
 
@@ -1561,7 +1606,7 @@ export function DashboardPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
                         <span className="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-black text-amber-950 border border-amber-200 flex items-center gap-1">
-                          <span>⭐</span>
+                          <Star className="size-3 text-amber-500 fill-amber-500 shrink-0" />
                           <span>{c.topService || "Steam Iron & Press"}</span>
                         </span>
                         {(c.topServiceRevenue ?? 0) > 0 && (
@@ -1762,12 +1807,12 @@ export function DashboardPage() {
             <div className="flex items-center gap-1.5 overflow-x-auto pb-2.5 mb-2.5 no-scrollbar">
               {[
                 { id: "all", label: "All Events" },
-                { id: "dispatch", label: "⚡ Dispatch" },
-                { id: "otp", label: "🔐 Dynamic OTP" },
-                { id: "sla", label: "⏱️ Laundry SLA" },
-                { id: "finance", label: "💰 Auto-Finance" },
-                { id: "surge", label: "📈 Surge" },
-                { id: "guard", label: "🛡️ Fraud Guard" },
+                { id: "dispatch", label: "Dispatch" },
+                { id: "otp", label: "Dynamic OTP" },
+                { id: "sla", label: "Laundry SLA" },
+                { id: "finance", label: "Auto-Finance" },
+                { id: "surge", label: "Surge" },
+                { id: "guard", label: "Fraud Guard" },
               ].map((f) => {
                 const active = automationFilter === f.id;
                 return (

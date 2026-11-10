@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   Check,
   CreditCard,
+  Building2,
   Loader2,
   Lock,
   ShieldCheck,
@@ -61,12 +62,12 @@ const UPI_OPTIONS = [
 ];
 
 const POPULAR_BANKS = [
-  { code: "HDFC", name: "HDFC Bank", logo: "🏦" },
-  { code: "SBI", name: "State Bank of India", logo: "🏛️" },
-  { code: "ICICI", name: "ICICI Bank", logo: "🏦" },
-  { code: "AXIS", name: "Axis Bank", logo: "🏢" },
-  { code: "KOTAK", name: "Kotak Mahindra Bank", logo: "🏛️" },
-  { code: "PNB", name: "Punjab National Bank", logo: "🏦" },
+  { code: "HDFC", name: "HDFC Bank" },
+  { code: "SBI", name: "State Bank of India" },
+  { code: "ICICI", name: "ICICI Bank" },
+  { code: "AXIS", name: "Axis Bank" },
+  { code: "KOTAK", name: "Kotak Mahindra Bank" },
+  { code: "PNB", name: "Punjab National Bank" },
 ];
 
 const UPI_SUGGESTION_HANDLES = [
@@ -948,7 +949,9 @@ function PaymentMethodsScreen() {
                   onClick={() => void handleSelectBank(bank)}
                   className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 hover:border-emerald-500 transition-colors text-left cursor-pointer"
                 >
-                  <span className="text-xl">{bank.logo}</span>
+                  <div className="size-8 rounded-lg bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-black text-xs flex items-center justify-center border border-emerald-200 dark:border-emerald-800 shrink-0">
+                    <Building2 className="size-4" />
+                  </div>
                   <div className="min-w-0">
                     <span className="block truncate text-xs font-bold text-foreground">
                       {bank.name}

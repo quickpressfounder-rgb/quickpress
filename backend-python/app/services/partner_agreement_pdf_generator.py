@@ -1,8 +1,8 @@
 """QuickPress Master Partner Franchise & Service Level Agreement (SLA) PDF Generator.
 
 Generates an official, legally-binding 3-page bilateral agreement PDF:
-- Corporate: QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
-- Authorized Signatory: Himanshu Pal (Director / Authorized Signatory)
+- Corporate: Configured Platform Entity
+- Authorized Signatory: Platform Authorized Signatory
 - Official Seal Stamp: Circular company seal with 3 stars
 - Merchant: Partner Store, Owner, Address, Bank, PAN, GSTIN
 - Commercial Terms: 15% Platform Commission, T+1 Settlement
@@ -165,24 +165,44 @@ def generate_partner_agreement_pdf(data: Dict[str, Any]) -> bytes:
 
     story = []
 
-    company_name = os.getenv("COMPANY_LEGAL_NAME", "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED")
-    signatory_name = os.getenv("COMPANY_SIGNATORY_NAME", "Himanshu Pal")
-    comp_cin = "U74999UP2024PTC198141"
-    comp_gstin = "09AADCB1234K1Z8"
-    comp_pan = "AADCB1234K"
-    comp_address = "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India"
+    company_name = os.getenv("COMPANY_LEGAL_NAME", "")
+    signatory_name = os.getenv("COMPANY_SIGNATORY_NAME", "")
+    signatory_designation = ""
+    comp_cin = ""
+    comp_gstin = ""
+    comp_pan = ""
+    comp_address = ""
+    comp_email = "official.quickpress@gmail.com"
+    comp_partner_agreement = ""
     try:
         from app.db.admin_repositories import admin_settings_repository
         comp = admin_settings_repository.default_settings.get("company", {})
         if comp:
             company_name = comp.get("legalName") or company_name
             signatory_name = comp.get("authorizedSignatoryName") or signatory_name
+            signatory_designation = comp.get("authorizedSignatoryDesignation") or signatory_designation
             comp_cin = comp.get("cin") or comp_cin
             comp_gstin = comp.get("gstin") or comp_gstin
             comp_pan = comp.get("pan") or comp_pan
             comp_address = comp.get("registeredAddress") or comp_address
+            comp_email = comp.get("supportEmail") or comp.get("corporateEmail") or comp_email
+            comp_partner_agreement = comp.get("partnerAgreement") or ""
     except Exception:
         pass
+
+    company_name = company_name or "QuickPress"
+    signatory_name = signatory_name or "Authorized Signatory"
+    signatory_designation = signatory_designation or "Platform Authorized Signatory"
+
+    comp_meta_parts = []
+    if comp_cin:
+        comp_meta_parts.append(f"CIN: {comp_cin}")
+    if comp_gstin:
+        comp_meta_parts.append(f"GSTIN: {comp_gstin}")
+    if comp_pan:
+        comp_meta_parts.append(f"PAN: {comp_pan}")
+    comp_meta_line = " · ".join(comp_meta_parts) if comp_meta_parts else "Statutory Credentials: Registered Entity"
+    comp_address_str = f"Regd. Office: {comp_address}" if comp_address else "Platform Operations"
 
     store_name = _safe_str(data.get("storeName") or data.get("businessName"), "Partner Store")
     owner_name = _safe_str(data.get("ownerName") or data.get("name"), "Partner Merchant")
@@ -210,11 +230,11 @@ def generate_partner_agreement_pdf(data: Dict[str, Any]) -> bytes:
             Paragraph(f"<b>Reference:</b> {agreement_ref}", p_small),
         ],
         [
-            Paragraph(f"CIN: {comp_cin} · GSTIN: {comp_gstin} · PAN: {comp_pan}", p_small),
+            Paragraph(comp_meta_line, p_small),
             Paragraph(f"<b>Effective Date:</b> {signed_at[:11]}", p_small),
         ],
         [
-            Paragraph(f"Regd. Office: {comp_address}", p_small),
+            Paragraph(comp_address_str, p_small),
             Paragraph("<b>E-Sign Status:</b> Verified via Email OTP", p_small),
         ],
     ]
@@ -377,8 +397,8 @@ def generate_partner_agreement_pdf(data: Dict[str, Any]) -> bytes:
         seal_flowable or Paragraph("<b>[OFFICIAL CORPORATE SEAL]</b>", p_small),
         Spacer(1, 4),
         Paragraph(f"<b>Authorized Signatory:</b> {signatory_name}", p_small),
-        Paragraph("<b>Designation:</b> Director / Authorized Signatory", p_small),
-        Paragraph("<b>Email:</b> info@withquickpress.com", p_small),
+        Paragraph(f"<b>Designation:</b> {signatory_designation}", p_small),
+        Paragraph(f"<b>Email:</b> {comp_email}", p_small),
         Paragraph(f"<b>Timestamp:</b> {signed_at[:11]} · Digital Verified", p_small),
     ]
 

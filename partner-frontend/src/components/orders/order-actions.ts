@@ -70,7 +70,7 @@ export function getOrderActions(
         return [
           {
             id: "confirm_handover",
-            label: "Confirm Handover from Captain 📦",
+            label: "Confirm Handover from Captain",
             icon: PackageCheck,
             intent: "primary",
             nextStage: "at_partner",
@@ -81,7 +81,7 @@ export function getOrderActions(
       return [
         {
           id: "start_washing",
-          label: isDryClean ? "Start Dry Cleaning 🧺" : "Start Washing & Processing 🧺",
+          label: isDryClean ? "Start Dry Cleaning" : "Start Washing & Processing",
           icon: WashingMachine,
           intent: "primary",
           nextStage: "washing",
@@ -94,7 +94,7 @@ export function getOrderActions(
       return [
         {
           id: "mark_ready",
-          label: "Process Complete / Ready for Delivery ✨",
+          label: "Process Complete / Ready for Delivery",
           icon: BadgeCheck,
           intent: "primary",
           nextStage: "ready",

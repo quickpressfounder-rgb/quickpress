@@ -3034,9 +3034,9 @@ class UnifiedFinanceService:
 
         from app.db.admin_repositories import get_company_legal_profile
         comp_profile = await get_company_legal_profile()
-        corp_gstin = comp_profile.get("gstin") or "09AADCB1234K1Z8"
-        corp_pan = comp_profile.get("pan") or "AADCB1234K"
-        corp_legal = comp_profile.get("legalName") or "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"
+        corp_gstin = comp_profile.get("gstin") or "—"
+        corp_pan = comp_profile.get("pan") or "—"
+        corp_legal = comp_profile.get("legalName") or "QuickPress"
         corp_state = comp_profile.get("state") or "Uttar Pradesh"
         corp_state_code = comp_profile.get("stateCode") or "09"
 
@@ -3176,8 +3176,8 @@ class UnifiedFinanceService:
 
         from app.db.admin_repositories import get_company_legal_profile
         comp_profile = await get_company_legal_profile()
-        corp_gstin = comp_profile.get("gstin") or "09AADCB1234K1Z8"
-        corp_legal = comp_profile.get("legalName") or "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"
+        corp_gstin = comp_profile.get("gstin") or ""
+        corp_legal = comp_profile.get("legalName") or "QuickPress"
 
         csv_rows = [
             "SECTION,GSTIN/UIN,INVOICE_NO,DATE,VALUE,RATE,TAXABLE_VALUE,CGST,SGST,IGST,PLACE_OF_SUPPLY",
@@ -3257,8 +3257,8 @@ class UnifiedFinanceService:
 
         from app.db.admin_repositories import get_company_legal_profile
         comp_profile = await get_company_legal_profile()
-        corp_gstin = comp_profile.get("gstin") or "09AADCB1234K1Z8"
-        corp_legal = comp_profile.get("legalName") or "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"
+        corp_gstin = comp_profile.get("gstin") or ""
+        corp_legal = comp_profile.get("legalName") or "QuickPress"
 
         table31_taxable = summary["platformTaxableSales"] + summary["deliveryTaxableSales"]
         table31_tax = summary["platformTaxCollected"]

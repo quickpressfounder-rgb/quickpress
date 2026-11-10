@@ -48,6 +48,13 @@ import {
   ChevronUp,
   SlidersHorizontal,
   BarChart3,
+  Award,
+  Package,
+  Shirt,
+  Footprints,
+  FileText,
+  Activity,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -227,7 +234,7 @@ export function ServicesPage() {
     mutationFn: ({ serviceId, payload }: { serviceId: string; payload: { price?: number; turnaroundHours?: number } }) =>
       updatePartnerServiceRate(serviceId, payload),
     onSuccess: () => {
-      toast.success("Store rate card updated successfully! 🎉");
+      toast.success("Store rate card updated successfully!");
       setEditingPartnerService(null);
       queryClient.invalidateQueries({ queryKey: ["admin", "partner-services"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "services", "intelligence"] });
@@ -241,7 +248,7 @@ export function ServicesPage() {
     mutationFn: ({ serviceId, overridePrice }: { serviceId: string; overridePrice: boolean }) =>
       syncMasterServiceToPartners(serviceId, overridePrice),
     onSuccess: (data) => {
-      toast.success(`Synced to ${data.totalPartners} partner stores! (${data.created} added, ${data.updated} updated) ⚡`);
+      toast.success(`Synced to ${data.totalPartners} partner stores! (${data.created} added, ${data.updated} updated)`);
       setSyncingServiceId(null);
       queryClient.invalidateQueries({ queryKey: ["admin", "partner-services"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "services", "intelligence"] });
@@ -455,7 +462,7 @@ export function ServicesPage() {
     a.download = `QuickPress_Services_Revenue_Riders_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Services & Revenue Intelligence CSV exported! 🚀");
+    toast.success("Services & Revenue Intelligence CSV exported!");
   };
 
   return (
@@ -646,7 +653,7 @@ export function ServicesPage() {
                       <tr key={idx} className="hover:bg-zinc-50/80 transition-colors">
                         <td className="px-4 py-3 font-black text-zinc-950 flex items-center gap-2">
                           <span className="flex size-6 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-black">
-                            📍
+                            <MapPin className="size-3" />
                           </span>
                           <span>{area.city} Hub</span>
                         </td>
@@ -658,7 +665,8 @@ export function ServicesPage() {
                         </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-bold text-zinc-800">
-                            ⭐ {area.topService}
+                            <Award className="size-3 text-amber-500 fill-amber-500" />
+                            <span>{area.topService}</span>
                           </span>
                         </td>
                         <td className="px-4 py-3 font-bold text-zinc-900 tabular-nums">
@@ -666,7 +674,8 @@ export function ServicesPage() {
                         </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center gap-1 rounded-md bg-sky-50 px-2 py-0.5 text-xs font-bold text-sky-800 border border-sky-200">
-                            🏪 {area.partnerStoresCount} Store{area.partnerStoresCount > 1 ? "s" : ""}
+                            <Building2 className="size-3 text-sky-800" />
+                            <span>{area.partnerStoresCount} Store{area.partnerStoresCount > 1 ? "s" : ""}</span>
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -690,25 +699,30 @@ export function ServicesPage() {
           <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-zinc-100">
             <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
               <TabsList className="bg-zinc-100 p-1 rounded-xl">
-                <TabsTrigger value="services" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  📊 Master Services & Revenue ({allIntelligence.length})
+                <TabsTrigger value="services" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center gap-1.5">
+                  <BarChart3 className="size-3.5" />
+                  <span>Master Services & Revenue ({allIntelligence.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="riders_matrix" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  🚴 Service ↔ Rider Allocation Matrix
+                <TabsTrigger value="riders_matrix" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center gap-1.5">
+                  <Bike className="size-3.5" />
+                  <span>Service ↔ Rider Allocation Matrix</span>
                 </TabsTrigger>
-                <TabsTrigger value="partner_rates" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  🏪 Partner Store Rate Cards ({allPartnerServices.length})
+                <TabsTrigger value="partner_rates" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center gap-1.5">
+                  <Building2 className="size-3.5" />
+                  <span>Partner Store Rate Cards ({allPartnerServices.length})</span>
                 </TabsTrigger>
                 <TabsTrigger value="service_approvals" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center gap-1.5">
-                  <span>⏳ Pending Approvals</span>
+                  <Clock className="size-3.5" />
+                  <span>Pending Approvals</span>
                   {serviceApprovals.length > 0 && (
                     <span className="rounded-full bg-amber-500 text-white px-1.5 py-0.5 text-[10px] font-black leading-none">
                       {serviceApprovals.length}
                     </span>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="categories" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  🏷️ Categories ({allCategories.length})
+                <TabsTrigger value="categories" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center gap-1.5">
+                  <Tag className="size-3.5" />
+                  <span>Categories ({allCategories.length})</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -768,8 +782,8 @@ export function ServicesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status ({allIntelligence.length})</SelectItem>
-                    <SelectItem value="Active">🟢 Active Services</SelectItem>
-                    <SelectItem value="Inactive">⚪ Inactive Services</SelectItem>
+                    <SelectItem value="Active">Active Services</SelectItem>
+                    <SelectItem value="Inactive">Inactive Services</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -780,12 +794,12 @@ export function ServicesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Billing Units</SelectItem>
-                    <SelectItem value="kg">⚖️ Per KG (Weight)</SelectItem>
-                    <SelectItem value="piece">👔 Per Piece / Item</SelectItem>
-                    <SelectItem value="pair">👟 Per Pair (Shoes)</SelectItem>
-                    <SelectItem value="meter">📐 Per Meter (Curtains)</SelectItem>
-                    <SelectItem value="sqft">📐 Per Sq. Ft</SelectItem>
-                    <SelectItem value="fixed">🏷️ Flat / Fixed</SelectItem>
+                    <SelectItem value="kg">Per KG (Weight)</SelectItem>
+                    <SelectItem value="piece">Per Piece / Item</SelectItem>
+                    <SelectItem value="pair">Per Pair (Shoes)</SelectItem>
+                    <SelectItem value="meter">Per Meter (Curtains)</SelectItem>
+                    <SelectItem value="sqft">Per Sq. Ft</SelectItem>
+                    <SelectItem value="fixed">Flat / Fixed</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -796,9 +810,9 @@ export function ServicesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Partner Coverage</SelectItem>
-                    <SelectItem value="high">🟢 High Adoption (≥50% Stores)</SelectItem>
-                    <SelectItem value="low">🟡 Low Adoption (&lt;50% Stores)</SelectItem>
-                    <SelectItem value="unassigned">🔴 Unassigned (0 Stores)</SelectItem>
+                    <SelectItem value="high">High Adoption (≥50% Stores)</SelectItem>
+                    <SelectItem value="low">Low Adoption (&lt;50% Stores)</SelectItem>
+                    <SelectItem value="unassigned">Unassigned (0 Stores)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -812,12 +826,12 @@ export function ServicesPage() {
                       <SelectValue placeholder="Sort Catalog" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="revenue">💰 Top Revenue (Gross GMV)</SelectItem>
-                      <SelectItem value="orders">📦 Most Orders Volume</SelectItem>
-                      <SelectItem value="adoption">🏪 Highest Partner Store Adoption</SelectItem>
-                      <SelectItem value="price_desc">🏷️ Base Price: High to Low</SelectItem>
-                      <SelectItem value="price_asc">🏷️ Base Price: Low to High</SelectItem>
-                      <SelectItem value="name">🔤 Service Name (A-Z)</SelectItem>
+                      <SelectItem value="revenue">Top Revenue (Gross GMV)</SelectItem>
+                      <SelectItem value="orders">Most Orders Volume</SelectItem>
+                      <SelectItem value="adoption">Highest Partner Store Adoption</SelectItem>
+                      <SelectItem value="price_desc">Base Price: High to Low</SelectItem>
+                      <SelectItem value="price_asc">Base Price: Low to High</SelectItem>
+                      <SelectItem value="name">Service Name (A-Z)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -869,7 +883,7 @@ export function ServicesPage() {
                   <SelectItem value="all">All Service Cities</SelectItem>
                   {uniqueCities.map((city) => (
                     <SelectItem key={city} value={city}>
-                      📍 {city}
+                      {city}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -894,8 +908,9 @@ export function ServicesPage() {
               </div>
 
               <div className="flex items-center gap-2 text-xs font-bold text-zinc-600">
-                <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-800 border border-amber-200">
-                  ⏳ {filteredServiceApprovals.length} Requests Pending Admin Verification
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-800 border border-amber-200 flex items-center gap-1.5">
+                  <Clock className="size-3 text-amber-700" />
+                  <span>{filteredServiceApprovals.length} Requests Pending Admin Verification</span>
                 </span>
               </div>
             </div>
@@ -918,7 +933,7 @@ export function ServicesPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-zinc-50 border border-zinc-200/90 px-4 py-2.5">
                       <div className="flex items-center gap-2.5">
                         <span className="flex size-7 items-center justify-center rounded-lg bg-white border border-zinc-200 text-xs font-black shadow-xs">
-                          🏷️
+                          <Tag className="size-3.5 text-zinc-600" />
                         </span>
                         <div>
                           <h4 className="text-xs font-black text-zinc-950 uppercase tracking-wider">{group.category}</h4>
@@ -1447,14 +1462,16 @@ export function ServicesPage() {
                     if (p.status === "Pending Approval" || p.pendingApproval || p.approvalStatus === "pending") {
                       return (
                         <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-black text-amber-800 border border-amber-300">
-                          ⏳ Pending Approval
+                          <Clock className="size-3 mr-0.5" />
+                          <span>Pending Approval</span>
                         </span>
                       );
                     }
                     if (p.status === "Rejected" || p.approvalStatus === "rejected") {
                       return (
                         <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-black text-rose-800 border border-rose-300" title={p.rejectionReason}>
-                          ❌ Rejected
+                          <XCircle className="size-3 mr-0.5" />
+                          <span>Rejected</span>
                         </span>
                       );
                     }
@@ -1548,7 +1565,7 @@ export function ServicesPage() {
                           : "bg-purple-50 text-purple-800 border border-purple-200"
                       }`}
                     >
-                      {r.requestType === "service_create" ? "✨ New Service" : "✏️ Rate Change"}
+                      {r.requestType === "service_create" ? "New Service" : "Rate Change"}
                     </span>
                   ),
                 },
@@ -1876,7 +1893,7 @@ function Service360Sheet({
   const updateMutation = useMutation({
     mutationFn: (payload: any) => updateService(service!.id, payload),
     onSuccess: () => {
-      toast.success("Service specifications updated successfully! 🎉");
+      toast.success("Service specifications updated successfully!");
       setIsEditing(false);
       queryClient.invalidateQueries({ queryKey: ["admin", "services", "intelligence"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "services", "stats"] });
@@ -2055,17 +2072,21 @@ function Service360Sheet({
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid grid-cols-4 w-full bg-zinc-100 p-1 rounded-xl">
-                <TabsTrigger value="revenue" className="text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  💰 Revenue Breakdown
+                <TabsTrigger value="revenue" className="text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center justify-center gap-1.5">
+                  <BarChart3 className="size-3.5" />
+                  <span>Revenue Breakdown</span>
                 </TabsTrigger>
-                <TabsTrigger value="riders" className="text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  🚴 Assigned Riders ({service.assignedRiders.length})
+                <TabsTrigger value="riders" className="text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center justify-center gap-1.5">
+                  <Bike className="size-3.5" />
+                  <span>Assigned Riders ({service.assignedRiders.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="orders" className="text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  📦 Orders ({service.recentOrders.length})
+                <TabsTrigger value="orders" className="text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center justify-center gap-1.5">
+                  <Package className="size-3.5" />
+                  <span>Orders ({service.recentOrders.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="specs" className="text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  ⚙️ Specifications
+                <TabsTrigger value="specs" className="text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center justify-center gap-1.5">
+                  <Settings className="size-3.5" />
+                  <span>Specifications</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -2407,15 +2428,15 @@ function PartnerAdoptionModal({
                     return (
                       <div key={i} className="p-3 flex items-center justify-between text-xs hover:bg-zinc-50 transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 font-black text-[11px]">
-                            🏪
+                          <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800">
+                            <Building2 className="size-4" />
                           </div>
                           <div>
                             <p className="font-bold text-zinc-950">{st.businessName}</p>
                             <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 mt-0.5">
-                              <span>📍 {st.city || "Kasganj Hub"}</span>
+                              <span className="flex items-center gap-0.5"><MapPin className="size-3 text-zinc-400" /><span>{st.city || "Kasganj Hub"}</span></span>
                               <span>·</span>
-                              <span>📞 {st.phone}</span>
+                              <span className="flex items-center gap-0.5"><Phone className="size-3 text-zinc-400" /><span>{st.phone}</span></span>
                             </div>
                           </div>
                         </div>
@@ -2449,22 +2470,22 @@ function PartnerAdoptionModal({
             <div className="space-y-2">
               {missingStores.length === 0 ? (
                 <div className="py-8 text-center text-xs text-emerald-700 font-bold">
-                  🎉 100% Platform Network Coverage! All registered partner stores have adopted this service.
+                  100% Platform Network Coverage! All registered partner stores have adopted this service.
                 </div>
               ) : (
                 <div className="rounded-xl border border-zinc-200 overflow-hidden divide-y divide-zinc-100">
                   {missingStores.map((p) => (
                     <div key={p.id} className="p-3 flex items-center justify-between text-xs hover:bg-zinc-50 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 font-black text-[11px]">
-                          🏪
+                        <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
+                          <Building2 className="size-4" />
                         </div>
                         <div>
                           <p className="font-bold text-zinc-950">{p.businessName || p.name}</p>
                           <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 mt-0.5">
-                            <span>📍 {p.city || "Kasganj Hub"}</span>
+                            <span className="flex items-center gap-0.5"><MapPin className="size-3 text-zinc-400" /><span>{p.city || "Kasganj Hub"}</span></span>
                             <span>·</span>
-                            <span>📞 {p.phone || "—"}</span>
+                            <span className="flex items-center gap-0.5"><Phone className="size-3 text-zinc-400" /><span>{p.phone || "—"}</span></span>
                           </div>
                         </div>
                       </div>
@@ -2538,7 +2559,7 @@ function EditServiceDialog({
       });
     },
     onSuccess: () => {
-      toast.success("Master service updated successfully! 🎉");
+      toast.success("Master service updated successfully!");
       onClose();
       queryClient.invalidateQueries({ queryKey: ["admin", "services", "intelligence"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "services", "stats"] });
@@ -2615,10 +2636,10 @@ function EditServiceDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="12">⚡ 12 Hours (Express)</SelectItem>
-                  <SelectItem value="24">⏱️ 24 Hours (Next Day)</SelectItem>
-                  <SelectItem value="48">📦 48 Hours (Standard 2 Days)</SelectItem>
-                  <SelectItem value="72">🛡️ 72 Hours (Deep Care 3 Days)</SelectItem>
+                  <SelectItem value="12">12 Hours (Express)</SelectItem>
+                  <SelectItem value="24">24 Hours (Next Day)</SelectItem>
+                  <SelectItem value="48">48 Hours (Standard 2 Days)</SelectItem>
+                  <SelectItem value="72">72 Hours (Deep Care 3 Days)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2632,8 +2653,8 @@ function EditServiceDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Active">🟢 Active (Live in Catalog)</SelectItem>
-                  <SelectItem value="Inactive">⚪ Inactive (Hidden)</SelectItem>
+                  <SelectItem value="Active">Active (Live in Catalog)</SelectItem>
+                  <SelectItem value="Inactive">Inactive (Hidden)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2648,7 +2669,7 @@ function EditServiceDialog({
                     onChange={(e) => setExpressAvailable(e.target.checked)}
                     className="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
                   />
-                  <span>Express ⚡</span>
+                  <span>Express</span>
                 </label>
                 <label className="flex items-center gap-1.5 text-xs font-bold cursor-pointer">
                   <input
@@ -2657,7 +2678,7 @@ function EditServiceDialog({
                     onChange={(e) => setPopular(e.target.checked)}
                     className="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
                   />
-                  <span>Popular ⭐</span>
+                  <span>Popular</span>
                 </label>
               </div>
             </div>
@@ -2726,8 +2747,8 @@ function CreateServiceDialog({ categories }: { categories: ServiceCategory[] }) 
     onSuccess: () => {
       toast.success(
         syncToPartners
-          ? "Master service added and synced to all partner stores! 🎉"
-          : "Master service added to platform catalog! 🎉"
+          ? "Master service added and synced to all partner stores!"
+          : "Master service added to platform catalog!"
       );
       setOpen(false);
       setName("");
@@ -2813,10 +2834,10 @@ function CreateServiceDialog({ categories }: { categories: ServiceCategory[] }) 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="12">⚡ 12 Hours (Express)</SelectItem>
-                  <SelectItem value="24">⏱️ 24 Hours (Next Day)</SelectItem>
-                  <SelectItem value="48">📦 48 Hours (Standard 2 Days)</SelectItem>
-                  <SelectItem value="72">🛡️ 72 Hours (Deep Care 3 Days)</SelectItem>
+                  <SelectItem value="12">12 Hours (Express)</SelectItem>
+                  <SelectItem value="24">24 Hours (Next Day)</SelectItem>
+                  <SelectItem value="48">48 Hours (Standard 2 Days)</SelectItem>
+                  <SelectItem value="72">72 Hours (Deep Care 3 Days)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2842,7 +2863,10 @@ function CreateServiceDialog({ categories }: { categories: ServiceCategory[] }) 
                 className="mt-0.5 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500"
               />
               <div>
-                <p className="text-xs font-black text-emerald-950">⚡ Automatically Sync to All Partner Stores</p>
+                <p className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+              <Zap className="size-3.5 text-emerald-700" />
+              <span>Automatically Sync to All Partner Stores</span>
+            </p>
                 <p className="text-[10px] text-emerald-800 font-medium">
                   Immediately enables this service across all active partner store rate cards and partner registration screens.
                 </p>
@@ -2878,7 +2902,7 @@ function CreateCategoryDialog() {
   const createMutation = useMutation({
     mutationFn: () => createCategory({ name, description }),
     onSuccess: () => {
-      toast.success("New category added! 🎉");
+      toast.success("New category added!");
       setOpen(false);
       setName("");
       setDescription("");

@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
+  Bike,
   ChevronDown,
   Clock,
   FileText,
@@ -9,6 +10,7 @@ import {
   Package,
   Phone,
   Printer,
+  Shirt,
   Star,
   Timer,
   Wallet,
@@ -174,7 +176,7 @@ export const OrderCard = React.memo(function OrderCard({
     if (isNew) {
       onAction(order, "accept");
     } else if (isAwaitingCaptainDrop) {
-      toast.info(riderName ? `🛵 Clothes are with Captain ${riderName}. Awaiting store handover.` : "🛵 Captain is picking up clothes. Awaiting handover.");
+      toast.info(riderName ? `Clothes are with Captain ${riderName}. Awaiting store handover.` : "Captain is picking up clothes. Awaiting handover.");
     } else if (isReadyToConfirmHandover) {
       void confirmHandover(order.id);
     } else if (isReadyToStartProcessing || isAccepted) {
@@ -304,12 +306,10 @@ export const OrderCard = React.memo(function OrderCard({
       <div className="my-3 border-t border-zinc-100" />
 
       {/* ========================================================================= */}
-      {/* 3. SPECIAL INSTRUCTIONS: (🧺) Don't send cutlery, tissues and straws      */}
+      {/* 3. SPECIAL INSTRUCTIONS: () Don't send cutlery, tissues and straws      */}
       {/* ========================================================================= */}
       <div className="rounded-lg border border-rose-300 bg-rose-50/25 px-2.5 py-1.5 flex items-center gap-2 text-xs font-medium text-rose-700">
-        <span className="flex size-4.5 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600 text-[11px] font-bold">
-          🧺
-        </span>
+        <Shirt className="size-3.5 shrink-0 text-rose-600" />
         <span className="truncate">
           {order.specialInstructions || "Handle with care · Fold neatly & pack in eco-friendly laundry bag"}
         </span>
@@ -421,7 +421,7 @@ export const OrderCard = React.memo(function OrderCard({
         </div>
       ) : (
         <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2.5 text-xs text-zinc-700 font-medium">
-          <span className="text-base shrink-0 select-none">🛵</span>
+          <Bike className="size-4 shrink-0 text-zinc-600" />
           <span className="truncate font-semibold text-zinc-800">
             Assigning delivery captain soon
           </span>
@@ -458,22 +458,22 @@ export const OrderCard = React.memo(function OrderCard({
             <span>Accept Order (01:45)</span>
           ) : isAwaitingCaptainDrop ? (
             <span className="flex items-center gap-1.5 text-xs font-bold truncate px-1">
-              <span className="shrink-0 text-sm">🛵</span>
-              <span className="truncate">{riderName ? `Captain ${riderName} En Route · Awaiting Store Drop` : "Assigning Captain · Awaiting Store Drop 📦"}</span>
+              <Bike className="size-4 shrink-0 text-white" />
+              <span className="truncate">{riderName ? `Captain ${riderName} En Route · Awaiting Store Drop` : "Assigning Captain · Awaiting Store Drop"}</span>
             </span>
           ) : isReadyToConfirmHandover ? (
             <span className="flex items-center gap-1.5">
-              <span>📦</span>
+              <Package className="size-4 shrink-0" />
               <span>Confirm Handover from Captain</span>
             </span>
           ) : isReadyToStartProcessing ? (
-            <span>Start Processing 🧺</span>
+            <span>Start Processing</span>
           ) : isProcessing ? (
             <span>Order ready ({formatPrepTime(countdown)})</span>
           ) : isReady ? (
-            <span>Handover to Captain · Verify OTP 🛵</span>
+            <span>Handover to Captain · Verify OTP</span>
           ) : isOutForDelivery ? (
-            <span>Out for Delivery 🛵</span>
+            <span>Out for Delivery</span>
           ) : (
             <span>Order Completed ✓</span>
           )}

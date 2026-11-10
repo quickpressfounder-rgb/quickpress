@@ -38,11 +38,11 @@ export function QuickMerchantToolsBar({
     setRainModeActive(next);
     localStorage.setItem("qp_partner_rain_mode", String(next));
     if (next) {
-      toast.warning("🌧️ Rain / Bad Weather Mode Activated", {
+      toast.warning("Rain / Bad Weather Mode Activated", {
         description: "Delivery captains & dispatch engine notified of wet weather delays.",
       });
     } else {
-      toast.success("☀️ Normal Weather Mode Restored", {
+      toast.success("Normal Weather Mode Restored", {
         description: "Standard delivery SLA and dispatch timelines resumed.",
       });
     }
@@ -50,7 +50,7 @@ export function QuickMerchantToolsBar({
 
   const handleTestSound = () => {
     playUrgentSlaBuzzer();
-    toast.info("🔔 High-Priority Order Buzzer Sounding", {
+    toast.info("High-Priority Order Buzzer Sounding", {
       description: "Audio engine calibrated at max volume for laundry floor noise.",
     });
   };
@@ -107,7 +107,7 @@ export function QuickMerchantToolsBar({
               }`}
             >
               <CloudRain className={`size-4 ${rainModeActive ? "text-amber-600 animate-bounce" : "text-slate-400"}`} />
-              <span>{rainModeActive ? "🌧️ Rain Mode ON" : "Rain Mode"}</span>
+              <span>{rainModeActive ? "Rain Mode ON" : "Rain Mode"}</span>
             </button>
 
             {/* Speaker Buzzer Test */}

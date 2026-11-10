@@ -175,7 +175,7 @@ export function RiderWalletScreen() {
 
       if (isRefresh) {
         triggerHaptic();
-        toast.success(t("earnings.synced", "Wallet & Earnings Updated 🟢"));
+        toast.success(t("earnings.synced", "Wallet & Earnings Updated"));
       }
     } catch {
       toast.error("Failed to sync wallet data. Please check network.");
@@ -192,7 +192,7 @@ export function RiderWalletScreen() {
   // Real-time Socket.IO subscription for instant wallet balance & transactions updates
   useEffect(() => {
     const unsub = subscribeRiderWallet((data) => {
-      console.log("[RiderWalletScreen] ⚡ Realtime wallet update:", data);
+      console.log("[RiderWalletScreen] Realtime wallet update:", data);
       loadData(false);
     });
 
@@ -336,7 +336,7 @@ export function RiderWalletScreen() {
 
   return (
     <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-[#F4F5F7] shadow-xl overflow-hidden text-zinc-900 select-none font-sans">
-      {/* 1. Header Bar matching Rapido Screenshot 2: [ ← ] Earnings  [ 🎧 Help ] */}
+      {/* 1. Header Bar matching Rapido Screenshot 2: [ ← ] Earnings  [  Help ] */}
       <header
         className="sticky top-0 z-30 bg-white border-b border-zinc-200/70 shadow-2xs shrink-0 select-none"
         style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
@@ -689,7 +689,7 @@ export function RiderWalletScreen() {
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
               <div className="flex items-center gap-2">
                 <div className="size-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200 font-bold">
-                  ⚡
+                 
                 </div>
                 <div>
                   <h3 className="text-base font-black text-zinc-950">Captain Rate Card</h3>
@@ -784,7 +784,7 @@ export function RiderWalletScreen() {
                 className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-zinc-50 hover:bg-zinc-100 border border-zinc-200/80 transition-all text-left"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-lg">💬</span>
+                  <span className="size-4 text-zinc-500" />
                   <div>
                     <p className="text-xs font-black text-zinc-900">WhatsApp Captain Desk</p>
                     <p className="text-[10px] text-zinc-500 font-medium">Chat instantly with dispatch team</p>

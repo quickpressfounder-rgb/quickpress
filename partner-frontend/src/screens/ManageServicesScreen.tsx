@@ -53,14 +53,8 @@ import { fetchPartnerProfile, toggleStoreStatus } from "@/api/partner/partner-pr
 import { usePartnerResource } from "../hooks/use-partner-resource";
 import { usePartnerContext } from "../context/PartnerContext";
 
-function getServiceIcon(name: string, category?: string) {
-  const text = (name + " " + (category || "")).toLowerCase();
-  if (text.includes("iron") || text.includes("press")) return "⚡";
-  if (text.includes("dry")) return "👔";
-  if (text.includes("shoe") || text.includes("sneaker")) return "👟";
-  if (text.includes("curtain") || text.includes("blanket") || text.includes("duvet")) return "🪟";
-  if (text.includes("premium") || text.includes("delicate")) return "✨";
-  return "🧺";
+function getServiceIcon(_name: string, _category?: string) {
+  return "";
 }
 
 export function ManageServicesScreen() {
@@ -118,14 +112,14 @@ export function ManageServicesScreen() {
 
   const CATEGORY_TABS = useMemo(() => [
     { id: "all", label: `All (${services.length})` },
-    ...(pendingCount > 0 ? [{ id: "pending", label: `⏳ Pending (${pendingCount})` }] : []),
-    { id: "wash", label: "🧺 Wash & Fold" },
-    { id: "iron", label: "⚡ Steam Iron" },
-    { id: "dry", label: "👔 Dry Clean" },
-    { id: "shoe", label: "👟 Shoe Clean" },
-    { id: "offers", label: `🎁 Offers (${offers.length})` },
-    { id: "paused", label: `⏸ Paused (${services.length - trueLiveCount - pendingCount - rejectedCount})` },
-    ...(rejectedCount > 0 ? [{ id: "rejected", label: `❌ Rejected (${rejectedCount})` }] : []),
+    ...(pendingCount > 0 ? [{ id: "pending", label: `Pending (${pendingCount})` }] : []),
+    { id: "wash", label: "Wash & Fold" },
+    { id: "iron", label: "Steam Iron" },
+    { id: "dry", label: "Dry Clean" },
+    { id: "shoe", label: "Shoe Clean" },
+    { id: "offers", label: `Offers (${offers.length})` },
+    { id: "paused", label: `Paused (${services.length - trueLiveCount - pendingCount - rejectedCount})` },
+    ...(rejectedCount > 0 ? [{ id: "rejected", label: `Rejected (${rejectedCount})` }] : []),
   ], [services.length, pendingCount, rejectedCount, trueLiveCount, offers.length]);
 
   const visible = useMemo(() => {
@@ -345,7 +339,7 @@ export function ManageServicesScreen() {
                         )}
                         {svc.approvalStatus === "rejected" && (
                           <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[9px] font-black text-rose-800 shrink-0 border border-rose-300" title={svc.rejectionReason}>
-                            ❌ Rejected
+                            Rejected
                           </span>
                         )}
                       </div>

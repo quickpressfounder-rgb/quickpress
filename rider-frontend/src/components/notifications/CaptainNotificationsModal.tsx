@@ -73,7 +73,7 @@ export const CaptainNotificationsModal: React.FC<CaptainNotificationsModalProps>
       const granted = await requestOneSignalPermission();
       if (granted) {
         setPushStatus("granted");
-        toast.success("Push notifications enabled! 🔔 You'll receive real-time trip dispatches.");
+        toast.success("Push notifications enabled! You'll receive real-time trip dispatches.");
       } else {
         toast.info("Push notification permission was dismissed or blocked in browser settings.");
       }
@@ -86,11 +86,11 @@ export const CaptainNotificationsModal: React.FC<CaptainNotificationsModalProps>
     setIsTesting(true);
     try {
       await sendTestNotification(
-        "🛵 QuickPress Order Alert: Kasganj Hub",
+        "QuickPress Order Alert: Kasganj Hub",
         "New pickup request from Domino Kasganj. High priority trip — Earn ₹95!",
       );
       playArrivalChime();
-      toast.success("🔔 Dispatch notification sent & chime triggered!");
+      toast.success("Dispatch notification sent & chime triggered!");
       await loadItems();
       onNotificationChange?.();
     } catch {
@@ -247,7 +247,7 @@ export const CaptainNotificationsModal: React.FC<CaptainNotificationsModalProps>
                 title="Send simulated dispatch alert to verify siren & push"
               >
                 <Send className="w-3 h-3 text-amber-600" />
-                <span>{isTesting ? "Sending..." : "Test Push 🔔"}</span>
+                <span>{isTesting ? "Sending..." : "Test Push"}</span>
               </button>
             </div>
           </div>
@@ -259,9 +259,9 @@ export const CaptainNotificationsModal: React.FC<CaptainNotificationsModalProps>
             {(
               [
                 { id: "all", label: "All" },
-                { id: "orders", label: "Orders 🛵" },
-                { id: "earnings", label: "Earnings 💰" },
-                { id: "system", label: "System ⚡" },
+                { id: "orders", label: "Orders" },
+                { id: "earnings", label: "Earnings" },
+                { id: "system", label: "System" },
               ] as const
             ).map((tab) => (
               <button

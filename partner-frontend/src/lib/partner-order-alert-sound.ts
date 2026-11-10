@@ -304,7 +304,7 @@ export function triggerPartnerHaptic(): void {
 
 /**
  * Plays a single burst of the Laundromat Partner Commercial Chime.
- * ⚡ LATENCY: <0.001s (sub-millisecond) via pre-warmed AudioBuffer.
+ * LATENCY: <0.001s (sub-millisecond) via pre-warmed AudioBuffer.
  */
 export function playPartnerOrderChime(): void {
   try {
@@ -337,7 +337,7 @@ export function playPartnerOrderChime(): void {
       source.start(0);
     }
 
-    // ⚡ Native Screen Wakeup (Turns lockscreen ON via PowerManager)
+    // Native Screen Wakeup (Turns lockscreen ON via PowerManager)
     if (typeof window !== "undefined" && (window as any).QuickPressNativeBridge?.wakeScreen) {
       try {
         (window as any).QuickPressNativeBridge.wakeScreen();
@@ -394,7 +394,7 @@ export function startPartnerOrderAlertRing(): void {
 }
 
 /**
- * ⚡ INSTANT ZERO-LATENCY SILENCE KILL SWITCH (<0.001s):
+ * INSTANT ZERO-LATENCY SILENCE KILL SWITCH (<0.001s):
  * Immediately clamps master gain to 0, cancels all scheduled audio nodes,
  * pauses fallback HTML5 audio, and kills haptic vibration within 1ms.
  */
@@ -520,7 +520,7 @@ export async function acquirePartnerWakeLock(): Promise<void> {
         wakeLockSentinel.addEventListener("release", () => {
           wakeLockSentinel = null;
         });
-        console.log("[PartnerAudio] 🔆 Screen WakeLock active (merchant console stays awake)");
+        console.log("[PartnerAudio] Screen WakeLock active (merchant console stays awake)");
       }
     } catch (err) {
       console.debug("[PartnerAudio] WakeLock request notice:", err);

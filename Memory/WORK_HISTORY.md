@@ -473,3 +473,44 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
 - Verified `test_idempotency_double_click.py`, `test_wallet_concurrency.py`, `test_rider_concurrent_claim_lock.py`, `test_referral_engine_e2e.py`, `test_order_lifecycle_e2e.py` (17/17 tests passing).
 - Production build verified with zero errors for all 4 frontends (`customer-frontend`, `rider-frontend`, `partner-frontend`, `admin-frontend`).
 
+
+---
+
+## Date: 2026-11-10
+### Objectives Achieved:
+1. **Rider Delivery Kit Onboarding Step & Two Flexible Payment Schemes:**
+   - Added Step 7 Delivery Kit selection (`DeliveryKitSelectionStep.tsx`) to Rider Onboarding before Agreement:
+     - **Option 1: Full Payment** (₹1,200 upfront via Razorpay checkout, immediately marking `deliveryKit.paymentStatus = "paid_full"` and transitioning to agreement).
+     - **Option 2: Part Payment / Weekly EMI** (₹1,200 total kit price, ₹300 upfront via Razorpay with remaining ₹900 deducted as ₹300/week from Captain wallet payouts).
+   - In `backend-python/app/api/rider.py`:
+     - Added endpoints `POST /api/rider/onboarding/delivery-kit/select` and `POST /api/rider/onboarding/delivery-kit/verify-payment`.
+     - Secured with strict server-side validation, HMAC signature verification, and idempotency protection against bypass.
+   - In `admin-frontend/src/routes/settings.tsx` & `finance-engine.tsx`:
+     - Added dynamic Delivery Kit pricing settings under Finance Rules.
+   - In `admin-frontend/src/routes/delivery-kits.tsx`:
+     - Built dedicated Delivery Kit Management Section with live dispatch status, kit inventory, delivery courier tracking, and payment breakdown.
+
+2. **Legal Entity Centralization & 100% Dummy Data Elimination:**
+   - Purged all hardcoded dummy corporate numbers and entities (dummy CIN `U74999...`, GSTIN `09AADCB...`, PAN `AADCB...`, fake addresses `Sector 62 Noida / Kasganj`, fake phone numbers `1800-202-9988 / 1800 012 3456`, and fake signatory `Himanshu Pal`) across the entire repository (0 matches remaining).
+   - Centralized all statutory corporate data and agreements in Admin Panel Settings (`admin_settings` collection `_id: "global"`):
+     - Added live editors for 5 statutory documents in Tab 6 of `/settings`: Rider SLA Agreement, Partner Merchant SLA Agreement, Terms of Service, Privacy Policy, Return & Refund Policy.
+   - Connected `backend-python/app/api/public.py` (`/api/public/company-legal-profile` and `/api/public/legal/{doc_slug}`) to serve Admin-configured data dynamically.
+   - Updated PDF generators (`invoice_pdf_generator.py`, `rider_agreement_pdf_generator.py`, `partner_agreement_pdf_generator.py`) and settlement exporters to query the live `admin_settings_repository`.
+   - Wired Rider, Partner, Customer, and Admin frontends to show only Admin-configured legal details, rendering clean dashes (`"—"`) or "Pending configuration" when unset.
+
+3. **Complete Cartoon Icon / Emoji Purge (Zero Emoji Policy Across Entire Platform):**
+   - Permanently removed cartoon emojis across all 4 frontend applications (`admin-frontend`, `partner-frontend`, `rider-frontend`, `customer-frontend`).
+   - Replaced all emojis in category cards, action buttons, modals, badges, dropdowns, and tabs with sleek Lucide SVG vector icons (`LucideIcon`) or corporate typography.
+   - Specific user-highlighted elements cleaned:
+     - Admin dashboard category care cards (replaced 👕, 👔, 🧥, 🥻, 👟, 🛏️, 👜, ⭐, 📦 with Lucide icons).
+     - Refresh/reload emoji `🔄` replaced with Lucide `<RotateCw />`.
+     - Bank building emoji `🏦` replaced with Lucide `<Landmark />` / `<Building2 />`.
+     - Defect category emojis (🔴, ✂️, 🔘, 🎨, ⚠️, 🧷) replaced with clean Lucide icons.
+     - 0 cartoon emoji occurrences remaining in any frontend codebase.
+
+4. **Verification & Testing:**
+   - `admin-frontend` production build verified (`vite build` exit code 0).
+   - `rider-frontend` production build verified (`vite build` exit code 0).
+   - `partner-frontend` production build verified (`vite build` exit code 0).
+   - `customer-frontend` production build verified (`vite build` exit code 0).
+   - Backend pytest suite `backend-python/tests/test_rider_delivery_kit.py` passed (5/5 tests passing).

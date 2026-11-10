@@ -132,7 +132,7 @@ export const GlobalOrderDispatchListener: React.FC = () => {
       setActiveFlashOffer(flashData);
 
       if (isExpress) {
-        toast.warning(`⚡ EXPRESS PICKUP ALERT! +₹${riderBonus} Captain Bonus Shamil Hai!`, {
+        toast.warning(`EXPRESS PICKUP ALERT! +₹${riderBonus} Captain Bonus Shamil Hai!`, {
           duration: 5000,
         });
       }
@@ -183,7 +183,7 @@ export const GlobalOrderDispatchListener: React.FC = () => {
             stopOrderAlertSound();
             activeFlashOfferRef.current = null;
             setActiveFlashOffer(null);
-            toast.info("⚡ Yeh order kisi aur Captain ne accept kar liya!");
+            toast.info("Yeh order kisi aur Captain ne accept kar liya!");
           }
         }
       }
@@ -205,7 +205,7 @@ export const GlobalOrderDispatchListener: React.FC = () => {
             stopOrderAlertSound();
             activeFlashOfferRef.current = null;
             setActiveFlashOffer(null);
-            toast.error("❌ Yeh order customer/store dwara cancel kar diya gaya.");
+            toast.error("Yeh order customer/store dwara cancel kar diya gaya.");
           }
         }
       }

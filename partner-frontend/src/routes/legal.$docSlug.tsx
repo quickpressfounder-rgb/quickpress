@@ -57,8 +57,15 @@ function PartnerLegalDocScreen() {
   const { docSlug } = useParams({ from: "/legal/$docSlug" });
   const navigate = useNavigate();
   const [doc, setDoc] = useState<PublicLegalDoc | null>(null);
+  const [companyProfile, setCompanyProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiGetJson<any>("/api/public/company-legal-profile", { anonymous: true })
+      .then((res) => setCompanyProfile(res))
+      .catch(() => null);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -203,16 +210,16 @@ function PartnerLegalDocScreen() {
                 Statutory Compliance
               </h3>
               <p className="text-slate-500 leading-relaxed">
-                Operating Entity: <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong><br />
-                CIN: <strong>U74999UP2024PTC198141</strong><br />
-                Registered Office: <strong>0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India</strong>
+                Operating Entity: <strong>{companyProfile?.legalName || "QuickPress Platform"}</strong><br />
+                {companyProfile?.cin ? <>CIN: <strong>{companyProfile.cin}</strong><br /></> : null}
+                Registered Office: <strong>{companyProfile?.registeredAddress || "Platform Operations Desk"}</strong>
               </p>
               <div className="pt-2 border-t border-slate-100 space-y-1">
                 <a
-                  href="mailto:info@withquickpress.com"
+                  href={`mailto:${companyProfile?.supportEmail || "official.quickpress@gmail.com"}`}
                   className="flex items-center gap-1.5 text-emerald-700 hover:underline font-semibold"
                 >
-                  <Mail className="size-3.5" /> info@withquickpress.com
+                  <Mail className="size-3.5" /> {companyProfile?.supportEmail || "official.quickpress@gmail.com"}
                 </a>
               </div>
             </div>

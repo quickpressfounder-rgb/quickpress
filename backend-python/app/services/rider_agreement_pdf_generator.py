@@ -1,8 +1,8 @@
 """QuickPress Master Delivery Captain Franchise & Service Level Agreement (SLA) PDF Generator.
 
 Generates an official, legally-binding 3-page bilateral delivery partner agreement PDF:
-- Corporate: QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
-- Authorized Signatory: Himanshu Pal (Director / Authorized Signatory)
+- Corporate: Configured Platform Entity
+- Authorized Signatory: Platform Authorized Signatory
 - Official Seal Stamp: Circular company seal with 3 stars
 - Delivery Captain: Full Name, Verified Email, Phone, DL No, Vehicle RC, Bank Account
 - Core SLA Clauses: Cash Remittance (COD float within 24 hrs), Garment Integrity, Road Safety, Payouts
@@ -182,24 +182,36 @@ def generate_rider_agreement_pdf(data: Dict[str, Any]) -> bytes:
     sig_url = data.get("signatureUrl") or data.get("agreementSignature") or ""
     signed_at = _safe_str(data.get("signedAt") or data.get("agreementSignedAt"), datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC"))
 
-    company_name = os.getenv("COMPANY_LEGAL_NAME", "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED")
-    signatory_name = os.getenv("COMPANY_SIGNATORY_NAME", "Himanshu Pal")
-    comp_cin = "U74999UP2024PTC198141"
-    comp_gstin = "09AADCB1234K1Z8"
-    comp_pan = "AADCB1234K"
-    comp_address = "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India"
+    company_name = os.getenv("COMPANY_LEGAL_NAME", "")
+    signatory_name = os.getenv("COMPANY_SIGNATORY_NAME", "")
+    signatory_designation = ""
+    comp_cin = ""
+    comp_gstin = ""
+    comp_pan = ""
+    comp_address = ""
+    comp_email = "official.quickpress@gmail.com"
+    comp_rider_agreement = ""
     try:
         from app.db.admin_repositories import admin_settings_repository
         comp = admin_settings_repository.default_settings.get("company", {})
         if comp:
             company_name = comp.get("legalName") or company_name
             signatory_name = comp.get("authorizedSignatoryName") or signatory_name
+            signatory_designation = comp.get("authorizedSignatoryDesignation") or signatory_designation
             comp_cin = comp.get("cin") or comp_cin
             comp_gstin = comp.get("gstin") or comp_gstin
             comp_pan = comp.get("pan") or comp_pan
             comp_address = comp.get("registeredAddress") or comp_address
+            comp_email = comp.get("supportEmail") or comp.get("corporateEmail") or comp_email
+            comp_rider_agreement = comp.get("riderAgreement") or ""
     except Exception:
         pass
+
+    company_name = company_name or "QuickPress"
+    signatory_name = signatory_name or "Authorized Signatory"
+    signatory_designation = signatory_designation or "Platform Authorized Signatory"
+    comp_cin_str = f"CIN: {comp_cin} · " if comp_cin else ""
+    comp_address_str = f"Regd. Office: {comp_address}" if comp_address else "Platform Operations"
 
     agreement_ref = _safe_str(data.get("agreementRef"), f"QP-CAPTAIN-SLA-2026-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M')}")
 
@@ -208,7 +220,7 @@ def generate_rider_agreement_pdf(data: Dict[str, Any]) -> bytes:
     # =========================================================================
     header_table_data = [
         [
-            Paragraph(f"<b>{company_name}</b><br/><font size=7 color='#64748b'>CIN: {comp_cin} · Regd. Office: {comp_address}</font>", p_body),
+            Paragraph(f"<b>{company_name}</b><br/><font size=7 color='#64748b'>{comp_cin_str}{comp_address_str}</font>", p_body),
             Paragraph(f"<b>Reference:</b> {agreement_ref}<br/><b>Captain ID:</b> {rider_id}<br/><b>Date:</b> {signed_at[:11]}", p_small),
         ]
     ]
@@ -341,8 +353,8 @@ def generate_rider_agreement_pdf(data: Dict[str, Any]) -> bytes:
         seal_flowable or Paragraph("<b>[OFFICIAL CORPORATE SEAL]</b>", p_small),
         Spacer(1, 4),
         Paragraph(f"<b>Authorized Signatory:</b> {signatory_name}", p_small),
-        Paragraph("<b>Designation:</b> Director / Logistics Operations", p_small),
-        Paragraph("<b>Email:</b> info@withquickpress.com", p_small),
+        Paragraph(f"<b>Designation:</b> {signatory_designation}", p_small),
+        Paragraph(f"<b>Email:</b> {comp_email}", p_small),
         Paragraph(f"<b>Timestamp:</b> {signed_at[:11]} · Digital Verified", p_small),
     ]
 

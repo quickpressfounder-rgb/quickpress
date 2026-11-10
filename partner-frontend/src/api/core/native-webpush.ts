@@ -116,7 +116,7 @@ export async function triggerTestWebPush(): Promise<boolean> {
     const res = await apiPostJson<{ ok: boolean; sentCount: number }>(
       "/api/notifications/webpush/test",
       {
-        title: "⚡ Partner Store Push Working!",
+        title: "Partner Store Push Working!",
         body: "Order notifications will now appear directly on your desktop/browser screen.",
         url: "/orders",
       }

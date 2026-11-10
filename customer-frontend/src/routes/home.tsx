@@ -940,14 +940,14 @@ function HomeScreen() {
                   <h2 className="text-[2.6rem] font-black leading-[0.95] tracking-tight text-muted-foreground/35">
                     India&rsquo;s freshest
                     <br />
-                    laundry app <span className="text-primary/35">🧺</span>
+                    laundry app 
                   </h2>
                   <div className="mt-8 h-px w-full bg-border/40" />
                   <p className="mt-6 text-3xl font-black tracking-tight text-muted-foreground/25">
                     QuickPress
                   </p>
                   <p className="mt-6 text-[11px] font-medium tracking-wide text-muted-foreground/70">
-                    Made In India · Crafted by Uttar Pradesh 🚩
+                    Made In India · Crafted by Uttar Pradesh
                   </p>
                 </section>
               </>

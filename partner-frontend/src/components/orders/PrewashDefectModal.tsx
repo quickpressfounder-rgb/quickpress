@@ -8,6 +8,14 @@ import {
   Image as ImageIcon,
   Loader2,
   Trash2,
+  AlertCircle,
+  Scissors,
+  Disc,
+  Palette,
+  Flame,
+  Paperclip,
+  HelpCircle,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { DefectType, GarmentDefect } from "@/shared/types/partner";
@@ -22,14 +30,14 @@ interface PrewashDefectModalProps {
   onDefectReported: (defect: GarmentDefect) => void;
 }
 
-const DEFECT_CATEGORIES: { id: DefectType; label: string; icon: string }[] = [
-  { id: "stain", label: "Stain / Daag", icon: "🔴" },
-  { id: "torn_or_cut", label: "Torn / Cut / Hole", icon: "✂️" },
-  { id: "broken_button", label: "Broken Button", icon: "🔘" },
-  { id: "color_bleed_risk", label: "Color Bleed Risk", icon: "🎨" },
-  { id: "burn_mark", label: "Burn / Iron Mark", icon: "⚠️" },
-  { id: "missing_accessory", label: "Missing Part / Belt", icon: "🧷" },
-  { id: "other", label: "Other Defect", icon: "❓" },
+const DEFECT_CATEGORIES: { id: DefectType; label: string; icon: LucideIcon }[] = [
+  { id: "stain", label: "Stain / Daag", icon: AlertCircle },
+  { id: "torn_or_cut", label: "Torn / Cut / Hole", icon: Scissors },
+  { id: "broken_button", label: "Broken Button", icon: Disc },
+  { id: "color_bleed_risk", label: "Color Bleed Risk", icon: Palette },
+  { id: "burn_mark", label: "Burn / Iron Mark", icon: Flame },
+  { id: "missing_accessory", label: "Missing Part / Belt", icon: Paperclip },
+  { id: "other", label: "Other Defect", icon: HelpCircle },
 ];
 
 export function PrewashDefectModal({
@@ -198,6 +206,7 @@ export function PrewashDefectModal({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {DEFECT_CATEGORIES.map((cat) => {
                 const isSelected = selectedCategory === cat.id;
+                const IconComp = cat.icon;
                 return (
                   <button
                     key={cat.id}
@@ -209,7 +218,7 @@ export function PrewashDefectModal({
                         : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
                     }`}
                   >
-                    <span className="text-sm">{cat.icon}</span>
+                    <IconComp className={`w-4 h-4 shrink-0 ${isSelected ? "text-white" : "text-zinc-600"}`} />
                     <span className="truncate">{cat.label}</span>
                   </button>
                 );

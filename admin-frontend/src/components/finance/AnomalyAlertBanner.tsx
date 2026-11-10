@@ -65,7 +65,7 @@ export function AnomalyAlertBanner({ onSelectAnomaly }: AnomalyAlertBannerProps)
               </Badge>
               {data.criticalCount > 0 && (
                 <Badge className="bg-red-600 text-white font-extrabold text-[10px] px-2 animate-pulse">
-                  🔴 {data.criticalCount} Critical
+                  {data.criticalCount} Critical
                 </Badge>
               )}
             </div>

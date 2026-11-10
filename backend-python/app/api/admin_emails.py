@@ -246,7 +246,7 @@ async def list_merchant_agreements(
     from app.db.admin_repositories import get_company_legal_profile
     comp_profile = await get_company_legal_profile()
     active_signatory = comp_profile.get("authorizedSignatoryName") or settings.company_signatory_name or "Himanshu Pal"
-    active_legal_name = comp_profile.get("legalName") or settings.company_legal_name or "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"
+    active_legal_name = comp_profile.get("legalName") or settings.company_legal_name or "QuickPress"
 
     # 1. Fetch from partner_agreements
     agreements = await database.find_many("partner_agreements", {}, limit=limit) or []

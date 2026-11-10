@@ -268,7 +268,7 @@ export function ZomatoHubView() {
     toggleOnline();
     toast.success(
       nextState
-        ? "⚡ Store is now ONLINE! Ready to receive laundry orders."
+        ? "Store is now ONLINE! Ready to receive laundry orders."
         : "Store is now OFFLINE. New customer orders are paused."
     );
   };
@@ -582,7 +582,7 @@ export function ZomatoHubView() {
               </button>
             )}
 
-            {/* Hamburger Menu ☰ -> Opens Explore More Sheet */}
+            {/* Hamburger Menu  -> Opens Explore More Sheet */}
             <button
               type="button"
               onClick={() => setShowExploreMoreDrawer(true)}
@@ -831,7 +831,7 @@ export function ZomatoHubView() {
                           </h4>
                           <p className="text-[11px] font-bold text-black flex items-center gap-1.5">
                             <span className="text-black font-black">
-                              ★ {order.customerRating && order.customerRating > 0 ? order.customerRating.toFixed(1) : "5.0"}
+                              {order.customerRating && order.customerRating > 0 ? order.customerRating.toFixed(1) : "5.0"}
                             </span>
                             <span>•</span>
                             <span>{order.customerOrders ? `${order.customerOrders} orders` : "Verified Customer"}</span>
@@ -1055,7 +1055,7 @@ export function ZomatoHubView() {
                           onClick={() => handleAction(order, "start_washing")}
                           className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-black hover:bg-zinc-800 py-2.5 px-3 text-xs font-black text-white active:scale-95 shadow-xs transition-all cursor-pointer"
                         >
-                          <span>Start Cleaning 🧺</span>
+                          <span>Start Cleaning</span>
                           <ArrowRight className="size-3.5" />
                         </button>
                       ) : order.stage === "washing" || order.stage === "dry_cleaning" || order.stage === "ironing" ? (
@@ -1411,7 +1411,7 @@ export function ZomatoHubView() {
                     type="button"
                     onClick={() => {
                       setIsRushHour((prev) => !prev);
-                      toast.success(!isRushHour ? "⚡ Rush Hour turned ON (+15 min buffer)" : "Rush Hour turned OFF");
+                      toast.success(!isRushHour ? "Rush Hour turned ON (+15 min buffer)" : "Rush Hour turned OFF");
                     }}
                     className={`flex flex-col items-center justify-center rounded-xl border p-2.5 text-center shadow-xs active:scale-95 transition-transform cursor-pointer ${
                       isRushHour ? "bg-amber-50 border-amber-300 text-amber-900" : "bg-white border-zinc-200 text-black hover:bg-zinc-50"

@@ -48,16 +48,13 @@ except Exception:
     FONT_BOLD = "Helvetica-Bold"
 
 
-# Company Legal Defaults (Configurable via backend environment variables)
-COMPANY_LEGAL_NAME = os.getenv("COMPANY_LEGAL_NAME", "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED")
+# Company Legal Defaults (Configured by Administrator in Admin Settings)
+COMPANY_LEGAL_NAME = os.getenv("COMPANY_LEGAL_NAME", "")
 COMPANY_TRADE_NAME = "QuickPress"
-COMPANY_CIN = os.getenv("COMPANY_CIN", "U74999UP2024PTC198141")
-COMPANY_PAN = os.getenv("COMPANY_PAN", "AADCB1234K")
-COMPANY_GSTIN = os.getenv("COMPANY_GSTIN", "09AADCB1234K1Z8")
-COMPANY_ADDRESS = os.getenv(
-    "COMPANY_ADDRESS",
-    "Pioneer Tech Park, Near Highway, Kasganj, Uttar Pradesh - 207123, India",
-)
+COMPANY_CIN = os.getenv("COMPANY_CIN", "")
+COMPANY_PAN = os.getenv("COMPANY_PAN", "")
+COMPANY_GSTIN = os.getenv("COMPANY_GSTIN", "")
+COMPANY_ADDRESS = os.getenv("COMPANY_ADDRESS", "")
 COMPANY_EMAIL = os.getenv("COMPANY_EMAIL", "official.quickpress@gmail.com")
 COMPANY_STATE = os.getenv("COMPANY_STATE", "Uttar Pradesh")
 COMPANY_STATE_CODE = os.getenv("COMPANY_STATE_CODE", "09")
@@ -66,12 +63,12 @@ COMPANY_STATE_CODE = os.getenv("COMPANY_STATE_CODE", "09")
 def get_live_company_profile(override: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Dynamically resolves live legal entity details, PAN, CIN, GSTIN, and registered address from admin settings."""
     profile = {
-        "legal_name": COMPANY_LEGAL_NAME,
+        "legal_name": COMPANY_LEGAL_NAME or "QuickPress",
         "trade_name": COMPANY_TRADE_NAME,
-        "cin": COMPANY_CIN,
-        "pan": COMPANY_PAN,
-        "gstin": COMPANY_GSTIN,
-        "address": COMPANY_ADDRESS,
+        "cin": COMPANY_CIN or "—",
+        "pan": COMPANY_PAN or "—",
+        "gstin": COMPANY_GSTIN or "—",
+        "address": COMPANY_ADDRESS or "—",
         "email": COMPANY_EMAIL,
         "state": COMPANY_STATE,
         "state_code": COMPANY_STATE_CODE,
@@ -80,15 +77,24 @@ def get_live_company_profile(override: Optional[Dict[str, Any]] = None) -> Dict[
         from app.db.admin_repositories import admin_settings_repository
         comp = admin_settings_repository.default_settings.get("company", {})
         if comp:
-            profile["legal_name"] = comp.get("legalName") or profile["legal_name"]
-            profile["trade_name"] = comp.get("brandName") or profile["trade_name"]
-            profile["cin"] = comp.get("cin") or profile["cin"]
-            profile["pan"] = comp.get("pan") or profile["pan"]
-            profile["gstin"] = comp.get("gstin") or profile["gstin"]
-            profile["address"] = comp.get("registeredAddress") or profile["address"]
-            profile["email"] = comp.get("supportEmail") or comp.get("corporateEmail") or profile["email"]
-            profile["state"] = comp.get("state") or profile["state"]
-            profile["state_code"] = comp.get("stateCode") or profile["state_code"]
+            if comp.get("legalName"):
+                profile["legal_name"] = comp["legalName"]
+            if comp.get("brandName"):
+                profile["trade_name"] = comp["brandName"]
+            if comp.get("cin"):
+                profile["cin"] = comp["cin"]
+            if comp.get("pan"):
+                profile["pan"] = comp["pan"]
+            if comp.get("gstin"):
+                profile["gstin"] = comp["gstin"]
+            if comp.get("registeredAddress"):
+                profile["address"] = comp["registeredAddress"]
+            if comp.get("supportEmail") or comp.get("corporateEmail"):
+                profile["email"] = comp.get("supportEmail") or comp.get("corporateEmail")
+            if comp.get("state"):
+                profile["state"] = comp["state"]
+            if comp.get("stateCode"):
+                profile["state_code"] = comp["stateCode"]
     except Exception:
         pass
 
@@ -1339,10 +1345,11 @@ def generate_settlement_statement_csv(data: Dict[str, Any]) -> str:
     tcs_val = float(taxD.get("tcsGst", 0.0))
 
     # Section 1: Header Meta
+    comp_live = get_live_company_profile()
     writer.writerow(["QUICKPRESS MERCHANT SETTLEMENT STATEMENT", ""])
-    writer.writerow(["Platform", "QuickPress Technologies Pvt. Ltd."])
-    writer.writerow(["Platform GSTIN", "09AAHCR1710J1ZE"])
-    writer.writerow(["Platform PAN", "AAHCR1710J"])
+    writer.writerow(["Platform", comp_live.get("legal_name") or "QuickPress"])
+    writer.writerow(["Platform GSTIN", comp_live.get("gstin") or "—"])
+    writer.writerow(["Platform PAN", comp_live.get("pan") or "—"])
     writer.writerow(["Store Name", b_name])
     writer.writerow(["Partner ID", p_id])
     writer.writerow(["Owner Name", owner])
@@ -1437,10 +1444,11 @@ def generate_commission_invoice_csv(data: Dict[str, Any]) -> str:
     writer.writerow(["Date of Issue", inv_date])
     writer.writerow(["Billing Period", period])
     writer.writerow(["Place of Supply", "09 - Uttar Pradesh"])
-    writer.writerow(["Issuer", "QuickPress Technologies Pvt. Ltd."])
-    writer.writerow(["Issuer GSTIN", "09AAHCR1710J1ZE"])
-    writer.writerow(["Issuer PAN", "AAHCR1710J"])
-    writer.writerow(["Issuer Address", "Registered Corporate Office"])
+    comp_live = get_live_company_profile()
+    writer.writerow(["Issuer", comp_live.get("legal_name") or "QuickPress"])
+    writer.writerow(["Issuer GSTIN", comp_live.get("gstin") or "—"])
+    writer.writerow(["Issuer PAN", comp_live.get("pan") or "—"])
+    writer.writerow(["Issuer Address", comp_live.get("address") or "Registered Corporate Office"])
     writer.writerow(["Recipient / Partner Store", partner_name])
     writer.writerow(["Partner ID", partner_id])
     writer.writerow(["Partner GSTIN", partner_gst])

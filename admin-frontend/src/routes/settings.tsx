@@ -81,34 +81,39 @@ export function SettingsPage() {
       return {
         brandName: "QuickPress",
         tagline: "Hyperlocal On-Demand Laundry & Garment Care Platform",
-        legalName: "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
-        cin: "U74999UP2024PTC198141",
-        pan: "AADCB1234K",
-        gstin: "09AADCB1234K1Z8",
-        registeredAddress: "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India",
-        operatingAddress: "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India",
+        legalName: "",
+        cin: "",
+        pan: "",
+        gstin: "",
+        registeredAddress: "",
+        operatingAddress: "",
         supportEmail: "official.quickpress@gmail.com",
-        corporateEmail: "info@withquickpress.com",
-        legalEmail: "legal@withquickpress.com",
-        supportPhone: "+91 90000 00000",
-        tollFreePhone: "1800 012 3456",
-        grievanceOfficerName: "Himanshu Pal",
-        grievanceOfficerPhone: "+91 90000 00000",
-        authorizedSignatoryName: "Himanshu Pal",
-        authorizedSignatoryDesignation: "Director & Authorized Signatory",
+        corporateEmail: "",
+        legalEmail: "",
+        supportPhone: "",
+        tollFreePhone: "",
+        grievanceOfficerName: "",
+        grievanceOfficerPhone: "",
+        authorizedSignatoryName: "",
+        authorizedSignatoryDesignation: "",
         digitalSignatureUrl: "",
         companySealUrl: "",
         state: "Uttar Pradesh",
         stateCode: "09",
-        websiteUrl: "https://withquickpress.com",
-        privacyPolicyUrl: "https://withquickpress.com/#privacy",
-        termsUrl: "https://withquickpress.com/#terms",
-        grievanceUrl: "https://withquickpress.com/#contact",
-        refundPolicyUrl: "https://withquickpress.com/#refund",
+        websiteUrl: "",
+        privacyPolicyUrl: "",
+        termsUrl: "",
+        grievanceUrl: "",
+        refundPolicyUrl: "",
         coiDocUrl: "",
         gstCertDocUrl: "",
         panCardDocUrl: "",
         msmeDocUrl: "",
+        riderAgreement: "",
+        partnerAgreement: "",
+        termsAndConditions: "",
+        privacyPolicy: "",
+        refundPolicy: "",
       };
     }
     return draft.company;
@@ -146,7 +151,7 @@ export function SettingsPage() {
   const saveMutation = useMutation({
     mutationFn: (newSettings: AdminSettings) => saveSettings({ settings: newSettings, scope: "global" }),
     onSuccess: () => {
-      toast.success("Corporate Profile & Statutory Legal Documents saved live across QuickPress! 🎉");
+      toast.success("Corporate Profile & Statutory Legal Documents saved live across QuickPress!");
       settingsQuery.refetch();
     },
     onError: (err: any) => {
@@ -252,28 +257,28 @@ export function SettingsPage() {
             <div className="p-3.5 rounded-xl bg-zinc-50/80 border border-zinc-200/70 space-y-1">
               <div className="flex items-center justify-between text-[11px] font-bold text-zinc-500">
                 <span>GSTIN NUMBER</span>
-                <span className="size-2 rounded-full bg-emerald-500" />
+                <span className={`size-2 rounded-full ${company.gstin ? "bg-emerald-500" : "bg-amber-400"}`} />
               </div>
-              <div className="text-sm font-black text-zinc-900 font-mono tracking-tight truncate">{company.gstin || "09AADCB1234K1Z8"}</div>
-              <div className="text-[10px] text-emerald-700 font-bold">15-Digit Verified · GSTR-1/3B Active</div>
+              <div className="text-sm font-black text-zinc-900 font-mono tracking-tight truncate">{company.gstin || "Pending Configuration"}</div>
+              <div className="text-[10px] text-zinc-500 font-medium">{company.gstin ? "15-Digit Verified · GSTR Active" : "Add in Entity & Tax tab"}</div>
             </div>
 
             <div className="p-3.5 rounded-xl bg-zinc-50/80 border border-zinc-200/70 space-y-1">
               <div className="flex items-center justify-between text-[11px] font-bold text-zinc-500">
                 <span>CIN / PAN RECORD</span>
-                <span className="size-2 rounded-full bg-emerald-500" />
+                <span className={`size-2 rounded-full ${company.pan ? "bg-emerald-500" : "bg-amber-400"}`} />
               </div>
-              <div className="text-sm font-black text-zinc-900 font-mono tracking-tight truncate">{company.pan || "AADCB1234K"}</div>
-              <div className="text-[10px] text-zinc-400 font-mono truncate">CIN: {company.cin || "U74999UP2024PTC198141"}</div>
+              <div className="text-sm font-black text-zinc-900 font-mono tracking-tight truncate">{company.pan || "PAN Pending"}</div>
+              <div className="text-[10px] text-zinc-400 font-mono truncate">CIN: {company.cin || "Pending"}</div>
             </div>
 
             <div className="p-3.5 rounded-xl bg-zinc-50/80 border border-zinc-200/70 space-y-1">
               <div className="flex items-center justify-between text-[11px] font-bold text-zinc-500">
                 <span>AUTHORIZED SIGNATORY</span>
-                <span className="size-2 rounded-full bg-emerald-500" />
+                <span className={`size-2 rounded-full ${company.authorizedSignatoryName ? "bg-emerald-500" : "bg-amber-400"}`} />
               </div>
-              <div className="text-sm font-black text-zinc-900 truncate">{company.authorizedSignatoryName || "Himanshu Pal"}</div>
-              <div className="text-[10px] text-zinc-400 truncate">{company.authorizedSignatoryDesignation || "Director & Signatory"}</div>
+              <div className="text-sm font-black text-zinc-900 truncate">{company.authorizedSignatoryName || "Signatory Pending"}</div>
+              <div className="text-[10px] text-zinc-400 truncate">{company.authorizedSignatoryDesignation || "Designation Pending"}</div>
             </div>
           </div>
         </div>
@@ -347,24 +352,24 @@ export function SettingsPage() {
                     Official Issuer
                   </span>
                 </div>
-                <div className="text-xs font-bold text-zinc-800">{company.legalName || "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"}</div>
+                <div className="text-xs font-bold text-zinc-800">{company.legalName || "Legal Name Pending Configuration"}</div>
                 <div className="text-[11px] text-zinc-500 max-w-xl leading-relaxed">
-                  <strong>Regd. Office:</strong> {company.registeredAddress || "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India"}
+                  <strong>Regd. Office:</strong> {company.registeredAddress || "Address to be configured by platform administrator"}
                 </div>
               </div>
 
               <div className="text-left sm:text-right space-y-0.5 font-mono text-[11px] text-zinc-600 bg-zinc-50 sm:bg-transparent p-3 sm:p-0 rounded-lg border sm:border-0 border-zinc-100">
                 <div>
                   <span className="text-zinc-400 font-sans font-bold text-[10px] uppercase">GSTIN: </span>
-                  <strong className="text-zinc-950">{company.gstin || "09AADCB1234K1Z8"}</strong>
+                  <strong className="text-zinc-950">{company.gstin || "Pending"}</strong>
                 </div>
                 <div>
                   <span className="text-zinc-400 font-sans font-bold text-[10px] uppercase">PAN: </span>
-                  <strong className="text-zinc-900">{company.pan || "AADCB1234K"}</strong>
+                  <strong className="text-zinc-900">{company.pan || "Pending"}</strong>
                 </div>
                 <div>
                   <span className="text-zinc-400 font-sans font-bold text-[10px] uppercase">CIN: </span>
-                  <span className="text-zinc-800">{company.cin || "U74999UP2024PTC198141"}</span>
+                  <span className="text-zinc-800">{company.cin || "Pending"}</span>
                 </div>
                 <div>
                   <span className="text-zinc-400 font-sans font-bold text-[10px] uppercase">Place of Supply: </span>
@@ -408,7 +413,7 @@ export function SettingsPage() {
             { id: "contact", label: "Communications & Grievance", icon: Mail, desc: "Emails, Toll-Free & Nodal Officer" },
             { id: "signatory", label: "Signatory & Digital Seal", icon: PenTool, desc: "Director Signature & Seal" },
             { id: "documents", label: "Legal Document Vault", icon: FileCheck2, desc: "COI, GST REG-06, PAN Proofs" },
-            { id: "policies", label: "Public Legal Policies", icon: Scale, desc: "Privacy, Terms & Grievance URLs" },
+            { id: "policies", label: "Legal Policies & SLAs", icon: Scale, desc: "Master SLA Agreements, Privacy & Terms" },
           ].map((tab) => {
             const Icon = tab.icon;
             const isSelected = activeTab === tab.id;
@@ -468,7 +473,7 @@ export function SettingsPage() {
                 <Input
                   value={company.legalName}
                   onChange={(e) => updateCompanyField("legalName", e.target.value.toUpperCase())}
-                  placeholder="e.g. QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"
+                  placeholder="e.g. Registered Legal Entity Name Private Limited"
                   className="h-10 text-xs font-black uppercase bg-white font-mono"
                 />
                 <p className="text-[10px] text-zinc-400">
@@ -494,7 +499,7 @@ export function SettingsPage() {
                   value={company.gstin}
                   maxLength={15}
                   onChange={(e) => updateCompanyField("gstin", e.target.value.trim().toUpperCase())}
-                  placeholder="e.g. 09AADCB1234K1Z8"
+                  placeholder="e.g. 09AAAAA0000A1Z5"
                   className="h-10 text-xs font-black uppercase bg-white font-mono tracking-wider"
                 />
                 <p className="text-[10px] text-zinc-400">
@@ -520,7 +525,7 @@ export function SettingsPage() {
                   value={company.cin}
                   maxLength={21}
                   onChange={(e) => updateCompanyField("cin", e.target.value.trim().toUpperCase())}
-                  placeholder="e.g. U74999UP2024PTC198141"
+                  placeholder="e.g. U00000XX0000PTC000000"
                   className="h-10 text-xs font-black uppercase bg-white font-mono tracking-wider"
                 />
                 <p className="text-[10px] text-zinc-400">
@@ -546,7 +551,7 @@ export function SettingsPage() {
                   value={company.pan}
                   maxLength={10}
                   onChange={(e) => updateCompanyField("pan", e.target.value.trim().toUpperCase())}
-                  placeholder="e.g. AADCB1234K"
+                  placeholder="e.g. AAAAA0000A"
                   className="h-10 text-xs font-black uppercase bg-white font-mono tracking-wider"
                 />
                 <p className="text-[10px] text-zinc-400">
@@ -743,7 +748,7 @@ export function SettingsPage() {
                 <Input
                   value={company.tollFreePhone}
                   onChange={(e) => updateCompanyField("tollFreePhone", e.target.value)}
-                  placeholder="1800 012 3456"
+                  placeholder="1800-XXX-XXXX"
                   className="h-10 text-xs font-bold bg-white"
                 />
                 <p className="text-[10px] text-zinc-400">Toll-free helpline for pan-India customer queries.</p>
@@ -1075,6 +1080,146 @@ export function SettingsPage() {
                   className="h-10 text-xs font-mono font-bold bg-white"
                 />
                 <p className="text-[10px] text-zinc-400">Governs damaged garments, re-washes, and wallet refunds.</p>
+              </div>
+            </div>
+
+            {/* MASTER LEGAL AGREEMENTS & POLICY TEXT DOCUMENTS */}
+            <div className="pt-4 border-t border-zinc-200 space-y-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <FileText className="size-4" />
+                  </span>
+                  <h4 className="text-sm font-black text-zinc-950">Master Legal Documents &amp; SLA Text</h4>
+                </div>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Configure full legal text for onboarding agreements and statutory disclosures. All partner apps and rider onboarding steps dynamically consume these exact contents.
+                </p>
+              </div>
+
+              {/* Document 1: Delivery Captain Agreement */}
+              <div className="p-4 rounded-xl bg-zinc-50/70 border border-zinc-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-xs font-bold text-zinc-900">Delivery Captain SLA &amp; Code of Conduct (Rider Agreement)</Label>
+                    <p className="text-[11px] text-zinc-500">Presented to Delivery Captains during Step 7 of onboarding before digital signature and OTP verification.</p>
+                  </div>
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-bold border",
+                    company.riderAgreement?.trim()
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-amber-50 text-amber-700 border-amber-200"
+                  )}>
+                    {company.riderAgreement?.trim() ? `${company.riderAgreement.trim().split(/\s+/).length} Words` : "Not Configured (Placeholder Active)"}
+                  </span>
+                </div>
+                <Textarea
+                  value={company.riderAgreement || ""}
+                  onChange={(e) => updateCompanyField("riderAgreement", e.target.value)}
+                  placeholder="Paste or write the complete Delivery Captain Agreement here. Include service standards, payout schedules, COD float rules, insurance disclaimers, and termination policies..."
+                  rows={8}
+                  className="font-mono text-xs bg-white text-zinc-900 border-zinc-200 leading-relaxed resize-y"
+                />
+              </div>
+
+              {/* Document 2: Laundromat Partner Agreement */}
+              <div className="p-4 rounded-xl bg-zinc-50/70 border border-zinc-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-xs font-bold text-zinc-900">Laundromat Merchant Partner Agreement (Partner SLA)</Label>
+                    <p className="text-[11px] text-zinc-500">Presented to Laundromat store owners during Step 6 of onboarding before drawing digital signature.</p>
+                  </div>
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-bold border",
+                    company.partnerAgreement?.trim()
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-amber-50 text-amber-700 border-amber-200"
+                  )}>
+                    {company.partnerAgreement?.trim() ? `${company.partnerAgreement.trim().split(/\s+/).length} Words` : "Not Configured (Placeholder Active)"}
+                  </span>
+                </div>
+                <Textarea
+                  value={company.partnerAgreement || ""}
+                  onChange={(e) => updateCompanyField("partnerAgreement", e.target.value)}
+                  placeholder="Paste or write the complete Laundromat Merchant Agreement here. Include platform commission terms, garment care standards, turnaround SLAs, liability for shrinkage or fabric damage, and T+2 settlement terms..."
+                  rows={8}
+                  className="font-mono text-xs bg-white text-zinc-900 border-zinc-200 leading-relaxed resize-y"
+                />
+              </div>
+
+              {/* Document 3: Terms & Conditions */}
+              <div className="p-4 rounded-xl bg-zinc-50/70 border border-zinc-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-xs font-bold text-zinc-900">Terms &amp; Conditions (Customer &amp; Platform TOS)</Label>
+                    <p className="text-[11px] text-zinc-500">Presented on customer app, booking receipts, and statutory compliance pages.</p>
+                  </div>
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-bold border",
+                    company.termsAndConditions?.trim()
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-amber-50 text-amber-700 border-amber-200"
+                  )}>
+                    {company.termsAndConditions?.trim() ? `${company.termsAndConditions.trim().split(/\s+/).length} Words` : "Not Configured"}
+                  </span>
+                </div>
+                <Textarea
+                  value={company.termsAndConditions || ""}
+                  onChange={(e) => updateCompanyField("termsAndConditions", e.target.value)}
+                  placeholder="Paste or write the Customer Terms of Service here..."
+                  rows={6}
+                  className="font-mono text-xs bg-white text-zinc-900 border-zinc-200 leading-relaxed resize-y"
+                />
+              </div>
+
+              {/* Document 4: Privacy Policy */}
+              <div className="p-4 rounded-xl bg-zinc-50/70 border border-zinc-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-xs font-bold text-zinc-900">Privacy Policy</Label>
+                    <p className="text-[11px] text-zinc-500">Data protection, location access, payment tokenization, and grievance contact disclosures.</p>
+                  </div>
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-bold border",
+                    company.privacyPolicy?.trim()
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-amber-50 text-amber-700 border-amber-200"
+                  )}>
+                    {company.privacyPolicy?.trim() ? `${company.privacyPolicy.trim().split(/\s+/).length} Words` : "Not Configured"}
+                  </span>
+                </div>
+                <Textarea
+                  value={company.privacyPolicy || ""}
+                  onChange={(e) => updateCompanyField("privacyPolicy", e.target.value)}
+                  placeholder="Paste or write the Privacy Policy terms here..."
+                  rows={6}
+                  className="font-mono text-xs bg-white text-zinc-900 border-zinc-200 leading-relaxed resize-y"
+                />
+              </div>
+
+              {/* Document 5: Return, Cancellation & Refund Policy */}
+              <div className="p-4 rounded-xl bg-zinc-50/70 border border-zinc-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-xs font-bold text-zinc-900">Return, Cancellation &amp; Refund Policy</Label>
+                    <p className="text-[11px] text-zinc-500">Refund timelines, re-wash warranty, lost garment compensation grid, and wallet credit rules.</p>
+                  </div>
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-bold border",
+                    company.refundPolicy?.trim()
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-amber-50 text-amber-700 border-amber-200"
+                  )}>
+                    {company.refundPolicy?.trim() ? `${company.refundPolicy.trim().split(/\s+/).length} Words` : "Not Configured"}
+                  </span>
+                </div>
+                <Textarea
+                  value={company.refundPolicy || ""}
+                  onChange={(e) => updateCompanyField("refundPolicy", e.target.value)}
+                  placeholder="Paste or write the Return, Cancellation & Refund Policy here..."
+                  rows={6}
+                  className="font-mono text-xs bg-white text-zinc-900 border-zinc-200 leading-relaxed resize-y"
+                />
               </div>
             </div>
           </div>

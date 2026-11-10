@@ -26,7 +26,7 @@ export const CaptainInstructionSlides: React.FC<CaptainInstructionSlidesProps> =
         "All your earnings go straight to your wallet. Zero platform deductions!"
       ),
       icon: ShieldCheck,
-      highlight: t("slides.1.highlight", "Daily Direct Bank Payouts 💰"),
+      highlight: t("slides.1.highlight", "Daily Direct Bank Payouts"),
       color: "emerald",
     },
     {
@@ -38,7 +38,7 @@ export const CaptainInstructionSlides: React.FC<CaptainInstructionSlidesProps> =
         "Receive instant orders on your mobile with live GPS tracking."
       ),
       icon: Zap,
-      highlight: t("slides.2.highlight", "High Demand in Work Zones 📍"),
+      highlight: t("slides.2.highlight", "High Demand in Work Zones"),
       color: "amber",
     },
     {
@@ -50,7 +50,7 @@ export const CaptainInstructionSlides: React.FC<CaptainInstructionSlidesProps> =
         "Work whenever you want. Turn ON DUTY and earn on your schedule."
       ),
       icon: Clock,
-      highlight: t("slides.3.highlight", "Be Your Own Boss 🛵"),
+      highlight: t("slides.3.highlight", "Be Your Own Boss"),
       color: "blue",
     },
   ];

@@ -150,7 +150,7 @@ export const HELP_TOPICS: HelpTopic[] = [
 
 export const SUPPORT_CONTACT: SupportContact = {
   phone: "+918000123456",
-  phoneLabel: "1800 012 3456",
+  phoneLabel: "—",
   whatsapp: "918000123456",
   email: "support@quickpress.in",
   appVersion: "2.11.0",

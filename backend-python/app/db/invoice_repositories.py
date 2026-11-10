@@ -59,7 +59,7 @@ LEGACY_ORDERS = "orders"
 COUNTERS = "counters"
 
 #: Billing entity — QuickPress GSTIN (Canonical UP GSTIN)
-COMPANY_GSTIN = os.getenv("COMPANY_GSTIN", "09AADCB1234K1Z8")
+COMPANY_GSTIN = os.getenv("COMPANY_GSTIN", "")
 TAX_RATE = 18.0
 
 PAYMENT_LABELS: Dict[str, str] = {

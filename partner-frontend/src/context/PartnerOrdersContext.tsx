@@ -493,7 +493,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
           return o;
         });
 
-        // ⚡ Deduplicate orders strictly by id (Requirement 4: No duplicate orders)
+        // Deduplicate orders strictly by id (Requirement 4: No duplicate orders)
         const dedupMap = new Map<string, ManagedOrder>();
         for (const o of reconciled) {
           if (!dedupMap.has(o.id)) {
@@ -591,7 +591,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
     rebindPartnerSocket();
 
     const unsub = subscribePartnerOrders((data) => {
-      console.log("[PartnerOrdersContext] ⚡ Fast Socket order event received:", data);
+      console.log("[PartnerOrdersContext] Fast Socket order event received:", data);
 
       const rawOrder = data?.order || data;
       const orderId = String(rawOrder?.id || rawOrder?._id || data?.orderId || "").trim();
@@ -612,7 +612,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
           (!orderId || !acceptedOrderIds.current.has(orderId)) &&
           (!orderId || !cancelledOrderIds.current.has(orderId))
         ) {
-          console.log("[PartnerOrdersContext] 🚀 INSTANT ZERO-LAG ORDER DISPLAY for:", code);
+          console.log("[PartnerOrdersContext] INSTANT ZERO-LAG ORDER DISPLAY for:", code);
           if (orderId) seenOrderIdsRef.current.add(orderId);
           setSeenOrderIds((prev) => new Set([...prev, orderId || code]));
 
@@ -749,7 +749,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
       acceptedOrderIds.current.add(orderId);
       writePersistedSet(ACCEPTED_ORDERS_KEY, acceptedOrderIds.current);
 
-      // ⚡ INSTANTANEOUS OPTIMISTIC ACTION (0ms lag):
+      // INSTANTANEOUS OPTIMISTIC ACTION (0ms lag):
       setOrders((prev) =>
         prev.map((o) =>
           o.id === orderId
@@ -833,7 +833,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
     const handleAcceptFromNotification = (e: any) => {
       const targetCode = String(e?.detail?.code || "").trim();
       if (!targetCode) return;
-      console.log("[PartnerOrdersContext] 🔔 Received qp:partner:accept_order from system notification:", targetCode);
+      console.log("[PartnerOrdersContext] Received qp:partner:accept_order from system notification:", targetCode);
       stopOrderAlarm();
 
       setOrders((prev) => {
@@ -848,7 +848,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
     const handleViewFromNotification = (e: any) => {
       const targetCode = String(e?.detail?.code || "").trim();
       if (!targetCode) return;
-      console.log("[PartnerOrdersContext] 🔔 Received qp:partner:view_order from system notification:", targetCode);
+      console.log("[PartnerOrdersContext] Received qp:partner:view_order from system notification:", targetCode);
 
       setOrders((prev) => {
         const found = prev.find((o) => o.code === targetCode || o.id === targetCode);
@@ -861,7 +861,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
 
     const handleSwMessage = (event: MessageEvent) => {
       if (event.data?.type === "QP_ACCEPT_ORDER" && event.data?.orderId) {
-        console.log("[PartnerOrdersContext] 🔔 Received QP_ACCEPT_ORDER from ServiceWorker:", event.data.orderId);
+        console.log("[PartnerOrdersContext] Received QP_ACCEPT_ORDER from ServiceWorker:", event.data.orderId);
         stopOrderAlarm();
         void acceptOrder(event.data.orderId);
       }
@@ -888,7 +888,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
       writePersistedSet(HANDOVER_CONFIRMED_ORDERS_KEY, confirmedHandoverIds.current);
       setConfirmedHandoverIdsState(new Set(confirmedHandoverIds.current));
 
-      // ⚡ INSTANTANEOUS OPTIMISTIC ACTION:
+      // INSTANTANEOUS OPTIMISTIC ACTION:
       // Mark handover confirmed and keep at store so "Start Processing" button displays immediately
       setOrders((prev) =>
         prev.map((o) =>
@@ -904,7 +904,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
 
       try {
         await confirmHandoverOrder(orderId);
-        toast.success("📦 Laundry Handover Confirmed! Received from Captain.");
+        toast.success("Laundry Handover Confirmed! Received from Captain.");
       } catch (err) {
         console.error("[PartnerOrdersContext] confirmHandover error:", err);
       }
@@ -918,7 +918,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
       processingOrderIds.current.add(orderId);
       writePersistedSet(PROCESSING_ORDERS_KEY, processingOrderIds.current);
 
-      // ⚡ INSTANTANEOUS OPTIMISTIC ACTION (0ms lag):
+      // INSTANTANEOUS OPTIMISTIC ACTION (0ms lag):
       // Immediately advances to "washing" so the next step button ("Mark Ready for Delivery") appears!
       setOrders((prev) =>
         prev.map((o) =>
@@ -943,7 +943,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
       readyOrderIds.current.add(orderId);
       writePersistedSet(READY_ORDERS_KEY, readyOrderIds.current);
 
-      // ⚡ INSTANTANEOUS OPTIMISTIC ACTION (0ms lag):
+      // INSTANTANEOUS OPTIMISTIC ACTION (0ms lag):
       // Immediately advances to "ready"
       setOrders((prev) =>
         prev.map((o) =>

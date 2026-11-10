@@ -107,7 +107,7 @@ export const CaptainRouteBookingModal: React.FC<CaptainRouteBookingModalProps> =
       notifyChange(res.state);
       toast.success(
         nextActive
-          ? "Route Booking Active! 🚀 Only on-route orders will be dispatched."
+          ? "Route Booking Active! Only on-route orders will be dispatched."
           : "Route Booking Paused. Normal citywide orders resumed."
       );
     } catch {
@@ -134,7 +134,7 @@ export const CaptainRouteBookingModal: React.FC<CaptainRouteBookingModalProps> =
       if (res.ok) {
         setState(res.state);
         notifyChange(res.state);
-        toast.success(`Destination set to ${dest.name} 📍`);
+        toast.success(`Destination set to ${dest.name}`);
       }
     } catch {
       toast.error("Failed to update route destination.");
@@ -165,7 +165,7 @@ export const CaptainRouteBookingModal: React.FC<CaptainRouteBookingModalProps> =
         setSelectedDest(res.destination);
         setIsCustomMode(false);
         notifyChange(res.state);
-        toast.success(`Custom destination saved: ${customName} 📍`);
+        toast.success(`Custom destination saved: ${customName}`);
       }
     } catch {
       toast.error("Failed to save custom destination.");
@@ -226,7 +226,7 @@ export const CaptainRouteBookingModal: React.FC<CaptainRouteBookingModalProps> =
                       : "bg-zinc-100 text-zinc-600 border-zinc-200"
                   }`}
                 >
-                  {isActive ? "ACTIVE 🟢" : "INACTIVE"}
+                  {isActive ? "ACTIVE" : "INACTIVE"}
                 </span>
               </div>
               <p className="text-[11px] text-zinc-500 font-medium">

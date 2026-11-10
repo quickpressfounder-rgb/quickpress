@@ -88,7 +88,7 @@ export function RiderVerificationScreen() {
           }, "rider");
         }
         triggerHaptic();
-        toast.success("🎉 Congratulations! Your Captain account has been approved by Admin!");
+        toast.success("Congratulations! Your Captain account has been approved by Admin!");
         setTimeout(() => {
           navigate({ to: "/dashboard", replace: true });
         }, 1000);
@@ -100,7 +100,7 @@ export function RiderVerificationScreen() {
         if (res.kycStatus === "rejected") {
           toast.error("Application rejected. Please see rejection reason below.");
         } else {
-          toast.info("Status checked: Under admin verification ⏳");
+          toast.info("Status checked: Under admin verification");
         }
       }
     } catch {
@@ -123,7 +123,7 @@ export function RiderVerificationScreen() {
   // Real-time Socket.IO subscription for instant Admin Approval event
   useEffect(() => {
     const unsub = subscribeRiderStatus((statusData) => {
-      console.log("[RiderVerificationScreen] ⚡ Realtime rider status:", statusData);
+      console.log("[RiderVerificationScreen] Realtime rider status:", statusData);
       loadStatus(true);
     });
 
@@ -198,7 +198,7 @@ export function RiderVerificationScreen() {
             <div>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                 <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Verification Approved ✅</span>
+                <span>Verification Approved</span>
               </span>
               <h2 className="text-xl font-black text-slate-900 mt-2">
                 Welcome to QuickPress Captain!
@@ -216,7 +216,7 @@ export function RiderVerificationScreen() {
               }}
               className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 active:scale-98 text-white font-black text-sm shadow-md shadow-emerald-500/25 transition-all"
             >
-              <span>Enter Captain Dashboard 🚀</span>
+              <span>Enter Captain Dashboard</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </section>
@@ -273,7 +273,7 @@ export function RiderVerificationScreen() {
             <div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-200">
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <span>Under Admin Verification ⏳</span>
+                <span>Under Admin Verification</span>
               </span>
               <h2 className="text-lg font-black text-slate-900 mt-2">
                 Application Under Review
@@ -312,7 +312,7 @@ export function RiderVerificationScreen() {
               className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-amber-400 hover:bg-amber-500 active:scale-98 text-slate-950 font-black text-xs shadow-xs transition-all cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-              <span>{refreshing ? "Checking Admin Status..." : "Check Status Now 🔄"}</span>
+              <span>{refreshing ? "Checking Admin Status..." : "Check Status Now"}</span>
             </button>
 
             {/* Update / Re-Fill Button for Pending Application */}
@@ -451,10 +451,10 @@ export function RiderVerificationScreen() {
               }`}
             >
               {isApproved
-                ? "All 5 Verified ✅"
+                ? "All 5 Verified"
                 : isRejected
-                ? "Action Required ⚠️"
-                : "Documents In Review ⏳"}
+                ? "Action Required"
+                : "Documents In Review"}
             </span>
           </div>
 
@@ -510,7 +510,7 @@ export function RiderVerificationScreen() {
                         <span className="font-bold text-slate-800">{doc.name}</span>
                         {docIsRejected && (
                           <span className="block text-[10px] text-red-600 font-bold">
-                            ⚠️ Verification Failed
+                            Verification Failed
                           </span>
                         )}
                       </div>

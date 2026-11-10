@@ -2095,9 +2095,9 @@ async def get_rider_support() -> dict:
     settings = await admin_settings_repository.get(scope="global") or {}
     platform_info = settings.get("platform") or {}
 
-    helpline_phone = platform_info.get("supportPhone") or settings.get("supportPhone") or "1800 012 3456"
+    helpline_phone = platform_info.get("supportPhone") or settings.get("supportPhone") or ""
     if not helpline_phone or "90000 00000" in helpline_phone or "9000000000" in helpline_phone or "92587 30561" in helpline_phone or "99978 74502" in helpline_phone or "9997874502" in helpline_phone:
-        helpline_phone = "1800 012 3456"
+        helpline_phone = ""
     support_email = platform_info.get("supportEmail") or settings.get("supportEmail") or "support@quickpress.app"
 
     return {

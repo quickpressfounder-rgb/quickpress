@@ -218,7 +218,7 @@ export const RiderTripDetailModal: React.FC<RiderTripDetailModalProps> = ({
       navigator.clipboard.writeText(text);
       triggerHaptic(20);
       setCopiedKey(key);
-      toast.success(`${label} copied! 📋`);
+      toast.success(`${label} copied!`);
       setTimeout(() => setCopiedKey(null), 2000);
     } catch {
       toast.error("Unable to copy to clipboard");

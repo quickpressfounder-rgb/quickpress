@@ -796,12 +796,12 @@ export function CustomersPage() {
                   <SelectValue placeholder="Sort By" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="newest">🕒 Newest Registered</SelectItem>
-                  <SelectItem value="spend">💰 Highest Total Spend</SelectItem>
-                  <SelectItem value="wallet">👛 Highest Wallet Balance</SelectItem>
-                  <SelectItem value="orders">📦 Most Orders</SelectItem>
-                  <SelectItem value="active">⚡ Recently Active / Logged In</SelectItem>
-                  <SelectItem value="name">🔤 Name (A - Z)</SelectItem>
+                  <SelectItem value="newest">Newest Registered</SelectItem>
+                  <SelectItem value="spend">Highest Total Spend</SelectItem>
+                  <SelectItem value="wallet">Highest Wallet Balance</SelectItem>
+                  <SelectItem value="orders">Most Orders</SelectItem>
+                  <SelectItem value="active">Recently Active / Logged In</SelectItem>
+                  <SelectItem value="name">Name (A - Z)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -847,7 +847,7 @@ export function CustomersPage() {
                             </span>
                             {r.isVip && (
                               <span className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-amber-400 text-amber-950 text-[9px] font-black border border-white shadow-xs">
-                                ★
+                                
                               </span>
                             )}
                           </div>
@@ -1013,7 +1013,7 @@ export function CustomersPage() {
                                 </span>
                                 {r.isVip && (
                                   <span className="absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full bg-amber-400 text-amber-950 text-[8px] font-black border border-white">
-                                    ★
+                                    
                                   </span>
                                 )}
                               </div>
@@ -1353,7 +1353,7 @@ function Customer360FullPageView({
               </span>
               {customer.isVip && (
                 <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-amber-400 text-amber-950 text-[10px] font-black border-2 border-white shadow-xs">
-                  ★
+                  
                 </span>
               )}
             </div>

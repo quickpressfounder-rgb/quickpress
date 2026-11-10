@@ -111,7 +111,7 @@ export function EditServiceScreen({ serviceId }: { serviceId: string }) {
               )}
               {service.approvalStatus === "rejected" && (
                 <div className="mb-4 rounded-2xl bg-rose-50 border border-rose-200 p-3.5 text-xs text-rose-900 font-medium">
-                  ❌ <strong>Admin Rejected:</strong> {service.rejectionReason || "Verification failed. Please update the details and resubmit."}
+                  <strong>Admin Rejected:</strong> {service.rejectionReason || "Verification failed. Please update the details and resubmit."}
                 </div>
               )}
 

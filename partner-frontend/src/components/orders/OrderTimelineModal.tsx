@@ -45,7 +45,7 @@ export const OrderTimelineModal: React.FC<OrderTimelineModalProps> = ({
   const handleCopyCode = () => {
     try {
       navigator.clipboard.writeText(orderCode);
-      toast.success(`Order code #${orderCode} copied! 📋`);
+      toast.success(`Order code #${orderCode} copied!`);
     } catch {}
   };
 
@@ -127,7 +127,7 @@ export const OrderTimelineModal: React.FC<OrderTimelineModalProps> = ({
         {/* Footer */}
         <div className="p-3.5 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between">
           <span className="text-[11px] font-semibold text-zinc-500">
-            SLA Monitored in Real-Time ⚡
+            SLA Monitored in Real-Time
           </span>
           <button
             type="button"

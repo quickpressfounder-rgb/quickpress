@@ -379,7 +379,7 @@ export function CouponsPage() {
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
-    toast.success(`Coupon code ${code} copied to clipboard! 📋`);
+    toast.success(`Coupon code ${code} copied to clipboard!`);
   };
 
   const handleExportCSV = () => {
@@ -433,7 +433,7 @@ export function CouponsPage() {
     a.download = `QuickPress_Advanced_Coupons_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Coupons directory exported as CSV! 🚀");
+    toast.success("Coupons directory exported as CSV!");
   };
 
   const handleExportLedgerCSV = () => {
@@ -473,7 +473,7 @@ export function CouponsPage() {
     a.download = `QuickPress_Coupon_Redemptions_Ledger_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Full redemptions history exported as CSV! 🚀");
+    toast.success("Full redemptions history exported as CSV!");
   };
 
   return (
@@ -489,10 +489,10 @@ export function CouponsPage() {
               <SelectValue placeholder="All Cities" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="All Cities">🌐 All Operating Cities</SelectItem>
+              <SelectItem value="All Cities">All Operating Cities</SelectItem>
               {availableCities.map((c) => (
                 <SelectItem key={c.id} value={c.city}>
-                  📍 {c.city} ({c.state})
+                  {c.city} ({c.state})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -602,31 +602,31 @@ export function CouponsPage() {
                   value="coupons"
                   className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs"
                 >
-                  🏷️ Active Promo Codes & Campaigns ({allCoupons.length})
+                  Active Promo Codes & Campaigns ({allCoupons.length})
                 </TabsTrigger>
                 <TabsTrigger
                   value="redemptions_ledger"
                   className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs"
                 >
-                  📜 All Redemptions & User History ({allRedemptions.length})
+                  All Redemptions & User History ({allRedemptions.length})
                 </TabsTrigger>
                 <TabsTrigger
                   value="city_performance"
                   className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs"
                 >
-                  🏙️ City-Wise Campaign Performance
+                  City-Wise Campaign Performance
                 </TabsTrigger>
                 <TabsTrigger
                   value="referral_program"
                   className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs"
                 >
-                  🎁 Referral Program Rules & Rewards
+                  Referral Program Rules & Rewards
                 </TabsTrigger>
                 <TabsTrigger
                   value="referral_history"
                   className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs"
                 >
-                  👥 Customer Referral Log ({referralsList.length})
+                  Customer Referral Log ({referralsList.length})
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -666,10 +666,10 @@ export function CouponsPage() {
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">🛡️ All Status</SelectItem>
-                    <SelectItem value="active">🟢 Active & Live</SelectItem>
-                    <SelectItem value="paused">⏸️ Paused</SelectItem>
-                    <SelectItem value="expired">⏳ Expired</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active & Live</SelectItem>
+                    <SelectItem value="paused">Paused</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -679,10 +679,10 @@ export function CouponsPage() {
                     <SelectValue placeholder="All Discount Types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">🏷️ All Types</SelectItem>
+                    <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="percentage">% Percentage</SelectItem>
                     <SelectItem value="flat">₹ Flat Discount</SelectItem>
-                    <SelectItem value="free_delivery">🚚 Free Delivery</SelectItem>
+                    <SelectItem value="free_delivery">Free Delivery</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -692,10 +692,10 @@ export function CouponsPage() {
                     <SelectValue placeholder="All Cities" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="All Cities">🌐 All Cities</SelectItem>
+                    <SelectItem value="All Cities">All Cities</SelectItem>
                     {availableCities.map((c) => (
                       <SelectItem key={c.id} value={c.city}>
-                        📍 {c.city}
+                        {c.city}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -707,11 +707,11 @@ export function CouponsPage() {
                     <SelectValue placeholder="Validity Date" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">📅 All Dates</SelectItem>
-                    <SelectItem value="active_today">⚡ Valid Today</SelectItem>
-                    <SelectItem value="expiring_7d">⚠️ Expiring in 7 Days</SelectItem>
-                    <SelectItem value="expiring_30d">🗓️ Expiring in 30 Days</SelectItem>
-                    <SelectItem value="expired">❌ Expired</SelectItem>
+                    <SelectItem value="all">All Dates</SelectItem>
+                    <SelectItem value="active_today">Valid Today</SelectItem>
+                    <SelectItem value="expiring_7d">Expiring in 7 Days</SelectItem>
+                    <SelectItem value="expiring_30d">Expiring in 30 Days</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -749,11 +749,11 @@ export function CouponsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="used_desc">🔥 Most Redemptions</SelectItem>
-                      <SelectItem value="savings_desc">💰 Most Savings Disbursed</SelectItem>
-                      <SelectItem value="value_desc">🏷️ Highest Discount Value</SelectItem>
-                      <SelectItem value="expiry_asc">⏳ Expiring Soonest</SelectItem>
-                      <SelectItem value="newest">✨ Recently Created</SelectItem>
+                      <SelectItem value="used_desc">Most Redemptions</SelectItem>
+                      <SelectItem value="savings_desc">Most Savings Disbursed</SelectItem>
+                      <SelectItem value="value_desc">Highest Discount Value</SelectItem>
+                      <SelectItem value="expiry_asc">Expiring Soonest</SelectItem>
+                      <SelectItem value="newest">Recently Created</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -840,7 +840,7 @@ export function CouponsPage() {
                       <div className="text-xs space-y-1">
                         {cities.length === 0 ? (
                           <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 border border-blue-200">
-                            🌐 All Operating Cities
+                            All Operating Cities
                           </span>
                         ) : (
                           <div className="flex flex-wrap gap-1 max-w-[160px]">
@@ -1056,7 +1056,7 @@ export function CouponsPage() {
                     <SelectValue placeholder="All Promo Codes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">🏷️ All Promo Codes</SelectItem>
+                    <SelectItem value="all">All Promo Codes</SelectItem>
                     {distinctCouponCodes.map((code) => (
                       <SelectItem key={code} value={code}>
                         {code}
@@ -1071,7 +1071,7 @@ export function CouponsPage() {
                     <SelectValue placeholder="All Cities" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">📍 All Operating Cities</SelectItem>
+                    <SelectItem value="all">All Operating Cities</SelectItem>
                     {distinctRedemptionCities.map((city) => (
                       <SelectItem key={city} value={city}>
                         {city}
@@ -1086,11 +1086,11 @@ export function CouponsPage() {
                     <SelectValue placeholder="Date Range" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">📅 All Time Activity</SelectItem>
-                    <SelectItem value="today">⚡ Today</SelectItem>
-                    <SelectItem value="yesterday">⏳ Yesterday</SelectItem>
-                    <SelectItem value="7d">🗓️ Last 7 Days</SelectItem>
-                    <SelectItem value="30d">📆 Last 30 Days</SelectItem>
+                    <SelectItem value="all">All Time Activity</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="yesterday">Yesterday</SelectItem>
+                    <SelectItem value="7d">Last 7 Days</SelectItem>
+                    <SelectItem value="30d">Last 30 Days</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1519,7 +1519,7 @@ function CreateCouponDialog({
       });
     },
     onSuccess: () => {
-      toast.success("New promo campaign created successfully! 🎉");
+      toast.success("New promo campaign created successfully!");
       setOpen(false);
       setCode("");
       setDescription("");
@@ -1563,7 +1563,7 @@ function CreateCouponDialog({
                 onClick={handleGenerateCode}
                 className="text-[10px] font-bold text-emerald-700 hover:underline cursor-pointer"
               >
-                ⚡ Auto-Generate Code
+                Auto-Generate Code
               </button>
             </div>
             <Input
@@ -1585,7 +1585,7 @@ function CreateCouponDialog({
                 <SelectContent>
                   <SelectItem value="percentage">% Percentage Discount</SelectItem>
                   <SelectItem value="flat">₹ Flat Discount</SelectItem>
-                  <SelectItem value="free_delivery">🚚 100% Free Delivery</SelectItem>
+                  <SelectItem value="free_delivery">100% Free Delivery</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1832,7 +1832,7 @@ function EditCouponDialog({
         description,
       }),
     onSuccess: () => {
-      toast.success("Coupon updated successfully! 🎉");
+      toast.success("Coupon updated successfully!");
       onClose();
       queryClient.invalidateQueries({ queryKey: ["admin", "coupons"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "coupons", "stats"] });
@@ -1884,8 +1884,8 @@ function EditCouponDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Active">● Active & Live</SelectItem>
-                  <SelectItem value="Paused">⏸️ Paused</SelectItem>
-                  <SelectItem value="Expired">⏳ Expired</SelectItem>
+                  <SelectItem value="Paused">Paused</SelectItem>
+                  <SelectItem value="Expired">Expired</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2029,7 +2029,7 @@ function RedemptionsAuditModal({
     a.download = `Coupon_${coupon.code}_Redemptions_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Redemptions audit log exported! 🚀");
+    toast.success("Redemptions audit log exported!");
   };
 
   return (
@@ -2197,7 +2197,7 @@ function ReferralSettingsForm({ initialSettings }: { initialSettings?: ReferralP
         headline,
       }),
     onSuccess: () => {
-      toast.success("Customer referral program rules updated! 🎉");
+      toast.success("Customer referral program rules updated!");
       queryClient.invalidateQueries({ queryKey: ["admin", "referral-settings"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "referral-stats"] });
     },

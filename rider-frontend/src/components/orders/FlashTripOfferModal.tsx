@@ -176,7 +176,7 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
       } catch {}
 
       playSuccessChime();
-      toast.success(`🎉 Trip Accepted!`);
+      toast.success(`Trip Accepted!`);
       onAccepted(offer.orderId, offer);
     } catch (err: any) {
       console.warn("[FlashModal] Accept order error:", err);
@@ -189,7 +189,7 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
         /already accepted|already assigned|another|claimed|not available/i.test(err?.message || "");
 
       if (isConflict) {
-        toast.error("❌ Yeh trip kisi aur Captain ne accept kar li!", { duration: 4000 });
+        toast.error("Yeh trip kisi aur Captain ne accept kar li!", { duration: 4000 });
         onDeclined(offer.orderId);
       } else {
         try {
@@ -197,7 +197,7 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
           localStorage.setItem("qp_active_rider_order", JSON.stringify(offer));
         } catch {}
         playSuccessChime();
-        toast.success(`🎉 Trip Accepted (Offline)!`);
+        toast.success(`Trip Accepted (Offline)!`);
         onAccepted(offer.orderId, offer);
       }
     } finally {
@@ -232,25 +232,25 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
   const etaMins = offer.estimatedArrivalMinutes || Math.max(2, Math.round(pickupDist * 2.8));
   const waveBadgeConfig = {
     1: {
-      badgeText: offer.proximityBadge || `🟢 Ultra-Local • ${pickupDist} km (~${etaMins} min arrival)`,
+      badgeText: offer.proximityBadge || `Ultra-Local • ${pickupDist} km (~${etaMins} min arrival)`,
       subText: "Priority Pod: Fast pickup near you",
       pillClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
       dotClass: "bg-emerald-500 animate-pulse",
     },
     2: {
-      badgeText: offer.proximityBadge || `⚡ Nearby Zone • ${pickupDist} km (~${etaMins} min arrival)`,
+      badgeText: offer.proximityBadge || `Nearby Zone • ${pickupDist} km (~${etaMins} min arrival)`,
       subText: "Neighboring Zone: Cascaded to nearby fleet",
       pillClass: "bg-amber-50 text-amber-700 border-amber-200",
       dotClass: "bg-amber-500",
     },
     3: {
-      badgeText: offer.proximityBadge || `🛵 Citywide Fleet • ${pickupDist} km (~${etaMins} min arrival)`,
+      badgeText: offer.proximityBadge || `Citywide Fleet • ${pickupDist} km (~${etaMins} min arrival)`,
       subText: "Citywide Fleet Dispatch",
       pillClass: "bg-blue-50 text-blue-700 border-blue-200",
       dotClass: "bg-blue-500",
     },
   }[waveNumber as 1 | 2 | 3] || {
-    badgeText: `🟢 Fast Dispatch • ${pickupDist} km`,
+    badgeText: `Fast Dispatch • ${pickupDist} km`,
     subText: "Nearest Captain Dispatch",
     pillClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
     dotClass: "bg-emerald-500",
@@ -295,7 +295,7 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
             {/* Itemized Fare Rate Breakdown from Distance Rate Engine */}
             {offer.fareBreakdownText && (
               <div className="text-[10px] font-semibold text-zinc-600 bg-zinc-100/80 px-2 py-0.5 rounded-md border border-zinc-200/60 w-fit mt-1">
-                🧾 {offer.fareBreakdownText}
+                {offer.fareBreakdownText}
               </div>
             )}
           </div>

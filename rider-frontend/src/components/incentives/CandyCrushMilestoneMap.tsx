@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Award,
+  Bike,
   CheckCircle2,
   ChevronRight,
   Flame,
@@ -265,7 +266,7 @@ export const CandyCrushMilestoneMap: React.FC<CandyCrushMilestoneMapProps> = ({
                   {/* Floating Level Status Tag / Floating Bike Avatar for In-Progress */}
                   {lvl.status === "in_progress" && (
                     <div className="mb-1.5 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-zinc-900 text-white text-[10px] font-black shadow-lg animate-bounce">
-                      <span>🛵</span>
+                      <Bike className="w-3 h-3 text-zinc-950" />
                       <span>YOUR CURRENT TARGET</span>
                     </div>
                   )}
@@ -368,14 +369,14 @@ export const CandyCrushMilestoneMap: React.FC<CandyCrushMilestoneMapProps> = ({
                     {/* Claimed Pill */}
                     {lvl.status === "claimed" && (
                       <span className="mt-1 text-[9px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
-                        Claimed ✅
+                        Claimed
                       </span>
                     )}
 
                     {/* Progress Indicator for In-Progress */}
                     {lvl.status === "in_progress" && (
                       <span className="mt-1 text-[9px] font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
-                        {lvl.ridesRemaining} more to go 🎯
+                        {lvl.ridesRemaining} more to go
                       </span>
                     )}
                   </div>
@@ -480,7 +481,7 @@ export const CandyCrushMilestoneMap: React.FC<CandyCrushMilestoneMapProps> = ({
                   <span>
                     {claimingLevel === selectedLevel.level
                       ? "CLAIMING REWARD..."
-                      : `CLAIM ₹${selectedLevel.reward.toFixed(0)} TO WALLET 🎁`}
+                      : `CLAIM ₹${selectedLevel.reward.toFixed(0)} TO WALLET`}
                   </span>
                 </button>
               ) : selectedLevel.status === "claimed" ? (

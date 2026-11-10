@@ -130,7 +130,7 @@ export function AssignRiderSheet({
                 {rider.name}
               </span>
               <span className="block text-[0.68rem] font-semibold text-muted-foreground">
-                {rider.eta} · ★ {rider.rating}
+                {rider.eta} · {rider.rating}
               </span>
             </span>
             <span className="shrink-0 rounded-full bg-primary/15 px-3 py-1 text-[0.65rem] font-bold text-brand-dark">
@@ -205,7 +205,7 @@ export function InvoiceSheet({ order, onClose }: { order: ManagedOrder; onClose:
             <div>
               <p className="font-bold text-muted-foreground uppercase tracking-wide text-[9px]">Store Hub</p>
               <p className="font-black text-foreground">QuickPress Partner Hub</p>
-              <p className="text-muted-foreground font-medium">GSTIN: 09AADCB1234K1Z8</p>
+              <p className="text-muted-foreground font-medium">GSTIN: Registered Partner</p>
             </div>
           </div>
         </div>

@@ -711,7 +711,7 @@ function MembershipsScreen() {
                         <p className="text-[11px] text-zinc-500 font-mono">{row.userPhone || row.userEmail || row.userId}</p>
                         {row.city && (
                           <span className="inline-block mt-0.5 text-[10px] text-emerald-800 font-bold bg-emerald-50 px-1.5 rounded border border-emerald-200">
-                            📍 {row.city}
+                            {row.city}
                           </span>
                         )}
                       </div>
@@ -1191,7 +1191,7 @@ function MembershipsScreen() {
                 <SelectContent>
                   {plans.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      👑 {p.name} ({p.discountPercent}% Off, {p.freeDeliveryMinOrder === 0 ? "Free Delivery" : `Free > ₹${p.freeDeliveryMinOrder}`})
+                      {p.name} ({p.discountPercent}% Off, {p.freeDeliveryMinOrder === 0 ? "Free Delivery" : `Free > ₹${p.freeDeliveryMinOrder}`})
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -107,11 +107,11 @@ const STEPS = [
 ] as const;
 
 const BUSINESS_TYPES = [
-  { id: "Laundry", label: "🧺 Laundry (Wash & Fold/Iron)", category: "laundry" as BusinessCategory },
-  { id: "Dry Cleaning", label: "👔 Dry Cleaning Specialist", category: "dry-clean" as BusinessCategory },
-  { id: "Steam Iron", label: "⚡ Steam Pressing Hub", category: "laundry" as BusinessCategory },
-  { id: "Shoe Care", label: "👟 Footwear & Bag Spa", category: "shoe-care" as BusinessCategory },
-  { id: "Premium Multi-Service", label: "✨ Premium Multi-Service Studio", category: "premium" as BusinessCategory },
+  { id: "Laundry", label: "Laundry (Wash & Fold/Iron)", category: "laundry" as BusinessCategory },
+  { id: "Dry Cleaning", label: "Dry Cleaning Specialist", category: "dry-clean" as BusinessCategory },
+  { id: "Steam Iron", label: "Steam Pressing Hub", category: "laundry" as BusinessCategory },
+  { id: "Shoe Care", label: "Footwear & Bag Spa", category: "shoe-care" as BusinessCategory },
+  { id: "Premium Multi-Service", label: "Premium Multi-Service Studio", category: "premium" as BusinessCategory },
 ] as const;
 
 const EXPERIENCE_OPTIONS = [
@@ -172,12 +172,12 @@ const DEFAULT_SERVICES: (MasterCatalogItem & { category?: string })[] = [
 
 const SERVICE_CATEGORY_TABS = [
   { id: "all", label: "All Items" },
-  { id: "iron", label: "⚡ Steam Iron" },
-  { id: "dry-clean", label: "👔 Dry Clean" },
-  { id: "wash", label: "🧺 Wash & Fold" },
-  { id: "premium", label: "✨ Saree & Silk" },
-  { id: "shoe-care", label: "👟 Shoes & Care" },
-  { id: "home-care", label: "🪟 Blankets & Home" },
+  { id: "iron", label: "Steam Iron" },
+  { id: "dry-clean", label: "Dry Clean" },
+  { id: "wash", label: "Wash & Fold" },
+  { id: "premium", label: "Saree & Silk" },
+  { id: "shoe-care", label: "Shoes & Care" },
+  { id: "home-care", label: "Blankets & Home" },
 ] as const;
 
 const DAYS = [
@@ -1381,8 +1381,8 @@ export function BusinessRegistrationScreen() {
 
       toast.success(
         isResubmissionFlow
-          ? "Store application re-submitted successfully for Admin review! 🚀"
-          : "Partner registration submitted successfully! 🎉"
+          ? "Store application re-submitted successfully for Admin review!"
+          : "Partner registration submitted successfully!"
       );
 
       signIn({
@@ -1397,7 +1397,7 @@ export function BusinessRegistrationScreen() {
       });
 
       if (result.isVerified) {
-        toast.success("Store onboarding completed & live! Welcome to QuickPress Partner Dashboard! 🚀");
+        toast.success("Store onboarding completed & live! Welcome to QuickPress Partner Dashboard!");
         navigate({ to: partnerRoutes.dashboard });
       } else {
         navigate({ to: partnerRoutes.registrationSubmitted });
@@ -1749,7 +1749,7 @@ export function BusinessRegistrationScreen() {
                       </span>
                       {emailOtpCountdown > 0 ? (
                         <span className="text-[10px] font-mono text-emerald-700 font-bold">
-                          ⏱ {emailOtpCountdown}s
+                          {emailOtpCountdown}s
                         </span>
                       ) : (
                         <button
@@ -2916,7 +2916,7 @@ export function BusinessRegistrationScreen() {
                           </span>
                           {agreementOtpCountdown > 0 ? (
                             <span className="text-[10px] font-mono text-emerald-700 font-bold">
-                              ⏱ {agreementOtpCountdown}s
+                              {agreementOtpCountdown}s
                             </span>
                           ) : (
                             <button

@@ -825,14 +825,14 @@ function HelpScreen() {
                     >
                       <span className="text-base">
                         {opt.id === "wash-quality"
-                          ? "🧼"
+                          ? ""
                           : opt.id === "missing-garment"
-                            ? "👔"
+                            ? ""
                             : opt.id === "delay"
-                              ? "⏱️"
+                              ? ""
                               : opt.id === "payment"
-                                ? "💳"
-                                : "❓"}
+                                ? ""
+                                : ""}
                       </span>
                       <span className="text-xs leading-tight">{opt.label}</span>
                     </button>

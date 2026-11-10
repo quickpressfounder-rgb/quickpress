@@ -12,6 +12,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiGetJson } from "@/api/core/transport";
 
 export interface AgreementSignatureData {
   signatureUrl: string;
@@ -53,6 +54,22 @@ export function PartnerAgreementSignaturePad({
   const [consentChecked, setConsentChecked] = useState(false);
   const [activeTab, setActiveTab] = useState<"agreement" | "signature">("signature");
   const [uploadedFileName, setUploadedFileName] = useState<string>("");
+  const [liveSlaText, setLiveSlaText] = useState<string>("");
+  const [companyProfile, setCompanyProfile] = useState<any>(null);
+
+  useEffect(() => {
+    apiGetJson<any>("/api/public/company-legal-profile", { anonymous: true })
+      .then((res) => setCompanyProfile(res))
+      .catch(() => null);
+
+    apiGetJson<any>("/api/public/legal/partner-agreement", { anonymous: true })
+      .then((res) => {
+        if (res?.content && res.isConfigured) {
+          setLiveSlaText(res.content);
+        }
+      })
+      .catch(() => null);
+  }, []);
 
   const effectiveSignerName = ownerName || "Authorized Merchant Signatory";
   const rawAadhaar = (aadhaar || "").replace(/\s/g, "");
@@ -320,25 +337,33 @@ export function PartnerAgreementSignaturePad({
           </div>
 
           <div className="max-h-60 overflow-y-auto rounded-2xl bg-zinc-50 border border-zinc-200/80 p-4 text-[11px] text-zinc-700 space-y-3 leading-relaxed font-sans">
-            <p>
-              <strong>1. PARTIES:</strong> This Agreement is executed between <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (&quot;Platform&quot;), represented by Director / Signatory <strong>Himanshu Pal</strong>, and <strong>{storeName || "The Partner Store"}</strong>, represented by authorized signatory <strong>{effectiveSignerName}</strong> (&quot;Merchant Partner&quot;).
-            </p>
+            {liveSlaText?.trim() ? (
+              <div className="whitespace-pre-wrap font-sans leading-relaxed">
+                {liveSlaText}
+              </div>
+            ) : (
+              <>
+                <p>
+                  <strong>1. PARTIES:</strong> This Agreement is executed between <strong>{companyProfile?.legalName || "QuickPress"}</strong> (&quot;Platform&quot;), represented by authorized signatory <strong>{companyProfile?.authorizedSignatoryName || "Platform Signatory"}</strong>, and <strong>{storeName || "The Partner Store"}</strong>, represented by authorized signatory <strong>{effectiveSignerName}</strong> (&quot;Merchant Partner&quot;).
+                </p>
 
-            <p>
-              <strong>2. COMMISSION &amp; SETTLEMENTS:</strong> The Platform deducts a standard 15% platform technology commission and 1% Government TCS under GST rules. Net partner earnings are settled automatically into the verified bank account ({pan ? `PAN: ${pan}` : ""}) on a daily automated cycle via NPCI IMPS/NEFT.
-            </p>
+                <p>
+                  <strong>2. COMMISSION &amp; SETTLEMENTS:</strong> The Platform deducts agreed platform technology commission and applicable statutory TCS under GST rules. Net partner earnings are settled automatically into the verified bank account ({pan ? `PAN: ${pan}` : ""}) on the platform payout cycle.
+                </p>
 
-            <p>
-              <strong>3. QUALITY &amp; 24-HR SLA COMMITMENT:</strong> The Partner warrants to process laundry items using approved professional detergents and machinery, maintaining agreed turnaround times (Standard 24 hrs / Express 12 hrs). Any garment damage or loss during store custody will be indemnified according to QuickPress Fair Compensation Guidelines.
-            </p>
+                <p>
+                  <strong>3. QUALITY &amp; SLA COMMITMENT:</strong> The Partner warrants to process laundry items using approved professional detergents and machinery, maintaining agreed turnaround times. Any garment damage or loss during store custody will be indemnified according to platform Fair Compensation Guidelines.
+                </p>
 
-            <p>
-              <strong>4. DISPATCH HANDOVER:</strong> Partner agrees to tag garments with unique QuickPress Order Barcodes and handover packed orders strictly to verified QuickPress Delivery Captains via 4-digit Dispatch OTP.
-            </p>
+                <p>
+                  <strong>4. DISPATCH HANDOVER:</strong> Partner agrees to tag garments with unique QuickPress Order Barcodes and handover packed orders strictly to verified QuickPress Delivery Captains via Dispatch OTP.
+                </p>
 
-            <p>
-              <strong>5. ELECTRONIC SIGNATURE VALIDITY:</strong> Under Section 3A and Section 10A of the Information Technology Act, 2000, electronic execution of this agreement holds full legal validity and enforceability equivalent to physical paper execution.
-            </p>
+                <p>
+                  <strong>5. ELECTRONIC SIGNATURE VALIDITY:</strong> Under Section 3A and Section 10A of the Information Technology Act, 2000, electronic execution of this agreement holds full legal validity and enforceability equivalent to physical paper execution.
+                </p>
+              </>
+            )}
           </div>
 
           <div className="flex justify-end">
@@ -526,13 +551,13 @@ export function PartnerAgreementSignaturePad({
                   First Party (Platform)
                 </span>
                 <div className="text-xs font-black text-zinc-900 truncate">
-                  QUICKPRESS
+                  {companyProfile?.brandName || "QUICKPRESS"}
                 </div>
                 <div className="text-[11px] font-bold text-zinc-700">
-                  Signatory: Himanshu Pal
+                  Signatory: {companyProfile?.authorizedSignatoryName || "Authorized Signatory"}
                 </div>
                 <div className="text-[10px] text-zinc-500 truncate">
-                  Director / Signatory · official.quickpress@gmail.com
+                  {companyProfile?.authorizedSignatoryDesignation || "Platform Signatory"} · {companyProfile?.supportEmail || "official.quickpress@gmail.com"}
                 </div>
               </div>
             </div>

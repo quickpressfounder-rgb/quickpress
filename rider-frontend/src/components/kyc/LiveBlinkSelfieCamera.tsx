@@ -213,7 +213,7 @@ export function LiveBlinkSelfieCamera({
         // Graceful fallback: accept captured live photo
         triggerHaptic();
         setStep("done");
-        toast.success("Live Selfie captured successfully! 📸");
+        toast.success("Live Selfie captured successfully!");
         setTimeout(() => {
           onSelfieCaptured(dataUrl, { valid: true, faceMatchScore: 98.5, livenessScore: 99.0 });
           onClose();

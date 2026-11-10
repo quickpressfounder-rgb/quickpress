@@ -343,11 +343,11 @@ export async function searchCrmEntities(params: {
         status: r.live || "Online",
         statusColor: r.live === "Online" ? "emerald" : r.live === "On delivery" ? "amber" : "zinc",
         primaryMetric: { label: "Deliveries", value: `${r.trips || 0} trips` },
-        secondaryMetric: { label: "Rating / COD", value: `${r.rating || "4.8"}★ · ${r.codCash || "₹0"}` },
+        secondaryMetric: { label: "Rating / COD", value: `${r.rating || "4.8"} · ${r.codCash || "₹0"}` },
         avatar: (r.name || "CP").slice(0, 2).toUpperCase(),
         joinedAt: r.joinedOn || r.registrationTimestamp || "2026-01-01",
         lastActive: r.lastActive || "Today",
-        tags: [r.vehicle || "Bike", `${r.rating || "4.8"}★`],
+        tags: [r.vehicle || "Bike", `${r.rating || "4.8"}`],
       });
     }
 

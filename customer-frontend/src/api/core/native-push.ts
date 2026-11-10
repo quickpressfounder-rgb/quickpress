@@ -31,7 +31,7 @@ export async function initCapacitorPush(role: "customer" | "partner" | "rider" =
 
     // On registration success, sync device token to FastAPI backend
     await PushNotifications.addListener("registration", async (token) => {
-      console.log(`[NativePush] 🚀 Device token registered (${Capacitor.getPlatform()}):`, token.value);
+      console.log(`[NativePush] Device token registered (${Capacitor.getPlatform()}):`, token.value);
       try {
         await apiPostJson("/api/notifications/fcm-token", {
           token: token.value,
@@ -56,7 +56,7 @@ export async function initCapacitorPush(role: "customer" | "partner" | "rider" =
       try {
         const { triggerMobileOsNotification } = await import("@/lib/notifications");
         void triggerMobileOsNotification({
-          title: notification.title || "🔔 QuickPress Update",
+          title: notification.title || "QuickPress Update",
           body: notification.body || "New update received",
           orderId: notification.data?.orderId,
           url: notification.data?.url,

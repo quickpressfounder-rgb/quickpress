@@ -597,7 +597,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
 
               {/* Row 3: Special Care Tag (Rose Border Pill) */}
               <div className="mt-3 rounded-xl border border-rose-300 bg-rose-50/25 px-3 py-2 flex items-center gap-2 text-xs text-rose-700">
-                <span className="text-sm shrink-0">🧺</span>
+                <Shirt className="size-4 shrink-0 text-rose-600" />
                 <span className="font-medium truncate">
                   {order.specialInstructions || "Handle with care · Fold neatly & pack in eco-friendly laundry bag"}
                 </span>
@@ -660,11 +660,11 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
               {/* Row 6: Live Delivery Fleet Captain Strip */}
               <div className="mt-3.5 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2 text-xs text-zinc-700 flex items-center justify-between">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-base shrink-0">🛵</span>
+                  <Bike className="size-4 shrink-0 text-zinc-600" />
                   <span className="font-medium truncate">
                     {hasAssignedRider
                       ? `Captain ${riderName} assigned · En route`
-                      : "5 riders nearby, assigning one soon"}
+                      : "Riders nearby, assigning one soon"}
                   </span>
                 </div>
                 {hasAssignedRider && riderPhone && (
@@ -687,7 +687,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                     onClick={() => {
                       if (order.stage === "new") handleAction(order, "accept");
                       else if (isAwaitingCaptainDrop) {
-                        toast.info(riderName ? `🛵 Clothes are with Captain ${riderName}. Awaiting store drop.` : "🛵 Captain is picking up clothes. Awaiting drop.");
+                        toast.info(riderName ? `Clothes are with Captain ${riderName}. Awaiting store drop.` : "Captain is picking up clothes. Awaiting drop.");
                       } else if (isReadyToConfirmHandover) {
                         void confirmHandover(order.id);
                       } else if (isReadyToStartProcessing || order.stage === "accepted" || order.stage === "at_partner") {
@@ -717,20 +717,20 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                       <span>Accept Order</span>
                     ) : isAwaitingCaptainDrop ? (
                       <span className="flex items-center justify-center gap-1.5 text-xs font-bold truncate px-1">
-                        <span className="shrink-0 text-sm">🛵</span>
-                        <span className="truncate">{riderName ? `Captain ${riderName} En Route · Awaiting Store Drop` : "Assigning Captain · Awaiting Store Drop 📦"}</span>
+                        <Bike className="size-4 shrink-0 text-white" />
+                        <span className="truncate">{riderName ? `Captain ${riderName} En Route · Awaiting Store Drop` : "Assigning Captain · Awaiting Store Drop"}</span>
                       </span>
                     ) : isReadyToConfirmHandover ? (
                       <span className="flex items-center justify-center gap-1.5">
-                        <span>📦</span>
+                        <Package className="size-4 shrink-0" />
                         <span>Confirm Handover from Captain</span>
                       </span>
                     ) : isReadyToStartProcessing || order.stage === "accepted" || order.stage === "at_partner" ? (
-                      <span>Start Processing 🧺</span>
+                      <span>Start Processing</span>
                     ) : order.stage === "processing" || order.stage === "washing" ? (
                       <span>Order ready ({formatPrepTime(countdown)})</span>
                     ) : order.stage === "ready" ? (
-                      <span>Handover to Captain 🛵</span>
+                      <span>Handover to Captain</span>
                     ) : (
                       <span>View Order Status</span>
                     )}
@@ -871,7 +871,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                     <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Doorstep Pickup Address</p>
                     {((order as any)?.isAddressMasked || order.stage === "delivered" || (order as any)?.status === "delivered") ? (
                       <span className="inline-flex items-center gap-1 rounded-md bg-zinc-200/80 px-1.5 py-0.2 text-[9px] font-bold text-zinc-700">
-                        🔒 DPDP Protected
+                        DPDP Protected
                       </span>
                     ) : null}
                   </div>
@@ -945,7 +945,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
 
                       {riderVehicle ? (
                         <p className="text-[10px] font-bold text-zinc-600 mt-0.5">
-                          🛵 {riderVehicle}
+                          {riderVehicle}
                         </p>
                       ) : null}
 
@@ -1541,7 +1541,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                         <span className="text-[11px] font-bold text-zinc-500 uppercase">Doorstep Pickup Address</span>
                         {((order as any)?.isAddressMasked || order.stage === "delivered" || (order as any)?.status === "delivered") ? (
                           <span className="inline-flex items-center gap-1 rounded-md bg-zinc-200/80 px-1.5 py-0.2 text-[9px] font-bold text-zinc-700">
-                            🔒 DPDP Protected
+                            DPDP Protected
                           </span>
                         ) : null}
                       </div>
@@ -1615,7 +1615,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                           </div>
                           {riderVehicle && (
                             <p className="text-xs font-bold text-zinc-700 mt-0.5">
-                              🛵 {riderVehicle}
+                              {riderVehicle}
                             </p>
                           )}
                           <p className="text-[11px] text-zinc-500 mt-0.5">
@@ -1746,7 +1746,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                     {/* Stage descriptions */}
                     {order.stage === "new" && (
                       <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-900">
-                        <p className="font-bold">⚠️ New incoming laundry order!</p>
+                        <p className="font-bold">New incoming laundry order!</p>
                         <p className="mt-0.5 text-amber-800">
                           Please accept the order to initiate captain dispatch for doorstep customer pickup.
                         </p>
@@ -1755,7 +1755,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
 
                     {order.stage === "accepted" && (
                       <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3.5 text-xs text-zinc-700">
-                        <p className="font-bold text-zinc-900">🛵 Awaiting Laundry Arrival</p>
+                        <p className="font-bold text-zinc-900">Awaiting Laundry Arrival</p>
                         <p className="mt-0.5 text-zinc-600">
                           Order accepted. Delivery Captain has been dispatched to collect dirty garments from the customer.
                         </p>
@@ -1764,7 +1764,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
 
                     {(order.stage === "at_partner" || order.stage === "processing" || order.stage === "washing") && (
                       <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-950">
-                        <p className="font-bold">🧺 Processing at Store</p>
+                        <p className="font-bold">Processing at Store</p>
                         <p className="mt-0.5 text-blue-800">
                           Garments arrived at your store. Once cleaned and packed, click "Mark Process Complete" below.
                         </p>
@@ -1773,7 +1773,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
 
                     {order.stage === "ready" && (
                       <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-950">
-                        <p className="font-bold">✨ Clothes Packed &amp; Ready</p>
+                        <p className="font-bold">Clothes Packed &amp; Ready</p>
                         <p className="mt-0.5 text-emerald-800">
                           Delivery Captain is en route to collect the packed laundry bag. Verify the Dispatch OTP upon handover.
                         </p>

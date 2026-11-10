@@ -79,7 +79,7 @@ export async function syncNativeFcmToken(): Promise<string | null> {
     if (nativeToken && typeof nativeToken === "string" && nativeToken.trim().length > 10) {
       const cleanToken = nativeToken.trim();
       currentToken = cleanToken;
-      console.log("[Partner-FCM] ⚡ Syncing native Android FCM token to backend:", cleanToken.slice(0, 18) + "...");
+      console.log("[Partner-FCM] Syncing native Android FCM token to backend:", cleanToken.slice(0, 18) + "...");
       try {
         await apiPostJson("/api/notifications/fcm-token", {
           token: cleanToken,
@@ -175,7 +175,7 @@ export async function setupForegroundMessageListener(
       const notification = payload.notification || {};
       const data = payload.data || {};
 
-      const title = notification.title || data.title || "⚡ New Partner Order!";
+      const title = notification.title || data.title || "New Partner Order!";
       const body = notification.body || data.body || data.message || "A new order requires attention.";
       const clickUrl = data.url || (data.orderId ? `/orders/${data.orderId}` : "/orders");
 

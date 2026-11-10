@@ -50,7 +50,7 @@ export function RiderAnalyticsScreen() {
       }
       if (isRefresh) {
         triggerHaptic(30);
-        toast.success("Captain Analytics Updated! 📊");
+        toast.success("Captain Analytics Updated!");
       }
     } catch {
       try {
@@ -292,7 +292,7 @@ export function RiderAnalyticsScreen() {
               </div>
             </div>
             <p className="text-2xl font-black text-slate-950">
-              {customerRating.toFixed(1)} <span className="text-xs text-amber-500">★★★★★</span>
+              {customerRating.toFixed(1)} <span className="text-xs text-amber-500"></span>
             </p>
             <p className="text-[10px] text-slate-500 font-medium">{totalReviews} verified ratings</p>
           </div>

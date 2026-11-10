@@ -277,7 +277,7 @@ function ReferralScreen() {
       const ok = await copyToClipboard(data.code);
       if (ok) {
         setCopied(true);
-        toast.success(`Referral code ${data.code} copied! 🎉`);
+        toast.success(`Referral code ${data.code} copied!`);
         setTimeout(() => setCopied(false), 2000);
       } else {
         toast.error("Couldn't copy code.");
@@ -318,7 +318,7 @@ function ReferralScreen() {
     setApplying(true);
     try {
       const result = await applyReferralCode(code.trim().toUpperCase());
-      toast.success(result.message || "Referral code applied successfully! 🎉");
+      toast.success(result.message || "Referral code applied successfully!");
       setCode("");
       await load({ refresh: true });
     } catch (caught) {

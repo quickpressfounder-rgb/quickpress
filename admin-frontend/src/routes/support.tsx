@@ -78,27 +78,27 @@ export const Route = createFileRoute("/support")({
 const CANNED_RESPONSES = [
   {
     role: "Customer",
-    label: "🚴 Rider arriving in 10m",
+    label: "Rider arriving in 10m",
     text: "Hello! Our assigned delivery captain is currently en route to your doorstep and will arrive within 8-10 minutes. Thank you for your patience!",
   },
   {
     role: "Customer",
-    label: "💰 Refund / Wallet credit",
+    label: "Refund / Wallet credit",
     text: "We sincerely apologize for the inconvenience. We have credited compensation balance to your QuickPress Wallet for your next order!",
   },
   {
     role: "Partner",
-    label: "🏪 Store dispatch update",
+    label: "Store dispatch update",
     text: "We have updated your processing queue. Incoming steam press items have been balanced with our partner hub network.",
   },
   {
     role: "Rider",
-    label: "📞 Customer gate assistance",
+    label: "Customer gate assistance",
     text: "Please hold 2 minutes at the customer's gate. Our support lead is dialing their alternate phone number to facilitate entry.",
   },
   {
     role: "All",
-    label: "🌧️ Weather / Rain notice",
+    label: "Weather / Rain notice",
     text: "Due to heavy weather conditions, our captains are operating with weather-proof sealed packs. A 15-minute safety buffer is active.",
   },
 ];
@@ -197,7 +197,7 @@ export function SupportPage() {
     mutationFn: ({ body, isInternal }: { body: string; isInternal: boolean }) =>
       replyToTicket(activeTicket!.id, body, isInternal),
     onSuccess: (_, vars) => {
-      toast.success(vars.isInternal ? "Internal staff note saved! 🔒" : "Resolution reply sent! 🚀");
+      toast.success(vars.isInternal ? "Internal staff note saved!" : "Resolution reply sent!");
       setReplyText("");
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets", activeTicket?.id, "chat"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
@@ -221,7 +221,7 @@ export function SupportPage() {
       notes?: string;
     }) => updateTicketStatus(ticketId, status, reason, notes),
     onSuccess: (_, vars) => {
-      toast.success(`Ticket marked as ${vars.status}! ✅`);
+      toast.success(`Ticket marked as ${vars.status}!`);
       setIsResolveModalOpen(false);
       setResolutionNotes("");
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
@@ -237,7 +237,7 @@ export function SupportPage() {
     mutationFn: ({ ticketId, assignee }: { ticketId: string; assignee: string }) =>
       assignTicket(ticketId, assignee),
     onSuccess: () => {
-      toast.success("Ticket reassigned! 👤");
+      toast.success("Ticket reassigned!");
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
     },
   });
@@ -246,7 +246,7 @@ export function SupportPage() {
     mutationFn: ({ ticketId, amount, reason }: { ticketId: string; amount: number; reason: string }) =>
       compensateTicket(ticketId, amount, reason),
     onSuccess: (data) => {
-      toast.success(`₹${data.amount} credited to customer wallet! 💰`);
+      toast.success(`₹${data.amount} credited to customer wallet!`);
       setIsCompensateModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets", activeTicket?.id, "chat"] });
@@ -260,7 +260,7 @@ export function SupportPage() {
   const createMutation = useMutation({
     mutationFn: (payload: CreateTicketPayload) => createSupportTicket(payload),
     onSuccess: (created) => {
-      toast.success(`Support Ticket #${created.ticketNumber} created! 🎫`);
+      toast.success(`Support Ticket #${created.ticketNumber} created!`);
       setIsCreateModalOpen(false);
       setSelectedTicketId(created.id);
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
@@ -385,10 +385,10 @@ export function SupportPage() {
             {/* Role Channel Selector */}
             <div className="flex items-center rounded-xl bg-zinc-100 p-0.5 border border-zinc-200">
               {[
-                { id: "all", label: "🌐 All Channels" },
-                { id: "customer", label: `👤 Customer (${stats?.roles.customer ?? 0})` },
-                { id: "partner", label: `🏪 Partner Store (${stats?.roles.partner ?? 0})` },
-                { id: "rider", label: `🚴 Rider Fleet (${stats?.roles.rider ?? 0})` },
+                { id: "all", label: "All Channels" },
+                { id: "customer", label: `Customer (${stats?.roles.customer ?? 0})` },
+                { id: "partner", label: `Partner Store (${stats?.roles.partner ?? 0})` },
+                { id: "rider", label: `Rider Fleet (${stats?.roles.rider ?? 0})` },
               ].map((r) => (
                 <button
                   key={r.id}
@@ -427,8 +427,8 @@ export function SupportPage() {
                 className="rounded-xl border border-zinc-200 bg-white px-2.5 py-1 text-xs font-bold text-zinc-700 shadow-2xs focus:outline-none cursor-pointer"
               >
                 <option value="all">All Priorities</option>
-                <option value="Urgent">🔥 Urgent / P0</option>
-                <option value="High">⚡ High</option>
+                <option value="Urgent">Urgent / P0</option>
+                <option value="High">High</option>
                 <option value="Medium">● Medium</option>
                 <option value="Low">● Low</option>
               </select>
@@ -527,7 +527,7 @@ export function SupportPage() {
                                 : "bg-sky-50 text-sky-700"
                             }`}
                           >
-                            {t.role === "Customer" ? "👤 Customer" : t.role === "Partner" ? "🏪 Store" : "🚴 Rider"}
+                            {t.role === "Customer" ? "Customer" : t.role === "Partner" ? "Store" : "Rider"}
                           </span>
 
                           {t.vipBadge && (
@@ -554,7 +554,7 @@ export function SupportPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-zinc-700">{t.raisedBy}</span>
                           {t.refOrder && t.refOrder !== "—" && (
-                            <span className="text-zinc-400 font-mono">📦 {t.refOrder}</span>
+                            <span className="text-zinc-400 font-mono">{t.refOrder}</span>
                           )}
                           {t.resolvedBy && (
                             <span className="rounded bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.2 text-[9px] font-bold">
@@ -564,7 +564,7 @@ export function SupportPage() {
                         </div>
 
                         <div className="flex items-center gap-2 text-[10px]">
-                          <span>💬 {t.messagesCount || 0}</span>
+                          <span>{t.messagesCount || 0}</span>
                           <span>{t.updated}</span>
                         </div>
                       </div>
@@ -645,7 +645,7 @@ export function SupportPage() {
                       <a href={`tel:${activeTicket.phone}`} className="text-emerald-700 font-bold hover:underline flex items-center gap-1">
                         <Phone className="size-3" /> {activeTicket.phone}
                       </a>
-                      <span className="text-zinc-400 font-medium">📍 {activeTicket.city || "Kasganj"}</span>
+                      <span className="text-zinc-400 font-medium">{activeTicket.city || "Kasganj"}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -680,9 +680,9 @@ export function SupportPage() {
                         aria-label="Assign ticket agent"
                         className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer"
                       >
-                        <option value="Lead Admin">👤 Lead Admin</option>
-                        <option value="Pooja (Fulfillment Ops)">👤 Pooja (Fulfillment)</option>
-                        <option value="Rahul (Rider Ops)">👤 Rahul (Riders)</option>
+                        <option value="Lead Admin">Lead Admin</option>
+                        <option value="Pooja (Fulfillment Ops)">Pooja (Fulfillment)</option>
+                        <option value="Rahul (Rider Ops)">Rahul (Riders)</option>
                       </select>
                     </div>
                   </div>
@@ -730,7 +730,7 @@ export function SupportPage() {
                           </span>
                           {activeTicket.resolvedAt && (
                             <span className="text-[10px] font-mono font-bold text-emerald-800">
-                              🕒 {activeTicket.resolvedAt}
+                              {activeTicket.resolvedAt}
                             </span>
                           )}
                         </div>
@@ -777,7 +777,7 @@ export function SupportPage() {
 
                       {activeTicket.compensationAmount !== undefined && activeTicket.compensationAmount > 0 && (
                         <div className="flex items-center justify-between pt-1 border-t border-emerald-200/60 text-[11px] font-bold text-emerald-950">
-                          <span>💰 Customer Wallet Compensation Disbursed:</span>
+                          <span>Customer Wallet Compensation Disbursed:</span>
                           <span className="font-mono text-xs font-black text-emerald-800">
                             ₹{activeTicket.compensationAmount.toFixed(2)}
                           </span>
@@ -869,7 +869,7 @@ export function SupportPage() {
                           !isInternalNote ? "bg-zinc-900 text-white shadow-xs" : "bg-zinc-100 text-zinc-600"
                         }`}
                       >
-                        ✉️ Official Customer Reply
+                        Official Customer Reply
                       </button>
                       <button
                         type="button"
@@ -878,7 +878,7 @@ export function SupportPage() {
                           isInternalNote ? "bg-amber-500 text-white shadow-xs" : "bg-zinc-100 text-zinc-600"
                         }`}
                       >
-                        🔒 Private Staff Note
+                        Private Staff Note
                       </button>
                     </div>
 
@@ -1034,9 +1034,9 @@ export function SupportPage() {
                   aria-label="Select inquirer channel"
                   className="w-full rounded-xl border border-zinc-200 bg-white p-2 font-bold text-zinc-800 focus:outline-none"
                 >
-                  <option value="Customer">👤 Customer</option>
-                  <option value="Partner">🏪 Partner Store Hub</option>
-                  <option value="Rider">🚴 Delivery Captain</option>
+                  <option value="Customer">Customer</option>
+                  <option value="Partner">Partner Store Hub</option>
+                  <option value="Rider">Delivery Captain</option>
                 </select>
               </div>
 
@@ -1048,8 +1048,8 @@ export function SupportPage() {
                   aria-label="Select ticket priority"
                   className="w-full rounded-xl border border-zinc-200 bg-white p-2 font-bold text-zinc-800 focus:outline-none"
                 >
-                  <option value="Urgent">🔥 Urgent / P0</option>
-                  <option value="High">⚡ High</option>
+                  <option value="Urgent">Urgent / P0</option>
+                  <option value="High">High</option>
                   <option value="Medium">● Medium</option>
                   <option value="Low">● Low</option>
                 </select>

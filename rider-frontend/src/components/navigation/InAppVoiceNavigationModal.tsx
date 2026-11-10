@@ -339,7 +339,7 @@ export function InAppVoiceNavigationModal({
               <div class="nav-captain-bike-inner relative w-10 h-10 rounded-full bg-zinc-950 border-2 border-cyan-400 shadow-2xl flex items-center justify-center transition-transform duration-75" style="transform: rotate(${bearing}deg)">
                 <!-- Forward Direction Pip -->
                 <div class="absolute -top-1 w-2.5 h-2.5 bg-cyan-400 rotate-45 border border-zinc-950 shadow-xs"></div>
-                <span class="text-base">🛵</span>
+                <span class="text-base"></span>
               </div>
             </div>
           `,
@@ -353,12 +353,12 @@ export function InAppVoiceNavigationModal({
           html: `
             <div class="relative flex flex-col items-center justify-center">
               <div class="px-2.5 py-1 rounded-xl bg-zinc-900 text-white font-black text-[11px] shadow-2xl border border-zinc-700 whitespace-nowrap mb-1 flex items-center gap-1.5">
-                <span class="text-rose-400 font-bold">📍</span> ${targetName}
+                 ${targetName}
               </div>
               <div class="relative flex items-center justify-center w-10 h-10">
                 <div class="absolute w-10 h-10 rounded-full bg-rose-500/30 animate-pulse"></div>
                 <div class="w-8 h-8 rounded-full bg-rose-600 border-2 border-white shadow-xl flex items-center justify-center text-white text-xs font-black">
-                  🎯
+                 
                 </div>
               </div>
             </div>
@@ -614,7 +614,7 @@ export function InAppVoiceNavigationModal({
                 </span>
               </div>
               <p className="text-xs font-bold text-zinc-300 truncate mt-0.5">
-                📍 {targetName} — {targetAddress}
+                {targetName} — {targetAddress}
               </p>
             </div>
 

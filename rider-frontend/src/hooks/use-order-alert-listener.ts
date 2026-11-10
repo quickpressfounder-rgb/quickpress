@@ -62,7 +62,7 @@ export function useOrderAlertListener() {
         await acceptRiderOrder(order.code || order.id);
         setIsAlertOpen(false);
         setIncomingOrder(null);
-        toast.success(`Trip Offer #${order.code || order.id} Accepted! 🚀`);
+        toast.success(`Trip Offer #${order.code || order.id} Accepted!`);
         void (navigate as any)({
           to: riderRoutes.orderDetails,
           params: { orderId: order.code || order.id },

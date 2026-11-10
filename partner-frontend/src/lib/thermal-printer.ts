@@ -123,7 +123,7 @@ export function printThermalOrderTag(order: ThermalPrintOrderData): void {
     </head>
     <body>
       <div class="text-center">
-        <div class="tag-title">⚡ QUICKPRESS LAUNDRY ⚡</div>
+        <div class="tag-title">QUICKPRESS LAUNDRY</div>
         <div style="font-size: 10px;">GARMENT CARE & BAG TAG</div>
         <div class="double-divider"></div>
         <div style="font-size: 9px;">ORDER ID</div>

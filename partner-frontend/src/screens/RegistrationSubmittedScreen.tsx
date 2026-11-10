@@ -185,7 +185,7 @@ export function RegistrationSubmittedScreen() {
             </span>
 
             <h1 className="mt-3 text-2xl font-black leading-tight tracking-tight text-foreground">
-              Application Approved! 🎉
+              Application Approved!
             </h1>
             <p className="mt-2 text-sm font-medium text-muted-foreground">
               <span className="font-bold text-foreground">{businessName}</span> is verified and ready to accept laundry & dry cleaning orders.

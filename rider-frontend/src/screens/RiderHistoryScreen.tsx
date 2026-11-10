@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Clock,
   Headphones,
+  MessageSquare,
   PhoneCall,
   RotateCw,
   X,
@@ -46,7 +47,7 @@ export function RiderHistoryScreen() {
       setOrders(res || []);
       if (isRefresh) {
         triggerHaptic(30);
-        toast.success("Order history updated! 🔄");
+        toast.success("Order history updated!");
       }
     } catch {
       toast.error("Could not load trip history");
@@ -149,7 +150,7 @@ export function RiderHistoryScreen() {
   return (
     <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-[#F8F9FA] shadow-xl overflow-hidden text-zinc-900 select-none font-sans">
       {/* ========================================================================= */}
-      {/* 1. TOP HEADER (Matches Rapido Screenshot 4: [ ← All Orders ]  [ 🎧 Help ] )  */}
+      {/* 1. TOP HEADER (Matches Rapido Screenshot 4: [ ← All Orders ]  [  Help ] )  */}
       {/* ========================================================================= */}
       <header
         className="sticky top-0 z-30 bg-white border-b border-zinc-200/70 shadow-2xs shrink-0 select-none"
@@ -511,7 +512,9 @@ export function RiderHistoryScreen() {
                 className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-zinc-50 hover:bg-zinc-100 border border-zinc-200/80 transition-all text-left"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-lg">💬</span>
+                  <div className="size-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200 shrink-0">
+                    <MessageSquare className="size-4" />
+                  </div>
                   <div>
                     <p className="text-xs font-black text-zinc-900">WhatsApp Captain Desk</p>
                     <p className="text-[10px] text-zinc-500 font-medium">Chat instantly with dispatch team</p>

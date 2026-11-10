@@ -259,7 +259,7 @@ export const RiderSettlementDetailModal: React.FC<RiderSettlementDetailModalProp
 
                   {data.breakdown.questBonuses > 0 && (
                     <div className="flex items-center justify-between">
-                      <span className="text-zinc-600 font-medium">Milestone Quest Bonuses 🎯</span>
+                      <span className="text-zinc-600 font-medium">Milestone Quest Bonuses</span>
                       <span className="font-black text-amber-700">
                         +₹{data.breakdown.questBonuses.toFixed(2)}
                       </span>
@@ -268,7 +268,7 @@ export const RiderSettlementDetailModal: React.FC<RiderSettlementDetailModalProp
 
                   {data.breakdown.customerTips > 0 && (
                     <div className="flex items-center justify-between">
-                      <span className="text-zinc-600 font-medium">Customer Doorstep Tips 💝</span>
+                      <span className="text-zinc-600 font-medium">Customer Doorstep Tips </span>
                       <span className="font-black text-emerald-700">
                         +₹{data.breakdown.customerTips.toFixed(2)}
                       </span>
@@ -335,7 +335,7 @@ export const RiderSettlementDetailModal: React.FC<RiderSettlementDetailModalProp
                         </div>
 
                         <p className="text-[11px] text-zinc-600 truncate font-medium">
-                          📍 {t.pickupAddress} ➔ {t.dropAddress}
+                          {t.pickupAddress} ➔ {t.dropAddress}
                         </p>
                         <p className="text-[10px] text-zinc-400">
                           {t.date}

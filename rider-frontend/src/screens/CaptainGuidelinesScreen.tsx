@@ -32,6 +32,7 @@ import {
   CAPTAIN_SUPPORT_EMAIL,
   CAPTAIN_SUPPORT_EMAIL_OFFICIAL,
 } from "../api/rider/rider-support-api";
+import { apiGetJson } from "../api/core/transport";
 import { triggerHaptic } from "../lib/captain-audio";
 
 interface CaptainGuidelinesScreenProps {
@@ -47,9 +48,14 @@ export const CaptainGuidelinesScreen: React.FC<CaptainGuidelinesScreenProps> = (
   const [privacyDoc, setPrivacyDoc] = useState<PublicLegalDoc | null>(null);
   const [loadingDoc, setLoadingDoc] = useState(false);
   const [guidelinesData, setGuidelinesData] = useState<CaptainGuidelinesResponse | null>(null);
+  const [companyProfile, setCompanyProfile] = useState<any>(null);
 
   // Load Legal Privacy Policy & Guidelines from backend
   useEffect(() => {
+    apiGetJson<any>("/api/public/company-legal-profile", { anonymous: true })
+      .then((res) => setCompanyProfile(res))
+      .catch(() => null);
+
     setLoadingDoc(true);
     fetchPublicLegalDoc("privacy-policy")
       .then((doc) => {
@@ -279,8 +285,13 @@ export const CaptainGuidelinesScreen: React.FC<CaptainGuidelinesScreenProps> = (
               {/* Legal Entity Card */}
               <div className="border-t border-zinc-100 pt-3 bg-zinc-50 rounded-2xl p-3 border border-zinc-200/70 space-y-1 text-[11px]">
                 <p className="font-black text-zinc-900">Legal Entity & Nodal Office:</p>
-                <p className="text-zinc-600"><strong>Company:</strong> QUICKPRESS TECHNOLOGIES PRIVATE LIMITED (CIN: U74999UP2024PTC198141)</p>
-                <p className="text-zinc-600"><strong>Registered Office:</strong> 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India</p>
+                <p className="text-zinc-600">
+                  <strong>Company:</strong> {companyProfile?.legalName || "QuickPress"}
+                  {companyProfile?.cin ? ` (CIN: ${companyProfile.cin})` : ""}
+                </p>
+                <p className="text-zinc-600">
+                  <strong>Registered Office:</strong> {companyProfile?.registeredAddress || "Platform Operations Desk"}
+                </p>
                 <p className="text-zinc-600">
                   <strong>Official Legal Email:</strong>{" "}
                   <a href={`mailto:${CAPTAIN_SUPPORT_EMAIL_OFFICIAL}`} className="text-blue-600 font-bold underline">

@@ -308,7 +308,7 @@ export function CodManagementView() {
                     )}
                     {coll.status === "OVERDUE" && (
                       <Badge className="bg-rose-100 text-rose-800 border-rose-300 font-extrabold text-[10px] animate-pulse">
-                        🔴 Overdue (&gt;24h)
+                        Overdue (&gt;24h)
                       </Badge>
                     )}
                   </td>

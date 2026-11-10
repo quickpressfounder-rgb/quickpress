@@ -26,7 +26,7 @@ export function useOrderActionHandler() {
 
   const run = useCallback(
     async (order: ManagedOrder, actionId: OrderActionId, message: string, mutate: () => Promise<void>) => {
-      // 🛑 Synchronous Mutex Lock: Prevent double-click partner actions
+      // Synchronous Mutex Lock: Prevent double-click partner actions
       if (busyActionRef.current) return;
       busyActionRef.current = true;
       setBusy({ orderId: order.id, actionId });
@@ -53,7 +53,7 @@ export function useOrderActionHandler() {
           setSheet({ kind: "reject", order });
           break;
         case "confirm_handover":
-          void run(order, actionId, "📦 Laundry Handover Confirmed! Received from Captain.", () => confirmHandover(order.id));
+          void run(order, actionId, "Laundry Handover Confirmed! Received from Captain.", () => confirmHandover(order.id));
           break;
         case "start_pickup":
         case "picked_up":

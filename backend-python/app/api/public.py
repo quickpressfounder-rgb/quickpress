@@ -27,8 +27,40 @@ class ContactFormPayload(BaseModel):
 
 
 # =========================================================================
-#  1. Public Legal Policies (Live CMS-backed)
 # =========================================================================
+#  1. Public Legal Policies & Company Legal Profile (Admin Settings Backed)
+# =========================================================================
+
+@router.get("/company-legal-profile")
+async def get_public_company_legal_profile() -> Dict[str, Any]:
+    """Returns live company legal entity details configured by platform administrator in Settings."""
+    settings = await database.get_collection("admin_settings").find_one({"_id": "global"})
+    company = settings.get("company", {}) if settings else {}
+    return {
+        "legalName": company.get("legalName", ""),
+        "brandName": company.get("brandName", "QuickPress"),
+        "tagline": company.get("tagline", "Hyperlocal On-Demand Laundry Platform"),
+        "cin": company.get("cin", ""),
+        "pan": company.get("pan", ""),
+        "gstin": company.get("gstin", ""),
+        "registeredAddress": company.get("registeredAddress", ""),
+        "operatingAddress": company.get("operatingAddress", ""),
+        "supportEmail": company.get("supportEmail", "official.quickpress@gmail.com"),
+        "corporateEmail": company.get("corporateEmail", ""),
+        "legalEmail": company.get("legalEmail", ""),
+        "supportPhone": company.get("supportPhone", ""),
+        "tollFreePhone": company.get("tollFreePhone", ""),
+        "grievanceOfficerName": company.get("grievanceOfficerName", ""),
+        "grievanceOfficerPhone": company.get("grievanceOfficerPhone", ""),
+        "authorizedSignatoryName": company.get("authorizedSignatoryName", ""),
+        "authorizedSignatoryDesignation": company.get("authorizedSignatoryDesignation", ""),
+        "digitalSignatureUrl": company.get("digitalSignatureUrl", ""),
+        "companySealUrl": company.get("companySealUrl", ""),
+        "state": company.get("state", "Uttar Pradesh"),
+        "stateCode": company.get("stateCode", "09"),
+        "websiteUrl": company.get("websiteUrl", "https://withquickpress.com"),
+    }
+
 
 @router.get("/legal/{doc_slug}")
 async def get_public_legal_doc(doc_slug: str) -> Dict[str, Any]:
@@ -54,6 +86,76 @@ async def get_public_legal_doc(doc_slug: str) -> Dict[str, Any]:
     }
     normalized_slug = doc_slug.lower().strip()
     target_slug = alias_map.get(normalized_slug, normalized_slug)
+
+    # 1. First check live Admin Settings
+    settings = await database.get_collection("admin_settings").find_one({"_id": "global"})
+    company = settings.get("company", {}) if settings else {}
+
+    if target_slug in ("rider-agreement", "rider-terms", "captain-agreement"):
+        admin_content = company.get("riderAgreement")
+        if admin_content and admin_content.strip():
+            return {
+                "slug": "rider-agreement",
+                "title": "Delivery Partner Service Level Agreement (SLA)",
+                "currentVersion": "Live Admin Configured",
+                "effectiveDate": "Live",
+                "summary": "Official Delivery Partner Service Level Agreement configured by Platform Administration.",
+                "content": admin_content,
+                "publishedAt": None,
+                "isConfigured": True,
+            }
+
+    if target_slug in ("partner-agreement", "partner-terms", "merchant-agreement"):
+        admin_content = company.get("partnerAgreement")
+        if admin_content and admin_content.strip():
+            return {
+                "slug": "partner-agreement",
+                "title": "Merchant Partner Franchise & Service Level Agreement",
+                "currentVersion": "Live Admin Configured",
+                "effectiveDate": "Live",
+                "summary": "Official Merchant Partner Franchise Agreement configured by Platform Administration.",
+                "content": admin_content,
+                "publishedAt": None,
+                "isConfigured": True,
+            }
+
+    if target_slug == "terms" and company.get("termsAndConditions", "").strip():
+        return {
+            "slug": "terms",
+            "title": "Terms & Conditions",
+            "currentVersion": "Live Admin Configured",
+            "effectiveDate": "Live",
+            "summary": "Platform Terms and Conditions configured by Platform Administration.",
+            "content": company.get("termsAndConditions"),
+            "publishedAt": None,
+            "isConfigured": True,
+        }
+
+    if target_slug == "privacy-policy" and company.get("privacyPolicy", "").strip():
+        return {
+            "slug": "privacy-policy",
+            "title": "Privacy Policy",
+            "currentVersion": "Live Admin Configured",
+            "effectiveDate": "Live",
+            "summary": "Platform Privacy Policy configured by Platform Administration.",
+            "content": company.get("privacyPolicy"),
+            "publishedAt": None,
+            "isConfigured": True,
+        }
+
+    if target_slug == "refund-policy" and company.get("refundPolicy", "").strip():
+        return {
+            "slug": "refund-policy",
+            "title": "Refund & Cancellation Policy",
+            "currentVersion": "Live Admin Configured",
+            "effectiveDate": "Live",
+            "summary": "Platform Refund Policy configured by Platform Administration.",
+            "content": company.get("refundPolicy"),
+            "publishedAt": None,
+            "isConfigured": True,
+        }
+
+    # 2. Check CMS Collection
     doc = await cms_repo.get_legal_doc(target_slug)
     if not doc:
         doc = await cms_repo.get_legal_doc(normalized_slug)
@@ -62,7 +164,16 @@ async def get_public_legal_doc(doc_slug: str) -> Dict[str, Any]:
     if not doc and normalized_slug in LEGAL_DOCS_SEED:
         doc = LEGAL_DOCS_SEED[normalized_slug]
     if not doc:
-        raise HTTPException(status_code=404, detail="Legal document not found or unpublished.")
+        return {
+            "slug": target_slug,
+            "title": target_slug.replace("-", " ").title(),
+            "currentVersion": "Pending",
+            "effectiveDate": "Pending",
+            "summary": "Policy document pending configuration by administrator in Admin Console Settings.",
+            "content": "",
+            "publishedAt": None,
+            "isConfigured": False,
+        }
     return {
         "slug": doc.get("slug", target_slug),
         "title": doc.get("title", "Legal Document"),
@@ -71,6 +182,7 @@ async def get_public_legal_doc(doc_slug: str) -> Dict[str, Any]:
         "summary": doc.get("summary", ""),
         "content": doc.get("content", ""),
         "publishedAt": doc.get("publishedAt"),
+        "isConfigured": True,
     }
 
 

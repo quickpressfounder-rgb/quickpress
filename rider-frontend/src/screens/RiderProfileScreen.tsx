@@ -289,7 +289,7 @@ export function RiderProfileScreen() {
     const cleanId = formatCaptainId(riderId);
     navigator.clipboard.writeText(cleanId);
     triggerHaptic();
-    toast.success(`Captain ID ${cleanId} copied! 📋`);
+    toast.success(`Captain ID ${cleanId} copied!`);
   };
 
 
@@ -321,10 +321,10 @@ export function RiderProfileScreen() {
         toast.info(
           profRes?.message ||
             bankRes?.message ||
-            "Government-verified details require Admin Approval. Change request submitted! ⏳"
+            "Government-verified details require Admin Approval. Change request submitted!"
         );
       } else {
-        toast.success("Profile details updated successfully! ✅");
+        toast.success("Profile details updated successfully!");
       }
       await loadProfileData();
     } catch {
@@ -338,7 +338,7 @@ export function RiderProfileScreen() {
   const handleConfirmLogout = () => {
     triggerHaptic();
     signOut();
-    toast.success("Logged out successfully. See you soon, Captain! 🛵");
+    toast.success("Logged out successfully. See you soon, Captain!");
     navigate({ to: "/auth" });
   };
 
@@ -619,7 +619,7 @@ export function RiderProfileScreen() {
           <div className="rounded-2xl border border-amber-300 bg-amber-50/90 p-3.5 text-xs text-amber-950 flex items-start gap-3 shadow-xs">
             <Hourglass className="size-5 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
             <div className="space-y-1">
-              <p className="font-black text-amber-950">Change Request Pending Admin Review ⏳</p>
+              <p className="font-black text-amber-950">Change Request Pending Admin Review</p>
               <p className="text-[11px] text-amber-800 leading-relaxed">
                 Your request to change government-verified KYC or Bank details is currently waiting for Admin approval. Existing active details remain valid until approved.
               </p>
@@ -997,7 +997,7 @@ export function RiderProfileScreen() {
             <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-2xl flex items-start gap-2.5 text-xs text-blue-950">
               <ShieldCheck className="size-4 text-blue-600 shrink-0 mt-0.5" />
               <div>
-                <p className="font-black text-blue-950">Government-Verified Account 🔒</p>
+                <p className="font-black text-blue-950">Government-Verified Account</p>
                 <p className="text-[11px] text-blue-800 leading-tight mt-0.5">
                   Name, Vehicle Plate & Bank Details are linked to verified KYC records. Any changes will be submitted for QuickPress Admin Approval.
                 </p>
@@ -1188,7 +1188,7 @@ export function RiderProfileScreen() {
                   type="button"
                   onClick={() => {
                     triggerHaptic();
-                    toast.success("Captain ID Card downloaded! 🪪");
+                    toast.success("Captain ID Card downloaded!");
                     setShowIdCardModal(false);
                   }}
                   className="flex-1 py-3 bg-[#00C853] hover:bg-[#00B248] text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all shadow-md cursor-pointer"

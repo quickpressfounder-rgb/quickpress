@@ -186,14 +186,14 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handleGoOnline = () => {
-      console.log("[PartnerContext] 🔔 Received qp:partner:go_online event from notification");
+      console.log("[PartnerContext] Received qp:partner:go_online event from notification");
       void setOnline(true);
     };
     window.addEventListener("qp:partner:go_online", handleGoOnline);
 
     const handleSwMessage = (event: MessageEvent) => {
       if (event.data?.type === "QP_GO_ONLINE") {
-        console.log("[PartnerContext] 🔔 Received QP_GO_ONLINE from ServiceWorker");
+        console.log("[PartnerContext] Received QP_GO_ONLINE from ServiceWorker");
         void setOnline(true);
       }
     };

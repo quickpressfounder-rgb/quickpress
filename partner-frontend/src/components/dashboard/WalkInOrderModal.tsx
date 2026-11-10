@@ -22,12 +22,12 @@ interface WalkInOrderModalProps {
 }
 
 const COMMON_GARMENTS = [
-  { id: "shirt", name: "Shirt / T-Shirt", price: 30, icon: "👕" },
-  { id: "trouser", name: "Trouser / Jeans", price: 40, icon: "👖" },
-  { id: "suit", name: "Blazer / 2pc Suit", price: 250, icon: "🧥" },
-  { id: "saree", name: "Silk Saree / Lehenga", price: 180, icon: "🥻" },
-  { id: "kurta", name: "Kurta / Pyjama", price: 50, icon: "👔" },
-  { id: "bedsheet", name: "Bedsheet / Blanket", price: 120, icon: "🛏️" },
+  { id: "shirt", name: "Shirt / T-Shirt", price: 30, icon: "" },
+  { id: "trouser", name: "Trouser / Jeans", price: 40, icon: "" },
+  { id: "suit", name: "Blazer / 2pc Suit", price: 250, icon: "" },
+  { id: "saree", name: "Silk Saree / Lehenga", price: 180, icon: "" },
+  { id: "kurta", name: "Kurta / Pyjama", price: 50, icon: "" },
+  { id: "bedsheet", name: "Bedsheet / Blanket", price: 120, icon: "" },
 ];
 
 const SERVICE_TIERS = [
@@ -111,7 +111,7 @@ export function WalkInOrderModal({ onClose, onOrderCreated }: WalkInOrderModalPr
 
     setTimeout(() => {
       setIsSubmitting(false);
-      toast.success(`🎉 Walk-In Order #${orderCode} Created!`, {
+      toast.success(`Walk-In Order #${orderCode} Created!`, {
         description: `Thermal Tag: ${tagCode} • Total: ${inr(computedTotal)} (${paymentMode.toUpperCase()})`,
       });
       onOrderCreated(newOrder);
@@ -262,9 +262,9 @@ export function WalkInOrderModal({ onClose, onOrderCreated }: WalkInOrderModalPr
             </label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { id: "cash", label: "💵 Cash Paid" },
-                { id: "upi", label: "📱 UPI / QR Paid" },
-                { id: "unpaid", label: "⏳ Pay on Pickup" },
+                { id: "cash", label: "Cash Paid" },
+                { id: "upi", label: "UPI / QR Paid" },
+                { id: "unpaid", label: "Pay on Pickup" },
               ].map((pm) => (
                 <button
                   type="button"

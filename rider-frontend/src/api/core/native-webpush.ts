@@ -116,7 +116,7 @@ export async function triggerTestWebPush(): Promise<boolean> {
     const res = await apiPostJson<{ ok: boolean; sentCount: number }>(
       "/api/notifications/webpush/test",
       {
-        title: "🛵 Rider Trip Push Active!",
+        title: "Rider Trip Push Active!",
         body: "Trip dispatch and pickup alerts will be delivered directly to your device.",
         url: "/orders",
       }

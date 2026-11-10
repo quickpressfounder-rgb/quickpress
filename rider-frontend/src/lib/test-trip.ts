@@ -93,7 +93,7 @@ export const dispatchTestTrip = (navigateFn?: (opts: { to: string }) => void) =>
     window.dispatchEvent(new CustomEvent("qp_simulate_rider_offer", { detail: offer }));
   } catch {}
 
-  toast.success("🧪 Test Trip Dispatched! (₹27 · Sector 67 Noida ➔ Sarfabad Village)", {
+  toast.success("Test Trip Dispatched! (₹27 · Sector 67 Noida ➔ Sarfabad Village)", {
     duration: 4000,
   });
 

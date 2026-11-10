@@ -73,7 +73,7 @@ export function PartnerSuspendedScreen() {
             status: "active",
           });
         }
-        toast.success("🎉 Your Partner Store is now ACTIVE! Redirecting to Dashboard...");
+        toast.success("Your Partner Store is now ACTIVE! Redirecting to Dashboard...");
         setTimeout(() => navigate({ to: partnerRoutes.dashboard }), 600);
       }
     } catch {

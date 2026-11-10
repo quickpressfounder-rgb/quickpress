@@ -116,7 +116,7 @@ export async function triggerTestWebPush(): Promise<boolean> {
     const res = await apiPostJson<{ ok: boolean; sentCount: number }>(
       "/api/notifications/webpush/test",
       {
-        title: "🛡️ Admin Native WebPush Active!",
+        title: "Admin Native WebPush Active!",
         body: "Operations alerts and dispatch events will be pushed directly to this browser.",
         url: "/notifications",
       }

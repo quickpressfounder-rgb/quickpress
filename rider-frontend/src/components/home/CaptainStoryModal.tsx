@@ -13,6 +13,10 @@ import {
   ExternalLink,
   ShieldCheck,
   CheckCircle2,
+  Bike,
+  Building2,
+  Coins,
+  Award,
 } from "lucide-react";
 import { triggerHaptic } from "../../lib/captain-audio";
 import {
@@ -27,6 +31,14 @@ interface CaptainStoryModalProps {
   stories?: RiderStoryItem[];
   onClose: () => void;
 }
+
+const getStoryIcon = (id: string, size = "size-10") => {
+  if (id.includes("transfer") || id.includes("money") || id.includes("bank")) return <Building2 className={`${size} text-white`} />;
+  if (id.includes("earn") || id.includes("2000") || id.includes("cash")) return <Coins className={`${size} text-white`} />;
+  if (id.includes("boost") || id.includes("surge")) return <Zap className={`${size} text-white`} />;
+  if (id.includes("performance") || id.includes("score")) return <Award className={`${size} text-white`} />;
+  return <Bike className={`${size} text-white`} />;
+};
 
 const STORY_DURATION_MS = 5000;
 
@@ -237,7 +249,7 @@ export const CaptainStoryModal: React.FC<CaptainStoryModalProps> = ({
                     className="size-full object-cover"
                   />
                 ) : (
-                  currentStory.icon || "✨"
+                  getStoryIcon(currentStory.id, "size-4")
                 )}
               </span>
               <div>
@@ -294,7 +306,7 @@ export const CaptainStoryModal: React.FC<CaptainStoryModalProps> = ({
                 className="size-full object-cover"
               />
             ) : (
-              <span className="text-5xl">{currentStory.icon || "✨"}</span>
+              getStoryIcon(currentStory.id, "size-12")
             )}
             <div className="absolute -top-1 -right-1 size-4 rounded-full bg-emerald-400 animate-ping" />
           </div>

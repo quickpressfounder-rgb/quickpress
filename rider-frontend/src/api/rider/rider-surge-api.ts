@@ -9,7 +9,7 @@ export interface SurgeHotspotData {
   bonus: number;
   multiplier: string;
   label: string;
-  demandLevel: "CRITICAL 🔥" | "HIGH ⚡" | "MODERATE 🚀" | string;
+  demandLevel: "CRITICAL" | "HIGH" | "MODERATE" | string;
   tag?: string;
   description?: string;
   ordersWaiting: number;
@@ -45,7 +45,7 @@ export interface LocationSurgeStatus {
 }
 
 /**
- * 📍 Fetches live location-based surge hotspots from the backend engine.
+ * Fetches live location-based surge hotspots from the backend engine.
  */
 export async function fetchSurgeZones(
   lat?: number | null,
@@ -82,7 +82,7 @@ export async function fetchSurgeZones(
 }
 
 /**
- * 🔍 Checks whether a specific coordinate has active surge pricing.
+ * Checks whether a specific coordinate has active surge pricing.
  */
 export async function checkLocationSurge(
   lat: number,

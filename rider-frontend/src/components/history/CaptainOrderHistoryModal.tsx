@@ -91,7 +91,7 @@ export const CaptainOrderHistoryModal: React.FC<CaptainOrderHistoryModalProps> =
     try {
       navigator.clipboard.writeText(text);
       triggerHaptic(30);
-      toast.success(`${label} copied to clipboard! 📋`);
+      toast.success(`${label} copied to clipboard!`);
     } catch {}
   };
 

@@ -78,7 +78,7 @@ function joinPartnerRooms(sock: Socket, partnerId: string, phone: string, userId
   const key = `${sock.id}:${partnerId}:${phone}:${userId}`;
   if (!force && lastJoinedRoomsKey === key) return;
   lastJoinedRoomsKey = key;
-  console.log("[PartnerSocket] ⚡ Joining partner realtime rooms:", { partnerId, phone, userId });
+  console.log("[PartnerSocket] Joining partner realtime rooms:", { partnerId, phone, userId });
 
   const emitJoin = (room: string) => {
     sock.emit("join", room);
@@ -159,7 +159,7 @@ export function initPartnerSocket(): Socket | null {
       });
 
       const handleConnect = () => {
-        console.log("[PartnerSocket] ⚡ Connected to realtime gateway:", socket?.id);
+        console.log("[PartnerSocket] Connected to realtime gateway:", socket?.id);
         const creds = getPartnerCredentials();
         if (socket) {
           joinPartnerRooms(socket, creds.partnerId, creds.phone, creds.userId);
@@ -170,7 +170,7 @@ export function initPartnerSocket(): Socket | null {
       socket.on("reconnect", handleConnect);
 
       const handleOrder = (data: any) => {
-        console.log("[PartnerSocket] ⚡ Realtime order event received:", data);
+        console.log("[PartnerSocket] Realtime order event received:", data);
         orderListeners.forEach((listener) => {
           try {
             listener(data);
@@ -181,7 +181,7 @@ export function initPartnerSocket(): Socket | null {
       };
 
       const handleStatus = (data: any) => {
-        console.log("[PartnerSocket] ⚡ Realtime partner status update received:", data);
+        console.log("[PartnerSocket] Realtime partner status update received:", data);
         statusListeners.forEach((listener) => {
           try {
             listener(data);
@@ -217,7 +217,7 @@ export function initPartnerSocket(): Socket | null {
 
       // Notification and Broadcast events
       const handleNotification = (data: any) => {
-        console.log("[PartnerSocket] ⚡ Realtime notification received:", data);
+        console.log("[PartnerSocket] Realtime notification received:", data);
         notificationListeners.forEach((listener) => {
           try {
             listener(data);

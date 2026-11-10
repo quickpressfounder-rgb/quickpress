@@ -51,7 +51,7 @@ export function RiderLeaderboardScreen() {
         setData(res);
         if (isRefresh) {
           triggerHaptic();
-          toast.success(t("leaderboard.synced") || "Leaderboard Updated 🏆");
+          toast.success(t("leaderboard.synced") || "Leaderboard Updated");
         }
       } catch {
         toast.error("Failed to load leaderboard");
@@ -241,13 +241,13 @@ export function RiderLeaderboardScreen() {
                     {rank2.trips} Trips
                   </span>
                   <div className="w-full h-16 bg-zinc-100 rounded-t-2xl flex flex-col items-center justify-center border-t-2 border-zinc-300 p-1">
-                    <span className="text-xs">🥈</span>
+                    <span className="text-xs font-bold font-mono">#2</span>
                     <span className="text-[10px] font-bold text-zinc-700">₹300 Prize</span>
                   </div>
                 </div>
               ) : (
                 <div className="h-16 bg-zinc-50 rounded-t-2xl border border-dashed border-zinc-200 flex items-center justify-center text-[10px] text-zinc-400">
-                  Open 🥈
+                  Rank #2
                 </div>
               )}
 
@@ -263,7 +263,7 @@ export function RiderLeaderboardScreen() {
                       )}
                     </div>
                     <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-base">
-                      👑
+                      
                     </span>
                     <span className="absolute -bottom-1 right-0 size-5 rounded-full bg-amber-400 text-zinc-950 text-[10px] font-black flex items-center justify-center border-2 border-white shadow-xs">
                       1
@@ -276,13 +276,13 @@ export function RiderLeaderboardScreen() {
                     {rank1.trips} Trips
                   </span>
                   <div className="w-full h-22 bg-amber-50 rounded-t-2xl flex flex-col items-center justify-center border-t-2 border-amber-400 p-1 shadow-2xs">
-                    <span className="text-sm">🥇</span>
+                    <span className="text-xs font-bold font-mono">#1</span>
                     <span className="text-[10px] font-black text-amber-950">₹500 Prize</span>
                   </div>
                 </div>
               ) : (
                 <div className="h-22 bg-amber-50/50 rounded-t-2xl border border-dashed border-amber-200 flex items-center justify-center text-[10px] text-amber-600 font-bold">
-                  Open 🥇
+                  Rank #1
                 </div>
               )}
 
@@ -308,13 +308,13 @@ export function RiderLeaderboardScreen() {
                     {rank3.trips} Trips
                   </span>
                   <div className="w-full h-12 bg-amber-50/60 rounded-t-2xl flex flex-col items-center justify-center border-t-2 border-amber-300 p-1">
-                    <span className="text-xs">🥉</span>
+                    <span className="text-xs font-bold font-mono">#3</span>
                     <span className="text-[10px] font-bold text-amber-900">₹150 Prize</span>
                   </div>
                 </div>
               ) : (
                 <div className="h-12 bg-zinc-50 rounded-t-2xl border border-dashed border-zinc-200 flex items-center justify-center text-[10px] text-zinc-400">
-                  Open 🥉
+                  Rank #3
                 </div>
               )}
             </div>
@@ -326,7 +326,7 @@ export function RiderLeaderboardScreen() {
               No delivery records yet for this period
             </p>
             <p className="text-[11px] text-zinc-400 max-w-xs mx-auto">
-              Complete trips today to claim your position on the Kasganj city podium! 🛵
+              Complete trips today to claim your position on the Kasganj city podium!
             </p>
           </div>
         )}
@@ -343,7 +343,7 @@ export function RiderLeaderboardScreen() {
                   Weekly ₹1,000 Prize Pool
                 </h4>
                 <span className="text-[9px] font-black uppercase px-1.5 py-0.5 bg-amber-100 text-amber-900 rounded border border-amber-300">
-                  Active 🎯
+                  Active
                 </span>
               </div>
               <p className="text-[11px] text-zinc-600 mt-0.5 leading-snug">
@@ -394,7 +394,7 @@ export function RiderLeaderboardScreen() {
                             : "bg-zinc-100 text-zinc-600"
                         }`}
                       >
-                        {rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank}
+                        {}
                       </div>
 
                       {/* Captain Info */}

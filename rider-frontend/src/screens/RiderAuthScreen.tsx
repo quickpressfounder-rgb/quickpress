@@ -1,5 +1,5 @@
 import { useNavigate, Link } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, UserPlus, LogIn, AlertCircle, X } from "lucide-react";
+import { ArrowLeft, Loader2, UserPlus, LogIn, AlertCircle, X, Globe } from "lucide-react";
 import React, { useEffect, useState, type FormEvent } from "react";
 
 import { useRiderContext } from "../context/RiderContext";
@@ -130,7 +130,8 @@ export function RiderAuthScreen() {
             onClick={() => navigate({ to: "/language" })}
             className="flex items-center gap-1 px-2.5 py-1 bg-neutral-100 rounded-full text-xs font-bold text-neutral-700 hover:bg-neutral-200 transition-colors"
           >
-            <span>🌐 {selectedLanguageObj.nativeName}</span>
+            <Globe className="w-3.5 h-3.5 text-neutral-600" />
+            <span>{selectedLanguageObj.nativeName}</span>
           </button>
         </div>
 

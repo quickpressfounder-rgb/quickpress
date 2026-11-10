@@ -134,7 +134,7 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
             {reason || "The response SLA window for this order expired, so it was automatically cancelled."}
           </p>
           <div className="mt-3.5 rounded-2xl bg-white/90 dark:bg-zinc-900/90 p-3 text-[11.5px] font-bold text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 flex items-center gap-2">
-            <span className="text-sm">💳</span>
+            
             <span>Full refund has been credited back to your QuickPress Wallet / Payment method.</span>
           </div>
         </div>
@@ -167,7 +167,7 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
             className={`font-mono text-xs font-black rounded-xl px-2.5 py-1 ${isUrgent ? "bg-rose-600 text-white animate-pulse" : "bg-amber-600 text-white"
               }`}
           >
-            ⏱️ {formatted}
+            {formatted}
           </span>
         </div>
         <p className="mt-2 text-[11.5px] font-medium text-amber-900/85 dark:text-amber-200/85 leading-relaxed">
@@ -201,7 +201,7 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
             className={`font-mono text-xs font-black rounded-xl px-2.5 py-1 ${isUrgent ? "bg-rose-600 text-white animate-pulse" : "bg-sky-600 text-white"
               }`}
           >
-            ⏱️ {formatted}
+            {formatted}
           </span>
         </div>
         <p className="mt-2 text-[11.5px] font-medium text-sky-900/85 dark:text-sky-200/85 leading-relaxed">
@@ -579,7 +579,7 @@ function TrackOrderScreen() {
                   )}
                   {cancelled && (
                     <span className="text-emerald-700 dark:text-emerald-400 font-bold lowercase tracking-normal">
-                      💳 refund processed
+                      refund processed
                     </span>
                   )}
                 </div>
@@ -939,7 +939,7 @@ function TrackOrderScreen() {
                         </p>
                         {step.isCancelled ? (
                           <p className="mt-1 text-[10.5px] font-bold text-emerald-700 dark:text-emerald-400">
-                            💳 Refund status: Complete / Credited to QuickPress Wallet
+                            Refund status: Complete / Credited to QuickPress Wallet
                           </p>
                         ) : null}
                         <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">

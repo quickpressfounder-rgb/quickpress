@@ -426,7 +426,7 @@ function PartnersPage() {
   const approveMutation = useMutation({
     mutationFn: (id: string) => approvePartner(id),
     onSuccess: () => {
-      toast.success("Partner store approved & activated! 🎉");
+      toast.success("Partner store approved & activated!");
       queryClient.invalidateQueries({ queryKey: ["admin", "partners"] });
       if (selectedId) queryClient.invalidateQueries({ queryKey: ["admin", "partners", "360", selectedId] });
     },
@@ -931,7 +931,7 @@ function PartnersPage() {
     a.download = `QuickPress_Merchant_Dossier_${h.businessName.replace(/\s+/g, "_")}_${h.id}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Store Audit Dossier downloaded successfully! 📄");
+    toast.success("Store Audit Dossier downloaded successfully!");
   };
 
   return (
@@ -1175,7 +1175,7 @@ function PartnersPage() {
                         className="h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs px-4"
                       >
                         <Check className="size-4 mr-1.5" />
-                        Approve Store ✅
+                        Approve Store
                       </Button>
                     )}
                     {profile.header.status !== "REJECTED" && (
@@ -1186,7 +1186,7 @@ function PartnersPage() {
                         className="h-9 rounded-xl border-rose-300 bg-white text-rose-700 hover:bg-rose-50 font-bold text-xs shadow-xs px-3"
                       >
                         <X className="size-3.5 mr-1 text-rose-600" />
-                        Reject / Flag ❌
+                        Reject / Flag
                       </Button>
                     )}
                     {profile.header.status === "ACTIVE" && (
@@ -1325,8 +1325,9 @@ function PartnersPage() {
 
                   <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200/80">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Customer Rating</span>
-                    <div className="text-lg font-bold text-amber-600 mt-0.5">
-                      ★ {profile.overview.rating}
+                    <div className="text-lg font-bold text-amber-600 mt-0.5 flex items-center gap-1">
+                      <Star className="size-4 fill-amber-500 text-amber-500" />
+                      <span>{profile.overview.rating}</span>
                     </div>
                     <p className="text-[11px] text-zinc-500 mt-0.5 font-medium">{profile.ratings.totalReviews || 0} reviews • 100% CSAT</p>
                   </div>
@@ -1349,26 +1350,33 @@ function PartnersPage() {
               <div className="bg-white rounded-2xl border border-zinc-200 p-6 shadow-xs">
                 <Tabs defaultValue="kyc" className="space-y-6">
                   <TabsList className="bg-zinc-100 p-1.5 rounded-xl flex flex-wrap gap-1 h-auto border border-zinc-200/60">
-                    <TabsTrigger value="kyc" className="text-xs font-bold rounded-lg px-3.5 py-2 text-zinc-700 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs">
-                      📋 1. KYC &amp; Owner Verification
+                    <TabsTrigger value="kyc" className="text-xs font-bold rounded-lg px-3.5 py-2 text-zinc-700 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs flex items-center gap-1.5">
+                      <FileCheck className="size-3.5" />
+                      <span>1. KYC &amp; Owner Verification</span>
                     </TabsTrigger>
-                    <TabsTrigger value="facility" className="text-xs font-bold rounded-lg px-3.5 py-2 text-zinc-700 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs">
-                      🏪 2. Store Facility &amp; Specs
+                    <TabsTrigger value="facility" className="text-xs font-bold rounded-lg px-3.5 py-2 text-zinc-700 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs flex items-center gap-1.5">
+                      <Building2 className="size-3.5" />
+                      <span>2. Store Facility &amp; Specs</span>
                     </TabsTrigger>
-                    <TabsTrigger value="services" className="text-xs font-bold rounded-lg px-3.5 py-2 text-zinc-700 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs">
-                      🧺 3. Services &amp; Store Pricing ({profile.services.length})
+                    <TabsTrigger value="services" className="text-xs font-bold rounded-lg px-3.5 py-2 text-zinc-700 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs flex items-center gap-1.5">
+                      <Layers className="size-3.5" />
+                      <span>3. Services &amp; Store Pricing ({profile.services.length})</span>
                     </TabsTrigger>
-                    <TabsTrigger value="bank" className="text-xs font-bold rounded-lg px-3.5 py-2 text-zinc-700 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs">
-                      🏦 4. Bank Account &amp; Payouts
+                    <TabsTrigger value="bank" className="text-xs font-bold rounded-lg px-3.5 py-2 text-zinc-700 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs flex items-center gap-1.5">
+                      <Landmark className="size-3.5" />
+                      <span>4. Bank Account &amp; Payouts</span>
                     </TabsTrigger>
-                    <TabsTrigger value="agreement" className="text-xs font-bold rounded-lg px-3.5 py-2 text-zinc-700 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs">
-                      📜 5. SLA Agreement &amp; E-Signature
+                    <TabsTrigger value="agreement" className="text-xs font-bold rounded-lg px-3.5 py-2 text-zinc-700 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs flex items-center gap-1.5">
+                      <FileText className="size-3.5" />
+                      <span>5. SLA Agreement &amp; E-Signature</span>
                     </TabsTrigger>
-                    <TabsTrigger value="orders" className="text-xs font-bold rounded-lg px-3.5 py-2 text-zinc-700 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs">
-                      📦 6. Orders &amp; Dispatch Ledger ({profile.orders.length})
+                    <TabsTrigger value="orders" className="text-xs font-bold rounded-lg px-3.5 py-2 text-zinc-700 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs flex items-center gap-1.5">
+                      <Truck className="size-3.5" />
+                      <span>6. Orders &amp; Dispatch Ledger ({profile.orders.length})</span>
                     </TabsTrigger>
-                    <TabsTrigger value="activity" className="text-xs font-bold rounded-lg px-3.5 py-2 text-zinc-700 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs">
-                      ⚡ 7. Activity &amp; Admin Notes
+                    <TabsTrigger value="activity" className="text-xs font-bold rounded-lg px-3.5 py-2 text-zinc-700 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs flex items-center gap-1.5">
+                      <Activity className="size-3.5" />
+                      <span>7. Activity &amp; Admin Notes</span>
                     </TabsTrigger>
                   </TabsList>
 
@@ -2496,8 +2504,10 @@ function PartnersPage() {
               <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
                 ₹{(stats?.totalCommission ?? allPartners.reduce((acc, p) => acc + (p.commission || 0), 0)).toLocaleString("en-IN")}
               </div>
-              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
-                Avg CSAT: ★{stats?.customerRating ?? "5.0"}
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate flex items-center gap-1">
+                <span>Avg CSAT:</span>
+                <Star className="size-3 text-amber-500 fill-amber-500 shrink-0" />
+                <span>{stats?.customerRating ?? "5.0"}</span>
               </p>
             </div>
           </div>
@@ -2542,7 +2552,7 @@ function PartnersPage() {
                       <SelectValue placeholder="Select City" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">🏙️ All Cities ({allPartners.length})</SelectItem>
+                      <SelectItem value="all">All Cities ({allPartners.length})</SelectItem>
                       {cities.map((c) => (
                         <SelectItem key={c} value={c}>
                           {c} ({allPartners.filter((p) => p.city === c).length})
@@ -2559,7 +2569,7 @@ function PartnersPage() {
                       <SelectValue placeholder="All Areas / Zones" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">📍 All Areas ({availableAreas.length})</SelectItem>
+                      <SelectItem value="all">All Areas ({availableAreas.length})</SelectItem>
                       {availableAreas.map((a) => (
                         <SelectItem key={a} value={a}>
                           {a}
@@ -2576,7 +2586,7 @@ function PartnersPage() {
                       <SelectValue placeholder="Timeframe" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="today">⚡ Today (Live)</SelectItem>
+                      <SelectItem value="today">Today (Live)</SelectItem>
                       <SelectItem value="yesterday">Yesterday</SelectItem>
                       <SelectItem value="7days">Last 7 Days</SelectItem>
                       <SelectItem value="month">This Month</SelectItem>
@@ -2745,8 +2755,9 @@ function PartnersPage() {
                           </td>
                           <td className="py-2.5 px-4">
                             {row.flagged > 0 ? (
-                              <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[11px] border border-rose-200">
-                                ⚠️ {row.flagged} flagged
+                              <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[11px] border border-rose-200 inline-flex items-center gap-1">
+                                <AlertTriangle className="size-3 text-rose-600" />
+                                <span>{row.flagged} flagged</span>
                               </span>
                             ) : (
                               <span className="text-zinc-400 text-[11px]">None</span>
@@ -2839,7 +2850,7 @@ function PartnersPage() {
                     <SelectItem value="all">All KYC Status</SelectItem>
                     <SelectItem value="verified">KYC Verified</SelectItem>
                     <SelectItem value="pending">KYC Pending</SelectItem>
-                    <SelectItem value="resubmitted">🔄 Re-Submitted</SelectItem>
+                    <SelectItem value="resubmitted">Re-Submitted</SelectItem>
                     <SelectItem value="rejected">Rejected</SelectItem>
                   </SelectContent>
                 </Select>
@@ -2871,8 +2882,8 @@ function PartnersPage() {
             <div className="flex items-center gap-1.5 pb-3 mb-4 overflow-x-auto text-xs scrollbar-thin">
               {[
                 { id: "all", label: "All Stores", count: allPartners.length },
-                { id: "ONLINE", label: "🟢 Live Online", count: allPartners.filter((p) => p?.isOnline || (p as any).isOpen).length },
-                { id: "RESUBMITTED", label: "🔄 Re-Submitted", count: allPartners.filter((p) => Boolean(p?.resubmitted)).length },
+                { id: "ONLINE", label: "Live Online", count: allPartners.filter((p) => p?.isOnline || (p as any).isOpen).length },
+                { id: "RESUBMITTED", label: "Re-Submitted", count: allPartners.filter((p) => Boolean(p?.resubmitted)).length },
                 { id: "ACTIVE", label: "Active", count: allPartners.filter((p) => p?.status === "ACTIVE").length },
                 { id: "PENDING_APPROVAL", label: "Pending Review", count: allPartners.filter((p) => p?.status === "PENDING_APPROVAL").length },
                 { id: "TEMPORARILY_SUSPENDED", label: "Suspended", count: allPartners.filter((p) => p?.status === "TEMPORARILY_SUSPENDED").length },
@@ -3136,7 +3147,7 @@ function PartnersPage() {
                                   {isKycVerified
                                     ? "KYC ✓"
                                     : isKycResubmitted
-                                    ? "🔄 Resubmitted"
+                                    ? "Resubmitted"
                                     : isKycPending
                                     ? "KYC Pending"
                                     : "KYC " + (r.kycStatus || "Draft")}
@@ -3801,7 +3812,7 @@ function PartnersPage() {
                         ? "bg-emerald-100 text-emerald-900 border-emerald-300"
                         : "bg-amber-100 text-amber-900 border-amber-300"
                     }`}>
-                      {profile.header.status === "ACTIVE" ? "✓ VERIFIED QUICKPRESS PROCESSING HUB" : `⚠ STATUS: ${profile.header.status}`}
+                      {profile.header.status === "ACTIVE" ? "✓ VERIFIED QUICKPRESS PROCESSING HUB" : `STATUS: ${profile.header.status}`}
                     </span>
                     <span className="text-[10px] font-mono text-zinc-500">Ref: QP-STORE-DOSSIER-{profile.header.id}-{new Date().getFullYear()}</span>
                   </div>

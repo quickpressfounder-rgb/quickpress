@@ -84,7 +84,7 @@ export function AnalyticsPage() {
 
   const handleDownloadReport = async (reportType: string, reportName: string) => {
     try {
-      toast.info(`Generating ${reportName}... 🚀`);
+      toast.info(`Generating ${reportName}...`);
       const exportUrl = await exportReportCsv(reportType, selectedCity);
       const link = document.createElement("a");
       link.href = exportUrl;
@@ -161,7 +161,7 @@ export function AnalyticsPage() {
               aria-label="Filter analytics by city"
               className="bg-transparent text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer py-1"
             >
-              <option value="all">🌐 All Cities</option>
+              <option value="all">All Cities</option>
               {cities.map((c) => (
                 <option key={c.id} value={c.city}>
                   {c.city} ({c.orders} orders)
@@ -276,16 +276,16 @@ export function AnalyticsPage() {
             <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
               <TabsList className="bg-zinc-100 p-1 rounded-xl">
                 <TabsTrigger value="growth" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  📈 Growth Velocity & Revenue Funnel
+                  Growth Velocity & Revenue Funnel
                 </TabsTrigger>
                 <TabsTrigger value="cities" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  🏙️ Market Hubs & City Benchmarks ({cities.length})
+                  Market Hubs & City Benchmarks ({cities.length})
                 </TabsTrigger>
                 <TabsTrigger value="services" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  🧺 Service Line Economics ({services.length})
+                  Service Line Economics ({services.length})
                 </TabsTrigger>
                 <TabsTrigger value="reports" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  📑 Downloadable Executive Reports ({reports.length})
+                  Downloadable Executive Reports ({reports.length})
                 </TabsTrigger>
               </TabsList>
             </Tabs>

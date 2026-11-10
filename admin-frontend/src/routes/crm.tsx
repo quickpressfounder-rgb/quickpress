@@ -1510,7 +1510,7 @@ function EnterpriseCrmPage() {
                     {/* Central Grid Anchor Pin */}
                     <div className="absolute flex flex-col items-center pointer-events-none z-10">
                       <div className="size-4 rounded-full bg-zinc-950 ring-4 ring-zinc-300 flex items-center justify-center text-white text-[8px] font-black">
-                        ★
+                        
                       </div>
                       <span className="text-[9px] font-black text-zinc-950 bg-white px-1.5 py-0.2 rounded border border-zinc-300 mt-1 shadow-xs">
                         HQ Central Hub
@@ -1874,7 +1874,7 @@ function EnterpriseCrmPage() {
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <span className="flex size-6 items-center justify-center rounded-lg text-xs font-black shrink-0 text-zinc-950">
-                            {p.rank === 1 ? "🥇" : p.rank === 2 ? "🥈" : p.rank === 3 ? "🥉" : p.rank}
+                            {}
                           </span>
                           <div className="min-w-0">
                             <span className="text-xs font-black text-zinc-950 truncate block group-hover:underline">
@@ -1890,7 +1890,7 @@ function EnterpriseCrmPage() {
                           <span className="text-xs font-black text-zinc-950 block">
                             ₹{p.gmv.toLocaleString("en-IN")}
                           </span>
-                          <span className="text-[10px] font-bold text-zinc-600">{p.rating} ★</span>
+                          <span className="text-[10px] font-bold text-zinc-600">{p.rating} </span>
                         </div>
                       </div>
                     ))}
@@ -1924,7 +1924,7 @@ function EnterpriseCrmPage() {
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <span className="flex size-6 items-center justify-center rounded-lg text-xs font-black shrink-0 text-zinc-950">
-                            {r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank}
+                            {}
                           </span>
                           <div className="min-w-0">
                             <span className="text-xs font-black text-zinc-950 truncate block group-hover:underline">
@@ -1941,7 +1941,7 @@ function EnterpriseCrmPage() {
                             ₹{r.earnings.toLocaleString("en-IN")}
                           </span>
                           <span className="text-[10px] font-bold text-zinc-600">
-                            {r.rating} ★ ({r.onTimeRate}%)
+                            {r.rating}  ({r.onTimeRate}%)
                           </span>
                         </div>
                       </div>
@@ -1976,7 +1976,7 @@ function EnterpriseCrmPage() {
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <span className="flex size-6 items-center justify-center rounded-lg text-xs font-black shrink-0 text-zinc-950">
-                            {c.rank === 1 ? "🥇" : c.rank === 2 ? "🥈" : c.rank === 3 ? "🥉" : c.rank}
+                            {}
                           </span>
                           <div className="min-w-0">
                             <span className="text-xs font-black text-zinc-950 truncate block group-hover:underline">
@@ -2485,10 +2485,10 @@ function FullPageDossierView({
             </span>
             <span className="text-xl font-black text-amber-600 mt-1 block">
               {profile.rating
-                ? `${profile.rating} ★`
+                ? `${profile.rating} `
                 : typeof profile.membership === "object" && profile.membership !== null
                 ? (profile.membership as any)?.plan || (profile.isVip ? "Gold VIP" : "Standard VIP")
-                : profile.membership || "5.0 ★"}
+                : profile.membership || "5.0 "}
             </span>
           </div>
         </div>

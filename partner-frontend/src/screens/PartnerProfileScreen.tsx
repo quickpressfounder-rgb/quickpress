@@ -766,9 +766,9 @@ export function PartnerProfileScreen() {
                 {isKycVerified ? (
                   <p className="text-xs font-black text-emerald-600">VERIFIED ✓</p>
                 ) : isKycPending ? (
-                  <p className="text-xs font-black text-amber-600">PENDING ⏳</p>
+                  <p className="text-xs font-black text-amber-600">PENDING</p>
                 ) : (
-                  <p className="text-xs font-black text-rose-600">ACTION REQ ⚠️</p>
+                  <p className="text-xs font-black text-rose-600">ACTION REQ</p>
                 )}
               </div>
             </div>
@@ -1677,7 +1677,7 @@ export function PartnerProfileScreen() {
                         </span>
                       </div>
                       <div className="text-[11px] text-emerald-900 space-y-1">
-                        <p>Signatory: <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (Himanshu Pal)</p>
+                        <p>Platform Signatory: <strong>QuickPress Platform</strong> (Authorized Signatory)</p>
                         <p>Partner Signatory: <strong>{profile?.ownerName || "Store Proprietor"}</strong></p>
                       </div>
                       <div className="pt-1 flex items-center justify-between border-t border-emerald-200/80">
@@ -1750,10 +1750,10 @@ export function PartnerProfileScreen() {
                               }`}
                             >
                               {req.status === "approved"
-                                ? "✅ Approved by Admin"
+                                ? "Approved by Admin"
                                 : req.status === "rejected"
-                                ? "❌ Request Rejected"
-                                : "⏳ Under Admin Review"}
+                                ? "Request Rejected"
+                                : "Under Admin Review"}
                             </span>
                           </div>
 

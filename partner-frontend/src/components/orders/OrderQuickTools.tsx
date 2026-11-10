@@ -19,10 +19,10 @@ import { printThermalOrderTag, type ThermalPrintOrderData } from "../../lib/ther
 export function getGarmentIcon(name: string): string {
   const n = (name || "").toLowerCase();
   if (n.includes("shirt") || n.includes("t-shirt") || n.includes("tshirt") || n.includes("kurta") || n.includes("kurti") || n.includes("top")) {
-    return "👕";
+    return "";
   }
   if (n.includes("pant") || n.includes("trouser") || n.includes("jean") || n.includes("pajama") || n.includes("pyjama") || n.includes("lower") || n.includes("track")) {
-    return "👖";
+    return "";
   }
   if (
     n.includes("bedsheet") ||
@@ -35,27 +35,27 @@ export function getGarmentIcon(name: string): string {
     n.includes("comforter") ||
     n.includes("linen")
   ) {
-    return "🛏️";
+    return "";
   }
   if (n.includes("saree") || n.includes("sari") || n.includes("suit") || n.includes("dress") || n.includes("lehenga") || n.includes("gown") || n.includes("anarkali")) {
-    return "👗";
+    return "";
   }
   if (n.includes("jacket") || n.includes("blazer") || n.includes("coat") || n.includes("hoodie") || n.includes("sweater") || n.includes("cardigan")) {
-    return "🧥";
+    return "";
   }
   if (n.includes("towel") || n.includes("bath")) {
-    return "🧖";
+    return "";
   }
   if (n.includes("shoe") || n.includes("sneaker") || n.includes("boot")) {
-    return "👟";
+    return "";
   }
   if (n.includes("sock") || n.includes("underwear") || n.includes("brief") || n.includes("boxer") || n.includes("vest")) {
-    return "🧦";
+    return "";
   }
   if (n.includes("curtain") || n.includes("drape")) {
-    return "🪟";
+    return "";
   }
-  return "🧺";
+  return "";
 }
 
 interface GarmentItem {
@@ -105,7 +105,7 @@ export function GarmentSummaryChips({
   return (
     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
       <span className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-black text-black shadow-2xs">
-        <span className="text-sm select-none">🧺</span>
+        <span className="text-sm select-none"></span>
         <span className="font-bold text-black">{itemCount || 1} Garment Pieces</span>
       </span>
       {services && services.length > 0 && (
@@ -194,7 +194,7 @@ export function OrderSlaAcceptanceTimer({
         <Timer className="size-3.5 text-black" />
       )}
       <span className="tracking-tight">
-        {remainingSec === 0 ? "SLA Expired" : isUrgent ? `🔥 SLA: ${formatted} ACCEPT NOW!` : `Accept: ${formatted}`}
+        {remainingSec === 0 ? "SLA Expired" : isUrgent ? `SLA: ${formatted} ACCEPT NOW!` : `Accept: ${formatted}`}
       </span>
     </div>
   );
@@ -351,7 +351,7 @@ export function PrintBagTagButton({
       onClick={(e) => {
         e.stopPropagation();
         printThermalOrderTag(order);
-        toast.success(`🖨️ Printing Laundry Bag Tag & Receipt for #${order.code}!`);
+        toast.success(`Printing Laundry Bag Tag & Receipt for #${order.code}!`);
       }}
       className="inline-flex items-center gap-1 rounded-full border border-zinc-300 bg-white hover:bg-zinc-100 px-2.5 py-1 text-[11px] font-black text-black active:scale-95 transition-all shadow-2xs cursor-pointer"
       title="Print 58mm Thermal Laundry Bag Tag & Customer Receipt"

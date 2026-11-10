@@ -417,18 +417,18 @@ export function AnalyticsScreen() {
   // 1-Click WhatsApp Report Share
   const handleShareReport = () => {
     const periodLabel = period === "today" ? "Today" : period === "yesterday" ? "Yesterday" : period === "7d" ? "Past 7 Days" : period === "30d" ? "Past 30 Days" : period === "month" ? "This Month" : "Custom Period";
-    const reportText = `📊 *QuickPress Partner Business Report*
-🗓️ *Period:* ${periodLabel}
+    const reportText = `*QuickPress Partner Business Report*
+*Period:* ${periodLabel}
 ━━━━━━━━━━━━━━━━━━
-💰 *Gross Sales:* ${inr(totalRevenue)}
-🏦 *Net Bank Settlement:* ${inr(totalEarnings)}
-📦 *Fulfilled Orders:* ${completedOrders}
-🧺 *Garments Processed:* ${totalGarments} pcs
-⚡ *Express Orders:* ${expressOrders} (Bonus: ${inr(clientAggregated.expressBonusTotal)})
-⭐ *AOV (Basket Size):* ${inr(avgOrderValue)}
-👥 *Customer Repeat Rate:* ${repeatRate}%
+*Gross Sales:* ${inr(totalRevenue)}
+*Net Bank Settlement:* ${inr(totalEarnings)}
+*Fulfilled Orders:* ${completedOrders}
+*Garments Processed:* ${totalGarments} pcs
+*Express Orders:* ${expressOrders} (Bonus: ${inr(clientAggregated.expressBonusTotal)})
+*AOV (Basket Size):* ${inr(avgOrderValue)}
+*Customer Repeat Rate:* ${repeatRate}%
 ━━━━━━━━━━━━━━━━━━
-🏪 Generated live via QuickPress Partner Terminal`;
+Generated live via QuickPress Partner Terminal`;
 
     navigator.clipboard?.writeText(reportText);
     const waUrl = `https://wa.me/?text=${encodeURIComponent(reportText)}`;
@@ -503,7 +503,7 @@ export function AnalyticsScreen() {
                 { id: "30d", label: "30 Days" },
                 { id: "month", label: "This Month" },
                 { id: "all", label: "All Time" },
-                { id: "custom", label: "Custom 📅" },
+                { id: "custom", label: "Custom" },
               ].map((p) => {
                 const isActive = period === p.id;
                 return (
@@ -567,10 +567,10 @@ export function AnalyticsScreen() {
             <span className="text-[11px] font-bold text-zinc-400 shrink-0">Category:</span>
             {[
               { id: "all", label: "All Services" },
-              { id: "wash_iron", label: "🧺 Wash & Steam" },
-              { id: "dry_clean", label: "👔 Dry Clean" },
-              { id: "shoe_care", label: "👟 Shoe Care" },
-              { id: "bedding", label: "🛏️ Bedding" },
+              { id: "wash_iron", label: "Wash & Steam" },
+              { id: "dry_clean", label: "Dry Clean" },
+              { id: "shoe_care", label: "Shoe Care" },
+              { id: "bedding", label: "Bedding" },
             ].map((cat) => {
               const isActive = categoryFilter === cat.id;
               return (
@@ -590,7 +590,7 @@ export function AnalyticsScreen() {
             })}
           </div>
 
-          {/* Inline Custom Date Inputs (when Custom 📅 is chosen) */}
+          {/* Inline Custom Date Inputs (when Custom is chosen) */}
           {showCustomPicker && (
             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-100 text-xs">
               <span className="font-bold text-zinc-700">From:</span>
@@ -1255,8 +1255,8 @@ export function AnalyticsScreen() {
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { id: "all", label: "All Speeds" },
-                  { id: "express", label: "⚡ Express Only" },
-                  { id: "standard", label: "🕒 Standard Only" },
+                  { id: "express", label: "Express Only" },
+                  { id: "standard", label: "Standard Only" },
                 ].map((opt) => (
                   <button
                     key={opt.id}
@@ -1280,10 +1280,10 @@ export function AnalyticsScreen() {
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: "all", label: "All Services (सभी)" },
-                  { id: "wash_iron", label: "🧺 Wash & Steam" },
-                  { id: "dry_clean", label: "👔 Dry Clean (Suits)" },
-                  { id: "shoe_care", label: "👟 Shoe Care" },
-                  { id: "bedding", label: "🛏️ Bedding & Quilts" },
+                  { id: "wash_iron", label: "Wash & Steam" },
+                  { id: "dry_clean", label: "Dry Clean (Suits)" },
+                  { id: "shoe_care", label: "Shoe Care" },
+                  { id: "bedding", label: "Bedding & Quilts" },
                 ].map((opt) => (
                   <button
                     key={opt.id}
@@ -1307,8 +1307,8 @@ export function AnalyticsScreen() {
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { id: "all", label: "All Modes" },
-                  { id: "online", label: "📱 UPI / Online" },
-                  { id: "cod", label: "💵 Cash (COD)" },
+                  { id: "online", label: "UPI / Online" },
+                  { id: "cod", label: "Cash (COD)" },
                 ].map((opt) => (
                   <button
                     key={opt.id}
@@ -1331,8 +1331,8 @@ export function AnalyticsScreen() {
               <p className="text-xs font-bold text-zinc-700">4. Accounting Status (ऑर्डर स्थिति):</p>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: "completed_only", label: "✅ Delivered Only (Financial)" },
-                  { id: "all", label: "🔄 All Including Active" },
+                  { id: "completed_only", label: "Delivered Only (Financial)" },
+                  { id: "all", label: "All Including Active" },
                 ].map((opt) => (
                   <button
                     key={opt.id}

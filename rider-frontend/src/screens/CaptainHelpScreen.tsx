@@ -115,7 +115,7 @@ export const CaptainHelpScreen: React.FC<CaptainHelpScreenProps> = ({
       {
         id: "msg-welcome",
         sender: "support",
-        text: "Namaste Captain! 🙏 QuickPress 24/7 Live Fleet Support me aapka swagat hai. Kisi bhi order, store delay, payout ya safety issue ke liye neeche diye quick button tap karein ya message type karein.",
+        text: "Namaste Captain! QuickPress 24/7 Live Fleet Support me aapka swagat hai. Kisi bhi order, store delay, payout ya safety issue ke liye neeche diye quick button tap karein ya message type karein.",
         time: "Just now",
       },
     ];
@@ -324,12 +324,12 @@ export const CaptainHelpScreen: React.FC<CaptainHelpScreenProps> = ({
 
   // Quick Problem Chips for 1-Tap Resolution
   const quickProblems = [
-    { label: "📞 Customer not answering", query: "Customer phone nahi utha raha hai, kya karu?" },
-    { label: "🏪 Store partner delay", query: "Partner store par kapde ready nahi hain aur delay ho raha hai." },
-    { label: "💰 Payout / Bank query", query: "Meri trip earning aur bank settlement ka update chahiye." },
-    { label: "📍 Wrong delivery location", query: "Customer ka delivery location map me galat dikh raha hai." },
-    { label: "🚨 Urgent cancellation", query: "Emergency hai, trip cancel karne me help chahiye bina penalty." },
-    { label: "📦 Damaged / Wrong item", query: "Garment count me farak hai ya packet damaged hai." },
+    { label: "Customer not answering", query: "Customer phone nahi utha raha hai, kya karu?" },
+    { label: "Store partner delay", query: "Partner store par kapde ready nahi hain aur delay ho raha hai." },
+    { label: "Payout / Bank query", query: "Meri trip earning aur bank settlement ka update chahiye." },
+    { label: "Wrong delivery location", query: "Customer ka delivery location map me galat dikh raha hai." },
+    { label: "Urgent cancellation", query: "Emergency hai, trip cancel karne me help chahiye bina penalty." },
+    { label: "Damaged / Wrong item", query: "Garment count me farak hai ya packet damaged hai." },
   ];
 
   // Handle Photo Attachment in Ticket
@@ -391,7 +391,7 @@ export const CaptainHelpScreen: React.FC<CaptainHelpScreenProps> = ({
       const created = await createCaptainSupportTicket(payload);
       playSuccessChime();
       triggerHaptic(50);
-      toast.success(`Ticket #${created.ticketNumber || "NEW"} Created Successfully! 🎉`);
+      toast.success(`Ticket #${created.ticketNumber || "NEW"} Created Successfully!`);
 
       // Add to local state & storage
       setTicketsList((prev) => [created, ...prev]);

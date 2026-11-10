@@ -116,11 +116,9 @@ We may update this Privacy Policy periodically to reflect technological, operati
 
 If you have any questions, concerns, or requests regarding this Privacy Policy or our data handling practices, please reach out to us:
 
-* **Company:** QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
-* **CIN:** U74999UP2024PTC198141
-* **Official Email:** [info@withquickpress.com](mailto:info@withquickpress.com)
-* **Phone / Helpline:** [1800 012 3456](tel:18000123456) (Mon–Sun, 7:00 AM – 10:00 PM IST)
-* **Registered Office:** 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India
+* **Platform Entity:** QuickPress Platform
+* **Official Email:** [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com)
+* **Corporate Details:** Configured dynamically via Admin Settings Desk
 """,
         "versions": [
             {
@@ -227,11 +225,9 @@ These Terms are governed by and construed in accordance with the laws of India. 
 ## 10. Contact Us
 
 For any clarifications regarding these Terms:
-* **Company:** QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
-* **CIN:** U74999UP2024PTC198141
-* **Email:** [info@withquickpress.com](mailto:info@withquickpress.com)
-* **Phone / Helpline:** [1800 012 3456](tel:18000123456)
-* **Registered Office:** 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India
+* **Platform Entity:** QuickPress Platform
+* **Email:** [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com)
+* **Corporate Details:** Configured dynamically via Admin Settings Desk
 """,
         "versions": [
             {
@@ -323,11 +319,9 @@ If you are unsatisfied with garment cleaning quality or if an item is missing/da
 
 ## 5. Contact Information
 
-* **Company:** QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
-* **CIN:** U74999UP2024PTC198141
-* **Email:** [info@withquickpress.com](mailto:info@withquickpress.com)
-* **Phone / Helpline:** [1800 012 3456](tel:18000123456)
-* **Registered Office:** 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India
+* **Platform Entity:** QuickPress Platform
+* **Email:** [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com)
+* **Corporate Details:** Configured dynamically via Admin Settings Desk
 """,
         "versions": [
             {
@@ -512,11 +506,9 @@ QuickPress is committed to providing prompt, fair, and transparent redressal of 
 ### Level 2: Grievance Officer (Statutory Escalation)
 If your complaint is not resolved satisfactorily at Level 1 within 48 hours, you may escalate directly to our designated Grievance Officer:
 
-- **Company:** QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
-- **CIN:** U74999UP2024PTC198141
-- **Registered Office:** 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India
-- **Email:** [info@withquickpress.com](mailto:info@withquickpress.com)
-- **Phone / Helpline:** [1800 012 3456](tel:18000123456) (Mon–Sun, 7:00 AM – 10:00 PM IST)
+- **Platform Entity:** QuickPress Platform
+- **Email:** [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com)
+- **Corporate Details:** Configured dynamically via Admin Settings Desk
 - **Statutory Acknowledgment:** Within **48 hours** with unique Ticket Reference ID.
 - **Resolution SLA:** Mandatory disposal and resolution within **30 days** of filing.
 
@@ -657,7 +649,7 @@ WEBSITE_SETTINGS_SEED: Dict[str, Any] = {
     "brandName": "QuickPress",
     "tagline": "Laundry, simplified.",
     "subheading": "Pickup. Clean. Care. Delivered.",
-    "supportPhone": "1800 012 3456",
+    "supportPhone": "",
     "supportPhoneRaw": "+919000090000",
     "supportEmail": "support@quickpress.in",
     "supportWhatsapp": "+919000090000",

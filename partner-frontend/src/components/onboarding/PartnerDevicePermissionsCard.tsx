@@ -169,7 +169,7 @@ export function PartnerDevicePermissionsCard({
       setNotifState(current);
 
       if (current === "granted") {
-        toast.success("🔔 Order Push Notifications Enabled! High-priority alerts active.");
+        toast.success("Order Push Notifications Enabled! High-priority alerts active.");
       } else if (current === "denied") {
         toast.error("Notification permission denied. Please allow notifications in browser address bar.");
       }
@@ -193,7 +193,7 @@ export function PartnerDevicePermissionsCard({
     setAudioUnlocked(true);
     setIsPlayingSiren(true);
     startPartnerOrderAlertRing();
-    toast.success("🔊 Playing Zomato-style High-Priority Order Siren + Vibration!");
+    toast.success("Playing Zomato-style High-Priority Order Siren + Vibration!");
 
     let seconds = 5;
     setSirenCountdown(seconds);
@@ -227,7 +227,7 @@ export function PartnerDevicePermissionsCard({
           lng: Number(pos.coords.longitude.toFixed(5)),
           accuracy: Math.round(pos.coords.accuracy),
         });
-        toast.success(`📍 Live GPS Verified! Accuracy: ±${Math.round(pos.coords.accuracy)}m`);
+        toast.success(`Live GPS Verified! Accuracy: ±${Math.round(pos.coords.accuracy)}m`);
       },
       (err) => {
         setGpsState("denied");
@@ -267,7 +267,7 @@ export function PartnerDevicePermissionsCard({
         );
       }
 
-      toast.success("🎉 All device permissions & High-Priority Order Alerts initialized!");
+      toast.success("All device permissions & High-Priority Order Alerts initialized!");
     } catch {
       // Handled silently
     } finally {

@@ -271,7 +271,7 @@ export function SmartRouteBatchModal({
                             <div className="flex items-center gap-2 pt-1 text-[11px] text-zinc-600 flex-wrap">
                               {stop.bagTag && (
                                 <span className="font-mono font-bold bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-800 border border-zinc-200">
-                                  🏷️ {stop.bagTag}
+                                  {stop.bagTag}
                                 </span>
                               )}
                               {stop.piecesCount > 0 && (

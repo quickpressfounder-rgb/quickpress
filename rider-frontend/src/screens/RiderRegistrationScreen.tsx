@@ -543,8 +543,19 @@ export function RiderRegistrationScreen() {
   const [isVerifyingAgreementOtp, setIsVerifyingAgreementOtp] = useState<boolean>(false);
   const [agreementOtpCountdown, setAgreementOtpCountdown] = useState<number>(0);
   const [isAgreementOtpVerified, setIsAgreementOtpVerified] = useState<boolean>(false);
+  const [liveRiderAgreement, setLiveRiderAgreement] = useState<string>("");
   const sigCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const agreementScrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    apiGetJson<any>("/api/public/legal/rider-agreement", { anonymous: true })
+      .then((res) => {
+        if (res?.content && res?.isConfigured) {
+          setLiveRiderAgreement(res.content);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Canvas coordinate and drawing handlers
   const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -3243,47 +3254,55 @@ export function RiderRegistrationScreen() {
                   </p>
                 </div>
 
-                <div className="space-y-1">
-                  <p className="font-bold text-neutral-900">1. स्वतंत्र डिलीवरी पार्टनर का दर्जा (Independent Contractor Status):</p>
-                  <p>
-                    डिलीवरी पार्टनर ("कैप्टन") QuickPress प्लेटफ़ॉर्म पर एक स्वतंत्र सेवा प्रदाता (Independent Contractor) के रूप में कार्य करता है। यह अनुबंध किसी भी प्रकार के रोजगार, साझेदारी या संयुक्त उद्यम (Employer-Employee / Partnership) का निर्माण नहीं करता है। कैप्टन अपनी सुविधानुसार कार्य के घंटे और स्थान चुनने के लिए स्वतंत्र है।
-                  </p>
-                </div>
+                {liveRiderAgreement?.trim() ? (
+                  <div className="whitespace-pre-wrap font-sans text-[11px] leading-relaxed text-neutral-800 space-y-2">
+                    {liveRiderAgreement}
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-1">
+                      <p className="font-bold text-neutral-900">1. स्वतंत्र डिलीवरी पार्टनर का दर्जा (Independent Contractor Status):</p>
+                      <p>
+                        डिलीवरी पार्टनर (&quot;कैप्टन&quot;) QuickPress प्लेटफ़ॉर्म पर एक स्वतंत्र सेवा प्रदाता (Independent Contractor) के रूप में कार्य करता है। यह अनुबंध किसी भी प्रकार के रोजगार, साझेदारी या संयुक्त उद्यम (Employer-Employee / Partnership) का निर्माण नहीं करता है। कैप्टन अपनी सुविधानुसार कार्य के घंटे और स्थान चुनने के लिए स्वतंत्र है।
+                      </p>
+                    </div>
 
-                <div className="space-y-1">
-                  <p className="font-bold text-neutral-900">2. सेवा की गुणवत्ता एवं समयबद्धता (Service Quality & Timeliness):</p>
-                  <p>
-                    कैप्टन स्टोर से आर्डर पिकअप करने तथा ग्राहक के निर्धारित पते तक सुरक्षित व समय पर पहुंचाने हेतु पूरी जिम्मेदारी लेगा। सामान को किसी प्रकार का नुकसान न हो, पार्सल या भोजन सील-बंद स्थिति में ही ग्राहक को सौंपा जाए।
-                  </p>
-                </div>
+                    <div className="space-y-1">
+                      <p className="font-bold text-neutral-900">2. सेवा की गुणवत्ता एवं समयबद्धता (Service Quality &amp; Timeliness):</p>
+                      <p>
+                        कैप्टन स्टोर से आर्डर पिकअप करने तथा ग्राहक के निर्धारित पते तक सुरक्षित व समय पर पहुंचाने हेतु पूरी जिम्मेदारी लेगा। सामान को किसी प्रकार का नुकसान न हो, पार्सल या कपड़े सील-बंद स्थिति में ही ग्राहक को सौंपा जाए।
+                      </p>
+                    </div>
 
-                <div className="space-y-1">
-                  <p className="font-bold text-neutral-900">3. यातायात नियम, हेलमेट एवं वैध लाइसेंस (Traffic & Road Safety Compliance):</p>
-                  <p>
-                    सड़क पर वाहन चलाते समय हेलमेट पहनना अनिवार्य है। कैप्टन प्रमाणित करता है कि उसके पास वैध ड्राइविंग लाइसेंस (DL), वाहन पंजीकरण (RC), तथा वैध वाहन बीमा (Third-Party Insurance) है। किसी भी यातायात उल्लंघन अथवा चालान की जिम्मेदारी स्वयं कैप्टन की होगी।
-                  </p>
-                </div>
+                    <div className="space-y-1">
+                      <p className="font-bold text-neutral-900">3. यातायात नियम, हेलमेट एवं वैध लाइसेंस (Traffic &amp; Road Safety Compliance):</p>
+                      <p>
+                        सड़क पर वाहन चलाते समय हेलमेट पहनना अनिवार्य है। कैप्टन प्रमाणित करता है कि उसके पास वैध ड्राइविंग लाइसेंस (DL), वाहन पंजीकरण (RC), तथा वैध वाहन बीमा (Third-Party Insurance) है। किसी भी यातायात उल्लंघन अथवा चालान की जिम्मेदारी स्वयं कैप्टन की होगी।
+                      </p>
+                    </div>
 
-                <div className="space-y-1">
-                  <p className="font-bold text-neutral-900">4. भुगतान एवं शून्य धोखाधड़ी नीति (Payouts & Zero Cash Fraud):</p>
-                  <p>
-                    प्रत्येक सफल डिलीवरी का पारिश्रमिक सीधे कैप्टन के सत्यापित बैंक खाते में तय समय पर ट्रांसफर किया जाएगा। कैश-ऑन-डिलीवरी (COD) से एकत्रित राशि को तुरंत सिस्टम में दर्ज करना अनिवार्य है। किसी भी फर्जी डिलीवरी या हेराफेरी पर खाता तत्काल ब्लॉक कर कानूनी कार्रवाई की जाएगी।
-                  </p>
-                </div>
+                    <div className="space-y-1">
+                      <p className="font-bold text-neutral-900">4. भुगतान एवं शून्य धोखाधड़ी नीति (Payouts &amp; Zero Cash Fraud):</p>
+                      <p>
+                        प्रत्येक सफल डिलीवरी का पारिश्रमिक सीधे कैप्टन के सत्यापित बैंक खाते में तय समय पर ट्रांसफर किया जाएगा। कैश-ऑन-डिलीवरी (COD) से एकत्रित राशि को तुरंत सिस्टम में दर्ज करना अनिवार्य है। किसी भी फर्जी डिलीवरी या हेराफेरी पर खाता तत्काल ब्लॉक कर कानूनी कार्रवाई की जाएगी।
+                      </p>
+                    </div>
 
-                <div className="space-y-1">
-                  <p className="font-bold text-neutral-900">5. ग्राहक गोपनीयता व शिष्टाचार (Customer Privacy & Courtesy):</p>
-                  <p>
-                    ग्राहक का नाम, पता व फोन नंबर केवल डिलीवरी कार्य हेतु है। डिलीवरी के बाद ग्राहक से संपर्क करना, नंबर साझा करना अथवा अनुचित व्यवहार करना सख्त वर्जित है।
-                  </p>
-                </div>
+                    <div className="space-y-1">
+                      <p className="font-bold text-neutral-900">5. ग्राहक गोपनीयता व शिष्टाचार (Customer Privacy &amp; Courtesy):</p>
+                      <p>
+                        ग्राहक का नाम, पता व फोन नंबर केवल डिलीवरी कार्य हेतु है। डिलीवरी के बाद ग्राहक से संपर्क करना, नंबर साझा करना अथवा अनुचित व्यवहार करना सख्त वर्जित है।
+                      </p>
+                    </div>
 
-                <div className="space-y-1">
-                  <p className="font-bold text-neutral-900">6. डिजिटल हस्ताक्षर की वैधता (Digital Signature Legal Validity):</p>
-                  <p>
-                    सूचना प्रौद्योगिकी अधिनियम, 2000 (Information Technology Act, 2000) के तहत इस स्क्रीन पर किया गया आपका इलेक्ट्रॉनिक हस्ताक्षर (E-Signature) कानूनी रूप से भौतिक हस्ताक्षर के समान वैध व बाध्यकारी है।
-                  </p>
-                </div>
+                    <div className="space-y-1">
+                      <p className="font-bold text-neutral-900">6. डिजिटल हस्ताक्षर की वैधता (Digital Signature Legal Validity):</p>
+                      <p>
+                        सूचना प्रौद्योगिकी अधिनियम, 2000 (Information Technology Act, 2000) के तहत इस स्क्रीन पर किया गया आपका इलेक्ट्रॉनिक हस्ताक्षर (E-Signature) कानूनी रूप से भौतिक हस्ताक्षर के समान वैध व बाध्यकारी है।
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 {selectedKitPlan === "PART_PAYMENT" && (
                   <div className="space-y-1 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-950">
@@ -3363,8 +3382,9 @@ export function RiderRegistrationScreen() {
                     </a>.
                   </p>
                   {!hasScrolledToBottom && (
-                    <p className="text-[10px] font-bold text-amber-700 mt-1">
-                      ⚠️ यह चेकबॉक्स अनुबंध को अंत तक स्क्रॉल करने के बाद ही टिक होगा।
+                    <p className="text-[10px] font-bold text-amber-700 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
+                      <span>यह चेकबॉक्स अनुबंध को अंत तक स्क्रॉल करने के बाद ही टिक होगा।</span>
                     </p>
                   )}
                   {fieldErrors["agreementConsent"] && (

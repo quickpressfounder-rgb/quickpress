@@ -680,7 +680,7 @@ def _render_base_email(
       </div>
       <div class="footer">
         © 2025–2026 QuickPress. All rights reserved.<br>
-        QuickPress Technologies Private Limited · Kasganj Operations Hub<br>
+        QuickPress Platform Operations<br>
         {footer_line}
       </div>
     </div>
@@ -1368,7 +1368,7 @@ async def send_partner_email_otp(
         Dear <strong>{greeting_name}</strong>,
       </p>
       <p style="font-size: 14px; color: #475569; line-height: 1.6;">
-        {'You are executing the QuickPress Master Merchant Franchise & SLA Agreement with QuickPress Technologies Private Limited. Please use the one-time code below to authenticate and seal your bilateral contract:' if is_agreement else 'Thank you for starting your store registration on QuickPress. Please enter the one-time verification code below to verify your business email address:'}
+        {'You are executing the QuickPress Master Merchant Franchise & SLA Agreement. Please use the one-time code below to authenticate and seal your bilateral contract:' if is_agreement else 'Thank you for starting your store registration on QuickPress. Please enter the one-time verification code below to verify your business email address:'}
       </p>
 
       <div style="background: #f0fdf4; border: 2px dashed #059669; border-radius: 14px; padding: 22px; text-align: center; margin: 24px 0;">
@@ -1377,7 +1377,7 @@ async def send_partner_email_otp(
           {otp_code}
         </div>
         <p style="font-size: 12px; color: #059669; margin: 0; font-weight: 600;">
-          ⏱️ Valid for 10 minutes · Single-use secure code
+          Valid for 10 minutes · Single-use secure code
         </p>
       </div>
 
@@ -1420,7 +1420,7 @@ async def send_partner_agreement_email(
     settings = get_settings()
     clean_name = "".join(c for c in business_name if c.isalnum() or c in ("-", "_")).strip() or "Store"
     filename = agreement_filename or f"QuickPress-Franchise-Agreement-{clean_name}.pdf"
-    subject = f"Executed Franchise Agreement & SLA — {business_name} [QuickPress Technologies Pvt Ltd]"
+    subject = f"Executed Franchise Agreement & SLA — {business_name} [QuickPress]"
 
     content = f"""
       <p style="font-size: 15px; color: #1e293b; margin-top: 0;">
@@ -1528,7 +1528,7 @@ async def send_rider_email_otp(
         Dear <strong>{greeting_name}</strong>,
       </p>
       <p style="font-size: 14px; color: #475569; line-height: 1.6;">
-        {'You are executing the QuickPress Master Delivery Captain & SLA Agreement with QuickPress Technologies Private Limited. Please use the one-time code below to authenticate and seal your bilateral contract:' if is_agreement else 'Thank you for registering as a Delivery Captain on QuickPress. Please enter the one-time verification code below to verify your email address:'}
+        {'You are executing the QuickPress Master Delivery Captain & SLA Agreement. Please use the one-time code below to authenticate and seal your bilateral contract:' if is_agreement else 'Thank you for registering as a Delivery Captain on QuickPress. Please enter the one-time verification code below to verify your email address:'}
       </p>
 
       <div style="background: #f0fdf4; border: 2px dashed #006045; border-radius: 14px; padding: 22px; text-align: center; margin: 24px 0;">
@@ -1537,7 +1537,7 @@ async def send_rider_email_otp(
           {otp_code}
         </div>
         <p style="font-size: 12px; color: #059669; margin: 0; font-weight: 600;">
-          ⏱️ Valid for 10 minutes · Single-use secure code
+          Valid for 10 minutes · Single-use secure code
         </p>
       </div>
 
@@ -1580,7 +1580,7 @@ async def send_rider_agreement_email(
     settings = get_settings()
     clean_id = "".join(c for c in rider_id if c.isalnum() or c in ("-", "_")).strip() or "Captain"
     filename = agreement_filename or f"QuickPress-Captain-Agreement-{clean_id}.pdf"
-    subject = f"Executed Delivery Captain Agreement & SLA — {rider_name} ({clean_id}) [QuickPress Technologies]"
+    subject = f"Executed Delivery Captain Agreement & SLA — {rider_name} ({clean_id}) [QuickPress]"
 
     content = f"""
       <p style="font-size: 15px; color: #1e293b; margin-top: 0;">

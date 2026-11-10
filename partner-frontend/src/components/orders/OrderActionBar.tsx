@@ -25,7 +25,7 @@ export function OrderActionBar({
     if (order.stage === "accepted" || order.stage === "pickup_pending") {
       return (
         <div className="flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-50 border border-amber-200/80 p-3 text-center text-xs font-bold text-amber-800">
-          <span className="text-base">🛵</span>
+          
           <span>Waiting for Captain to reach store with laundry (कैप्टन के कपड़े लेकर स्टोर पहुँचने की प्रतीक्षा है)</span>
         </div>
       );
@@ -50,10 +50,10 @@ export function OrderActionBar({
               : "bg-blue-50 border border-blue-200/80 text-blue-900"
           }`}
         >
-          <span className="text-base">{isRider2 ? "🚀" : "🛵"}</span>
+          
           <span>
             {isRider2
-              ? "⚡ Rider 1 Breached 2m SLA (-₹20 Penalty). Rider 2 Assigned (+₹20 Bonus Pool). Awaiting store arrival."
+              ? "Rider 1 Breached 2m SLA (-₹20 Penalty). Rider 2 Assigned (+₹20 Bonus Pool). Awaiting store arrival."
               : "Delivery Captain Dispatched · 2-Minute SLA to reach store & verify Dispatch OTP"}
           </span>
         </div>
@@ -85,11 +85,11 @@ export function OrderActionBar({
     if (primaryAction) {
       const swipeLabel =
         primaryAction.id === "confirm_handover"
-          ? "Swipe to Confirm Handover 📦"
+          ? "Swipe to Confirm Handover"
           : primaryAction.id === "start_washing" || primaryAction.id === "processing" || primaryAction.id === "wash" || primaryAction.id === "dry_clean"
-          ? "Swipe to Start Processing 🧺"
+          ? "Swipe to Start Processing"
           : primaryAction.id === "mark_ready" || primaryAction.id === "ready"
-          ? "Swipe: Process Complete ✨"
+          ? "Swipe: Process Complete"
           : `Swipe to ${primaryAction.label}`;
 
       return (
