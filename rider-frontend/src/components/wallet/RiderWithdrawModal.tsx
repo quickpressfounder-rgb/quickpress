@@ -43,7 +43,7 @@ export const RiderWithdrawModal: React.FC<RiderWithdrawModalProps> = ({
       .then((p) => {
         if (mounted) setProfile(p);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (mounted) setLoadingProfile(false);
       });
@@ -187,11 +187,10 @@ export const RiderWithdrawModal: React.FC<RiderWithdrawModalProps> = ({
                     triggerHaptic(20);
                     setAmount(amt);
                   }}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-xl border transition-all ${
-                    amount === amt
-                      ? "bg-zinc-900 text-white border-zinc-900"
-                      : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
-                  }`}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-xl border transition-all ${amount === amt
+                    ? "bg-zinc-900 text-white border-zinc-900"
+                    : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
+                    }`}
                 >
                   ₹{amt}
                 </button>

@@ -1,5 +1,4 @@
 import { Capacitor } from "@capacitor/core";
-import { PushNotifications } from "@capacitor/push-notifications";
 import { apiPostJson } from "./transport";
 
 let isInitialized = false;
@@ -15,6 +14,7 @@ export async function initCapacitorPush(role: "customer" | "partner" | "rider" =
   isInitialized = true;
 
   try {
+    const { PushNotifications } = await import("@capacitor/push-notifications");
     let permStatus = await PushNotifications.checkPermissions();
 
     if (permStatus.receive === "prompt") {

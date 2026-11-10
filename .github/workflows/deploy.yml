@@ -24,6 +24,7 @@ jobs:
 
             echo "🔨 [2/6] Building Website & updating /var/www/quickpress/website (preserving APKs)..."
             cd ~/quickpress/website
+            npm install --prefer-offline --no-audit || npm install
             npm run build
             sudo mkdir -p /var/www/quickpress/website/apks
             sudo find /var/www/quickpress/website -mindepth 1 -maxdepth 1 ! -name 'apks' -exec rm -rf {} +
@@ -31,16 +32,19 @@ jobs:
 
             echo "🏬 [3/6] Building Partner Portal & restarting PM2..."
             cd ~/quickpress/partner-frontend
+            npm install --prefer-offline --no-audit || npm install
             NITRO_PRESET=node-server npm run build
             pm2 restart quickpress-partner || (PORT=8082 pm2 start .output/server/index.mjs --name quickpress-partner && pm2 save)
 
             echo "🛡️ [4/6] Building Ops / Admin Console & restarting PM2..."
             cd ~/quickpress/admin-frontend
+            npm install --prefer-offline --no-audit || npm install
             NITRO_PRESET=node-server npm run build
             pm2 restart quickpress-admin || (PORT=8084 pm2 start .output/server/index.mjs --name quickpress-admin && pm2 save)
 
             echo "🛵 [5/6] Building Rider Console & updating static files..."
             cd ~/quickpress/rider-frontend
+            npm install --prefer-offline --no-audit || npm install
             npm run build
             sudo mkdir -p /var/www/quickpress/rider
             sudo rm -rf /var/www/quickpress/rider/*
