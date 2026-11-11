@@ -50,6 +50,7 @@ import {
   CloudRain,
   Moon,
   Timer,
+  Award,
 } from "lucide-react";
 import { toast } from "sonner";
 import {

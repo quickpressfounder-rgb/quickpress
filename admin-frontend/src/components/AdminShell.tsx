@@ -76,7 +76,6 @@ export function isSuperAdminAccount(account?: Account | null): boolean {
     dept.includes("admin") ||
     dept.includes("super") ||
     dept.includes("administrator") ||
-    email === "admin@quickpress.online" ||
     email.includes("admin") ||
     perms.length === 0 ||
     perms.includes("all") ||
@@ -408,7 +407,7 @@ export function AdminShell({
   const account = session?.account;
   const isSuper = isSuperAdminAccount(account);
   const staffName = account?.name || (isSuper ? "Super Admin" : "Staff Member");
-  const staffEmail = account?.email || "admin@quickpress.online";
+  const staffEmail = account?.email || "";
   const staffRole = account?.departmentRole || (isSuper ? "Super Administrator" : "Operations Staff");
   const staffScope = account?.scope || "All India Hubs";
   const avatarLetters = getAvatarInitials(staffName, staffEmail);

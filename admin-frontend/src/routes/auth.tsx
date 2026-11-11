@@ -135,7 +135,11 @@ export function AdminAuthPage() {
       setChallengeData(data);
       setLoginStep("2fa");
       setResendTimer(60);
-      setOtpDigits(["", "", "", "", "", ""]);
+      if (data.debugOtp && data.debugOtp.length === 6) {
+        setOtpDigits(data.debugOtp.split(""));
+      } else {
+        setOtpDigits(["", "", "", "", "", ""]);
+      }
       toast.success(data.message || "Credentials verified! 2FA OTP code sent to your email.");
       window.setTimeout(() => otpInputRefs[0]?.current?.focus(), 250);
     },
@@ -291,8 +295,8 @@ export function AdminAuthPage() {
                 <p className="text-[11px] text-slate-500">
                   To access this console, your corporate email must be registered in the live Staff Directory by a Super Administrator.
                 </p>
-                <div className="pt-1 text-[11px] font-mono text-slate-700 bg-white p-2 rounded-lg border border-slate-200">
-                  Super Admin: <span className="font-bold text-emerald-700">official.quickpress@gmail.com</span>
+                <div className="pt-1 text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-200">
+                  Contact Platform Administrator to request authorization.
                 </div>
               </div>
 
@@ -397,21 +401,6 @@ export function AdminAuthPage() {
                     {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-0.5">
-                <span className="text-slate-400 text-[11px]">admin@quickpress.online</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginEmail("admin@quickpress.online");
-                    setLoginPassword("Admin@QuickPress2026!");
-                    toast.info("Super Admin credentials filled!");
-                  }}
-                  className="font-bold text-emerald-700 hover:underline cursor-pointer text-[11px]"
-                >
-                  Fill Super Admin
-                </button>
               </div>
 
               <button

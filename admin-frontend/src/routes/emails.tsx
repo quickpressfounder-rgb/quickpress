@@ -310,7 +310,7 @@ function EmailHubPage() {
     openRate: 0,
     totalClicks: 0,
     clickRate: 0,
-    senderEmail: "admin@quickpress.in",
+    senderEmail: "",
     byAudience: { customer: 0, partner: 0, rider: 0, admin: 0 },
     byCategory: { order: 0, finance: 0, onboarding: 0, security: 0, alert: 0, manual: 0 },
   };

@@ -386,7 +386,7 @@ export function MerchantAgreementsTab() {
                           </div>
 
                           <div className="text-[10px] text-zinc-500 leading-tight">
-                            <span className="font-bold text-zinc-800 block">{stats.signatory || "Himanshu Pal"} · Dir</span>
+                            <span className="font-bold text-zinc-800 block">{stats.signatory || "Authorized Signatory"} · Dir</span>
                             <span>{item.hasSignature ? "Partner Signed ✓" : "Partner Pending"}</span>
                           </div>
                         </div>
@@ -496,6 +496,8 @@ export function MerchantAgreementsTab() {
           setIsDispatchModalOpen(false);
           queryClient.invalidateQueries({ queryKey: ["admin", "merchant-agreements"] });
         }}
+        legalName={stats.legalName}
+        signatory={stats.signatory}
       />
     </div>
   );
@@ -505,15 +507,23 @@ interface DispatchAgreementModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  legalName?: string;
+  signatory?: string;
 }
 
-export function DispatchAgreementModal({ isOpen, onClose, onSuccess }: DispatchAgreementModalProps) {
+export function DispatchAgreementModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  legalName,
+  signatory,
+}: DispatchAgreementModalProps) {
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>("custom");
   const [businessName, setBusinessName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("Kasganj");
+  const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
   const [pan, setPan] = useState("");
   const [customNote, setCustomNote] = useState("");
@@ -534,7 +544,7 @@ export function DispatchAgreementModal({ isOpen, onClose, onSuccess }: DispatchA
       setOwnerName("");
       setEmail("");
       setPhone("");
-      setCity("Kasganj");
+      setCity("");
       return;
     }
     const p = partnersList.find((it) => it.id === partnerId);
@@ -543,7 +553,7 @@ export function DispatchAgreementModal({ isOpen, onClose, onSuccess }: DispatchA
       setOwnerName(p.ownerName || "");
       setEmail(p.email || "");
       setPhone(p.phone || "");
-      setCity(p.city || "Kasganj");
+      setCity(p.city || "");
     }
   };
 
@@ -687,7 +697,7 @@ export function DispatchAgreementModal({ isOpen, onClose, onSuccess }: DispatchA
               <Input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="Kasganj"
+                placeholder="Enter City"
                 className="mt-1 h-9 text-xs"
               />
             </div>
@@ -711,8 +721,8 @@ export function DispatchAgreementModal({ isOpen, onClose, onSuccess }: DispatchA
                 <span className="text-[10px] font-black uppercase tracking-wider text-blue-700">
                   Platform Signatory Stamp
                 </span>
-                <div className="font-bold text-zinc-900">{stats.legalName || "QuickPress"}</div>
-                <div className="text-[11px] text-zinc-600">Signatory: {stats.signatory || "Authorized Signatory"}</div>
+                <div className="font-bold text-zinc-900">{legalName || "QuickPress"}</div>
+                <div className="text-[11px] text-zinc-600">Signatory: {signatory || "Authorized Signatory"}</div>
               </div>
             </div>
 

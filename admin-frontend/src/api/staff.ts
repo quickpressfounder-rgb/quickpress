@@ -58,7 +58,7 @@ function toStaff(row: BackendStaff): StaffMember {
   return {
     id: row._id || row.id || "",
     name: row.name || "Super Admin",
-    email: row.email || "admin@quickpress.online",
+    email: row.email || "",
     phone: row.phone || "+91 98719 62596",
     role: row.role || "Super Admin",
     scope: row.scope || "All India Hubs",
