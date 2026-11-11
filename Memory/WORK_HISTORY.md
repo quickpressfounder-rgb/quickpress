@@ -1,5 +1,42 @@
 # QuickPress — Engineering Work History
 
+## Session: November 11, 2026 (Part 2)
+
+### B2B Commercial Client Login, Registration & Self-Service Bulk Order Portal (`withquickpress.com/b2b/login` & `/b2b/portal`)
+
+1. **Context & User Request:**
+   - Implemented dedicated B2B client login and registration system at `withquickpress.com/b2b/login` along with a full self-service commercial Bulk Order dispatch management portal at `withquickpress.com/b2b/portal`.
+
+2. **Backend API Extensions (`backend-python/app/api/b2b_api.py`):**
+   - `POST /api/b2b/client/login`: Authenticates commercial clients by B2B ID (`QP-B2B-XXXXXX`), registered phone, or work email. Generates verified session token and computes real-time unpaid balance from active invoices.
+   - `GET /api/b2b/client/me`: Fetches authenticated client profile, current balance, and contract rate card.
+   - `GET /api/b2b/client/orders`: Lists commercial bulk orders for client portal.
+   - `POST /api/b2b/client/orders`: Allows client facility managers to schedule bulk pickups, auto-generating multi-bag QR barcodes (`QP-B2B-XXXX-BAG-1/N`) with credit limit and auto-hold validation.
+   - `GET /api/b2b/client/invoices`: Returns monthly GST tax invoices with direct ReportLab PDF download links.
+
+3. **Frontend Implementation (`website`):**
+   - `website/src/types.ts`: Added `"b2b-login"` and `"b2b-portal"` to `PageType`.
+   - `website/src/pages/B2BLoginPage.tsx`:
+     - Clean, sharp monochrome corporate UI (strictly NO cartoon emojis).
+     - Dual-tab selector: "Commercial Login" vs "New Registration".
+     - Authenticates using `QP-B2B-XXXXXX` ID or registered phone with instant verification.
+     - Saves session to `localStorage` and routes to `b2b-portal`.
+   - `website/src/pages/B2BPortalPage.tsx`:
+     - Top Facility Command Ribbon: Company Name, B2B Account ID, Category, Credit Terms, and Credit Utilization progress bar.
+     - "Schedule Bulk Dispatch" Interactive Modal: Date, window slot (Morning / Afternoon / Evening), estimated load (kg), sealed bag count, fabric care requirements, gate/bay instructions.
+     - Tab 1: Live Bulk Orders with dual scale weigh-in tracking (doorstep vs hub net scale) and sealed bag custody badges.
+     - Tab 2: Monthly GST Invoices with 1-click official Tax Invoice PDF download and Bank UTR payment submission modal.
+     - Tab 3: Agreed Contract Rates schedule with locked per-kg pricing and itemized flatwork piece rates.
+   - `website/src/App.tsx`: Added routing for `/b2b/login`, `/b2b/portal`, and synchronized hash/pathname transitions.
+   - `website/src/pages/B2BPartnerPage.tsx`: Added "Already Registered? Facility Login" direct link.
+
+4. **Testing & Build Verification:**
+   - Expanded `backend-python/tests/test_b2b_admin_engine.py` with client login, profile fetch, orders listing, and invoices retrieval. 100% passed (`1 passed in 5.77s`).
+   - Verified 0 cartoon emojis across all new and modified files.
+   - Verified production build `npm run build` in `website/` completes cleanly in 1.58s with exit code 0.
+
+---
+
 ## Session: November 11, 2026 (Part 1)
 
 ### Advanced B2B Commercial Enterprise Section & Admin Operations Engine

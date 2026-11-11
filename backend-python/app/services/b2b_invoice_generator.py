@@ -453,3 +453,4 @@ def generate_b2b_invoice_pdf(invoice_data: Dict[str, Any], client_data: Optional
 
     doc.build(story)
     return buffer.getvalue()
+

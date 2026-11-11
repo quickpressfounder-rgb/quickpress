@@ -1190,3 +1190,112 @@ async def convert_lead_to_contract(lead_id: str) -> Dict[str, Any]:
     )
 
     return {"success": True, "message": "Lead Successfully Converted to Active Contract", "leadId": lead_id}
+
+
+# -----------------------------------------------------------------------------
+# B2B Commercial Client Self-Service & Authentication Endpoints
+# -----------------------------------------------------------------------------
+
+class B2BClientLoginPayload(BaseModel):
+    b2bIdOrPhone: str = Field(..., min_length=3, max_length=100)
+    otp: Optional[str] = None
+
+
+@router.post("/client/login")
+async def b2b_client_login(payload: B2BClientLoginPayload) -> Dict[str, Any]:
+    """Client Portal Login: Authenticate institutional client by B2B ID, Phone, or Email."""
+    identifier = payload.b2bIdOrPhone.strip()
+    clean_digits = "".join(filter(str.isdigit, identifier))
+
+    query_clauses: List[Dict[str, Any]] = [
+        {"b2bId": identifier},
+        {"b2bId": identifier.upper()},
+        {"_id": identifier},
+        {"id": identifier},
+        {"email": identifier.lower()},
+    ]
+    if clean_digits:
+        query_clauses.append({"phone": {"$regex": clean_digits}})
+
+    client = await database.find_one(B2B_CLIENTS_COL, {"$or": query_clauses})
+    if not client:
+        raise HTTPException(
+            status_code=404,
+            detail="Commercial account not found. Please verify your B2B ID or register your property first."
+        )
+
+    # Calculate real-time unpaid balance from invoices
+    b2b_id = str(client.get("b2bId") or client.get("id"))
+    try:
+        invoices = await database.find_many(B2B_INVOICES_COL, {"b2bId": b2b_id})
+        unpaid_balance = sum(
+            float(inv.get("balanceDue") or inv.get("totalAmount") or 0.0)
+            for inv in invoices
+            if inv.get("status") in ("UNPAID", "PARTIAL", "OVERDUE")
+        )
+    except Exception:
+        unpaid_balance = float(client.get("currentBalance", 0.0))
+
+    client["currentBalance"] = round(unpaid_balance, 2)
+    session_token = f"b2b_sess_{b2b_id}_{random.randint(100000, 999999)}"
+
+    return {
+        "success": True,
+        "token": session_token,
+        "client": client,
+        "message": f"Welcome back, {client.get('businessName')}",
+    }
+
+
+@router.get("/client/me")
+async def get_b2b_client_me(b2b_id: str = Query(..., description="B2B Client ID")) -> Dict[str, Any]:
+    """Fetch profile, contract rate card, and balance for logged-in commercial client."""
+    client = await database.find_one(B2B_CLIENTS_COL, {"$or": [{"_id": b2b_id}, {"b2bId": b2b_id}, {"id": b2b_id}]})
+    if not client:
+        raise HTTPException(status_code=404, detail=f"B2B Client {b2b_id} not found")
+
+    try:
+        invoices = await database.find_many(B2B_INVOICES_COL, {"b2bId": b2b_id})
+        unpaid_balance = sum(
+            float(inv.get("balanceDue") or inv.get("totalAmount") or 0.0)
+            for inv in invoices
+            if inv.get("status") in ("UNPAID", "PARTIAL", "OVERDUE")
+        )
+    except Exception:
+        unpaid_balance = float(client.get("currentBalance", 0.0))
+
+    client["currentBalance"] = round(unpaid_balance, 2)
+    return {"success": True, "client": client}
+
+
+@router.get("/client/orders")
+async def list_b2b_client_orders(b2b_id: str = Query(..., description="B2B Client ID")) -> Dict[str, Any]:
+    """List commercial bulk orders for client portal."""
+    try:
+        orders = await database.find_many(B2B_ORDERS_COL, {"$or": [{"b2bId": b2b_id}, {"b2bId": b2b_id.upper()}]})
+    except Exception:
+        orders = []
+
+    orders.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
+    return {"total": len(orders), "items": orders}
+
+
+@router.post("/client/orders", status_code=status.HTTP_201_CREATED)
+async def create_b2b_client_order(payload: B2BOrderCreatePayload) -> Dict[str, Any]:
+    """Client self-service: Schedule bulk laundry pickup from hotel/hospital facility."""
+    return await create_b2b_order(payload)
+
+
+@router.get("/client/invoices")
+async def list_b2b_client_invoices(b2b_id: str = Query(..., description="B2B Client ID")) -> Dict[str, Any]:
+    """List GST Tax Invoices for client portal with PDF URLs."""
+    try:
+        invoices = await database.find_many(B2B_INVOICES_COL, {"$or": [{"b2bId": b2b_id}, {"b2bId": b2b_id.upper()}]})
+    except Exception:
+        invoices = []
+
+    for inv in invoices:
+        inv["pdfUrl"] = f"/api/b2b/admin/invoices/{inv.get('invoiceNumber') or inv.get('id')}/pdf"
+
+    invoices.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
+    return {"total": len(invoices), "items": invoices}

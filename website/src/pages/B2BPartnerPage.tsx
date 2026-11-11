@@ -271,9 +271,22 @@ export function B2BPartnerPage({
     <div className="min-h-screen bg-white text-zinc-900 pt-24 sm:pt-28 pb-24 selection:bg-black selection:text-white font-sans">
       {/* ── Top Official Government/Corporate Header ────────────────────────── */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center border-b border-zinc-200 pb-10 reveal-on-scroll">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-zinc-300 bg-zinc-50 text-zinc-800 text-[11px] font-mono tracking-widest uppercase mb-4 shadow-2xs">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>OFFICIAL REGISTRATION PORTAL • FORM B2B-2026/V4</span>
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-zinc-300 bg-zinc-50 text-zinc-800 text-[11px] font-mono tracking-widest uppercase shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>OFFICIAL REGISTRATION PORTAL • FORM B2B-2026/V4</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              onNavigate("b2b-login");
+              window.location.hash = "#b2b/login";
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full border border-black bg-black text-white hover:bg-zinc-800 text-[11px] font-mono font-bold tracking-wider uppercase shadow-2xs transition cursor-pointer"
+          >
+            <span>Already Registered? Facility Login</span>
+            <IconArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-black tracking-tight leading-tight uppercase font-mono">

@@ -334,3 +334,4 @@ export async function convertB2BLeadToContract(
 ): Promise<{ success: boolean; message: string }> {
   return apiPostJson(`/api/b2b/admin/leads/${leadId}/convert`, {});
 }
+

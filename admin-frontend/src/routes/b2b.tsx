@@ -2104,3 +2104,4 @@ function GenerateInvoiceModal({
     </Dialog>
   );
 }
+

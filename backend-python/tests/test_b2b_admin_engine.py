@@ -192,3 +192,26 @@ async def test_b2b_enterprise_full_lifecycle():
         assert stats_resp.status_code == 200
         stats = stats_resp.json()
         assert stats["activeAccounts"] >= 1
+
+        # 14. B2B Commercial Client Portal Login
+        client_login_resp = await client.post(
+            "/api/b2b/client/login",
+            json={"b2bIdOrPhone": b2b_id},
+        )
+        assert client_login_resp.status_code == 200
+        login_data = client_login_resp.json()
+        assert login_data["success"] is True
+        assert login_data["client"]["b2bId"] == b2b_id
+
+        # 15. Client fetches Me, Orders, and Invoices
+        me_resp = await client.get(f"/api/b2b/client/me?b2b_id={b2b_id}")
+        assert me_resp.status_code == 200
+
+        client_orders_resp = await client.get(f"/api/b2b/client/orders?b2b_id={b2b_id}")
+        assert client_orders_resp.status_code == 200
+        assert client_orders_resp.json()["total"] >= 1
+
+        client_inv_resp = await client.get(f"/api/b2b/client/invoices?b2b_id={b2b_id}")
+        assert client_inv_resp.status_code == 200
+        assert client_inv_resp.json()["total"] >= 1
+
