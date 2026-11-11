@@ -712,3 +712,20 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
    - Resolved "Perimeter Access Denied: Email 'official.quickpress@gmail.com' is authenticated by Cloudflare Zero Trust, but is not enrolled in the QuickPress Staff Directory":
      - In `backend-python/app/main.py`: Awaited `_run_startup_seeds()` so `ensure_super_admin_seed()` executes automatically on backend container startup.
      - In `backend-python/app/api/auth.py`: Updated `admin_cf_sso_login` (`/api/auth/admin/cf-sso`) to recognize `official.quickpress@gmail.com` and owner emails, auto-provisioning / activating their Super Admin account with full permissions (`all`, `*`, `b2b`, etc.) and issuing an authentic session token immediately without password prompts.
+
+6. **Dashboard KPI Typography & Design System Harmonization (`admin-frontend/src/routes/dashboard.tsx`):**
+   - Standardized the Command Center Dashboard (`/dashboard`) typography to match the exact canonical styling established in the Customers page (`customers.tsx`):
+     - **KPI Headings:** Converted from harsh dark headings to clean, muted uppercase tracking labels (`text-[11px] font-black uppercase tracking-wider text-zinc-500`).
+     - **KPI Metric Values:** Rendered in prominent, dark, high-contrast typography (`text-2xl sm:text-3xl font-black text-zinc-950 mt-1.5 tabular-nums tracking-tight`).
+     - **Color Theme Harmonization:** Removed top rainbow gradient stripes (`bg-linear-to-r from-emerald-500...`, `from-indigo-500...`, `from-blue-500...`, `from-purple-500...`) and loud neon pastel card boxes (`bg-emerald-100`, `bg-indigo-100`, `bg-purple-100`).
+     - **Standardized Containers:** Uniform pure white card styling (`bg-white border border-zinc-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-zinc-300`).
+     - **Harmonized Sub-sections:** Applied matching muted typography and subtle icons across:
+       - Timeframe filter label (`text-[11px] font-black uppercase tracking-wider text-zinc-500`).
+       - 4 North Star Executive KPI cards (Gross GMV, Platform Take 18%, Orders Volume, Fleet & Stores).
+       - QuickPress Two-Ride Telemetry Matrix (Ride 1 Pickup Leg & Ride 2 Delivery Leg mini-telemetry cells).
+       - 9-Stage Order Lifecycle telemetry counts and labels.
+       - Rider Fleet Logistics (4 status buttons: Total Registered, Online Now, Available, Busy).
+       - Partner Laundromats (4 status buttons: Total Facilities, Active, Pending KYC, Suspended).
+       - Category-Wise Services 4 KPI Summary Strip (Active Services, #1 Top Grossing SKU, Highest Volume SKU, Partner Adoption).
+       - Regional City & Operating Zone Breakdown table header & Quick Actions panel icons.
+   - **Verification:** Ran `npm --prefix admin-frontend run build` passing with exit code 0 (`vite build` via Nitro). Layout completely preserved with zero structural regressions.

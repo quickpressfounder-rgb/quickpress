@@ -403,8 +403,8 @@ export function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white p-3.5 shadow-xs">
           {/* Timeframe Switcher */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-black uppercase tracking-wider text-zinc-950 mr-2 flex items-center gap-1">
-              <Clock className="size-3 text-zinc-950" />
+            <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500 mr-2 flex items-center gap-1">
+              <Clock className="size-3 text-zinc-400" />
               <span>TIMEFRAME:</span>
             </span>
             {[
@@ -589,201 +589,130 @@ export function DashboardPage() {
         )}
 
         {/* =========================================================================
-            SECTION 2: NORTH STAR 4 EXECUTIVE KPI CARDS (COLORFUL & HIGH CONTRAST)
+            SECTION 2: NORTH STAR 4 EXECUTIVE KPI CARDS (CLEAN CORPORATE TYPOGRAPHY)
         ========================================================================= */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-          {/* CARD 1: GROSS MERCHANDISE VALUE (GMV) - EMERALD */}
+          {/* CARD 1: GROSS MERCHANDISE VALUE (GMV) */}
           <div
             onClick={() => navigate({ to: adminRoutes.analytics })}
-            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs transition-all duration-300 hover:border-emerald-500 hover:shadow-md hover:-translate-y-0.5"
+            className="group bg-white border border-zinc-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between"
           >
-            <div className="absolute top-0 inset-x-0 h-1.5 bg-linear-to-r from-emerald-500 via-teal-500 to-emerald-600" />
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 font-black">
-                  <Coins className="size-4" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-950">
-                    GROSS GMV
-                  </span>
-                  <p className="text-[10px] font-bold text-zinc-600">Total Transacted Value</p>
+            <div>
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
+                  Gross GMV
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {data?.revenueTrend && (
+                    <span className="flex items-center gap-0.5 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                      <TrendingUp className="size-2.5" />
+                      {data.revenueTrend.changePct > 0 ? "+" : ""}{data.revenueTrend.changePct}%
+                    </span>
+                  )}
+                  <Coins className="size-4 text-zinc-400 group-hover:text-zinc-600 transition-colors" />
                 </div>
               </div>
-              <span className="flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs font-black text-emerald-950">
-                <TrendingUp className="size-3" />
-                {data?.revenueTrend ? `${data.revenueTrend.changePct > 0 ? "+" : ""}${data.revenueTrend.changePct}%` : "+0%"}
-              </span>
-            </div>
 
-            <div className="mt-3.5 flex items-baseline justify-between">
-              <div>
-                <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
-                  {currency(periodRevenue)}
-                </p>
-                <p className="text-xs font-bold text-zinc-700 mt-0.5">
-                  Avg Order: <span className="text-zinc-950 font-black">{currency(averageOrderValue)}</span> · <span className="text-emerald-800 font-extrabold">{dateFilter === "all" ? "All Time" : dateFilter.toUpperCase()}</span>
-                </p>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1.5 tabular-nums tracking-tight">
+                {currency(periodRevenue)}
               </div>
             </div>
 
-            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
-              <div className="h-full rounded-full bg-emerald-600 transition-all duration-500 w-full" />
-            </div>
-
-            <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-zinc-700">
-              <span>Lifetime Gross Reconciled</span>
-              <span className="text-emerald-800 font-black">{currency(lifetimeRevenue)}</span>
+            <div className="text-[11px] text-zinc-500 mt-3 flex flex-wrap items-center justify-between gap-1 font-medium pt-2.5 border-t border-zinc-100">
+              <span>Avg Order: <strong className="text-zinc-950 font-bold">{currency(averageOrderValue)}</strong></span>
+              <span>Lifetime: <strong className="text-zinc-950 font-bold">{currency(lifetimeRevenue)}</strong></span>
             </div>
           </div>
 
-          {/* CARD 2: PLATFORM TAKE RATE (18% NET REVENUE) - INDIGO */}
+          {/* CARD 2: PLATFORM TAKE RATE (18% NET REVENUE) */}
           <div
             onClick={() => navigate({ to: adminRoutes.wallet })}
-            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs transition-all duration-300 hover:border-indigo-500 hover:shadow-md hover:-translate-y-0.5"
+            className="group bg-white border border-zinc-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between"
           >
-            <div className="absolute top-0 inset-x-0 h-1.5 bg-linear-to-r from-indigo-500 via-violet-500 to-purple-600" />
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="flex size-8 items-center justify-center rounded-xl bg-indigo-100 text-indigo-900 border border-indigo-300 font-black">
-                  <Wallet className="size-4" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-950">
-                    PLATFORM TAKE (18%)
+            <div>
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
+                  Platform Take (18%)
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-700">
+                    18% Margin
                   </span>
-                  <p className="text-[10px] font-bold text-zinc-600">Company Net Commission</p>
+                  <Wallet className="size-4 text-zinc-400 group-hover:text-zinc-600 transition-colors" />
                 </div>
               </div>
-              <span className="rounded-full border border-indigo-300 bg-indigo-50 px-2 py-0.5 text-xs font-black text-indigo-950">
-                18% Margin
-              </span>
-            </div>
 
-            <div className="mt-3.5 flex items-baseline justify-between">
-              <div>
-                <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
-                  {currency(periodCommission)}
-                </p>
-                <p className="text-xs font-bold text-zinc-700 mt-0.5">
-                  Platform Earnings Cut ({dateFilter === "all" ? "All Time" : dateFilter.toUpperCase()})
-                </p>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1.5 tabular-nums tracking-tight">
+                {currency(periodCommission)}
               </div>
             </div>
 
-            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
-              <div className="h-full rounded-full bg-indigo-600 transition-all duration-500 w-full" />
-            </div>
-
-            <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-zinc-700">
-              <span>Lifetime Net Commission (18%)</span>
-              <span className="text-indigo-950 font-black">{currency(lifetimeCommission)}</span>
+            <div className="text-[11px] text-zinc-500 mt-3 flex flex-wrap items-center justify-between gap-1 font-medium pt-2.5 border-t border-zinc-100">
+              <span>Earnings ({dateFilter === "all" ? "All Time" : dateFilter.toUpperCase()})</span>
+              <span>Lifetime: <strong className="text-zinc-950 font-bold">{currency(lifetimeCommission)}</strong></span>
             </div>
           </div>
 
-          {/* CARD 3: ORDERS & FULFILLMENT EFFICIENCY - SKY BLUE */}
+          {/* CARD 3: ORDERS & FULFILLMENT EFFICIENCY */}
           <div
             onClick={() => navigate({ to: adminRoutes.orders })}
-            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs transition-all duration-300 hover:border-sky-500 hover:shadow-md hover:-translate-y-0.5"
+            className="group bg-white border border-zinc-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between"
           >
-            <div className="absolute top-0 inset-x-0 h-1.5 bg-linear-to-r from-blue-500 via-sky-500 to-cyan-600" />
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="flex size-8 items-center justify-center rounded-xl bg-sky-100 text-sky-900 border border-sky-300 font-black">
-                  <ShoppingBag className="size-4" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-950">
-                    ORDERS VOLUME
-                  </span>
-                  <p className="text-[10px] font-bold text-zinc-600">Customer Bookings</p>
-                </div>
-              </div>
-              <span className="flex items-center gap-1 rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-xs font-black text-sky-950">
-                <TrendingUp className="size-3" />
-                {data?.ordersTrend ? `${data.ordersTrend.changePct > 0 ? "+" : ""}${data.ordersTrend.changePct}%` : "+0%"}
-              </span>
-            </div>
-
-            <div className="mt-3.5 flex items-baseline justify-between">
-              <div>
-                <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
-                  {count(periodOrders)}
-                </p>
-                <p className="text-xs font-bold text-zinc-700 mt-0.5">
-                  {dateFilter === "all" ? `${count(data?.liveOrders)} Active in Flight` : `${count(periodOrders)} Orders Placed (${dateFilter.toUpperCase()})`}
-                </p>
-              </div>
-              <div className="text-right">
-                <span className="text-xs font-black text-sky-900 bg-sky-100 px-2 py-0.5 rounded-lg border border-sky-300">
-                  {fulfillmentPercentage}% Fulfilled
+            <div>
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
+                  Orders Volume
                 </span>
+                <div className="flex items-center gap-1.5">
+                  {data?.ordersTrend && (
+                    <span className="flex items-center gap-0.5 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                      <TrendingUp className="size-2.5" />
+                      {data.ordersTrend.changePct > 0 ? "+" : ""}{data.ordersTrend.changePct}%
+                    </span>
+                  )}
+                  <ShoppingBag className="size-4 text-zinc-400 group-hover:text-zinc-600 transition-colors" />
+                </div>
+              </div>
+
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1.5 tabular-nums tracking-tight">
+                {count(periodOrders)}
               </div>
             </div>
 
-            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
-              <div
-                className="h-full rounded-full bg-sky-600 transition-all duration-500"
-                style={{ width: `${fulfillmentPercentage}%` }}
-              />
-            </div>
-
-            <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-zinc-700">
-              <span>Delivered in Period: <span className="text-zinc-950 font-black">{count(dateFilter === "all" ? deliveredOrders : periodDelivered)}</span></span>
-              <span>Total Orders Lifetime: <span className="text-zinc-950 font-black">{count(totalOrders)}</span></span>
+            <div className="text-[11px] text-zinc-500 mt-3 flex flex-wrap items-center justify-between gap-1 font-medium pt-2.5 border-t border-zinc-100">
+              <span>Fulfilled: <strong className="text-zinc-950 font-bold">{fulfillmentPercentage}%</strong> ({count(dateFilter === "all" ? deliveredOrders : periodDelivered)})</span>
+              <span>Total: <strong className="text-zinc-950 font-bold">{count(totalOrders)}</strong></span>
             </div>
           </div>
 
-          {/* CARD 4: FLEET & PARTNER NETWORK CAPACITY - PURPLE */}
+          {/* CARD 4: FLEET & PARTNER NETWORK CAPACITY */}
           <div
             onClick={() => navigate({ to: adminRoutes.riders })}
-            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs transition-all duration-300 hover:border-purple-500 hover:shadow-md hover:-translate-y-0.5"
+            className="group bg-white border border-zinc-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between"
           >
-            <div className="absolute top-0 inset-x-0 h-1.5 bg-linear-to-r from-purple-500 via-fuchsia-500 to-pink-600" />
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="flex size-8 items-center justify-center rounded-xl bg-purple-100 text-purple-900 border border-purple-300 font-black">
-                  <Truck className="size-4" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-950">
-                    FLEET &amp; STORES
-                  </span>
-                  <p className="text-[10px] font-bold text-zinc-600">Ground Operations</p>
-                </div>
-              </div>
-              <span className="rounded-full border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs font-black text-purple-950">
-                Live GPS
-              </span>
-            </div>
-
-            <div className="mt-3.5 flex items-baseline justify-between">
-              <div>
-                <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
-                  {count(onlineRiders)}
-                </p>
-                <p className="text-xs font-bold text-zinc-700 mt-0.5">
-                  Online / {count(totalRiders)} Fleet
-                </p>
-              </div>
-              <div className="text-right">
-                <span className="text-xs font-black text-purple-900 bg-purple-100 px-2 py-0.5 rounded-lg border border-purple-300">
-                  {fleetReadinessPercentage}% Ready
+            <div>
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
+                  Fleet &amp; Stores
                 </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Live Fleet
+                  </span>
+                  <Truck className="size-4 text-zinc-400 group-hover:text-zinc-600 transition-colors" />
+                </div>
+              </div>
+
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1.5 tabular-nums tracking-tight">
+                {count(onlineRiders)}
               </div>
             </div>
 
-            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
-              <div
-                className="h-full rounded-full bg-purple-600 transition-all duration-500"
-                style={{ width: `${fleetReadinessPercentage}%` }}
-              />
-            </div>
-
-            <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-zinc-700">
-              <span>Active Stores: <span className="text-zinc-950 font-black">{count(data?.activePartners)}</span></span>
-              <span>Pending KYC: <span className="text-rose-700 font-black">{count(data?.pendingPartners)}</span></span>
+            <div className="text-[11px] text-zinc-500 mt-3 flex flex-wrap items-center justify-between gap-1 font-medium pt-2.5 border-t border-zinc-100">
+              <span>Online / <strong className="text-zinc-950 font-bold">{count(totalRiders)}</strong> ({fleetReadinessPercentage}% Ready)</span>
+              <span>Stores: <strong className="text-zinc-950 font-bold">{count(data?.activePartners)}</strong></span>
             </div>
           </div>
 
@@ -796,13 +725,13 @@ export function DashboardPage() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3 mb-4">
             <div>
               <h2 className="text-base font-black text-zinc-950 flex items-center gap-2">
-                <Navigation className="size-4 text-sky-700" />
+                <Navigation className="size-4 text-emerald-600" />
                 <span>QuickPress Two-Ride Telemetry Matrix</span>
-                <span className="rounded-md bg-sky-100 px-2 py-0.5 text-[10px] font-black text-sky-950 border border-sky-300">
+                <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-700 border border-zinc-200">
                   Leg 1 Pickup ⇄ Leg 2 Delivery
                 </span>
               </h2>
-              <p className="text-xs font-bold text-zinc-700 mt-0.5">
+              <p className="text-xs font-medium text-zinc-500 mt-0.5">
                 Real-time dispatch wave tracking across Customer Pickup and Customer Return Delivery legs
               </p>
             </div>
@@ -818,95 +747,95 @@ export function DashboardPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             {/* RIDE 1: PICKUP LEG */}
-            <div className="rounded-xl border border-sky-200 bg-sky-50/40 p-4">
-              <div className="flex items-center justify-between border-b border-sky-200 pb-2.5 mb-3">
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5 mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="flex size-7 items-center justify-center rounded-lg bg-sky-600 text-white font-black text-xs">
+                  <span className="flex size-6 items-center justify-center rounded-lg bg-zinc-900 text-white font-black text-[11px]">
                     R1
                   </span>
                   <div>
-                    <h3 className="text-xs font-black text-zinc-950 uppercase tracking-wider">
+                    <h3 className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
                       RIDE 1 — PICKUP LEG (Customer → Store)
                     </h3>
-                    <p className="text-[10px] font-bold text-sky-900">Garment intake &amp; bag tagging</p>
+                    <p className="text-[10px] font-medium text-zinc-400">Garment intake &amp; bag tagging</p>
                   </div>
                 </div>
-                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-sky-950 border border-sky-300">
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
                   Active Waves
                 </span>
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="rounded-lg bg-white p-2 border border-sky-200 shadow-2xs">
-                  <p className="text-[10px] font-bold text-zinc-700">Searching</p>
-                  <p className="text-base font-black text-sky-800">{twoRide.ride1.searching}</p>
+                <div className="rounded-xl bg-zinc-50/70 p-2.5 border border-zinc-200/80">
+                  <p className="text-[10px] font-black uppercase text-zinc-500">Searching</p>
+                  <p className="text-base font-black text-zinc-950 mt-0.5 tabular-nums">{twoRide.ride1.searching}</p>
                 </div>
-                <div className="rounded-lg bg-white p-2 border border-sky-200 shadow-2xs">
-                  <p className="text-[10px] font-bold text-zinc-700">Offers Sent</p>
-                  <p className="text-base font-black text-amber-800">{twoRide.ride1.offerSent}</p>
+                <div className="rounded-xl bg-zinc-50/70 p-2.5 border border-zinc-200/80">
+                  <p className="text-[10px] font-black uppercase text-zinc-500">Offers Sent</p>
+                  <p className="text-base font-black text-zinc-950 mt-0.5 tabular-nums">{twoRide.ride1.offerSent}</p>
                 </div>
-                <div className="rounded-lg bg-white p-2 border border-sky-200 shadow-2xs">
-                  <p className="text-[10px] font-bold text-zinc-700">Assigned</p>
-                  <p className="text-base font-black text-emerald-800">{twoRide.ride1.assigned}</p>
+                <div className="rounded-xl bg-zinc-50/70 p-2.5 border border-zinc-200/80">
+                  <p className="text-[10px] font-black uppercase text-zinc-500">Assigned</p>
+                  <p className="text-base font-black text-emerald-700 mt-0.5 tabular-nums">{twoRide.ride1.assigned}</p>
                 </div>
-                <div className="rounded-lg bg-white p-2 border border-sky-200 shadow-2xs">
-                  <p className="text-[10px] font-bold text-zinc-700">Timeouts</p>
-                  <p className="text-base font-black text-zinc-950">{twoRide.ride1.timeout}</p>
+                <div className="rounded-xl bg-zinc-50/70 p-2.5 border border-zinc-200/80">
+                  <p className="text-[10px] font-black uppercase text-zinc-500">Timeouts</p>
+                  <p className="text-base font-black text-zinc-950 mt-0.5 tabular-nums">{twoRide.ride1.timeout}</p>
                 </div>
-                <div className="rounded-lg bg-white p-2 border border-sky-200 shadow-2xs">
-                  <p className="text-[10px] font-bold text-zinc-700">Rejected</p>
-                  <p className="text-base font-black text-rose-700">{twoRide.ride1.rejected}</p>
+                <div className="rounded-xl bg-zinc-50/70 p-2.5 border border-zinc-200/80">
+                  <p className="text-[10px] font-black uppercase text-zinc-500">Rejected</p>
+                  <p className="text-base font-black text-rose-600 mt-0.5 tabular-nums">{twoRide.ride1.rejected}</p>
                 </div>
-                <div className="rounded-lg bg-white p-2 border border-sky-200 shadow-2xs">
-                  <p className="text-[10px] font-bold text-zinc-700">No Rider</p>
-                  <p className="text-base font-black text-rose-800">{twoRide.ride1.noRider}</p>
+                <div className="rounded-xl bg-zinc-50/70 p-2.5 border border-zinc-200/80">
+                  <p className="text-[10px] font-black uppercase text-zinc-500">No Rider</p>
+                  <p className="text-base font-black text-rose-600 mt-0.5 tabular-nums">{twoRide.ride1.noRider}</p>
                 </div>
               </div>
             </div>
 
             {/* RIDE 2: DELIVERY LEG */}
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
-              <div className="flex items-center justify-between border-b border-emerald-200 pb-2.5 mb-3">
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5 mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-600 text-white font-black text-xs">
+                  <span className="flex size-6 items-center justify-center rounded-lg bg-zinc-900 text-white font-black text-[11px]">
                     R2
                   </span>
                   <div>
-                    <h3 className="text-xs font-black text-zinc-950 uppercase tracking-wider">
+                    <h3 className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
                       RIDE 2 — DELIVERY LEG (Store → Customer)
                     </h3>
-                    <p className="text-[10px] font-bold text-emerald-900">Finished fresh garment delivery</p>
+                    <p className="text-[10px] font-medium text-zinc-400">Finished fresh garment delivery</p>
                   </div>
                 </div>
-                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-emerald-950 border border-emerald-300">
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
                   Active Waves
                 </span>
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="rounded-lg bg-white p-2 border border-emerald-200 shadow-2xs">
-                  <p className="text-[10px] font-bold text-zinc-700">Searching</p>
-                  <p className="text-base font-black text-sky-800">{twoRide.ride2.searching}</p>
+                <div className="rounded-xl bg-zinc-50/70 p-2.5 border border-zinc-200/80">
+                  <p className="text-[10px] font-black uppercase text-zinc-500">Searching</p>
+                  <p className="text-base font-black text-zinc-950 mt-0.5 tabular-nums">{twoRide.ride2.searching}</p>
                 </div>
-                <div className="rounded-lg bg-white p-2 border border-emerald-200 shadow-2xs">
-                  <p className="text-[10px] font-bold text-zinc-700">Offers Sent</p>
-                  <p className="text-base font-black text-amber-800">{twoRide.ride2.offerSent}</p>
+                <div className="rounded-xl bg-zinc-50/70 p-2.5 border border-zinc-200/80">
+                  <p className="text-[10px] font-black uppercase text-zinc-500">Offers Sent</p>
+                  <p className="text-base font-black text-zinc-950 mt-0.5 tabular-nums">{twoRide.ride2.offerSent}</p>
                 </div>
-                <div className="rounded-lg bg-white p-2 border border-emerald-200 shadow-2xs">
-                  <p className="text-[10px] font-bold text-zinc-700">Assigned</p>
-                  <p className="text-base font-black text-emerald-800">{twoRide.ride2.assigned}</p>
+                <div className="rounded-xl bg-zinc-50/70 p-2.5 border border-zinc-200/80">
+                  <p className="text-[10px] font-black uppercase text-zinc-500">Assigned</p>
+                  <p className="text-base font-black text-emerald-700 mt-0.5 tabular-nums">{twoRide.ride2.assigned}</p>
                 </div>
-                <div className="rounded-lg bg-white p-2 border border-emerald-200 shadow-2xs">
-                  <p className="text-[10px] font-bold text-zinc-700">Timeouts</p>
-                  <p className="text-base font-black text-zinc-950">{twoRide.ride2.timeout}</p>
+                <div className="rounded-xl bg-zinc-50/70 p-2.5 border border-zinc-200/80">
+                  <p className="text-[10px] font-black uppercase text-zinc-500">Timeouts</p>
+                  <p className="text-base font-black text-zinc-950 mt-0.5 tabular-nums">{twoRide.ride2.timeout}</p>
                 </div>
-                <div className="rounded-lg bg-white p-2 border border-emerald-200 shadow-2xs">
-                  <p className="text-[10px] font-bold text-zinc-700">Rejected</p>
-                  <p className="text-base font-black text-rose-700">{twoRide.ride2.rejected}</p>
+                <div className="rounded-xl bg-zinc-50/70 p-2.5 border border-zinc-200/80">
+                  <p className="text-[10px] font-black uppercase text-zinc-500">Rejected</p>
+                  <p className="text-base font-black text-rose-600 mt-0.5 tabular-nums">{twoRide.ride2.rejected}</p>
                 </div>
-                <div className="rounded-lg bg-white p-2 border border-emerald-200 shadow-2xs">
-                  <p className="text-[10px] font-bold text-zinc-700">No Rider</p>
-                  <p className="text-base font-black text-rose-800">{twoRide.ride2.noRider}</p>
+                <div className="rounded-xl bg-zinc-50/70 p-2.5 border border-zinc-200/80">
+                  <p className="text-[10px] font-black uppercase text-zinc-500">No Rider</p>
+                  <p className="text-base font-black text-rose-600 mt-0.5 tabular-nums">{twoRide.ride2.noRider}</p>
                 </div>
               </div>
             </div>
@@ -914,19 +843,19 @@ export function DashboardPage() {
         </div>
 
         {/* =========================================================================
-            SECTION 4: 9-STAGE ORDER LIFECYCLE PIPELINE (HIGH CONTRAST)
+            SECTION 4: 9-STAGE ORDER LIFECYCLE PIPELINE (CLEAN CORPORATE TYPOGRAPHY)
         ========================================================================= */}
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3 mb-4">
             <div>
               <h2 className="text-base font-black text-zinc-950 flex items-center gap-2">
-                <Layers className="size-4 text-purple-700" />
+                <Layers className="size-4 text-zinc-700" />
                 <span>Order Lifecycle Telemetry Pipeline</span>
-                <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-black text-zinc-950 border border-zinc-200">
+                <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-700 border border-zinc-200">
                   9 Live Stages
                 </span>
               </h2>
-              <p className="text-xs font-bold text-zinc-700 mt-0.5">
+              <p className="text-xs font-medium text-zinc-500 mt-0.5">
                 Real-time operational distribution across pickup wave, store washing, and delivery legs
               </p>
             </div>
@@ -950,22 +879,22 @@ export function DashboardPage() {
                   onClick={() => navigate({ to: adminRoutes.orders })}
                   className={`group relative flex flex-col items-center justify-between rounded-xl border p-3 text-center transition-all duration-200 cursor-pointer active:scale-95 ${
                     hasItems
-                      ? "bg-white border-zinc-300 hover:border-zinc-500 hover:shadow-xs"
-                      : "bg-zinc-50/70 border-zinc-200 hover:bg-white hover:border-zinc-300"
+                      ? "bg-white border-zinc-300 hover:border-zinc-400 hover:shadow-xs"
+                      : "bg-zinc-50/60 border-zinc-200/80 hover:bg-white hover:border-zinc-300"
                   }`}
                 >
                   <div className="flex items-center justify-between w-full mb-1">
-                    <span className="text-[10px] font-mono font-black text-zinc-600">#{idx + 1}</span>
+                    <span className="text-[10px] font-mono font-bold text-zinc-400">#{idx + 1}</span>
                     {hasItems && (
-                      <span className="size-2 rounded-full bg-emerald-600 animate-pulse" />
+                      <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     )}
                   </div>
 
-                  <span className="text-2xl font-black text-zinc-950 transition-transform group-hover:scale-110">
+                  <span className="text-2xl font-black text-zinc-950 transition-transform group-hover:scale-105 tabular-nums">
                     {stage.count}
                   </span>
 
-                  <span className="mt-1.5 text-[11px] font-extrabold text-zinc-950 leading-tight line-clamp-2">
+                  <span className="mt-1.5 text-[11px] font-bold text-zinc-500 leading-tight line-clamp-2">
                     {stage.label}
                   </span>
                 </button>
@@ -980,22 +909,22 @@ export function DashboardPage() {
         <div className="grid gap-6 xl:grid-cols-3">
 
           {/* 1. FINANCIAL RECONCILIATION SNAPSHOT */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between border-b border-zinc-100 pb-3 mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700 border border-zinc-200">
                     <Wallet className="size-3.5" />
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-zinc-950">Financial Reconciliation</h3>
-                    <p className="text-xs font-bold text-zinc-700">Double-entry verified ledger</p>
+                    <p className="text-xs font-medium text-zinc-500">Double-entry verified ledger</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => navigate({ to: adminRoutes.wallet })}
-                  className="text-xs font-black text-emerald-800 hover:text-emerald-950 hover:underline"
+                  className="text-xs font-black text-emerald-800 hover:text-emerald-950 hover:underline cursor-pointer"
                 >
                   Full Wallet →
                 </button>
@@ -1004,77 +933,80 @@ export function DashboardPage() {
               <div className="space-y-2 text-xs">
                 <div
                   onClick={() => navigate({ to: adminRoutes.wallet })}
-                  className="flex justify-between items-center rounded-xl bg-zinc-50 p-2.5 font-bold cursor-pointer hover:bg-zinc-100 transition-all border border-zinc-200"
+                  className="flex justify-between items-center rounded-xl bg-zinc-50/80 p-2.5 font-bold cursor-pointer hover:bg-zinc-100/80 transition-all border border-zinc-200/80"
                 >
-                  <span className="text-zinc-800 font-bold">Gross Order Revenue</span>
-                  <span className="text-zinc-950 font-black text-sm">{currency(data?.revenueSnapshot?.grossRevenue)}</span>
+                  <span className="text-zinc-600 font-semibold">Gross Order Revenue</span>
+                  <span className="text-zinc-950 font-black text-sm tabular-nums">{currency(data?.revenueSnapshot?.grossRevenue)}</span>
                 </div>
 
                 <div
                   onClick={() => navigate({ to: adminRoutes.wallet })}
-                  className="flex justify-between items-center rounded-xl bg-emerald-50 p-2.5 font-bold text-emerald-900 cursor-pointer hover:bg-emerald-100 transition-all border border-emerald-200"
+                  className="flex justify-between items-center rounded-xl bg-emerald-50/60 p-2.5 font-bold text-emerald-950 cursor-pointer hover:bg-emerald-100/60 transition-all border border-emerald-200/80"
                 >
-                  <span className="font-bold">Platform Take Rate (18%)</span>
-                  <span className="font-black text-sm">{currency(data?.revenueSnapshot?.platformCommission)}</span>
+                  <span className="font-semibold text-emerald-800">Platform Take Rate (18%)</span>
+                  <span className="font-black text-sm tabular-nums">{currency(data?.revenueSnapshot?.platformCommission)}</span>
                 </div>
 
                 <div
                   onClick={() => navigate({ to: adminRoutes.wallet })}
-                  className="flex justify-between items-center rounded-xl bg-zinc-50 p-2.5 font-bold cursor-pointer hover:bg-zinc-100 transition-all border border-zinc-200"
+                  className="flex justify-between items-center rounded-xl bg-zinc-50/80 p-2.5 font-bold cursor-pointer hover:bg-zinc-100/80 transition-all border border-zinc-200/80"
                 >
-                  <span className="text-zinc-800 font-bold">Partner Store Payouts (70%)</span>
-                  <span className="text-zinc-950 font-black text-sm">{currency(data?.revenueSnapshot?.partnerEarnings)}</span>
+                  <span className="text-zinc-600 font-semibold">Partner Store Payouts (70%)</span>
+                  <span className="text-zinc-950 font-black text-sm tabular-nums">{currency(data?.revenueSnapshot?.partnerEarnings)}</span>
                 </div>
 
                 <div
                   onClick={() => navigate({ to: adminRoutes.wallet })}
-                  className="flex justify-between items-center rounded-xl bg-zinc-50 p-2.5 font-bold cursor-pointer hover:bg-zinc-100 transition-all border border-zinc-200"
+                  className="flex justify-between items-center rounded-xl bg-zinc-50/80 p-2.5 font-bold cursor-pointer hover:bg-zinc-100/80 transition-all border border-zinc-200/80"
                 >
-                  <span className="text-zinc-800 font-bold">Rider Delivery Earnings (12%)</span>
-                  <span className="text-zinc-950 font-black text-sm">{currency(data?.revenueSnapshot?.riderEarnings)}</span>
+                  <span className="text-zinc-600 font-semibold">Rider Delivery Earnings (12%)</span>
+                  <span className="text-zinc-950 font-black text-sm tabular-nums">{currency(data?.revenueSnapshot?.riderEarnings)}</span>
                 </div>
 
                 <div
                   onClick={() => navigate({ to: adminRoutes.wallet })}
-                  className="flex justify-between items-center rounded-xl bg-rose-50 p-2.5 font-bold text-rose-900 cursor-pointer hover:bg-rose-100 transition-all border border-rose-200"
+                  className="flex justify-between items-center rounded-xl bg-rose-50/60 p-2.5 font-bold text-rose-950 cursor-pointer hover:bg-rose-100/60 transition-all border border-rose-200/80"
                 >
-                  <span className="font-bold">Refunds &amp; Cancellations</span>
-                  <span className="font-black text-sm">{currency(data?.revenueSnapshot?.refunds)}</span>
+                  <span className="font-semibold text-rose-800">Refunds &amp; Cancellations</span>
+                  <span className="font-black text-sm tabular-nums">{currency(data?.revenueSnapshot?.refunds)}</span>
                 </div>
 
                 <div
                   onClick={() => navigate({ to: adminRoutes.wallet })}
-                  className="flex justify-between items-center rounded-xl bg-amber-50 p-2.5 font-bold text-amber-900 cursor-pointer hover:bg-amber-100 transition-all border border-amber-200"
+                  className="flex justify-between items-center rounded-xl bg-amber-50/60 p-2.5 font-bold text-amber-950 cursor-pointer hover:bg-amber-100/60 transition-all border border-amber-200/80"
                 >
-                  <span className="font-bold">Pending Float Settlement</span>
-                  <span className="font-black text-sm">{currency(data?.revenueSnapshot?.pendingSettlement)}</span>
+                  <span className="font-semibold text-amber-800">Pending Float Settlement</span>
+                  <span className="font-black text-sm tabular-nums">{currency(data?.revenueSnapshot?.pendingSettlement)}</span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-zinc-100 text-[11px] font-bold text-zinc-600 flex items-center justify-between">
+            <div className="mt-3 pt-3 border-t border-zinc-100 text-[11px] font-medium text-zinc-500 flex items-center justify-between">
               <span>Razorpay &amp; UPI Reconciliation</span>
-              <span className="text-emerald-800 font-black">100% Balanced</span>
+              <span className="text-emerald-700 font-black flex items-center gap-1">
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                100% Balanced
+              </span>
             </div>
           </div>
 
           {/* 2. RIDER FLEET STATUS */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between border-b border-zinc-100 pb-3 mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex size-7 items-center justify-center rounded-lg bg-sky-100 text-sky-900 border border-sky-300">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700 border border-zinc-200">
                     <Truck className="size-3.5" />
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-zinc-950">Rider Fleet Logistics</h3>
-                    <p className="text-xs font-bold text-zinc-700">Active captains readiness telemetry</p>
+                    <p className="text-xs font-medium text-zinc-500">Active captains readiness telemetry</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => navigate({ to: adminRoutes.riders })}
-                  className="text-xs font-black text-emerald-800 hover:text-emerald-950 hover:underline"
+                  className="text-xs font-black text-emerald-800 hover:text-emerald-950 hover:underline cursor-pointer"
                 >
                   Fleet View →
                 </button>
@@ -1084,68 +1016,71 @@ export function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => navigate({ to: adminRoutes.riders })}
-                  className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 hover:border-zinc-400 hover:bg-white transition-all active:scale-95 text-left"
+                  className="rounded-xl border border-zinc-200/90 bg-white p-3 hover:border-zinc-300 hover:shadow-xs transition-all active:scale-95 text-left cursor-pointer"
                 >
-                  <p className="text-[11px] text-zinc-700 font-black">Total Registered</p>
-                  <p className="text-xl font-black text-zinc-950 mt-1">{data?.fleetStatus?.total || 0}</p>
-                  <p className="text-[10px] text-zinc-600 font-semibold mt-0.5">All vetted captains</p>
+                  <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Total Registered</p>
+                  <p className="text-xl font-black text-zinc-950 mt-1 tabular-nums">{data?.fleetStatus?.total || 0}</p>
+                  <p className="text-[11px] text-zinc-500 font-medium mt-0.5">All vetted captains</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => navigate({ to: adminRoutes.riders })}
-                  className="rounded-xl border border-emerald-300 bg-emerald-50 p-3 hover:border-emerald-400 transition-all active:scale-95 text-left"
+                  className="rounded-xl border border-zinc-200/90 bg-white p-3 hover:border-zinc-300 hover:shadow-xs transition-all active:scale-95 text-left cursor-pointer"
                 >
-                  <p className="text-[11px] text-emerald-900 font-black">Online Now</p>
-                  <p className="text-xl font-black text-emerald-950 mt-1">{data?.fleetStatus?.online || 0}</p>
-                  <p className="text-[10px] text-emerald-800 font-semibold mt-0.5">GPS signal active</p>
+                  <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Online Now</p>
+                  <p className="text-xl font-black text-zinc-950 mt-1 tabular-nums">{data?.fleetStatus?.online || 0}</p>
+                  <p className="text-[11px] text-emerald-600 font-medium mt-0.5 flex items-center gap-1">
+                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    GPS signal active
+                  </p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => navigate({ to: adminRoutes.riders })}
-                  className="rounded-xl border border-sky-300 bg-sky-50 p-3 hover:border-sky-400 transition-all active:scale-95 text-left"
+                  className="rounded-xl border border-zinc-200/90 bg-white p-3 hover:border-zinc-300 hover:shadow-xs transition-all active:scale-95 text-left cursor-pointer"
                 >
-                  <p className="text-[11px] text-sky-900 font-black">Available for Pickup</p>
-                  <p className="text-xl font-black text-sky-950 mt-1">{data?.fleetStatus?.available || 0}</p>
-                  <p className="text-[10px] text-sky-800 font-semibold mt-0.5">Zero active jobs</p>
+                  <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Available for Pickup</p>
+                  <p className="text-xl font-black text-zinc-950 mt-1 tabular-nums">{data?.fleetStatus?.available || 0}</p>
+                  <p className="text-[11px] text-zinc-500 font-medium mt-0.5">Zero active jobs</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => navigate({ to: adminRoutes.riders })}
-                  className="rounded-xl border border-amber-300 bg-amber-50 p-3 hover:border-amber-400 transition-all active:scale-95 text-left"
+                  className="rounded-xl border border-zinc-200/90 bg-white p-3 hover:border-zinc-300 hover:shadow-xs transition-all active:scale-95 text-left cursor-pointer"
                 >
-                  <p className="text-[11px] text-amber-900 font-black">Busy on Trip</p>
-                  <p className="text-xl font-black text-amber-950 mt-1">{data?.fleetStatus?.busy || 0}</p>
-                  <p className="text-[10px] text-amber-800 font-semibold mt-0.5">En route with package</p>
+                  <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Busy on Trip</p>
+                  <p className="text-xl font-black text-zinc-950 mt-1 tabular-nums">{data?.fleetStatus?.busy || 0}</p>
+                  <p className="text-[11px] text-amber-600 font-medium mt-0.5">En route with package</p>
                 </button>
               </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center justify-between text-[11px] font-bold text-zinc-600">
+            <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center justify-between text-[11px] font-medium text-zinc-500">
               <span>Avg Dispatch SLA</span>
-              <span className="text-zinc-950 font-black">4.8 Minutes</span>
+              <span className="text-zinc-950 font-black tabular-nums">4.8 Minutes</span>
             </div>
           </div>
 
           {/* 3. PARTNER STORES READINESS */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between border-b border-zinc-100 pb-3 mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex size-7 items-center justify-center rounded-lg bg-purple-100 text-purple-900 border border-purple-300">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700 border border-zinc-200">
                     <Building2 className="size-3.5" />
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-zinc-950">Partner Laundromats</h3>
-                    <p className="text-xs font-bold text-zinc-700">Commercial processing capacity</p>
+                    <p className="text-xs font-medium text-zinc-500">Commercial processing capacity</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => navigate({ to: adminRoutes.partners })}
-                  className="text-xs font-black text-emerald-800 hover:text-emerald-950 hover:underline"
+                  className="text-xs font-black text-emerald-800 hover:text-emerald-950 hover:underline cursor-pointer"
                 >
                   Stores View →
                 </button>
@@ -1155,50 +1090,56 @@ export function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => navigate({ to: adminRoutes.partners })}
-                  className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 hover:border-zinc-400 hover:bg-white transition-all active:scale-95 text-left"
+                  className="rounded-xl border border-zinc-200/90 bg-white p-3 hover:border-zinc-300 hover:shadow-xs transition-all active:scale-95 text-left cursor-pointer"
                 >
-                  <p className="text-[11px] text-zinc-700 font-black">Total Facilities</p>
-                  <p className="text-xl font-black text-zinc-950 mt-1">{data?.partnerStatus?.total || 0}</p>
-                  <p className="text-[10px] text-zinc-600 font-semibold mt-0.5">Contracted hubs</p>
+                  <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Total Facilities</p>
+                  <p className="text-xl font-black text-zinc-950 mt-1 tabular-nums">{data?.partnerStatus?.total || 0}</p>
+                  <p className="text-[11px] text-zinc-500 font-medium mt-0.5">Contracted hubs</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => navigate({ to: adminRoutes.partners })}
-                  className="rounded-xl border border-emerald-300 bg-emerald-50 p-3 hover:border-emerald-400 transition-all active:scale-95 text-left"
+                  className="rounded-xl border border-zinc-200/90 bg-white p-3 hover:border-zinc-300 hover:shadow-xs transition-all active:scale-95 text-left cursor-pointer"
                 >
-                  <p className="text-[11px] text-emerald-900 font-black">Active &amp; Taking Orders</p>
-                  <p className="text-xl font-black text-emerald-950 mt-1">{data?.partnerStatus?.active || 0}</p>
-                  <p className="text-[10px] text-emerald-800 font-semibold mt-0.5">Washing capacity open</p>
+                  <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Active &amp; Taking Orders</p>
+                  <p className="text-xl font-black text-zinc-950 mt-1 tabular-nums">{data?.partnerStatus?.active || 0}</p>
+                  <p className="text-[11px] text-emerald-600 font-medium mt-0.5 flex items-center gap-1">
+                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Washing capacity open
+                  </p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => navigate({ to: adminRoutes.partners })}
-                  className="rounded-xl border border-rose-300 bg-rose-50 p-3 hover:border-rose-400 transition-all active:scale-95 text-left"
+                  className="rounded-xl border border-zinc-200/90 bg-white p-3 hover:border-zinc-300 hover:shadow-xs transition-all active:scale-95 text-left cursor-pointer"
                 >
-                  <p className="text-[11px] text-rose-900 font-black">Pending KYC Signoff</p>
-                  <p className="text-xl font-black text-rose-950 mt-1">{data?.partnerStatus?.pending || 0}</p>
-                  <p className="text-[10px] text-rose-800 font-semibold mt-0.5">Audit inspection queue</p>
+                  <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Pending KYC Signoff</p>
+                  <p className="text-xl font-black text-zinc-950 mt-1 tabular-nums">{data?.partnerStatus?.pending || 0}</p>
+                  <p className="text-[11px] text-zinc-500 font-medium mt-0.5">Audit inspection queue</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => navigate({ to: adminRoutes.partners })}
-                  className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 hover:border-zinc-400 hover:bg-white transition-all active:scale-95 text-left"
+                  className="rounded-xl border border-zinc-200/90 bg-white p-3 hover:border-zinc-300 hover:shadow-xs transition-all active:scale-95 text-left cursor-pointer"
                 >
-                  <p className="text-[11px] text-zinc-700 font-black">Suspended / Offline</p>
-                  <p className="text-xl font-black text-zinc-950 mt-1">
+                  <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Suspended / Offline</p>
+                  <p className="text-xl font-black text-zinc-950 mt-1 tabular-nums">
                     {(data?.partnerStatus?.suspended || 0) + (data?.partnerStatus?.inactive || 0)}
                   </p>
-                  <p className="text-[10px] text-zinc-600 font-semibold mt-0.5">Maintenance downtime</p>
+                  <p className="text-[11px] text-zinc-500 font-medium mt-0.5">Maintenance downtime</p>
                 </button>
               </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center justify-between text-[11px] font-bold text-zinc-600">
+            <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center justify-between text-[11px] font-medium text-zinc-500">
               <span>Store SLA Compliance</span>
-              <span className="text-emerald-800 font-black">98.4% On-Time</span>
+              <span className="text-emerald-700 font-black flex items-center gap-1">
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                98.4% On-Time
+              </span>
             </div>
           </div>
         </div>
@@ -1379,68 +1320,70 @@ export function DashboardPage() {
 
           {/* 4 KPI SUMMARY STRIP */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 mb-5">
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase text-zinc-600">Active Services</span>
-                <span className="rounded-md bg-sky-100 px-1.5 py-0.5 text-[10px] font-black text-sky-950">Catalog</span>
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-xs hover:border-zinc-300 transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-zinc-500">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Active Services</span>
+                  <Sparkles className="size-4 text-zinc-400" />
+                </div>
+                <p className="text-2xl font-black text-zinc-950 mt-1 tabular-nums">
+                  {data?.activeServicesCount ?? categoriesList.reduce((acc, c) => acc + (c.servicesCount || 0), 0)}
+                </p>
               </div>
-              <p className="text-2xl font-black text-zinc-950 mt-1.5 tabular-nums">
-                {data?.activeServicesCount ?? categoriesList.reduce((acc, c) => acc + (c.servicesCount || 0), 0)}
-              </p>
-              <p className="text-[11px] font-bold text-zinc-600 mt-0.5">
+              <p className="text-[11px] text-zinc-500 font-medium mt-1">
                 Across {data?.totalCategoriesCount ?? (categoriesList?.length || 0)} care verticals
               </p>
             </div>
 
-            <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3.5 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase text-amber-900">#1 Top Grossing SKU</span>
-                <span className="rounded-md bg-amber-200 px-1.5 py-0.5 text-[10px] font-black text-amber-950">Revenue</span>
-              </div>
-              <p className="text-sm font-black text-zinc-950 mt-1.5 truncate flex items-center gap-1.5">
-                {data?.topGrossingService ? (
-                  <>
-                    <Award className="size-4 text-amber-600 shrink-0" />
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-xs hover:border-zinc-300 transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-zinc-500">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">#1 Top Grossing SKU</span>
+                  <Award className="size-4 text-zinc-400" />
+                </div>
+                <p className="text-sm font-black text-zinc-950 mt-1 truncate flex items-center gap-1.5">
+                  {data?.topGrossingService ? (
                     <span className="truncate">{data.topGrossingService}</span>
-                  </>
-                ) : (
-                  "No sales recorded yet"
-                )}
-              </p>
-              <p className="text-xs font-black text-emerald-800 mt-0.5">
-                {currency(data?.topGrossingRevenue ?? 0)} GMV transacted
+                  ) : (
+                    "No sales recorded yet"
+                  )}
+                </p>
+              </div>
+              <p className="text-[11px] text-zinc-500 font-medium mt-1">
+                <span className="font-bold text-zinc-950">{currency(data?.topGrossingRevenue ?? 0)}</span> GMV transacted
               </p>
             </div>
 
-            <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-3.5 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase text-purple-900">Highest Volume SKU</span>
-                <span className="rounded-md bg-purple-200 px-1.5 py-0.5 text-[10px] font-black text-purple-950">Orders</span>
-              </div>
-              <p className="text-sm font-black text-zinc-950 mt-1.5 truncate flex items-center gap-1.5">
-                {data?.topOrderService ? (
-                  <>
-                    <Package className="size-4 text-purple-600 shrink-0" />
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-xs hover:border-zinc-300 transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-zinc-500">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Highest Volume SKU</span>
+                  <Package className="size-4 text-zinc-400" />
+                </div>
+                <p className="text-sm font-black text-zinc-950 mt-1 truncate flex items-center gap-1.5">
+                  {data?.topOrderService ? (
                     <span className="truncate">{data.topOrderService}</span>
-                  </>
-                ) : (
-                  "No orders recorded yet"
-                )}
-              </p>
-              <p className="text-xs font-black text-purple-950 mt-0.5">
-                {data?.topOrderOrders || 0} completed orders
+                  ) : (
+                    "No orders recorded yet"
+                  )}
+                </p>
+              </div>
+              <p className="text-[11px] text-zinc-500 font-medium mt-1">
+                <span className="font-bold text-zinc-950">{data?.topOrderOrders || 0}</span> completed orders
               </p>
             </div>
 
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3.5 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase text-emerald-900">Partner Store Adoption</span>
-                <span className="rounded-md bg-emerald-200 px-1.5 py-0.5 text-[10px] font-black text-emerald-950">Synced</span>
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-xs hover:border-zinc-300 transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-zinc-500">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Partner Store Adoption</span>
+                  <CheckCircle2 className="size-4 text-zinc-400" />
+                </div>
+                <p className="text-2xl font-black text-zinc-950 mt-1 tabular-nums">
+                  {data?.partnerAdoptionRate ?? 0}%
+                </p>
               </div>
-              <p className="text-2xl font-black text-emerald-950 mt-1.5 tabular-nums">
-                {data?.partnerAdoptionRate ?? 0}%
-              </p>
-              <p className="text-[11px] font-bold text-emerald-900 mt-0.5">
+              <p className="text-[11px] text-zinc-500 font-medium mt-1">
                 Active in partner onboarding flow
               </p>
             </div>
@@ -1556,24 +1499,24 @@ export function DashboardPage() {
         {/* =========================================================================
             SECTION 8: CITY & OPERATING ZONE SNAPSHOT TABLE (HIGH CONTRAST)
         ========================================================================= */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
+        <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3 mb-3">
             <div>
               <h3 className="text-base font-black text-zinc-950 flex items-center gap-2">
-                <MapPin className="size-4 text-purple-700" />
+                <MapPin className="size-4 text-emerald-600" />
                 <span>City &amp; Operating Zone Breakdown</span>
-                <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-black text-zinc-950 border border-zinc-200">
+                <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-black text-zinc-700 border border-zinc-200">
                   Regional Operations
                 </span>
               </h3>
-              <p className="text-xs font-bold text-zinc-700 mt-0.5">
+              <p className="text-xs font-medium text-zinc-500 mt-0.5">
                 Orders, revenue, active fleet, and delay breakdown by operating regional geography
               </p>
             </div>
             <button
               type="button"
               onClick={() => navigate({ to: adminRoutes.cities })}
-              className="inline-flex items-center gap-1 text-xs font-black text-emerald-800 hover:text-emerald-950 hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-black text-emerald-800 hover:text-emerald-950 hover:underline cursor-pointer"
             >
               <span>Open Regional Console</span>
               <ArrowRight className="size-3.5" />
@@ -1582,7 +1525,7 @@ export function DashboardPage() {
 
           <div className="overflow-x-auto rounded-xl border border-zinc-200">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-zinc-200 bg-zinc-50 text-[11px] font-black uppercase tracking-wider text-zinc-950">
+              <thead className="border-b border-zinc-200 bg-zinc-50 text-[11px] font-black uppercase tracking-wider text-zinc-500">
                 <tr>
                   <th className="px-4 py-3">Operating City</th>
                   <th className="px-4 py-3">Total Orders</th>
@@ -1627,7 +1570,7 @@ export function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => navigate({ to: adminRoutes.cities })}
-                        className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-black text-zinc-950 hover:bg-zinc-100 transition-all active:scale-95 shadow-2xs"
+                        className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-black text-zinc-950 hover:bg-zinc-100 transition-all active:scale-95 shadow-2xs cursor-pointer"
                       >
                         <span>Manage</span>
                         <ArrowRight className="size-3" />
@@ -1646,19 +1589,19 @@ export function DashboardPage() {
         <div className="grid gap-6 xl:grid-cols-2">
 
           {/* ADMINISTRATIVE QUICK ACTIONS */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
             <div className="border-b border-zinc-100 pb-3 mb-4">
               <h3 className="text-sm font-black text-zinc-950">Administrative Quick Actions</h3>
-              <p className="text-xs font-bold text-zinc-700">One-click operational dispatch &amp; platform governance</p>
+              <p className="text-xs font-medium text-zinc-500">One-click operational dispatch &amp; platform governance</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
               <button
                 type="button"
                 onClick={() => navigate({ to: adminRoutes.orders })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-400 active:scale-95 transition-all shadow-2xs"
+                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
               >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 mb-1.5">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
                   <ShoppingBag className="size-4" />
                 </div>
                 <span className="text-xs font-black text-zinc-950">Create Order</span>
@@ -1667,9 +1610,9 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate({ to: adminRoutes.customers })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-400 active:scale-95 transition-all shadow-2xs"
+                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
               >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-sky-50 text-sky-800 border border-sky-200 mb-1.5">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
                   <Users className="size-4" />
                 </div>
                 <span className="text-xs font-black text-zinc-950">Add Customer</span>
@@ -1678,9 +1621,9 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate({ to: adminRoutes.partners })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-400 active:scale-95 transition-all shadow-2xs"
+                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
               >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-purple-50 text-purple-800 border border-purple-200 mb-1.5">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
                   <Building2 className="size-4" />
                 </div>
                 <span className="text-xs font-black text-zinc-950">Add Partner Store</span>
@@ -1689,9 +1632,9 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate({ to: adminRoutes.riders })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-400 active:scale-95 transition-all shadow-2xs"
+                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
               >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-blue-50 text-blue-800 border border-blue-200 mb-1.5">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
                   <Truck className="size-4" />
                 </div>
                 <span className="text-xs font-black text-zinc-950">Add Rider Pilot</span>
@@ -1700,9 +1643,9 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate({ to: adminRoutes.coupons })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-400 active:scale-95 transition-all shadow-2xs"
+                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
               >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 mb-1.5">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
                   <TicketPercent className="size-4" />
                 </div>
                 <span className="text-xs font-black text-zinc-950">Create Coupon</span>
@@ -1711,9 +1654,9 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate({ to: adminRoutes.notifications })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-400 active:scale-95 transition-all shadow-2xs"
+                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
               >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-amber-50 text-amber-800 border border-amber-200 mb-1.5">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
                   <BellRing className="size-4" />
                 </div>
                 <span className="text-xs font-black text-zinc-950">Push Broadcast</span>
@@ -1722,9 +1665,9 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate({ to: adminRoutes.orders })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-400 active:scale-95 transition-all shadow-2xs"
+                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
               >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-sky-50 text-sky-800 border border-sky-200 mb-1.5">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
                   <Zap className="size-4" />
                 </div>
                 <span className="text-xs font-black text-zinc-950">Manual Dispatch</span>
@@ -1733,9 +1676,9 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate({ to: adminRoutes.orders })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-400 active:scale-95 transition-all shadow-2xs"
+                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
               >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-rose-50 text-rose-800 border border-rose-200 mb-1.5">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
                   <AlertTriangle className="size-4" />
                 </div>
                 <span className="text-xs font-black text-zinc-950">Delayed Orders</span>
@@ -1744,9 +1687,9 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate({ to: adminRoutes.wallet })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-400 active:scale-95 transition-all shadow-2xs"
+                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
               >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-800 border border-indigo-200 mb-1.5">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
                   <Wallet className="size-4" />
                 </div>
                 <span className="text-xs font-black text-zinc-950">Audit Refunds</span>
@@ -1755,9 +1698,9 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate({ to: adminRoutes.services })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-400 active:scale-95 transition-all shadow-2xs"
+                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
               >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-purple-50 text-purple-800 border border-purple-200 mb-1.5">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
                   <Sparkles className="size-4" />
                 </div>
                 <span className="text-xs font-black text-zinc-950">Services Catalog</span>
@@ -1766,9 +1709,9 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate({ to: adminRoutes.services })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-400 active:scale-95 transition-all shadow-2xs"
+                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
               >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 mb-1.5">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
                   <Coins className="size-4" />
                 </div>
                 <span className="text-xs font-black text-zinc-950">Partner Rates</span>
@@ -1777,9 +1720,9 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate({ to: adminRoutes.cities })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-400 active:scale-95 transition-all shadow-2xs"
+                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
               >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-sky-50 text-sky-800 border border-sky-200 mb-1.5">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
                   <MapPin className="size-4" />
                 </div>
                 <span className="text-xs font-black text-zinc-950">Regional Hubs</span>
@@ -1788,14 +1731,14 @@ export function DashboardPage() {
           </div>
 
           {/* LIVE PLATFORM AUTOMATED SURVEILLANCE FEED */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3 mb-3">
               <div>
                 <h3 className="text-sm font-black text-zinc-950 flex items-center gap-1.5">
                   <ActivityIcon className="size-4 text-emerald-700" />
                   <span>Platform Automation Surveillance</span>
                 </h3>
-                <p className="text-xs font-bold text-zinc-700">Audit stream for Dispatch, Dynamic OTP, SLAs &amp; Finance</p>
+                <p className="text-xs font-medium text-zinc-500">Audit stream for Dispatch, Dynamic OTP, SLAs &amp; Finance</p>
               </div>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-black text-emerald-950">
                 <span className="size-2 rounded-full bg-emerald-600 animate-ping" />
@@ -1888,11 +1831,11 @@ export function DashboardPage() {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[11px] text-zinc-800 font-bold line-clamp-2 mt-0.5">
+                              <p className="text-[11px] text-zinc-500 font-medium line-clamp-2 mt-0.5">
                                 {evt.description}
                               </p>
-                              <p className="text-[10px] text-zinc-600 font-bold mt-0.5">
-                                <span className="font-extrabold text-zinc-900">{formatRelativeTime(evt.timestamp || evt.createdAt)}</span>
+                              <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
+                                <span className="font-bold text-zinc-600">{formatRelativeTime(evt.timestamp || evt.createdAt)}</span>
                                 {evt.actorId && ` · Actor: ${evt.actorId}`}
                               </p>
                             </div>
@@ -1922,16 +1865,16 @@ export function DashboardPage() {
                           <p className="font-black text-zinc-950 truncate text-xs">
                             Order #{order.id}: {order.status}
                           </p>
-                          <p className="text-[11px] text-zinc-800 font-bold truncate">
+                          <p className="text-[11px] text-zinc-500 font-medium truncate">
                             {order.customer} · Store: {order.partner} · {order.amount}
                           </p>
                         </div>
                       </div>
-                      <ChevronRight className="size-4 text-zinc-600 group-hover:text-zinc-950 transition-all shrink-0 mt-1" />
+                      <ChevronRight className="size-4 text-zinc-400 group-hover:text-zinc-700 transition-all shrink-0 mt-1" />
                     </li>
                   ))}
                   {latestOrdersList.length === 0 && (
-                    <li className="text-xs text-zinc-600 font-bold py-6 text-center">
+                    <li className="text-xs text-zinc-500 font-medium py-6 text-center">
                       Connecting to live operational event streams...
                     </li>
                   )}
