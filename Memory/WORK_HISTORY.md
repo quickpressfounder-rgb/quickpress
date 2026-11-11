@@ -1,5 +1,61 @@
 # QuickPress — Engineering Work History
 
+## Session: November 11, 2026 (Part 3)
+
+### End-to-End Human User Persona Simulation & Multi-Channel Communication Audit
+
+1. **Context & Objective:**
+   - Conducted a comprehensive, realistic end-to-end "Human Simulation Test" mimicking actual user personas (Customer, Laundromat Partner, Delivery Captain, Super Admin, and B2B Commercial Enterprise).
+   - Audited every single communication and notification channel to ensure all required transactional emails, WhatsApp alerts, In-App notifications, and security OTPs are dispatched faithfully at every order milestone.
+   - Identified operational and communication gaps, fixed every issue, and verified zero defects.
+
+2. **Gaps Identified During Initial Simulation:**
+   - *Gap 1 (Customer Order Confirmation Email):* `send_order_confirmation_email(order)` was defined in `email_service.py` but never called when an order was placed in `dispatch_order_created_notifications`.
+   - *Gap 2 (Customer WhatsApp Confirmation):* `whatsapp_service.send_order_confirmed_whatsapp` was not dispatched upon order placement.
+   - *Gap 3 (Doorstep Pickup OTP Alert):* Pickup OTP was not dispatched to customer via WhatsApp when a captain was assigned and en route.
+   - *Gap 4 (Doorstep Delivery OTP Alert):* Delivery OTP was not dispatched to customer via WhatsApp when the order went out for delivery.
+   - *Gap 5 (Order Delivered WhatsApp & Tax Invoice Email):* Final delivery notifications were missing WhatsApp confirmation and PDF tax invoice email triggers.
+   - *Gap 6 (B2B Lead Notifications):* Commercial enterprise form submission at `withquickpress.com/b2b` lacked automated client onboarding confirmation email and Super Admin lead alert email to `official.quickpress@gmail.com`.
+   - *Gap 7 (Cartoon Emojis in WhatsApp):* `whatsapp_service.py` contained multiple cartoon emojis (`🎉`, `🗓️`, `🧺`, `💳`, `🚀`, `🔐`, `✨`, `⭐`), violating the strict platform rule.
+   - *Gap 8 (Scalar OTP Type Error):* `order_notifications.py` crashed with `'str' object has no attribute 'get'` when `otp.pickup` was a scalar string rather than a dict.
+
+3. **Engineering Fixes Applied:**
+   - `backend-python/app/core/whatsapp_service.py`:
+     - Purged 100% of cartoon emojis from all WhatsApp message templates, replacing them with sharp corporate typography and bullet points (`•`).
+     - Added `send_pickup_otp_whatsapp` to deliver the 4-digit Doorstep Pickup OTP directly to customer's WhatsApp when captain accepts/arrives for collection.
+   - `backend-python/app/core/email_service.py`:
+     - Implemented `send_b2b_inquiry_confirmation_email(b2b_doc)`: Dispatches executive partnership acknowledgment letter and corporate dossier confirmation to the client.
+     - Implemented `send_b2b_inquiry_admin_alert_email(b2b_doc)`: Dispatches immediate high-priority lead notification with full 360° commercial dossier to `official.quickpress@gmail.com` and platform admins.
+   - `backend-python/app/api/b2b_api.py`:
+     - Wired asynchronous dispatch of client confirmation email, admin alert email, and admin in-app notification upon B2B commercial registration.
+   - `backend-python/app/db/order_repositories.py`:
+     - Guaranteed `customerEmail` is explicitly persisted on the canonical order document upon creation for zero-delay email dispatch.
+   - `backend-python/app/services/order_notifications.py`:
+     - In `dispatch_order_created_notifications`: Wired customer in-app notification, customer order confirmation email, customer WhatsApp order confirmation, partner order arrival notification, and admin notification.
+     - In `dispatch_order_transition_notifications`:
+       - Fixed OTP resolution bug: Safely extracts `pickup_otp` and `delivery_otp` whether structured as a dictionary (`{"code": "..."}`) or scalar string (`"..."`).
+       - On `rider_accepted`: Dispatches Doorstep Pickup OTP WhatsApp message to customer.
+       - On `out_for_delivery`: Dispatches Doorstep Delivery OTP WhatsApp message to customer.
+       - On `delivered`: Dispatches Order Delivered WhatsApp alert, GST Tax Invoice PDF email to customer, and store/rider earnings credit notices.
+       - On `cancelled`: Dispatches cancellation & instant refund email to customer with reason.
+   - `backend-python/scratch/test_human_simulation.py`:
+     - Automated complete 5-persona lifecycle simulation testing: Customer order placement, Partner acceptance, Captain pickup with OTP, Store washing/steam pressing/quality packing, Final doorstep delivery with Delivery OTP, and B2B commercial lead submission.
+
+4. **Verification & Testing Results:**
+   - Pytest test suites: 12/12 passed (`test_staff_auth_rbac_engine.py`, `test_order_notifications.py`, `test_async_order_notifications.py`).
+   - Human Simulation Test (`test_human_simulation.py`):
+     - `Customer`: Order #QP1041 placed, 2 in-app alerts, 2 confirmation emails, 2 WhatsApp alerts.
+     - `Partner`: Store received arrival alerts, successfully accepted order.
+     - `Rider`: Captain assigned, accepted, Customer received Doorstep Pickup OTP via WhatsApp, Doorstep handoff verified with OTP.
+     - `Cleaning & Delivery`: Arrived at store, wash completed, steam packed, out for delivery, Customer received Final Delivery OTP via WhatsApp, delivered with OTP, received Delivery WhatsApp and GST Tax Invoice PDF email.
+     - `B2B Enterprise`: Registration submitted, client onboarding email dispatched, Super Admin alert email dispatched to `official.quickpress@gmail.com`, admin in-app badge alert logged, 360° dossier verified in Admin Directory.
+     - **Result:** `🎉 ZERO DEFECTS FOUND: All user personas, transitions, and notifications balanced perfectly!`
+   - Frontend build checks:
+     - `website`: Production Vite build succeeded (exit code 0).
+     - `admin-frontend`: Production TanStack Start build succeeded (exit code 0).
+
+---
+
 ## Session: November 11, 2026 (Part 2)
 
 ### B2B Commercial Client Login, Registration & Self-Service Bulk Order Portal (`withquickpress.com/b2b/login` & `/b2b/portal`)

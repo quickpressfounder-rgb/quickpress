@@ -258,6 +258,24 @@ async def register_b2b_partner(payload: B2BRegisterPayload) -> Dict[str, Any]:
     try:
         await database.insert(B2B_CLIENTS_COL, doc)
         logger.info(f"[B2B] Successfully registered B2B client {b2b_id}: {payload.businessName}")
+        
+        # Asynchronously dispatch Client Confirmation & Admin Alert Emails
+        import asyncio
+        from app.core.email_service import (
+            send_b2b_inquiry_confirmation_email,
+            send_b2b_inquiry_admin_alert_email,
+        )
+        from app.services.order_notifications import send_admin_notification
+
+        asyncio.create_task(send_b2b_inquiry_confirmation_email(doc))
+        asyncio.create_task(send_b2b_inquiry_admin_alert_email(doc))
+        asyncio.create_task(
+            send_admin_notification(
+                title=f"New B2B Lead: {payload.businessName}",
+                description=f"Inbound inquiry from {payload.contactName} ({payload.category}, {payload.dailyVolume}). Review dossier #{b2b_id}.",
+                order_code=b2b_id,
+            )
+        )
     except Exception as err:
         logger.error(f"[B2B] Failed to insert to database: {err}")
 

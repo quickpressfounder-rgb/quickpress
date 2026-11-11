@@ -709,6 +709,7 @@ class OrderRepository:
             "riderSlaSeconds": lifecycle.RIDER_ACCEPT_SLA_SECONDS,
             "customerName": customer_name,
             "customerPhone": customer_phone,
+            "customerEmail": (getattr(user, "email", None) or "").strip(),
             "customer": OrderParty(
                 id=user.id, name=customer_name, phone=customer_phone
             ).model_dump(),

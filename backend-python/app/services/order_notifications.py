@@ -315,7 +315,7 @@ async def dispatch_order_created_notifications(order: Dict[str, Any]) -> None:
         partner_name = str(partner.get("name") or "Store Partner")
 
         tasks = []
-        # 1. Customer Notification
+        # 1. Customer Notification (In-App)
         if user_id:
             tasks.append(
                 send_customer_notification(
@@ -327,6 +327,46 @@ async def dispatch_order_created_notifications(order: Dict[str, Any]) -> None:
                     order_code=code,
                 )
             )
+
+        # 1.1 Customer Email & WhatsApp Dispatch
+        customer_email = customer.get("email") or order.get("customerEmail")
+        customer_phone = customer.get("phone") or order.get("customerPhone")
+        if (not customer_email or not customer_phone) and user_id:
+            try:
+                user_doc = await database.find_one("users", {"_id": user_id}) or {}
+                if not customer_email:
+                    customer_email = user_doc.get("email")
+                if not customer_phone:
+                    customer_phone = user_doc.get("phone")
+            except Exception:
+                pass
+
+        if customer_email:
+            try:
+                from app.core.email_service import send_order_confirmation_email
+                order_copy = dict(order)
+                order_copy["customerEmail"] = customer_email
+                tasks.append(send_order_confirmation_email(order_copy))
+            except Exception as eml_err:
+                print(f"[Notifications] Error queueing confirmation email: {eml_err}")
+
+        if customer_phone:
+            try:
+                from app.core.whatsapp_service import whatsapp_service
+                pickup_slot = str((order.get("pickup") or {}).get("slot") or "Scheduled Today")
+                items_count = len(order.get("items") or []) or 1
+                tasks.append(
+                    whatsapp_service.send_order_confirmed_whatsapp(
+                        customer_phone,
+                        customer_name,
+                        code,
+                        pickup_slot,
+                        float(grand_total),
+                        items_count,
+                    )
+                )
+            except Exception as wa_err:
+                print(f"[Notifications] Error queueing WhatsApp confirmation: {wa_err}")
 
         # 2. Partner Notification
         if partner_id:
@@ -379,18 +419,40 @@ async def dispatch_order_transition_notifications(
         rider = (changes or {}).get("rider") or order.get("rider") or {}
         rider_id = str(rider.get("id") or "")
         rider_name = str(rider.get("name") or "Delivery Rider")
+
+        # Resolve customer contact info
+        customer_email = customer.get("email") or order.get("customerEmail")
+        customer_phone = customer.get("phone") or order.get("customerPhone")
+        if (not customer_email or not customer_phone) and user_id:
+            try:
+                user_doc = await database.find_one("users", {"_id": user_id}) or {}
+                if not customer_email:
+                    customer_email = user_doc.get("email")
+                if not customer_phone:
+                    customer_phone = user_doc.get("phone")
+            except Exception:
+                pass
+
+        # Resolve OTP codes safely whether dict or scalar string
         otp = order.get("otp") or {}
-        pickup_otp = str(otp.get("pickup") or "")
-        delivery_otp = str(otp.get("delivery") or "")
+        p_raw = otp.get("pickup") if isinstance(otp, dict) else None
+        d_raw = otp.get("delivery") if isinstance(otp, dict) else None
+
+        pickup_val = (p_raw.get("code") if isinstance(p_raw, dict) else p_raw) or ""
+        delivery_val = (d_raw.get("code") if isinstance(d_raw, dict) else d_raw) or ""
+
+        pickup_otp = str(order.get("pickupOtp") or pickup_val or "")
+        delivery_otp = str(order.get("deliveryOtp") or delivery_val or "")
         reason = str(
             (changes or {}).get("cancelledReason")
             or (metadata or {}).get("reason")
             or ""
         ).strip()
 
+        tasks = []
+
         # ---------------- PARTNER_ACCEPTED ----------------
         if target == "partner_accepted":
-            tasks = []
             if user_id:
                 tasks.append(
                     send_customer_notification(
@@ -410,7 +472,6 @@ async def dispatch_order_transition_notifications(
                     order_code=code,
                 )
             )
-            await asyncio.gather(*tasks, return_exceptions=True)
 
             # Instantly offload order offer dispatch to background worker queue
             try:
@@ -422,226 +483,337 @@ async def dispatch_order_transition_notifications(
                 print(f"[RiderDispatch] Auto dispatch on partner_accepted error: {dispatch_err}")
 
         # ---------------- RIDER_ASSIGNED ----------------
-        elif target == "rider_assigned":
+        elif target in ("rider_assigned", "pickup_rider_assigned"):
             if user_id:
-                await send_customer_notification(
-                    user_id,
-                    kind="rider-assigned",
+                tasks.append(
+                    send_customer_notification(
+                        user_id,
+                        kind="rider-assigned",
+                        title=f"Rider Assigned for #{code}",
+                        description=f"{rider_name} has been assigned to pick up your laundry.",
+                        order_id=order_id,
+                        order_code=code,
+                    )
+                )
+            if rider_id:
+                tasks.append(
+                    send_rider_notification(
+                        rider_id,
+                        title=f"New Pickup Task: #{code}",
+                        message=f"You have been assigned to pick up Order #{code} from {customer_name}.",
+                        order_id=order_id,
+                    )
+                )
+            tasks.append(
+                send_admin_notification(
                     title=f"Rider Assigned for #{code}",
-                    description=f"{rider_name} has been assigned to pick up your laundry.",
+                    description=f"{rider_name} assigned to Order #{code}.",
                     order_id=order_id,
                     order_code=code,
                 )
-            if rider_id:
-                await send_rider_notification(
-                    rider_id,
-                    title=f"New Pickup Task: #{code}",
-                    message=f"You have been assigned to pick up Order #{code} from {customer_name}.",
-                    order_id=order_id,
-                )
-            await send_admin_notification(
-                title=f"Rider Assigned for #{code}",
-                description=f"{rider_name} assigned to Order #{code}.",
-                order_id=order_id,
-                order_code=code,
             )
 
         # ---------------- RIDER_ACCEPTED ----------------
-        elif target == "rider_accepted":
+        elif target in ("rider_accepted", "pickup_rider_accepted"):
             if user_id:
-                await send_customer_notification(
-                    user_id,
-                    kind="rider-assigned",
-                    title=f"Rider on the Way for #{code}",
-                    description=f"{rider_name} is arriving for pickup. Pickup OTP: {pickup_otp}.",
-                    order_id=order_id,
-                    order_code=code,
+                tasks.append(
+                    send_customer_notification(
+                        user_id,
+                        kind="rider-assigned",
+                        title=f"Rider on the Way for #{code}",
+                        description=f"{rider_name} is arriving for pickup. Pickup OTP: {pickup_otp}.",
+                        order_id=order_id,
+                        order_code=code,
+                    )
                 )
+            if customer_phone and pickup_otp:
+                try:
+                    from app.core.whatsapp_service import whatsapp_service
+                    tasks.append(
+                        whatsapp_service.send_pickup_otp_whatsapp(
+                            customer_phone,
+                            customer_name,
+                            code,
+                            pickup_otp,
+                            rider_name,
+                        )
+                    )
+                except Exception as wa_err:
+                    print(f"[Notifications] Error queueing pickup OTP WhatsApp: {wa_err}")
             if partner_id:
-                await send_partner_notification(
-                    partner_id,
-                    title=f"Rider en route for #{code}",
-                    description=f"{rider_name} accepted pickup for #{code}.",
-                    order_id=order_id,
-                    order_code=code,
+                tasks.append(
+                    send_partner_notification(
+                        partner_id,
+                        title=f"Rider en route for #{code}",
+                        description=f"{rider_name} accepted pickup for #{code}.",
+                        order_id=order_id,
+                        order_code=code,
+                    )
                 )
 
         # ---------------- PICKED_UP ----------------
         elif target == "picked_up":
             if user_id:
-                await send_customer_notification(
-                    user_id,
-                    kind="pickup-completed",
-                    title=f"Order #{code} Picked Up",
-                    description=f"Your clothes have been picked up by {rider_name} and are on the way to {partner_name}.",
-                    order_id=order_id,
-                    order_code=code,
+                tasks.append(
+                    send_customer_notification(
+                        user_id,
+                        kind="pickup-completed",
+                        title=f"Order #{code} Picked Up",
+                        description=f"Your clothes have been picked up by {rider_name} and are on the way to {partner_name}.",
+                        order_id=order_id,
+                        order_code=code,
+                    )
                 )
             if partner_id:
-                await send_partner_notification(
-                    partner_id,
+                tasks.append(
+                    send_partner_notification(
+                        partner_id,
+                        title=f"Order #{code} Picked Up",
+                        description=f"{rider_name} picked up #{code} and is bringing garments to your store.",
+                        order_id=order_id,
+                        order_code=code,
+                    )
+                )
+            tasks.append(
+                send_admin_notification(
                     title=f"Order #{code} Picked Up",
-                    description=f"{rider_name} picked up #{code} and is bringing garments to your store.",
+                    description=f"{rider_name} completed pickup for Order #{code}.",
                     order_id=order_id,
                     order_code=code,
                 )
-            await send_admin_notification(
-                title=f"Order #{code} Picked Up",
-                description=f"{rider_name} completed pickup for Order #{code}.",
-                order_id=order_id,
-                order_code=code,
             )
 
-        # ---------------- AT_PARTNER ----------------
-        elif target == "at_partner":
+        # ---------------- AT_PARTNER / AT_STORE ----------------
+        elif target in ("at_partner", "at_store"):
             if user_id:
-                await send_customer_notification(
-                    user_id,
-                    kind="processing",
-                    title=f"Order #{code} Reached Store",
-                    description=f"Your garments have reached {partner_name} store for inspection.",
-                    order_id=order_id,
-                    order_code=code,
+                tasks.append(
+                    send_customer_notification(
+                        user_id,
+                        kind="processing",
+                        title=f"Order #{code} Reached Store",
+                        description=f"Your garments have reached {partner_name} store for inspection.",
+                        order_id=order_id,
+                        order_code=code,
+                    )
                 )
             if partner_id:
-                await send_partner_notification(
-                    partner_id,
-                    title=f"Order #{code} Arrived at Store",
-                    description=f"Order #{code} has arrived at store. Please start cleaning.",
-                    order_id=order_id,
-                    order_code=code,
+                tasks.append(
+                    send_partner_notification(
+                        partner_id,
+                        title=f"Order #{code} Arrived at Store",
+                        description=f"Order #{code} has arrived at store. Please start cleaning.",
+                        order_id=order_id,
+                        order_code=code,
+                    )
                 )
 
         # ---------------- PROCESSING ----------------
-        elif target == "processing":
+        elif target in ("processing", "processing_started"):
             if user_id:
-                await send_customer_notification(
-                    user_id,
-                    kind="processing",
-                    title=f"Order #{code} is being Cleaned",
-                    description=f"{partner_name} is actively washing and pressing your garments with care.",
+                tasks.append(
+                    send_customer_notification(
+                        user_id,
+                        kind="processing",
+                        title=f"Order #{code} is being Cleaned",
+                        description=f"{partner_name} is actively washing and pressing your garments with care.",
+                        order_id=order_id,
+                        order_code=code,
+                    )
+                )
+            tasks.append(
+                send_admin_notification(
+                    title=f"Order #{code} in Processing",
+                    description=f"{partner_name} started cleaning Order #{code}.",
                     order_id=order_id,
                     order_code=code,
                 )
-            await send_admin_notification(
-                title=f"Order #{code} in Processing",
-                description=f"{partner_name} started cleaning Order #{code}.",
-                order_id=order_id,
-                order_code=code,
             )
 
         # ---------------- COMPLETED (READY) ----------------
-        elif target == "completed":
+        elif target in ("completed", "ready_for_delivery", "processing_completed"):
             if user_id:
-                await send_customer_notification(
-                    user_id,
-                    kind="processing",
-                    title=f"Order #{code} is Ready!",
-                    description="Your laundry is washed, pressed, packed and ready for delivery.",
+                tasks.append(
+                    send_customer_notification(
+                        user_id,
+                        kind="processing",
+                        title=f"Order #{code} is Ready!",
+                        description="Your laundry is washed, pressed, packed and ready for delivery.",
+                        order_id=order_id,
+                        order_code=code,
+                    )
+                )
+            tasks.append(
+                send_admin_notification(
+                    title=f"Order #{code} Ready",
+                    description=f"{partner_name} finished processing Order #{code}.",
                     order_id=order_id,
                     order_code=code,
                 )
-            await send_admin_notification(
-                title=f"Order #{code} Ready",
-                description=f"{partner_name} finished processing Order #{code}.",
-                order_id=order_id,
-                order_code=code,
             )
 
         # ---------------- OUT_FOR_DELIVERY ----------------
         elif target == "out_for_delivery":
             if user_id:
-                await send_customer_notification(
-                    user_id,
-                    kind="out-for-delivery",
-                    title=f"Order #{code} is Out for Delivery!",
-                    description=f"{rider_name} is on the way with your fresh laundry. Share Delivery OTP: {delivery_otp}.",
-                    order_id=order_id,
-                    order_code=code,
+                tasks.append(
+                    send_customer_notification(
+                        user_id,
+                        kind="out-for-delivery",
+                        title=f"Order #{code} is Out for Delivery!",
+                        description=f"{rider_name} is on the way with your fresh laundry. Share Delivery OTP: {delivery_otp}.",
+                        order_id=order_id,
+                        order_code=code,
+                    )
                 )
+            if customer_phone and delivery_otp:
+                try:
+                    from app.core.whatsapp_service import whatsapp_service
+                    tasks.append(
+                        whatsapp_service.send_out_for_delivery_whatsapp(
+                            customer_phone,
+                            customer_name,
+                            code,
+                            delivery_otp,
+                            rider_name,
+                        )
+                    )
+                except Exception as wa_err:
+                    print(f"[Notifications] Error queueing out for delivery WhatsApp: {wa_err}")
             if partner_id:
-                await send_partner_notification(
-                    partner_id,
+                tasks.append(
+                    send_partner_notification(
+                        partner_id,
+                        title=f"Order #{code} Out for Delivery",
+                        description=f"{rider_name} is delivering Order #{code} to {customer_name}.",
+                        order_id=order_id,
+                        order_code=code,
+                    )
+                )
+            tasks.append(
+                send_admin_notification(
                     title=f"Order #{code} Out for Delivery",
-                    description=f"{rider_name} is delivering Order #{code} to {customer_name}.",
+                    description=f"Order #{code} is out for delivery with {rider_name}.",
                     order_id=order_id,
                     order_code=code,
                 )
-            await send_admin_notification(
-                title=f"Order #{code} Out for Delivery",
-                description=f"Order #{code} is out for delivery with {rider_name}.",
-                order_id=order_id,
-                order_code=code,
             )
 
         # ---------------- DELIVERED ----------------
         elif target == "delivered":
             if user_id:
-                await send_customer_notification(
-                    user_id,
-                    kind="delivered",
-                    title=f"Order #{code} Delivered!",
-                    description="Your laundry has been successfully delivered. Thank you for choosing QuickPress!",
-                    order_id=order_id,
-                    order_code=code,
+                tasks.append(
+                    send_customer_notification(
+                        user_id,
+                        kind="delivered",
+                        title=f"Order #{code} Delivered!",
+                        description="Your laundry has been successfully delivered. Thank you for choosing QuickPress!",
+                        order_id=order_id,
+                        order_code=code,
+                    )
                 )
+            if customer_phone:
+                try:
+                    from app.core.whatsapp_service import whatsapp_service
+                    tasks.append(
+                        whatsapp_service.send_order_delivered_whatsapp(
+                            customer_phone,
+                            customer_name,
+                            code,
+                        )
+                    )
+                except Exception as wa_err:
+                    print(f"[Notifications] Error queueing delivered WhatsApp: {wa_err}")
+            if customer_email or user_id:
+                try:
+                    from app.core.email_service import send_order_completion_email
+                    order_copy = dict(order)
+                    if customer_email:
+                        order_copy["customerEmail"] = customer_email
+                    tasks.append(send_order_completion_email(order_copy))
+                except Exception as eml_err:
+                    print(f"[Notifications] Error queueing completion email: {eml_err}")
             if partner_id:
-                await send_partner_notification(
-                    partner_id,
-                    title=f"Order #{code} Delivered Successfully",
-                    description=f"Order #{code} has been delivered to customer. Store earnings credited.",
-                    kind="delivered",
-                    order_id=order_id,
-                    order_code=code,
+                tasks.append(
+                    send_partner_notification(
+                        partner_id,
+                        title=f"Order #{code} Delivered Successfully",
+                        description=f"Order #{code} has been delivered to customer. Store earnings credited.",
+                        kind="delivered",
+                        order_id=order_id,
+                        order_code=code,
+                    )
                 )
             if rider_id:
-                await send_rider_notification(
-                    rider_id,
-                    title=f"Order #{code} Delivered",
-                    message=f"Order #{code} delivery completed. Earnings added to your wallet.",
-                    order_id=order_id,
+                tasks.append(
+                    send_rider_notification(
+                        rider_id,
+                        title=f"Order #{code} Delivered",
+                        message=f"Order #{code} delivery completed. Earnings added to your wallet.",
+                        order_id=order_id,
+                    )
                 )
-            await send_admin_notification(
-                title=f"Order #{code} Delivered",
-                description=f"Order #{code} was delivered successfully by {rider_name}.",
-                order_id=order_id,
-                order_code=code,
+            tasks.append(
+                send_admin_notification(
+                    title=f"Order #{code} Delivered",
+                    description=f"Order #{code} was delivered successfully by {rider_name}.",
+                    order_id=order_id,
+                    order_code=code,
+                )
             )
 
         # ---------------- CANCELLED ----------------
         elif target == "cancelled":
             cancel_detail = f"Reason: {reason}" if reason else "If amount was deducted, it will be refunded to your wallet."
             if user_id:
-                await send_customer_notification(
-                    user_id,
-                    kind="order-cancelled",
-                    title=f"Order #{code} Cancelled",
-                    description=f"Your order #{code} has been cancelled. {cancel_detail}",
-                    order_id=order_id,
-                    order_code=code,
+                tasks.append(
+                    send_customer_notification(
+                        user_id,
+                        kind="order-cancelled",
+                        title=f"Order #{code} Cancelled",
+                        description=f"Your order #{code} has been cancelled. {cancel_detail}",
+                        order_id=order_id,
+                        order_code=code,
+                    )
                 )
+            if customer_email or user_id:
+                try:
+                    from app.core.email_service import send_order_cancellation_email
+                    order_copy = dict(order)
+                    if customer_email:
+                        order_copy["customerEmail"] = customer_email
+                    tasks.append(send_order_cancellation_email(order_copy, reason=reason))
+                except Exception as eml_err:
+                    print(f"[Notifications] Error queueing cancellation email: {eml_err}")
             if partner_id:
-                await send_partner_notification(
-                    partner_id,
-                    title=f"Order #{code} Cancelled",
-                    description=f"Order #{code} was cancelled. {reason or ''}",
-                    kind="order-cancelled",
-                    order_id=order_id,
-                    order_code=code,
+                tasks.append(
+                    send_partner_notification(
+                        partner_id,
+                        title=f"Order #{code} Cancelled",
+                        description=f"Order #{code} was cancelled. {reason or ''}",
+                        kind="order-cancelled",
+                        order_id=order_id,
+                        order_code=code,
+                    )
                 )
             if rider_id:
-                await send_rider_notification(
-                    rider_id,
-                    title=f"Order #{code} Cancelled",
-                    message=f"Order #{code} delivery task was cancelled.",
-                    order_id=order_id,
+                tasks.append(
+                    send_rider_notification(
+                        rider_id,
+                        title=f"Order #{code} Cancelled",
+                        message=f"Order #{code} delivery task was cancelled.",
+                        order_id=order_id,
+                    )
                 )
-            await send_admin_notification(
-                title=f"Order #{code} Cancelled",
-                description=f"Order #{code} was cancelled by {actor_role}. {reason or ''}",
-                order_id=order_id,
-                order_code=code,
+            tasks.append(
+                send_admin_notification(
+                    title=f"Order #{code} Cancelled",
+                    description=f"Order #{code} was cancelled by {actor_role}. {reason or ''}",
+                    order_id=order_id,
+                    order_code=code,
+                )
             )
+
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
     except Exception as e:
         print(f"[Notifications] Error dispatching order transition ({target}): {e}")
 

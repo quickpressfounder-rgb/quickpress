@@ -134,7 +134,7 @@ class WhatsAppService:
             return False, "", str(exc)
 
     # -------------------------------------------------------------------------
-    # LIFECYCLE TRANSACTIONAL WHATSAPP MESSAGES
+    # LIFECYCLE TRANSACTIONAL WHATSAPP MESSAGES (CLEAN CORPORATE FORMATTING)
     # -------------------------------------------------------------------------
 
     async def send_order_confirmed_whatsapp(
@@ -148,12 +148,12 @@ class WhatsAppService:
     ) -> Tuple[bool, str, Optional[str]]:
         """Sends WhatsApp confirmation when order is successfully placed."""
         body = (
-            f"🎉 *Order Confirmed! — QuickPress Laundry*\n\n"
+            f"*Order Confirmed — QuickPress Laundry*\n\n"
             f"Hello *{customer_name}*,\n"
             f"Your order *#{order_id}* has been received and scheduled for pickup.\n\n"
-            f"🗓️ *Pickup Slot:* {pickup_slot}\n"
-            f"🧺 *Estimated Items:* {items_count} garment(s)\n"
-            f"💳 *Total Amount:* ₹{amount:.2f}\n\n"
+            f"• Pickup Slot: {pickup_slot}\n"
+            f"• Estimated Items: {items_count} garment(s)\n"
+            f"• Total Amount: ₹{amount:.2f}\n\n"
             f"Our nearest delivery captain will be dispatched to your location shortly."
         )
 
@@ -198,12 +198,12 @@ class WhatsAppService:
         """Sends Captain details and live ETA when captain is assigned."""
         action_text = "pickup your laundry" if ride_type == "pickup" else "deliver your clean laundry"
         body = (
-            f"🛵 *Delivery Captain Assigned!*\n\n"
+            f"*Delivery Captain Assigned — QuickPress*\n\n"
             f"Hello *{customer_name}*,\n"
             f"Captain *{captain_name}* is on the way to {action_text}.\n\n"
-            f"⏱️ *Estimated Arrival:* ~{eta_minutes} mins\n"
-            f"📞 *Captain Contact:* {captain_phone}\n"
-            f"📦 *Order ID:* #{order_id}\n\n"
+            f"• Estimated Arrival: ~{eta_minutes} mins\n"
+            f"• Captain Contact: {captain_phone}\n"
+            f"• Order ID: #{order_id}\n\n"
             f"Please keep your clothes ready for handoff."
         )
 
@@ -232,6 +232,49 @@ class WhatsAppService:
             buttons=buttons,
         )
 
+    async def send_pickup_otp_whatsapp(
+        self,
+        phone: str,
+        customer_name: str,
+        order_id: str,
+        pickup_otp: str,
+        captain_name: str,
+    ) -> Tuple[bool, str, Optional[str]]:
+        """Sends Doorstep Pickup OTP to customer when captain is arriving for collection."""
+        body = (
+            f"*Doorstep Pickup OTP — QuickPress*\n\n"
+            f"Hello *{customer_name}*,\n"
+            f"Captain *{captain_name}* has arrived to collect your laundry for Order *#{order_id}*.\n\n"
+            f"• Pickup Verification OTP: *{pickup_otp}*\n"
+            f"_(Share this 4-digit code with the captain only after handing over your clothes.)_\n\n"
+            f"Track your order live anytime in the QuickPress app."
+        )
+
+        buttons = [{"id": "track_order", "title": "Track Live"}]
+
+        interactive_payload = {
+            "type": "interactive",
+            "interactive": {
+                "type": "button",
+                "body": {"text": body},
+                "action": {
+                    "buttons": [
+                        {"type": "reply", "reply": {"id": b["id"], "title": b["title"]}}
+                        for b in buttons
+                    ]
+                },
+            },
+        }
+
+        return await self._send_meta_request(
+            to_phone=phone,
+            message_payload=interactive_payload,
+            template_name="pickup_otp",
+            recipient_name=customer_name,
+            order_id=order_id,
+            buttons=buttons,
+        )
+
     async def send_clothes_inspected_whatsapp(
         self,
         phone: str,
@@ -242,12 +285,12 @@ class WhatsAppService:
     ) -> Tuple[bool, str, Optional[str]]:
         """Sends clothes count verification notice once partner checks items."""
         body = (
-            f"✅ *Clothes Count Verified by Partner Hub*\n\n"
+            f"*Clothes Count Verified — QuickPress Hub*\n\n"
             f"Hello *{customer_name}*,\n"
             f"Our partner laundromat *{store_name}* has received and inspected your garments.\n\n"
-            f"👕 *Verified Garments Count:* {verified_count} Item(s)\n"
-            f"🧼 *Care Stage:* Sorting & Professional Eco-Wash started\n"
-            f"📦 *Order ID:* #{order_id}\n\n"
+            f"• Verified Garments Count: {verified_count} Item(s)\n"
+            f"• Care Stage: Sorting & Professional Eco-Wash started\n"
+            f"• Order ID: #{order_id}\n\n"
             f"Every item has been tagged with a unique barcode for zero-mix assurance."
         )
 
@@ -269,10 +312,10 @@ class WhatsAppService:
     ) -> Tuple[bool, str, Optional[str]]:
         """Sends Out for Delivery notification with customer delivery OTP."""
         body = (
-            f"🚀 *Out for Delivery — Fresh & Clean!*\n\n"
+            f"*Out for Delivery — QuickPress Fresh & Clean*\n\n"
             f"Hello *{customer_name}*,\n"
             f"Your laundry order *#{order_id}* has been steam-pressed and is out for delivery with Captain *{captain_name}*.\n\n"
-            f"🔐 *Delivery Verification OTP:* *{delivery_otp}*\n"
+            f"• Delivery Verification OTP: *{delivery_otp}*\n"
             f"_(Share this 4-digit code with the captain only after receiving your sealed package.)_\n\n"
             f"Thank you for choosing QuickPress!"
         )
@@ -311,7 +354,7 @@ class WhatsAppService:
     ) -> Tuple[bool, str, Optional[str]]:
         """Sends Order Delivered alert with invoice and rating request."""
         body = (
-            f"✨ *Order Delivered Successfully!*\n\n"
+            f"*Order Delivered Successfully — QuickPress*\n\n"
             f"Hello *{customer_name}*,\n"
             f"Your laundry order *#{order_id}* has been safely delivered.\n\n"
             f"We hope you love the crispness and fragrance of your fresh clothes!\n"
@@ -319,7 +362,7 @@ class WhatsAppService:
         )
 
         buttons = [
-            {"id": "rate_order", "title": "Rate Service ⭐"},
+            {"id": "rate_order", "title": "Rate Service"},
             {"id": "repeat_order", "title": "Book Next Laundry"},
         ]
 

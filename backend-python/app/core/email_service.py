@@ -2293,3 +2293,165 @@ async def send_custom_admin_email(
         sent_by=sent_by or "admin",
         cc=cc,
     )
+
+
+# =============================================================================
+# B2B COMMERCIAL ENTERPRISE NOTIFICATIONS
+# =============================================================================
+async def send_b2b_inquiry_confirmation_email(b2b_doc: Dict[str, Any]) -> Dict[str, Any]:
+    """Sends executive acknowledgment & partnership dossier confirmation to commercial B2B registrant."""
+    b2b_id = b2b_doc.get("b2bId") or b2b_doc.get("id") or b2b_doc.get("_id") or "QP-B2B"
+    business_name = b2b_doc.get("businessName") or "Enterprise Partner"
+    contact_name = b2b_doc.get("contactName") or "Commercial Partner"
+    recipient_email = b2b_doc.get("email") or ""
+    if not recipient_email:
+        return {"ok": False, "skipped": True, "reason": "No B2B contact email"}
+
+    category = b2b_doc.get("category") or "Commercial Enterprise"
+    daily_volume = b2b_doc.get("dailyVolume") or "High Volume"
+    frequency = b2b_doc.get("frequency") or "Scheduled Daily"
+    sla = b2b_doc.get("sla") or "24 Hours Express Turnaround"
+    services = b2b_doc.get("services") or []
+    services_str = ", ".join(services) if services else "Commercial Bulk Linen & Garment Care"
+    trial_req = b2b_doc.get("trialRequested", False)
+    trial_date = b2b_doc.get("trialDate") or "To be confirmed by account manager"
+
+    subject = f"Commercial Inquiry Confirmed [{b2b_id}] — QuickPress Enterprise"
+    content = f"""
+      <p style="font-size: 15px; color: #111827; margin: 0 0 10px 0; font-weight: 600;">
+        Dear {contact_name},
+      </p>
+      <div style="font-size: 20px; font-weight: 800; color: #111827; line-height: 1.3; margin: 0 0 16px 0;">
+        Welcome to QuickPress Commercial Garment Care &amp; Institutional Laundry
+      </div>
+      <p style="font-size: 14px; color: #475569; line-height: 1.6; margin: 0 0 18px 0;">
+        Thank you for registering <strong>{business_name}</strong> for commercial bulk laundry services.
+        Your corporate dossier has been securely recorded under Account ID <strong>{b2b_id}</strong> and routed to our Enterprise Account Desk.
+      </p>
+
+      <div class="card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin: 20px 0;">
+        <table class="meta-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <tr><td style="padding: 6px 0; color: #64748b; font-weight: 600;">CLIENT ID</td><td style="text-align: right; font-weight: 800; color: #0f172a;">{b2b_id}</td></tr>
+          <tr><td style="padding: 6px 0; color: #64748b; font-weight: 600;">ENTERPRISE</td><td style="text-align: right; font-weight: 700; color: #0f172a;">{business_name}</td></tr>
+          <tr><td style="padding: 6px 0; color: #64748b; font-weight: 600;">INDUSTRY</td><td style="text-align: right; color: #334155;">{category}</td></tr>
+          <tr><td style="padding: 6px 0; color: #64748b; font-weight: 600;">DAILY VOLUME</td><td style="text-align: right; color: #334155;">{daily_volume}</td></tr>
+          <tr><td style="padding: 6px 0; color: #64748b; font-weight: 600;">PICKUP SCHEDULE</td><td style="text-align: right; color: #334155;">{frequency}</td></tr>
+          <tr><td style="padding: 6px 0; color: #64748b; font-weight: 600;">GUARANTEED SLA</td><td style="text-align: right; color: #059669; font-weight: 700;">{sla}</td></tr>
+          <tr><td style="padding: 6px 0; color: #64748b; font-weight: 600;">SERVICES</td><td style="text-align: right; color: #334155;">{services_str}</td></tr>
+          <tr><td style="padding: 6px 0; color: #64748b; font-weight: 600;">COMPLIMENTARY TRIAL</td><td style="text-align: right; font-weight: 700; color: #2563eb;">{'Requested (' + trial_date + ')' if trial_req else 'Not requested'}</td></tr>
+        </table>
+      </div>
+
+      <div style="background: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 4px; padding: 14px; margin: 20px 0; font-size: 13px; color: #166534; line-height: 1.6;">
+        <strong>Next Steps:</strong> An Enterprise Relations Director will contact you within 4 business hours to verify facility logistics, finalize customized institutional rate cards, and schedule your complimentary sample weighment trial.
+      </div>
+
+      <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 20px 0 0 0;">
+        For immediate assistance or priority dispatch, contact our Enterprise Desk at <strong>corporate@withquickpress.com</strong> or reach out to our dedicated support.
+      </p>
+    """
+    html = _render_base_email(
+        preheader_text=f"QuickPress Commercial Partnership Dossier [{b2b_id}] confirmed for {business_name}",
+        badge_label="B2B Commercial Registration",
+        headline="Commercial Inquiry Confirmed",
+        subheadline=f"Account ID: {b2b_id} | {business_name}",
+        content_html=content,
+        order_code=b2b_id,
+        status_label="Received",
+    )
+    return await dispatch_email(
+        to=recipient_email,
+        subject=subject,
+        html=html,
+        text=f"Hello {contact_name}, your QuickPress commercial bulk laundry registration for {business_name} ({b2b_id}) has been received. Our Enterprise Desk will reach out within 4 business hours.",
+        recipient_name=contact_name,
+        audience="partner",
+        category="b2b",
+        metadata={"b2bId": b2b_id, "businessName": business_name, "category": category},
+    )
+
+
+async def send_b2b_inquiry_admin_alert_email(b2b_doc: Dict[str, Any]) -> Dict[str, Any]:
+    """Sends immediate high-priority alert email to Super Admin when an enterprise lead registers."""
+    settings = get_settings()
+    admin_recipient = "official.quickpress@gmail.com"
+    b2b_id = b2b_doc.get("b2bId") or b2b_doc.get("id") or b2b_doc.get("_id") or "QP-B2B"
+    business_name = b2b_doc.get("businessName") or "Enterprise Client"
+    category = b2b_doc.get("category") or "Commercial"
+    contact_name = b2b_doc.get("contactName") or "Contact Person"
+    designation = b2b_doc.get("designation") or "Manager"
+    phone = b2b_doc.get("phone") or "N/A"
+    whatsapp = b2b_doc.get("whatsapp") or phone
+    client_email = b2b_doc.get("email") or "N/A"
+    city = b2b_doc.get("city") or "N/A"
+    address = b2b_doc.get("address") or ""
+    pincode = b2b_doc.get("pincode") or ""
+    units_count = b2b_doc.get("unitsCount") or "1 Unit"
+    daily_volume = b2b_doc.get("dailyVolume") or "N/A"
+    frequency = b2b_doc.get("frequency") or "N/A"
+    services = b2b_doc.get("services") or []
+    services_str = ", ".join(services) if services else "N/A"
+    sla = b2b_doc.get("sla") or "24 Hours Express"
+    gstin = b2b_doc.get("gstin") or "Unregistered / Not Provided"
+    pan = b2b_doc.get("pan") or "N/A"
+    credit_terms = b2b_doc.get("creditTerms") or "NET_15_DAYS"
+    trial_req = b2b_doc.get("trialRequested", False)
+    trial_date = b2b_doc.get("trialDate") or "N/A"
+    notes = b2b_doc.get("specialNotes") or "None"
+
+    subject = f"[HIGH-PRIORITY B2B LEAD] {business_name} ({category}) — {b2b_id}"
+    content = f"""
+      <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 16px; margin: 0 0 20px 0;">
+        <span style="font-size: 11px; font-weight: 800; color: #1d4ed8; text-transform: uppercase;">Inbound Commercial Registration</span>
+        <div style="font-size: 18px; font-weight: 800; color: #1e3a8a; margin-top: 4px;">{business_name}</div>
+        <div style="font-size: 13px; color: #3b82f6; margin-top: 2px;">{category} &bull; Account ID: {b2b_id}</div>
+      </div>
+
+      <div class="card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+        <h4 style="font-size: 12px; text-transform: uppercase; color: #64748b; margin: 0 0 12px 0;">Commercial Profile &amp; Facility</h4>
+        <table class="meta-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <tr><td style="padding: 5px 0; color: #64748b;">Contact:</td><td style="text-align: right; font-weight: 700; color: #0f172a;">{contact_name} ({designation})</td></tr>
+          <tr><td style="padding: 5px 0; color: #64748b;">Phone / WhatsApp:</td><td style="text-align: right; font-weight: 700; color: #0f172a;">{phone} / {whatsapp}</td></tr>
+          <tr><td style="padding: 5px 0; color: #64748b;">Email:</td><td style="text-align: right; color: #2563eb;">{client_email}</td></tr>
+          <tr><td style="padding: 5px 0; color: #64748b;">Address:</td><td style="text-align: right; color: #334155;">{address}, {city} - {pincode}</td></tr>
+          <tr><td style="padding: 5px 0; color: #64748b;">Capacity:</td><td style="text-align: right; color: #334155;">{units_count}</td></tr>
+          <tr><td style="padding: 5px 0; color: #64748b;">Daily Volume:</td><td style="text-align: right; font-weight: 700; color: #0f172a;">{daily_volume}</td></tr>
+          <tr><td style="padding: 5px 0; color: #64748b;">Frequency:</td><td style="text-align: right; color: #334155;">{frequency}</td></tr>
+          <tr><td style="padding: 5px 0; color: #64748b;">Services:</td><td style="text-align: right; color: #334155;">{services_str}</td></tr>
+          <tr><td style="padding: 5px 0; color: #64748b;">SLA Required:</td><td style="text-align: right; font-weight: 700; color: #059669;">{sla}</td></tr>
+          <tr><td style="padding: 5px 0; color: #64748b;">GSTIN / PAN:</td><td style="text-align: right; font-family: monospace; color: #334155;">{gstin} / {pan}</td></tr>
+          <tr><td style="padding: 5px 0; color: #64748b;">Terms:</td><td style="text-align: right; color: #334155;">{credit_terms}</td></tr>
+          <tr><td style="padding: 5px 0; color: #64748b;">Free Trial:</td><td style="text-align: right; font-weight: 700; color: #2563eb;">{'Requested: ' + trial_date if trial_req else 'No'}</td></tr>
+        </table>
+      </div>
+
+      <div style="background: #f8fafc; border-radius: 8px; padding: 14px; margin-bottom: 20px; font-size: 13px; color: #334155;">
+        <strong>Special Operational Notes:</strong><br>
+        <em>{notes}</em>
+      </div>
+
+      <div style="text-align: center; margin-top: 24px;">
+        <a href="https://ops.withquickpress.com/b2b" style="background: #0f172a; color: #ffffff; padding: 12px 24px; border-radius: 8px; font-weight: 700; text-decoration: none; display: inline-block;">
+          Open B2B Management Console
+        </a>
+      </div>
+    """
+    html = _render_base_email(
+        preheader_text=f"New B2B Lead: {business_name} ({daily_volume}) registered for commercial laundry",
+        badge_label="Admin Alert",
+        headline="New Commercial Inbound Lead",
+        subheadline=f"{business_name} &bull; {category}",
+        content_html=content,
+        order_code=b2b_id,
+        status_label="New Lead",
+    )
+    return await dispatch_email(
+        to=admin_recipient,
+        subject=subject,
+        html=html,
+        text=f"New B2B Lead: {business_name} ({category}), Contact: {contact_name} ({phone}), Volume: {daily_volume}. Review at https://ops.withquickpress.com/b2b",
+        recipient_name="QuickPress Operations",
+        audience="admin",
+        category="b2b_lead",
+        metadata={"b2bId": b2b_id, "businessName": business_name, "category": category},
+    )
