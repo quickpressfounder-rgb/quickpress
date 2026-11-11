@@ -68,6 +68,11 @@ export interface B2BClient {
   totalOrdersCount: number;
   totalVolumeKg: number;
   contactLogs?: B2BContactLog[];
+  services?: string[];
+  billingModel?: string;
+  creditTerms?: string;
+  trialRequested?: boolean;
+  specialNotes?: string;
   trialDate?: string;
   trialSlot?: string;
   createdAt: string;

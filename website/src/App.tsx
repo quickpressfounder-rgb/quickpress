@@ -18,8 +18,6 @@ import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage";
 import { TermsPage } from "@/pages/TermsPage";
 import { ContactPage } from "@/pages/ContactPage";
 import { B2BPartnerPage } from "@/pages/B2BPartnerPage";
-import { B2BLoginPage } from "@/pages/B2BLoginPage";
-import { B2BPortalPage } from "@/pages/B2BPortalPage";
 import { StorePage } from "@/pages/StorePage";
 
 // Mobile App Redirection Utility
@@ -91,26 +89,15 @@ export default function App() {
       }
 
       if (
+        target === "b2b" ||
+        target === "b2b-partner" ||
         target === "b2b/login" ||
         target === "b2b-login" ||
-        path.startsWith("b2b/login") ||
-        rawHash.startsWith("b2b/login")
-      ) {
-        setCurrentPage("b2b-login");
-        return;
-      }
-
-      if (
         target === "b2b/portal" ||
         target === "b2b-portal" ||
-        path.startsWith("b2b/portal") ||
-        rawHash.startsWith("b2b/portal")
+        path.startsWith("b2b") ||
+        rawHash.startsWith("b2b")
       ) {
-        setCurrentPage("b2b-portal");
-        return;
-      }
-
-      if (target === "b2b" || target === "b2b-partner" || path === "b2b" || rawHash === "b2b") {
         setCurrentPage("b2b-partner");
         return;
       }
@@ -121,8 +108,6 @@ export default function App() {
         "privacy",
         "terms",
         "b2b-partner",
-        "b2b-login",
-        "b2b-portal",
         "store",
       ];
       if (validPages.includes(target as PageType)) {
@@ -236,20 +221,6 @@ export default function App() {
 
           {currentPage === "b2b-partner" && (
             <B2BPartnerPage
-              onNavigate={navigateTo}
-              onOpenModal={handleOpenModal}
-            />
-          )}
-
-          {currentPage === "b2b-login" && (
-            <B2BLoginPage
-              onNavigate={navigateTo}
-              onOpenModal={handleOpenModal}
-            />
-          )}
-
-          {currentPage === "b2b-portal" && (
-            <B2BPortalPage
               onNavigate={navigateTo}
               onOpenModal={handleOpenModal}
             />

@@ -30,6 +30,15 @@ import {
   Eye,
   CreditCard,
   Building,
+  Mail,
+  Copy,
+  Printer,
+  Briefcase,
+  Sparkles,
+  BadgeCheck,
+  User,
+  Hash,
+  Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -119,6 +128,7 @@ function B2BEnterprisePage() {
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<B2BInvoice | null>(null);
   const [selectedLeadForTrial, setSelectedLeadForTrial] = useState<B2BClient | null>(null);
   const [selectedClientForInvoice, setSelectedClientForInvoice] = useState<B2BClient | null>(null);
+  const [selectedClientForDossier, setSelectedClientForDossier] = useState<B2BClient | null>(null);
 
   // Queries
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
@@ -395,8 +405,15 @@ function B2BEnterprisePage() {
                             <span className="text-[11px] font-medium text-zinc-500">
                               Credit: {formatCurrency(balance)} / {formatCurrency(limit)}
                             </span>
-                            <span className={`text-[10px] font-black ${isHoldTriggered ? "text-rose-600" : "text-zinc-600"}`}>
-                              {isHoldTriggered ? "HOLD ACTIVE ⚠️" : `${utilPercent}% Used`}
+                            <span className={`text-[10px] font-black ${isHoldTriggered ? "text-rose-600 flex items-center gap-1" : "text-zinc-600"}`}>
+                              {isHoldTriggered ? (
+                                <>
+                                  <AlertTriangle className="size-3 text-rose-600 shrink-0" />
+                                  <span>HOLD ACTIVE</span>
+                                </>
+                              ) : (
+                                `${utilPercent}% Used`
+                              )}
                             </span>
                           </div>
                           <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
@@ -410,20 +427,30 @@ function B2BEnterprisePage() {
                         </div>
 
                         {/* Actions */}
-                        <div className="pt-2 border-t border-zinc-100 flex items-center justify-between gap-2">
+                        <div className="pt-2 border-t border-zinc-100 flex items-center justify-between gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedClientForDossier(client)}
+                            className="h-8 px-2.5 text-xs font-bold text-zinc-900 border-zinc-300 bg-zinc-50 hover:bg-zinc-100 cursor-pointer"
+                            title="View Full Form Record & Complete Dossier"
+                          >
+                            <Eye className="size-3.5 mr-1 text-zinc-600" />
+                            <span>Full Record</span>
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setSelectedClientForContract(client)}
-                            className="flex-1 h-8 text-xs font-semibold text-zinc-700 border-zinc-200 hover:bg-zinc-50"
+                            className="flex-1 h-8 text-xs font-semibold text-zinc-700 border-zinc-200 hover:bg-zinc-50 cursor-pointer"
                           >
-                            Contract & Rates
+                            Rates
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setSelectedClientForInvoice(client)}
-                            className="h-8 text-xs font-semibold text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
+                            className="h-8 px-2.5 text-xs font-semibold text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 cursor-pointer"
                           >
                             Bill GST
                           </Button>
@@ -821,23 +848,33 @@ function B2BEnterprisePage() {
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="pt-2 border-t border-zinc-100 flex items-center justify-between gap-2">
+                      <div className="pt-2 border-t border-zinc-100 flex items-center justify-between gap-1.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedClientForDossier(lead)}
+                          className="h-8 px-2.5 text-xs font-bold text-zinc-900 border-zinc-300 bg-zinc-50 hover:bg-zinc-100 cursor-pointer"
+                          title="View Full Form Record & Audit Dossier"
+                        >
+                          <Eye className="size-3.5 mr-1 text-zinc-600" />
+                          <span>Full Record</span>
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedLeadForTrial(lead)}
-                          className="flex-1 h-8 text-xs font-semibold text-indigo-700 border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
+                          className="flex-1 h-8 text-xs font-semibold text-indigo-700 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 cursor-pointer"
                         >
                           <Calendar className="size-3 mr-1" />
-                          Schedule Trial (20kg)
+                          Trial (20kg)
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => handleConvertLead(lead.b2bId)}
-                          className="h-8 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                          className="h-8 px-2.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
                         >
                           <Check className="size-3 mr-1" />
-                          Activate Contract
+                          Activate
                         </Button>
                       </div>
                     </div>
@@ -968,6 +1005,32 @@ function B2BEnterprisePage() {
             }}
           />
         )}
+
+        {/* =========================================================================
+            MODAL 9: 360° CLIENT DOSSIER & FULL FORM RECORD
+        ========================================================================= */}
+        {selectedClientForDossier && (
+          <B2BClientDossierModal
+            client={selectedClientForDossier}
+            onClose={() => setSelectedClientForDossier(null)}
+            onScheduleTrial={(c) => {
+              setSelectedLeadForTrial(c);
+              setSelectedClientForDossier(null);
+            }}
+            onConfigureRates={(c) => {
+              setSelectedClientForContract(c);
+              setSelectedClientForDossier(null);
+            }}
+            onGenerateInvoice={(c) => {
+              setSelectedClientForInvoice(c);
+              setSelectedClientForDossier(null);
+            }}
+            onConvertLead={async (b2bId) => {
+              await handleConvertLead(b2bId);
+              setSelectedClientForDossier(null);
+            }}
+          />
+        )}
       </div>
     </AdminShell>
   );
@@ -1010,6 +1073,408 @@ function B2BEnterprisePage() {
 // -----------------------------------------------------------------------------
 // Sub-Modals
 // -----------------------------------------------------------------------------
+
+function B2BClientDossierModal({
+  client,
+  onClose,
+  onScheduleTrial,
+  onConfigureRates,
+  onGenerateInvoice,
+  onConvertLead,
+}: {
+  client: B2BClient;
+  onClose: () => void;
+  onScheduleTrial: (client: B2BClient) => void;
+  onConfigureRates: (client: B2BClient) => void;
+  onGenerateInvoice: (client: B2BClient) => void;
+  onConvertLead: (b2bId: string) => void;
+}) {
+  const contract = client.contract || ({} as any);
+  const isLead = client.status === "NEW_INQUIRY" || client.status === "CONTACTED" || client.status === "TRIAL_SCHEDULED";
+
+  function copyText(val: string, label: string) {
+    if (!val) return;
+    navigator.clipboard.writeText(val);
+    toast.success(`${label} copied to clipboard!`);
+  }
+
+  const cleanPhone = (client.phone || "").replace(/[^0-9]/g, "");
+  const whatsappNumber = (client.whatsapp || client.phone || "").replace(/[^0-9]/g, "");
+  const cleanWa = whatsappNumber.startsWith("91") ? whatsappNumber : `91${whatsappNumber}`;
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-white rounded-2xl border border-zinc-200 shadow-2xl">
+        {/* Header */}
+        <DialogHeader className="p-5 pb-4 border-b border-zinc-200 bg-gradient-to-r from-zinc-50 via-white to-zinc-50 shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-900 text-white tracking-wider">
+                  {client.category || "Commercial Entity"}
+                </span>
+                <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+                  {client.b2bId}
+                </span>
+                <StatusPill value={client.status} />
+              </div>
+              <DialogTitle className="text-xl font-black text-zinc-900 mt-2 flex items-center gap-2">
+                <Building2 className="size-5 text-emerald-600 shrink-0" />
+                <span>{client.businessName}</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-zinc-500 mt-0.5 flex items-center gap-1">
+                <span>Submitted on {client.createdAt ? new Date(client.createdAt).toLocaleString("en-IN") : "Recent"}</span>
+                <span>•</span>
+                <span>Account Manager: {client.accountManager || "Enterprise Operations Desk"}</span>
+              </DialogDescription>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.print()}
+                className="h-8 px-2.5 text-xs font-semibold text-zinc-700 border-zinc-200 bg-white hover:bg-zinc-50 cursor-pointer"
+              >
+                <Printer className="size-3.5 mr-1" />
+                <span>Print Dossier</span>
+              </Button>
+            </div>
+          </div>
+        </DialogHeader>
+
+        {/* Scrollable Content Body */}
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 bg-zinc-50/50">
+          {/* Grid Row 1: Facility Location & Authorized SPOC */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Box 1: Facility Location */}
+            <div className="bg-white rounded-xl border border-zinc-200 p-4 shadow-xs space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-500 border-b border-zinc-100 pb-2">
+                <MapPin className="size-4 text-emerald-600" />
+                <span>Commercial Facility & Receiving Dock</span>
+              </div>
+              <div className="space-y-2 text-xs">
+                <div>
+                  <span className="text-zinc-400 block text-[11px]">Gate / Receiving Dock Address</span>
+                  <span className="font-semibold text-zinc-900">{client.address || "Main Reception / Security Gate"}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-zinc-400 block text-[11px]">Operating City</span>
+                    <span className="font-bold text-zinc-800">{client.city}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-400 block text-[11px]">Postal Pincode</span>
+                    <span className="font-mono font-bold text-zinc-800">{client.pincode}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-100">
+                  <div>
+                    <span className="text-zinc-400 block text-[11px]">Facility Scale / Units</span>
+                    <span className="font-semibold text-zinc-800">{client.unitsCount || "Single Unit"}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-400 block text-[11px]">Processing Hub</span>
+                    <span className="font-semibold text-zinc-800">{client.assignedHubName || "Central Commercial Hub"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Box 2: Authorized SPOC */}
+            <div className="bg-white rounded-xl border border-zinc-200 p-4 shadow-xs space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-500 border-b border-zinc-100 pb-2">
+                <User className="size-4 text-emerald-600" />
+                <span>Authorized SPOC & Communication</span>
+              </div>
+              <div className="space-y-2 text-xs">
+                <div>
+                  <span className="text-zinc-400 block text-[11px]">Key Contact Person</span>
+                  <span className="font-bold text-zinc-900 text-sm">{client.contactName}</span>
+                  <span className="text-zinc-500 text-[11px] block">{client.designation || "Authorized Representative"}</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <span className="text-zinc-400 block text-[11px]">Mobile Phone</span>
+                    <a
+                      href={`tel:${cleanPhone}`}
+                      className="font-mono font-bold text-emerald-700 hover:underline flex items-center gap-1 mt-0.5"
+                    >
+                      <Phone className="size-3" />
+                      <span>{client.phone}</span>
+                    </a>
+                  </div>
+                  <div>
+                    <span className="text-zinc-400 block text-[11px]">WhatsApp Hotline</span>
+                    <a
+                      href={`https://wa.me/${cleanWa}?text=${encodeURIComponent(`Hello ${client.contactName}, regarding your QuickPress Commercial Bulk Laundry account (${client.b2bId})`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-mono font-bold text-emerald-700 hover:underline flex items-center gap-1 mt-0.5"
+                    >
+                      <MessageSquare className="size-3" />
+                      <span>{client.whatsapp || client.phone}</span>
+                    </a>
+                  </div>
+                </div>
+                <div className="pt-1 border-t border-zinc-100">
+                  <span className="text-zinc-400 block text-[11px]">Official Email</span>
+                  <a
+                    href={`mailto:${client.email}?subject=${encodeURIComponent(`QuickPress Commercial Account - ${client.businessName} (${client.b2bId})`)}`}
+                    className="font-medium text-emerald-700 hover:underline flex items-center gap-1 mt-0.5 truncate"
+                  >
+                    <Mail className="size-3 shrink-0" />
+                    <span className="truncate">{client.email}</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Grid Row 2: Commercial Laundry Scope & Logistics */}
+          <div className="bg-white rounded-xl border border-zinc-200 p-4 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-500">
+                <Truck className="size-4 text-emerald-600" />
+                <span>Commercial Laundry Scope & Logistics Specifications</span>
+              </div>
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                SLA: {client.sla || contract.sla || "24 Hours Express Standard"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="bg-zinc-50 rounded-lg p-2.5 border border-zinc-100">
+                <span className="text-zinc-500 block text-[11px]">Estimated Daily Volume</span>
+                <span className="text-base font-black text-zinc-900 mt-0.5 block">{client.dailyVolume || "150-300 kg/day"}</span>
+              </div>
+              <div className="bg-zinc-50 rounded-lg p-2.5 border border-zinc-100">
+                <span className="text-zinc-500 block text-[11px]">Linen Pickup Frequency</span>
+                <span className="text-sm font-bold text-zinc-800 mt-0.5 block">{client.frequency || "Daily Morning"}</span>
+              </div>
+              <div className="bg-zinc-50 rounded-lg p-2.5 border border-zinc-100">
+                <span className="text-zinc-500 block text-[11px]">Base Contract Tariff</span>
+                <span className="text-base font-black text-emerald-700 mt-0.5 block">₹{contract.baseRatePerKg || 32}/kg</span>
+              </div>
+            </div>
+
+            {/* Services Requested Pills */}
+            <div className="pt-2">
+              <span className="text-zinc-500 block text-[11px] font-bold uppercase tracking-wider mb-1.5">
+                Services & Garment Treatments Required:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {(client.services && client.services.length > 0
+                  ? client.services
+                  : ["Wash & Fold Commercial Linen", "High-Pressure Steam Press", "Roller Flatwork Ironing"]
+                ).map((srv) => (
+                  <span
+                    key={srv}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-medium border border-emerald-200"
+                  >
+                    <CheckCircle2 className="size-3 text-emerald-600" />
+                    <span>{srv}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Grid Row 3: Statutory Tax Compliance & Credit Terms */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Box 3: Tax Compliance */}
+            <div className="bg-white rounded-xl border border-zinc-200 p-4 shadow-xs space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-500 border-b border-zinc-100 pb-2">
+                <Receipt className="size-4 text-emerald-600" />
+                <span>Statutory Compliance & Identifiers</span>
+              </div>
+              <div className="space-y-2.5 text-xs">
+                <div>
+                  <span className="text-zinc-400 block text-[11px]">15-Digit GST Identification Number (GSTIN)</span>
+                  <div className="flex items-center justify-between mt-0.5 p-2 bg-zinc-50 rounded-lg border border-zinc-100">
+                    <span className="font-mono font-bold text-zinc-900 tracking-wider">
+                      {client.gstin || "EXEMPT / PENDING VERIFICATION"}
+                    </span>
+                    {client.gstin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => copyText(client.gstin!, "GSTIN")}
+                        className="h-6 w-6 text-zinc-500 hover:text-zinc-900"
+                      >
+                        <Copy className="size-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-zinc-400 block text-[11px]">Permanent Account Number (PAN)</span>
+                  <div className="flex items-center justify-between mt-0.5 p-2 bg-zinc-50 rounded-lg border border-zinc-100">
+                    <span className="font-mono font-bold text-zinc-900 tracking-wider">
+                      {client.pan || "NOT PROVIDED"}
+                    </span>
+                    {client.pan && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => copyText(client.pan!, "PAN")}
+                        className="h-6 w-6 text-zinc-500 hover:text-zinc-900"
+                      >
+                        <Copy className="size-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-zinc-400 block text-[11px]">Commercial Invoicing Model</span>
+                  <span className="font-semibold text-zinc-800 block mt-0.5">
+                    {client.billingModel || "Per-Kg Consolidated Weighment Tariff"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Box 4: Credit Terms & Balances */}
+            <div className="bg-white rounded-xl border border-zinc-200 p-4 shadow-xs space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-500 border-b border-zinc-100 pb-2">
+                <CreditCard className="size-4 text-emerald-600" />
+                <span>Credit Terms & Outstanding Float</span>
+              </div>
+              <div className="space-y-2 text-xs">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-zinc-50 rounded-lg p-2 border border-zinc-100">
+                    <span className="text-zinc-400 block text-[10px] uppercase font-bold">Payment Credit Terms</span>
+                    <span className="font-black text-zinc-900 text-sm mt-0.5 block">
+                      {client.creditTerms || contract.creditTerms || "Net 15 Days"}
+                    </span>
+                  </div>
+                  <div className="bg-zinc-50 rounded-lg p-2 border border-zinc-100">
+                    <span className="text-zinc-400 block text-[10px] uppercase font-bold">Billing Cycle</span>
+                    <span className="font-black text-zinc-900 text-sm mt-0.5 block">
+                      {contract.billingCycle || "MONTHLY"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="bg-emerald-50/50 rounded-lg p-2 border border-emerald-100">
+                    <span className="text-emerald-700 block text-[10px] uppercase font-bold">Approved Credit Limit</span>
+                    <span className="font-black text-emerald-900 text-sm mt-0.5 block">
+                      {formatCurrency(contract.creditLimit || 50000)}
+                    </span>
+                  </div>
+                  <div className="bg-amber-50/50 rounded-lg p-2 border border-amber-100">
+                    <span className="text-amber-700 block text-[10px] uppercase font-bold">Current Unpaid Balance</span>
+                    <span className="font-black text-amber-900 text-sm mt-0.5 block">
+                      {formatCurrency(client.currentBalance || 0)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-1 flex items-center justify-between text-zinc-500 text-[11px]">
+                  <span>Total Delivered Cargo Orders:</span>
+                  <span className="font-black text-zinc-900">{client.totalOrdersCount || 0} batches ({client.totalVolumeKg || 0} kg)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Grid Row 4: Free Commercial Pilot Trial & Operational Notes */}
+          <div className="bg-white rounded-xl border border-zinc-200 p-4 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-500">
+                <Sparkles className="size-4 text-emerald-600" />
+                <span>Commercial Pilot Trial & Operational Handling</span>
+              </div>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
+                client.trialRequested ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-zinc-100 text-zinc-600"
+              }`}>
+                {client.trialRequested ? "Free 20kg Pilot Trial Requested" : "Standard Direct Onboarding"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-zinc-400 block text-[11px]">Preferred / Scheduled Pilot Trial Date</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <Calendar className="size-4 text-indigo-600" />
+                  <span className="font-semibold text-zinc-900">
+                    {client.trialDate || "Pending Scheduling with Facility Manager"}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <span className="text-zinc-400 block text-[11px]">Special Security, Gate Clearance & Sorting Instructions</span>
+                <p className="text-zinc-700 mt-1 bg-zinc-50 p-2.5 rounded-lg border border-zinc-100 text-[11px] leading-relaxed">
+                  {client.specialNotes || "Standard commercial processing. Barcode tags required on cargo bags at loading dock."}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        <DialogFooter className="p-4 border-t border-zinc-200 bg-zinc-50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              className="text-xs font-semibold text-zinc-700 border-zinc-200 bg-white hover:bg-zinc-50 cursor-pointer"
+            >
+              Close Dossier
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {isLead ? (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onScheduleTrial(client)}
+                  className="text-xs font-semibold text-indigo-700 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 cursor-pointer"
+                >
+                  <Calendar className="size-3.5 mr-1" />
+                  <span>Schedule 20kg Trial</span>
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => onConvertLead(client.b2bId)}
+                  className="text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                >
+                  <Check className="size-3.5 mr-1" />
+                  <span>Convert & Activate Contract</span>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onConfigureRates(client)}
+                  className="text-xs font-semibold text-zinc-700 border-zinc-200 bg-white hover:bg-zinc-100 cursor-pointer"
+                >
+                  <span>Edit Rate Card & Limits</span>
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => onGenerateInvoice(client)}
+                  className="text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                >
+                  <Receipt className="size-3.5 mr-1" />
+                  <span>Generate GST Invoice</span>
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function ContractConfigModal({
   client,

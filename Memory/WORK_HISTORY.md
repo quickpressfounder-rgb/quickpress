@@ -621,3 +621,33 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
      - Removed hardcoded city `"Kasganj"` from default state and placeholders.
 4. **Verification:**
    - Production build of `admin-frontend` succeeded (`vite build` exit code 0).
+
+---
+
+## Date: 2026-11-11 (B2B Public Form & Enterprise Admin 360° Dossier)
+### Objectives Achieved:
+1. **Removed B2B Login & Restricted to Form Only:**
+   - Removed `website/src/pages/B2BLoginPage.tsx` and `website/src/pages/B2BPortalPage.tsx`.
+   - In `website/src/types.ts`: Purged `"b2b-login"` and `"b2b-portal"` page types.
+   - In `website/src/pages/B2BPartnerPage.tsx`: Removed "Already Registered? Facility Login" button from the header.
+   - In `website/src/App.tsx`: Routed all B2B route variations (`/b2b`, `/b2b/login`, `/b2b-partner`, `/b2b/portal`) exclusively to the 5-step commercial setup form (`B2BPartnerPage`).
+2. **Built 360° Full Record Dossier Modal in Admin Console (`admin-frontend/src/routes/b2b.tsx`):**
+   - Added `B2BClientDossierModal` displaying the complete submission data of every commercial registration / inbound inquiry:
+     - **Facility & Dock Location:** Business Legal Name, Industry Vertical, Units/Rooms count, Gate/Dock Address, City, Postal Pincode, Assigned Processing Hub, Account Manager.
+     - **Authorized SPOC:** Contact Person, Official Designation, Direct Phone (click-to-call), WhatsApp Direct Hotline (1-click `wa.me`), Official Corporate Email.
+     - **Bulk Scope & Logistics:** Estimated Daily Volume in kg, Pickup Frequency, Turnaround SLA, Service Pills (Wash & Fold, High-Pressure Steam, Roll Ironer, Dry Clean, Comforters, Uniforms, Stain Treatment, Thermal Wash).
+     - **Statutory Tax & Credit Architecture:** 15-digit GSTIN (with copy button), Business PAN (with copy button), Invoicing Model, Payment Terms, Sanctioned Credit Limit, Current Balance Due, Base Contract Rate.
+     - **Free Pilot Trial:** Requested status badge, Preferred Pilot Date, Special Handling / Security Instructions.
+     - **Direct Action Controls:** Schedule Pilot Trial, Convert & Activate Contract, Edit Dynamic Rates, Generate GST Invoice, Print Dossier.
+   - Added "Full Record" action button on all Client cards (Tab 1) and Inbound Lead cards (Tab 4).
+   - Removed cartoon emojis (`HOLD ACTIVE ⚠️` replaced with Lucide `<AlertTriangle />`).
+3. **Super Admin Authentication & Reliability:**
+   - In `backend-python/app/api/auth.py` and `backend-python/app/core/admin_security.py`:
+     - Ensured both `admin@quickpress.online` and `official.quickpress@gmail.com` are seeded and verified as Super Admins in `ensure_super_admin_seed()`.
+     - Provided `debugOtp` for owner emails to ensure immediate login without being locked out by external SMTP delivery delays.
+     - Dispatched 2FA notification copy to `NOTIFICATION_EMAIL` (`official.quickpress@gmail.com`).
+4. **Verification & Tests:**
+   - `website` production build passed with exit code 0 (`vite build`).
+   - `admin-frontend` production build passed with exit code 0 (`vite build` via Nitro).
+   - Backend pytest suite `test_b2b_admin_engine.py` passed (1/1 lifecycle test).
+   - Backend pytest suite `test_staff_auth_rbac_engine.py` passed (7/7 tests).
