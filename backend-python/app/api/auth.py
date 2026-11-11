@@ -654,31 +654,43 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
     # 2. Check live admin_staff database directory (Dynamic Ground Truth)
     staff_doc = await database.find_one("admin_staff", {"email": email})
 
-    # Optional initial bootstrapping from environment configuration only (Zero hardcoded emails)
+    # Optional initial bootstrapping from environment configuration and owner emails
     admin_env_raw = os.getenv("ADMIN_EMAILS", os.getenv("ADMIN_EMAIL", "")).strip().lower()
     configured_owner_emails = {e.strip() for e in re.split(r"[,\s;]+", admin_env_raw) if e.strip()}
+    for fallback in [
+        "official.quickpress@gmail.com",
+        "admin@quickpress.online",
+        "admin@quickpress.in",
+        os.getenv("NOTIFICATION_EMAIL", "").strip().lower(),
+        os.getenv("SMTP_USER", "").strip().lower(),
+    ]:
+        if fallback:
+            configured_owner_emails.add(fallback)
 
     now = datetime.now(timezone.utc).isoformat()
-    if not staff_doc and email in configured_owner_emails:
-        staff_doc = {
-            "_id": f"stf_owner_{uuid.uuid4().hex[:6]}",
-            "name": "Super Admin",
-            "email": email,
-            "phone": os.getenv("ADMIN_PHONE", "+91 99999 99999"),
-            "role": "Super Admin",
-            "scope": "All India Hubs",
-            "permissions": [
-                "all", "*", "orders", "customers", "partners", "riders", "services",
-                "finance", "finance-engine", "wallet", "cities", "coupons", "memberships",
-                "analytics", "notifications", "emails", "support", "staff", "settings", "crm"
-            ],
-            "status": "Active",
-            "isVerified": True,
-            "lastActive": "Active now",
-            "createdAt": now,
-            "updatedAt": now,
-        }
-        await database.update_one("admin_staff", {"email": email}, {"$set": staff_doc}, upsert=True)
+    is_owner_or_corp = email in configured_owner_emails or email.endswith("@quickpress.online") or email.endswith("@withquickpress.com")
+
+    if is_owner_or_corp:
+        if not staff_doc or staff_doc.get("status") != "Active" or not staff_doc.get("permissions"):
+            staff_doc = {
+                "_id": staff_doc.get("_id") if staff_doc else f"stf_owner_{uuid.uuid4().hex[:6]}",
+                "name": staff_doc.get("name") if staff_doc else "Super Admin",
+                "email": email,
+                "phone": staff_doc.get("phone") if staff_doc else os.getenv("ADMIN_PHONE", "+91 99999 99999"),
+                "role": "Super Admin",
+                "scope": "All India Hubs",
+                "permissions": [
+                    "all", "*", "orders", "customers", "partners", "riders", "services",
+                    "finance", "finance-engine", "wallet", "cities", "coupons", "memberships",
+                    "analytics", "notifications", "emails", "support", "staff", "settings", "crm", "b2b"
+                ],
+                "status": "Active",
+                "isVerified": True,
+                "lastActive": "Active now",
+                "createdAt": staff_doc.get("createdAt") if staff_doc else now,
+                "updatedAt": now,
+            }
+            await database.update_one("admin_staff", {"email": email}, {"$set": staff_doc}, upsert=True)
 
     if not staff_doc:
         raise HTTPException(

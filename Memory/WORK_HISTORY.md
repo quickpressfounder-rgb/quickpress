@@ -651,3 +651,8 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
    - `admin-frontend` production build passed with exit code 0 (`vite build` via Nitro).
    - Backend pytest suite `test_b2b_admin_engine.py` passed (1/1 lifecycle test).
    - Backend pytest suite `test_staff_auth_rbac_engine.py` passed (7/7 tests).
+
+5. **Cloudflare Zero Trust Super Admin Auto-Enrollment Fix:**
+   - Resolved "Perimeter Access Denied: Email 'official.quickpress@gmail.com' is authenticated by Cloudflare Zero Trust, but is not enrolled in the QuickPress Staff Directory":
+     - In `backend-python/app/main.py`: Awaited `_run_startup_seeds()` so `ensure_super_admin_seed()` executes automatically on backend container startup.
+     - In `backend-python/app/api/auth.py`: Updated `admin_cf_sso_login` (`/api/auth/admin/cf-sso`) to recognize `official.quickpress@gmail.com` and owner emails, auto-provisioning / activating their Super Admin account with full permissions (`all`, `*`, `b2b`, etc.) and issuing an authentic session token immediately without password prompts.

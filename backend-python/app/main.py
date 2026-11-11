@@ -103,6 +103,8 @@ async def lifespan(app: FastAPI):
         except Exception as err:
             logger.warning("Startup routine warning: %s", err)
 
+    await _run_startup_seeds()
+
     # Start Background Async Notification & Task Queue
     from app.core.async_queue import async_task_queue
     await async_task_queue.start(num_workers=4)
