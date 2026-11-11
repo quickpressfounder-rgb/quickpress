@@ -819,10 +819,17 @@ class AdminPartnerRepository:
     collection = "partner_profiles"
 
     async def _get_raw_partners(self) -> List[Dict[str, Any]]:
-        primary = await database.find_many("partner_profiles")
-        admin_partners = await database.find_many("admin_partners")
-        fallback = await database.find_many("partners")
-        users = await database.find_many("users", {"role": "partner"})
+        (
+            primary,
+            admin_partners,
+            fallback,
+            users,
+        ) = await asyncio.gather(
+            database.find_many("partner_profiles"),
+            database.find_many("admin_partners"),
+            database.find_many("partners"),
+            database.find_many("users", {"role": "partner"}),
+        )
 
         by_id: Dict[str, Dict[str, Any]] = {}
         for p in primary + admin_partners + fallback + users:
@@ -835,8 +842,13 @@ class AdminPartnerRepository:
         return list(by_id.values())
 
     async def list(self, page: int, page_size: int, q: Optional[str] = None, city: Optional[str] = None, zone: Optional[str] = None, status: Optional[str] = None, kyc_status: Optional[str] = None) -> Dict[str, Any]:
-        raw_list = await self._get_raw_partners()
-        all_orders = await database.find_many("customer_orders")
+        (
+            raw_list,
+            all_orders,
+        ) = await asyncio.gather(
+            self._get_raw_partners(),
+            database.find_many("customer_orders"),
+        )
 
         enhanced = []
         for doc in raw_list:
@@ -2881,7 +2893,24 @@ class AdminDashboardRepository:
         thirty_days_ago_str = (now - timedelta(days=30)).strftime("%Y-%m-%d")
         month_start_str = now.strftime("%Y-%m-01")
 
-        all_orders = await database.find_many("customer_orders")
+        # Parallel asynchronous fetch of all operational tables from Supabase
+        (
+            all_orders,
+            payouts,
+            raw_riders,
+            raw_partners,
+            all_users,
+            db_customers,
+            raw_rides,
+        ) = await asyncio.gather(
+            database.find_many("customer_orders"),
+            database.find_many("admin_payouts"),
+            database.find_many("rider_profiles"),
+            database.find_many("partner_profiles"),
+            database.find_many("users"),
+            database.find_many("customers"),
+            database.find_many("rides"),
+        )
         
         # Apply City and Service filters with flexible address matching
         filtered_orders = [
@@ -2963,12 +2992,11 @@ class AdminDashboardRepository:
         lifetime_platform_commission = round(total_revenue * 0.18)
         refunds_total = sum((o.get("totals") or {}).get("grandTotal", 0) for o in cancelled_orders)
 
-        payouts = await database.find_many("admin_payouts")
         pending_payouts = [p for p in payouts if p.get("status") in ("Pending", "Requested", "processing")]
         pending_settlement = sum(float(p.get("amount", 0)) for p in pending_payouts)
 
         # Fleet & Partner Real-time status from Supabase
-        riders = await database.find_many("rider_profiles")
+        riders = raw_riders
         if city and city.lower() not in ("all", ""):
             riders = [r for r in riders if _match_city({"city": r.get("city") or r.get("preferredCity")}, city)]
 
@@ -2981,7 +3009,7 @@ class AdminDashboardRepository:
         available_riders = [r for r in online_riders if str(r.get("_id") or r.get("id")) not in busy_rider_ids]
         offline_riders = [r for r in riders if not r.get("isOnline")]
 
-        partners = await database.find_many("partner_profiles")
+        partners = raw_partners
         if city and city.lower() not in ("all", ""):
             partners = [p for p in partners if _match_city({"city": p.get("city")}, city)]
 
@@ -2991,13 +3019,12 @@ class AdminDashboardRepository:
         inactive_partners = [p for p in partners if p.get("status") in ("inactive", "closed") and p not in pending_partners]
 
         # Customers
-        all_users = await database.find_many("users")
         customers = [
             u for u in all_users
             if str(u.get("role") or "customer").lower() in ("customer", "user", "none")
         ]
         if not customers:
-            customers = await database.find_many("customers")
+            customers = db_customers
         active_customers = len({
             str(o.get("userId") or (o.get("customer") or {}).get("id") or "")
             for o in filtered_orders if o.get("userId") or o.get("customer")
@@ -3006,7 +3033,7 @@ class AdminDashboardRepository:
         # ---------------------------------------------------------------------
         # QUICKPRESS 2-RIDE ASSIGNMENT STATUS (100% Real from Supabase "rides")
         # ---------------------------------------------------------------------
-        all_rides = await database.find_many("rides")
+        all_rides = raw_rides
         if city and city.lower() not in ("all", ""):
             all_rides = [
                 r for r in all_rides

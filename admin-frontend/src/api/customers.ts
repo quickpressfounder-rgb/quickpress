@@ -103,16 +103,20 @@ export async function fetchCustomers(): Promise<AdminCustomer[]> {
       const total = typeof first.total === "number" ? first.total : items.length;
       const pageSize = typeof first.pageSize === "number" ? first.pageSize : 100;
       const pages = Math.ceil(total / pageSize);
-      for (let page = 2; page <= pages; page += 1) {
-        try {
-          const next = await apiGetJson<any>(`/api/admin/customers?page=${page}&pageSize=${pageSize}`);
+      if (pages > 1) {
+        const pagePromises: Promise<any>[] = [];
+        for (let page = 2; page <= pages; page += 1) {
+          pagePromises.push(
+            apiGetJson<any>(`/api/admin/customers?page=${page}&pageSize=${pageSize}`).catch(() => null)
+          );
+        }
+        const results = await Promise.all(pagePromises);
+        for (const next of results) {
           if (next && Array.isArray(next.items)) {
             items = items.concat(next.items);
           } else if (Array.isArray(next)) {
             items = items.concat(next);
           }
-        } catch {
-          // ignore page fetch errors
         }
       }
     }

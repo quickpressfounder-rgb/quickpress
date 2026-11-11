@@ -441,7 +441,7 @@ class SupabaseCollection:
 
     async def _fetch_all(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
         now = time.time()
-        ttl = self.STATIC_CACHE_TTL if self._is_static else 3.0
+        ttl = self.STATIC_CACHE_TTL if self._is_static else 5.0
         if not force_refresh and self._cache is not None and (now - self._cache_ts) < ttl:
             return list(self._cache)
 
@@ -452,12 +452,11 @@ class SupabaseCollection:
                     sql = "SELECT data FROM quickpress_documents WHERE collection = $1"
                     rows = await conn.fetch(sql, self._name)
                 else:
-                    sql = "SELECT data FROM quickpress_documents WHERE collection = $1 ORDER BY updated_at DESC LIMIT 300"
+                    sql = "SELECT data FROM quickpress_documents WHERE collection = $1 ORDER BY updated_at DESC LIMIT 500"
                     rows = await conn.fetch(sql, self._name)
                 docs = [json.loads(r["data"]) for r in rows]
-                if self._is_static:
-                    self._cache = docs
-                    self._cache_ts = time.time()
+                self._cache = docs
+                self._cache_ts = time.time()
                 return list(docs)
         except Exception as e:
             logger.warning(f"Fetch error for collection {self._name}: {e}")
@@ -473,17 +472,16 @@ class SupabaseCollection:
         # Invalidate query cache immediately on any write
         self._invalidate_query_cache()
 
-        # In-memory cache write-through for static collections
-        if self._is_static:
-            if self._cache is not None:
-                existing_idx = next((i for i, d in enumerate(self._cache) if str(d.get("_id") or d.get("id")) == doc_id), None)
-                if existing_idx is not None:
-                    self._cache[existing_idx] = dict(doc)
-                else:
-                    self._cache.append(dict(doc))
+        # In-memory cache write-through for instant freshness
+        if self._cache is not None:
+            existing_idx = next((i for i, d in enumerate(self._cache) if str(d.get("_id") or d.get("id")) == doc_id), None)
+            if existing_idx is not None:
+                self._cache[existing_idx] = dict(doc)
             else:
-                self._cache = [dict(doc)]
-            self._cache_ts = time.time()
+                self._cache.insert(0, dict(doc))
+        else:
+            self._cache = [dict(doc)]
+        self._cache_ts = time.time()
 
         # Direct database persistence
         try:
@@ -506,7 +504,7 @@ class SupabaseCollection:
 
     async def _delete_doc_id(self, doc_id: str) -> None:
         self._invalidate_query_cache()
-        if self._is_static and self._cache is not None:
+        if self._cache is not None:
             self._cache = [d for d in self._cache if str(d.get("_id") or d.get("id")) != doc_id]
             self._cache_ts = time.time()
 
@@ -523,8 +521,10 @@ class SupabaseCollection:
         return SupabaseCursor(self, query or {})
 
     async def find_one(self, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        # 1. Check local static cache if available
-        if self._is_static and self._cache is not None:
+        # 1. Check local in-memory cache if available (sub-millisecond hit)
+        now = time.time()
+        ttl = self.STATIC_CACHE_TTL if self._is_static else 5.0
+        if self._cache is not None and (now - self._cache_ts) < ttl:
             for d in self._cache:
                 if _matches(d, query):
                     return dict(d)
@@ -562,12 +562,13 @@ class SupabaseCollection:
         return None
 
     async def find_many(self, query: Dict[str, Any]) -> List[Dict[str, Any]]:
-        # 1. Check static cache if available
-        if self._is_static:
-            if self._cache is not None and not query:
+        # 1. Check in-memory cache if available (sub-millisecond hit)
+        now = time.time()
+        ttl = self.STATIC_CACHE_TTL if self._is_static else 5.0
+        if self._cache is not None and (now - self._cache_ts) < ttl:
+            if not query:
                 return [dict(d) for d in self._cache]
-            if self._cache is not None:
-                return [dict(d) for d in self._cache if _matches(d, query)]
+            return [dict(d) for d in self._cache if _matches(d, query)]
 
         # 2. Check query cache
         q_key = f"many:{_make_cache_key(query)}"

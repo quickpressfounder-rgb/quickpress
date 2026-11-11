@@ -8,6 +8,8 @@ export const getRouter = () => {
       queries: {
         staleTime: 1000 * 60 * 2, // 2 minutes fresh cache
         gcTime: 1000 * 60 * 30, // 30 minutes garbage collection
+        refetchOnWindowFocus: false, // Prevent tab switch refetch freezes
+        refetchOnReconnect: false,
         retry: (failureCount, error: any) => {
           if (
             error?.status === 401 ||

@@ -1,5 +1,44 @@
 # QuickPress — Engineering Work History
 
+## Session: November 11, 2026 (Part 4)
+
+### Admin Console Performance Acceleration & Dashboard Decluttering
+
+1. **Context & User Request:**
+   - User requested removal of two dashboard sections:
+     - Section 7.5: *"Category-Wise Services Catalog & Financial Telemetry"* (KPI strip and category cards).
+     - Section 9: *"Platform Automation Surveillance"* (7 engines event feed with filter pills and dynamic OTP logs).
+   - User reported latency / slow data loading across every page of the admin console (`ops.withquickpress.com`).
+
+2. **Root Cause Analysis:**
+   - **Database Query Latency:** In `backend-python/app/db/supabase_client.py`, collection-level in-memory caching was restricted only to `_CACHEABLE_STATIC_COLLECTIONS`. Dynamic operational collections (`customer_orders`, `users`, `rider_profiles`, `partner_profiles`, `rides`, etc.) bypassed cache on every request, triggering 5–10 sequential PostgreSQL document queries per page load.
+   - **Sequential Repository Calls:** `AdminDashboardRepository.summary` and `AdminPartnerRepository` executed sequential database round-trips rather than parallel queries.
+   - **Frontend Waterfall Loops:** `customers.ts` and `riders.ts` loaded multi-page records via sequential `for (let page = 2; page <= pages; ...)` waterfall loops.
+   - **Redundant Refetching:** TanStack Query was refetching queries on window focus and tab switches, causing network storms when switching back to admin tabs.
+   - **Aggressive Polling:** Dashboard was polling `fetchAutomationActivity` every 4 seconds.
+
+3. **Engineering Changes Delivered:**
+   - `admin-frontend/src/routes/dashboard.tsx`:
+     - Removed Section 7.5 ("Category-Wise Services Catalog & Financial Telemetry") and Section 9 ("Platform Automation Surveillance") completely (-670 lines).
+     - Promoted "Administrative Quick Actions" into a full-width responsive 6-column grid card (`grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6`).
+     - Removed aggressive 4-second surveillance polling and unused imports.
+   - `backend-python/app/db/supabase_client.py`:
+     - Extended in-memory short-lived caching (5.0s TTL) across dynamic collections with write-through cache updating in `_save_doc()` and invalidation in `_delete_doc_id()`.
+     - Accelerated `find_one()` and `find_many()` to serve cached collections directly in sub-millisecond in-memory lookups.
+   - `backend-python/app/db/admin_repositories.py`:
+     - Parallelized `AdminDashboardRepository.summary` with `asyncio.gather()` for `customer_orders`, `admin_payouts`, `rider_profiles`, `partner_profiles`, `users`, `customers`, and `rides`.
+     - Parallelized `AdminPartnerRepository._get_raw_partners()` and `list()` via `asyncio.gather()`.
+   - `admin-frontend/src/api/customers.ts` & `admin-frontend/src/api/riders.ts`:
+     - Replaced sequential `for` loops with concurrent `Promise.all()` fetching for multi-page datasets.
+   - `admin-frontend/src/router.tsx`:
+     - Set `refetchOnWindowFocus: false` and `refetchOnReconnect: false` in default `QueryClient` options to eliminate tab-switch request freezes.
+
+4. **Verification:**
+   - Syntax validation: `python3 -m py_compile` passed with zero errors.
+   - Build validation: `npm --prefix admin-frontend run build` passed with zero errors.
+
+---
+
 ## Session: November 11, 2026 (Part 3)
 
 ### End-to-End Human User Persona Simulation & Multi-Channel Communication Audit

@@ -15,7 +15,6 @@ import {
   Wallet,
   ShoppingBag,
   BellRing,
-  Activity as ActivityIcon,
   ChevronRight,
   ExternalLink,
   PlusCircle,
@@ -62,25 +61,11 @@ import {
   fetchLatestOrders,
   fetchRevenueSeries,
   fetchSystemHealth,
-  fetchAutomationActivity,
-  fetchAutomationStats,
 } from "../api/dashboard";
 import { adminRoutes } from "../navigation/admin-routes";
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
-
-const getCategoryIconComponent = (category: string) => {
-  const c = (category || "").toLowerCase();
-  if (c.includes("wash") || c.includes("fold")) return <Shirt className="size-5 text-sky-600" />;
-  if (c.includes("steam") || c.includes("iron")) return <Flame className="size-5 text-amber-600" />;
-  if (c.includes("dry") || c.includes("clean")) return <Sparkles className="size-5 text-purple-600" />;
-  if (c.includes("saree") || c.includes("silk")) return <Crown className="size-5 text-rose-600" />;
-  if (c.includes("shoe") || c.includes("footwear")) return <Footprints className="size-5 text-emerald-600" />;
-  if (c.includes("blanket") || c.includes("home") || c.includes("bulky")) return <Layers className="size-5 text-indigo-600" />;
-  if (c.includes("bag") || c.includes("leather")) return <Briefcase className="size-5 text-amber-700" />;
-  return <ShoppingBag className="size-5 text-zinc-600" />;
-};
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: requireAdminSession,
@@ -140,15 +125,7 @@ export function DashboardPage() {
     queryFn: () => fetchRevenueSeries({ period: chartPeriod, city: cityFilter, service: serviceFilter }),
     staleTime: 45000,
   });
-  const latest = useQuery({ queryKey: ["admin", "dashboard", "latest"], queryFn: fetchLatestOrders, staleTime: 20000 });
-
-  const [automationFilter, setAutomationFilter] = useState<string>("all");
-  const automations = useQuery({
-    queryKey: ["admin", "dashboard", "automations", automationFilter],
-    queryFn: () => fetchAutomationActivity(automationFilter),
-    staleTime: 4000,
-    refetchInterval: 4000,
-  });
+  const latest = useQuery({ queryKey: ["admin", "dashboard", "latest"], queryFn: fetchLatestOrders, staleTime: 60000 });
 
   const data = summary.data;
 
@@ -318,30 +295,6 @@ export function DashboardPage() {
     });
     return list;
   }, [data?.cityBreakdown]);
-
-  const categoriesList = useMemo(() => {
-    const raw = data?.categoryBreakdown || [];
-    const defaults = [
-      { category: "Wash & Fold", servicesCount: 3, orders: 0, revenue: 0, topService: "Wash & Fold (Per Kg)", sharePct: 0 },
-      { category: "Steam Iron", servicesCount: 6, orders: 0, revenue: 0, topService: "Shirt Steam Iron", sharePct: 0 },
-      { category: "Dry Clean", servicesCount: 5, orders: 0, revenue: 0, topService: "2-Piece Suit Dry Clean", sharePct: 0 },
-      { category: "Premium Saree & Silk Care", servicesCount: 3, orders: 0, revenue: 0, topService: "Silk Saree Dry Clean & Roll Polish", sharePct: 0 },
-      { category: "Shoes & Footwear Spa", servicesCount: 2, orders: 0, revenue: 0, topService: "Sneaker Deep Spa & Restoration", sharePct: 0 },
-      { category: "Blankets & Home Care", servicesCount: 2, orders: 0, revenue: 0, topService: "Double Blanket / Quilt Dry Clean", sharePct: 0 },
-      { category: "Bag & Leather Cleaning", servicesCount: 2, orders: 0, revenue: 0, topService: "Leather Jacket Cleaning & Conditioning", sharePct: 0 },
-    ];
-    if (!raw.length) return defaults;
-    return defaults.map((d) => {
-      const found = raw.find((r) => r.category.toLowerCase().includes(d.category.toLowerCase().slice(0, 5)) || d.category.toLowerCase().includes(r.category.toLowerCase().slice(0, 5)));
-      if (found) {
-        return {
-          ...d,
-          ...found,
-        };
-      }
-      return d;
-    });
-  }, [data?.categoryBreakdown]);
 
   const isFiltered = dateFilter !== "today" || cityFilter !== "all" || serviceFilter !== "all";
   const resetFilters = () => {
@@ -1285,218 +1238,6 @@ export function DashboardPage() {
         </div>
 
         {/* =========================================================================
-            SECTION 7.5: CATEGORY-WISE SERVICES & FINANCIAL INTELLIGENCE MATRIX
-        ========================================================================= */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3 mb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-950 border border-emerald-300">
-                  <Sparkles className="size-3.5" />
-                </div>
-                <h3 className="text-base font-black text-zinc-950 flex items-center gap-2">
-                  <span>Category-Wise Services Catalog &amp; Financial Telemetry</span>
-                  <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-950 border border-emerald-300">
-                    Live Supabase Aggregates
-                  </span>
-                </h3>
-              </div>
-              <p className="text-xs font-bold text-zinc-700 mt-1">
-                Real-time breakdown across all 7 garment care verticals, SKU counts, GMV contributions, top sellers, and partner adoption
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.services })}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-950 px-3.5 py-1.5 text-xs font-black text-white hover:bg-zinc-800 transition-all shadow-xs active:scale-95"
-              >
-                <Sparkles className="size-3.5" />
-                <span>Manage Services Catalog</span>
-                <ArrowRight className="size-3" />
-              </button>
-            </div>
-          </div>
-
-          {/* 4 KPI SUMMARY STRIP */}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 mb-5">
-            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-xs hover:border-zinc-300 transition-all flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between text-zinc-500">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Active Services</span>
-                  <Sparkles className="size-4 text-zinc-400" />
-                </div>
-                <p className="text-2xl font-black text-zinc-950 mt-1 tabular-nums">
-                  {data?.activeServicesCount ?? categoriesList.reduce((acc, c) => acc + (c.servicesCount || 0), 0)}
-                </p>
-              </div>
-              <p className="text-[11px] text-zinc-500 font-medium mt-1">
-                Across {data?.totalCategoriesCount ?? (categoriesList?.length || 0)} care verticals
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-xs hover:border-zinc-300 transition-all flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between text-zinc-500">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">#1 Top Grossing SKU</span>
-                  <Award className="size-4 text-zinc-400" />
-                </div>
-                <p className="text-sm font-black text-zinc-950 mt-1 truncate flex items-center gap-1.5">
-                  {data?.topGrossingService ? (
-                    <span className="truncate">{data.topGrossingService}</span>
-                  ) : (
-                    "No sales recorded yet"
-                  )}
-                </p>
-              </div>
-              <p className="text-[11px] text-zinc-500 font-medium mt-1">
-                <span className="font-bold text-zinc-950">{currency(data?.topGrossingRevenue ?? 0)}</span> GMV transacted
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-xs hover:border-zinc-300 transition-all flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between text-zinc-500">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Highest Volume SKU</span>
-                  <Package className="size-4 text-zinc-400" />
-                </div>
-                <p className="text-sm font-black text-zinc-950 mt-1 truncate flex items-center gap-1.5">
-                  {data?.topOrderService ? (
-                    <span className="truncate">{data.topOrderService}</span>
-                  ) : (
-                    "No orders recorded yet"
-                  )}
-                </p>
-              </div>
-              <p className="text-[11px] text-zinc-500 font-medium mt-1">
-                <span className="font-bold text-zinc-950">{data?.topOrderOrders || 0}</span> completed orders
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-xs hover:border-zinc-300 transition-all flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between text-zinc-500">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Partner Store Adoption</span>
-                  <CheckCircle2 className="size-4 text-zinc-400" />
-                </div>
-                <p className="text-2xl font-black text-zinc-950 mt-1 tabular-nums">
-                  {data?.partnerAdoptionRate ?? 0}%
-                </p>
-              </div>
-              <p className="text-[11px] text-zinc-500 font-medium mt-1">
-                Active in partner onboarding flow
-              </p>
-            </div>
-          </div>
-
-          {/* 7 CATEGORY CARDS GRID */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {categoriesList.map((cat) => {
-              const isSelected = serviceFilter.toLowerCase().includes(cat.category.toLowerCase().slice(0, 4));
-              return (
-                <div
-                  key={cat.category}
-                  className={`rounded-xl border p-4 transition-all ${
-                    isSelected
-                      ? "border-zinc-950 bg-zinc-950 text-white shadow-md"
-                      : "border-zinc-200 bg-white hover:border-zinc-400 hover:shadow-2xs text-zinc-950"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`flex size-10 items-center justify-center rounded-xl border shrink-0 ${
-                        isSelected ? "bg-zinc-800 border-zinc-700" : "bg-zinc-100 border-zinc-200"
-                      }`}>
-                        {getCategoryIconComponent(cat.category)}
-                      </div>
-                      <div>
-                        <h4 className={`text-xs font-black ${isSelected ? "text-white" : "text-zinc-950"}`}>
-                          {cat.category}
-                        </h4>
-                        <span className={`inline-block text-[10px] font-extrabold ${isSelected ? "text-zinc-400" : "text-zinc-600"}`}>
-                          {cat.servicesCount} Services Configured
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 pt-3 border-t border-zinc-100/20 space-y-1.5">
-                    <div className="flex items-baseline justify-between text-xs">
-                      <span className={`text-[11px] font-bold ${isSelected ? "text-zinc-400" : "text-zinc-600"}`}>Delivered GMV:</span>
-                      <span className={`font-black ${isSelected ? "text-emerald-300" : "text-emerald-800"}`}>
-                        {currency(cat.revenue)}
-                      </span>
-                    </div>
-
-                    <div className="flex items-baseline justify-between text-xs">
-                      <span className={`text-[11px] font-bold ${isSelected ? "text-zinc-400" : "text-zinc-600"}`}>Delivered Volume:</span>
-                      <span className={`font-black ${isSelected ? "text-white" : "text-zinc-950"}`}>
-                        {cat.orders} Orders
-                      </span>
-                    </div>
-
-                    {/* GMV Share Progress */}
-                    <div className="mt-2 space-y-1">
-                      <div className="flex justify-between text-[10px] font-black">
-                        <span className={isSelected ? "text-zinc-400" : "text-zinc-600"}>GMV Share</span>
-                        <span className={isSelected ? "text-zinc-200" : "text-zinc-900"}>{cat.sharePct}%</span>
-                      </div>
-                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isSelected ? "bg-zinc-800" : "bg-zinc-100"}`}>
-                        <div
-                          className={`h-full rounded-full ${isSelected ? "bg-emerald-400" : "bg-emerald-600"}`}
-                          style={{ width: `${Math.max(4, Math.min(100, cat.sharePct))}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className={`mt-2 rounded-lg p-2 text-[11px] ${isSelected ? "bg-zinc-900 border border-zinc-800" : "bg-zinc-50 border border-zinc-100"}`}>
-                      <p className={`text-[10px] font-bold ${isSelected ? "text-zinc-400" : "text-zinc-600"}`}>Top Performer in Vertical:</p>
-                      <p className={`font-black truncate mt-0.5 flex items-center gap-1 ${isSelected ? "text-amber-300" : "text-zinc-950"}`}>
-                        <Award className="size-3 text-amber-500 shrink-0" />
-                        <span className="truncate">{cat.topService || "Standard Service"}</span>
-                      </p>
-                    </div>
-
-                    {/* Filter and Link Actions */}
-                    <div className="pt-2 flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setServiceFilter(cat.category);
-                          toast.success(`Dashboard filtered to ${cat.category}`);
-                        }}
-                        className={`flex-1 rounded-lg px-2 py-1 text-[11px] font-black transition-all ${
-                          isSelected
-                            ? "bg-white text-zinc-950 hover:bg-zinc-200"
-                            : "bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
-                        }`}
-                      >
-                        {isSelected ? "Filtered ✓" : "Filter Orders"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate({ to: adminRoutes.services });
-                        }}
-                        className={`rounded-lg px-2 py-1 text-[11px] font-black transition-all ${
-                          isSelected
-                            ? "text-zinc-300 hover:text-white"
-                            : "text-zinc-700 hover:text-zinc-950"
-                        }`}
-                      >
-                        Catalog →
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* =========================================================================
             SECTION 8: CITY & OPERATING ZONE SNAPSHOT TABLE (HIGH CONTRAST)
         ========================================================================= */}
         <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
@@ -1584,303 +1325,146 @@ export function DashboardPage() {
         </div>
 
         {/* =========================================================================
-            SECTION 9: ADMINISTRATIVE QUICK ACTIONS + SURVEILLANCE FEED
+            SECTION 9: ADMINISTRATIVE QUICK ACTIONS
         ========================================================================= */}
-        <div className="grid gap-6 xl:grid-cols-2">
-
-          {/* ADMINISTRATIVE QUICK ACTIONS */}
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
-            <div className="border-b border-zinc-100 pb-3 mb-4">
-              <h3 className="text-sm font-black text-zinc-950">Administrative Quick Actions</h3>
-              <p className="text-xs font-medium text-zinc-500">One-click operational dispatch &amp; platform governance</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-              <button
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.orders })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
-              >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
-                  <ShoppingBag className="size-4" />
-                </div>
-                <span className="text-xs font-black text-zinc-950">Create Order</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.customers })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
-              >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
-                  <Users className="size-4" />
-                </div>
-                <span className="text-xs font-black text-zinc-950">Add Customer</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.partners })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
-              >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
-                  <Building2 className="size-4" />
-                </div>
-                <span className="text-xs font-black text-zinc-950">Add Partner Store</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.riders })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
-              >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
-                  <Truck className="size-4" />
-                </div>
-                <span className="text-xs font-black text-zinc-950">Add Rider Pilot</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.coupons })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
-              >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
-                  <TicketPercent className="size-4" />
-                </div>
-                <span className="text-xs font-black text-zinc-950">Create Coupon</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.notifications })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
-              >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
-                  <BellRing className="size-4" />
-                </div>
-                <span className="text-xs font-black text-zinc-950">Push Broadcast</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.orders })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
-              >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
-                  <Zap className="size-4" />
-                </div>
-                <span className="text-xs font-black text-zinc-950">Manual Dispatch</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.orders })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
-              >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
-                  <AlertTriangle className="size-4" />
-                </div>
-                <span className="text-xs font-black text-zinc-950">Delayed Orders</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.wallet })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
-              >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
-                  <Wallet className="size-4" />
-                </div>
-                <span className="text-xs font-black text-zinc-950">Audit Refunds</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.services })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
-              >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
-                  <Sparkles className="size-4" />
-                </div>
-                <span className="text-xs font-black text-zinc-950">Services Catalog</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.services })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
-              >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
-                  <Coins className="size-4" />
-                </div>
-                <span className="text-xs font-black text-zinc-950">Partner Rates</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.cities })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
-              >
-                <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
-                  <MapPin className="size-4" />
-                </div>
-                <span className="text-xs font-black text-zinc-950">Regional Hubs</span>
-              </button>
-            </div>
+        <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
+          <div className="border-b border-zinc-100 pb-3 mb-4">
+            <h3 className="text-sm font-black text-zinc-950">Administrative Quick Actions</h3>
+            <p className="text-xs font-medium text-zinc-500">One-click operational dispatch &amp; platform governance</p>
           </div>
 
-          {/* LIVE PLATFORM AUTOMATED SURVEILLANCE FEED */}
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3 mb-3">
-              <div>
-                <h3 className="text-sm font-black text-zinc-950 flex items-center gap-1.5">
-                  <ActivityIcon className="size-4 text-emerald-700" />
-                  <span>Platform Automation Surveillance</span>
-                </h3>
-                <p className="text-xs font-medium text-zinc-500">Audit stream for Dispatch, Dynamic OTP, SLAs &amp; Finance</p>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            <button
+              type="button"
+              onClick={() => navigate({ to: adminRoutes.orders })}
+              className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            >
+              <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
+                <ShoppingBag className="size-4" />
               </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-black text-emerald-950">
-                <span className="size-2 rounded-full bg-emerald-600 animate-ping" />
-                7 Active Engines
-              </span>
-            </div>
+              <span className="text-xs font-black text-zinc-950">Create Order</span>
+            </button>
 
-            {/* Event Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-2.5 mb-2.5 no-scrollbar">
-              {[
-                { id: "all", label: "All Events" },
-                { id: "dispatch", label: "Dispatch" },
-                { id: "otp", label: "Dynamic OTP" },
-                { id: "sla", label: "Laundry SLA" },
-                { id: "finance", label: "Auto-Finance" },
-                { id: "surge", label: "Surge" },
-                { id: "guard", label: "Fraud Guard" },
-              ].map((f) => {
-                const active = automationFilter === f.id;
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setAutomationFilter(f.id)}
-                    className={`px-3 py-1 rounded-xl text-xs font-black whitespace-nowrap transition-all ${
-                      active
-                        ? "bg-zinc-950 text-white shadow-xs"
-                        : "bg-white text-zinc-900 border border-zinc-200 hover:bg-zinc-100"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                );
-              })}
-            </div>
+            <button
+              type="button"
+              onClick={() => navigate({ to: adminRoutes.customers })}
+              className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            >
+              <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
+                <Users className="size-4" />
+              </div>
+              <span className="text-xs font-black text-zinc-950">Add Customer</span>
+            </button>
 
-            {(() => {
-              const autoEvents = automations.data || [];
-              const latestOrdersList = latest.data?.rows || [];
+            <button
+              type="button"
+              onClick={() => navigate({ to: adminRoutes.partners })}
+              className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            >
+              <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
+                <Building2 className="size-4" />
+              </div>
+              <span className="text-xs font-black text-zinc-950">Add Partner Store</span>
+            </button>
 
-              if (autoEvents.length > 0) {
-                return (
-                  <ul className="space-y-2">
-                    {autoEvents.slice(0, 6).map((evt) => {
-                      const type = (evt.automationType || "auto").toLowerCase();
-                      const sev = evt.severity || "info";
+            <button
+              type="button"
+              onClick={() => navigate({ to: adminRoutes.riders })}
+              className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            >
+              <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
+                <Truck className="size-4" />
+              </div>
+              <span className="text-xs font-black text-zinc-950">Add Rider Pilot</span>
+            </button>
 
-                      let badgeBg = "bg-zinc-100 text-zinc-950 border-zinc-300";
-                      let typeLabel = "Automation";
+            <button
+              type="button"
+              onClick={() => navigate({ to: adminRoutes.coupons })}
+              className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            >
+              <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
+                <TicketPercent className="size-4" />
+              </div>
+              <span className="text-xs font-black text-zinc-950">Create Coupon</span>
+            </button>
 
-                      if (type === "dispatch") {
-                        badgeBg = "bg-blue-50 text-blue-950 border-blue-300";
-                        typeLabel = "Auto-Dispatch";
-                      } else if (type === "otp") {
-                        badgeBg = "bg-emerald-50 text-emerald-950 border-emerald-300";
-                        typeLabel = "Dynamic OTP";
-                      } else if (type === "sla") {
-                        badgeBg = "bg-amber-50 text-amber-950 border-amber-300";
-                        typeLabel = "Laundry SLA";
-                      } else if (type === "finance") {
-                        badgeBg = "bg-indigo-50 text-indigo-950 border-indigo-300";
-                        typeLabel = "Settlement";
-                      } else if (type === "surge") {
-                        badgeBg = "bg-rose-50 text-rose-950 border-rose-300";
-                        typeLabel = "Surge Pricing";
-                      } else if (type === "guard") {
-                        badgeBg = "bg-red-50 text-red-950 border-red-300";
-                        typeLabel = "Fraud Guard";
-                      }
+            <button
+              type="button"
+              onClick={() => navigate({ to: adminRoutes.notifications })}
+              className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            >
+              <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
+                <BellRing className="size-4" />
+              </div>
+              <span className="text-xs font-black text-zinc-950">Push Broadcast</span>
+            </button>
 
-                      return (
-                        <li
-                          key={evt.id}
-                          className="group flex items-start justify-between gap-3 rounded-xl p-2.5 border border-zinc-200 bg-zinc-50/60 hover:bg-white hover:border-zinc-300 hover:shadow-2xs transition-all"
-                        >
-                          <div className="flex items-start gap-2.5 min-w-0">
-                            <span
-                              className={`mt-0.5 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black border shrink-0 ${badgeBg}`}
-                            >
-                              {typeLabel}
-                            </span>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <p className="font-black text-xs text-zinc-950">
-                                  {evt.title}
-                                </p>
-                                {evt.orderCode && (
-                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-black bg-zinc-200 text-zinc-950">
-                                    #{evt.orderCode}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-zinc-500 font-medium line-clamp-2 mt-0.5">
-                                {evt.description}
-                              </p>
-                              <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
-                                <span className="font-bold text-zinc-600">{formatRelativeTime(evt.timestamp || evt.createdAt)}</span>
-                                {evt.actorId && ` · Actor: ${evt.actorId}`}
-                              </p>
-                            </div>
-                          </div>
-                          <span className={`size-2 rounded-full mt-1.5 shrink-0 ${
-                            sev === "danger" ? "bg-rose-600 animate-pulse" : sev === "warning" ? "bg-amber-600" : "bg-emerald-600"
-                          }`} />
-                        </li>
-                      );
-                    })}
-                  </ul>
-                );
-              }
+            <button
+              type="button"
+              onClick={() => navigate({ to: adminRoutes.orders })}
+              className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            >
+              <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
+                <Zap className="size-4" />
+              </div>
+              <span className="text-xs font-black text-zinc-950">Manual Dispatch</span>
+            </button>
 
-              // Fallback to recent orders stream
-              return (
-                <ul className="space-y-2">
-                  {latestOrdersList.slice(0, 6).map((order: any, idx: number) => (
-                    <li
-                      key={order.id || idx}
-                      onClick={() => navigate({ to: adminRoutes.orders })}
-                      className="group flex items-start justify-between gap-3 rounded-xl p-2.5 border border-zinc-200 bg-zinc-50/60 hover:bg-white hover:border-zinc-300 hover:shadow-2xs transition-all cursor-pointer"
-                    >
-                      <div className="flex items-start gap-2.5 min-w-0">
-                        <span className="mt-1.5 size-2 shrink-0 rounded-full bg-emerald-600" />
-                        <div className="min-w-0">
-                          <p className="font-black text-zinc-950 truncate text-xs">
-                            Order #{order.id}: {order.status}
-                          </p>
-                          <p className="text-[11px] text-zinc-500 font-medium truncate">
-                            {order.customer} · Store: {order.partner} · {order.amount}
-                          </p>
-                        </div>
-                      </div>
-                      <ChevronRight className="size-4 text-zinc-400 group-hover:text-zinc-700 transition-all shrink-0 mt-1" />
-                    </li>
-                  ))}
-                  {latestOrdersList.length === 0 && (
-                    <li className="text-xs text-zinc-500 font-medium py-6 text-center">
-                      Connecting to live operational event streams...
-                    </li>
-                  )}
-                </ul>
-              );
-            })()}
+            <button
+              type="button"
+              onClick={() => navigate({ to: adminRoutes.orders })}
+              className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            >
+              <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
+                <AlertTriangle className="size-4" />
+              </div>
+              <span className="text-xs font-black text-zinc-950">Delayed Orders</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate({ to: adminRoutes.wallet })}
+              className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            >
+              <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
+                <Wallet className="size-4" />
+              </div>
+              <span className="text-xs font-black text-zinc-950">Audit Refunds</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate({ to: adminRoutes.services })}
+              className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            >
+              <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
+                <Sparkles className="size-4" />
+              </div>
+              <span className="text-xs font-black text-zinc-950">Services Catalog</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate({ to: adminRoutes.services })}
+              className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            >
+              <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
+                <Coins className="size-4" />
+              </div>
+              <span className="text-xs font-black text-zinc-950">Partner Rates</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate({ to: adminRoutes.cities })}
+              className="flex flex-col items-center justify-center rounded-xl border border-zinc-200/90 bg-white p-3.5 text-center hover:bg-zinc-50 hover:border-zinc-300 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            >
+              <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 mb-1.5">
+                <MapPin className="size-4" />
+              </div>
+              <span className="text-xs font-black text-zinc-950">Regional Hubs</span>
+            </button>
           </div>
         </div>
 
