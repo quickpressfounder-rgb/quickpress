@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as B2bRouteImport } from './routes/b2b'
 import { Route as CitiesRouteImport } from './routes/cities'
 import { Route as CouponsRouteImport } from './routes/coupons'
 import { Route as CrmRouteImport } from './routes/crm'
@@ -47,6 +48,11 @@ const AnalyticsRoute = AnalyticsRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const B2bRoute = B2bRouteImport.update({
+  id: '/b2b',
+  path: '/b2b',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CitiesRoute = CitiesRouteImport.update({
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
   '/auth': typeof AuthRoute
+  '/b2b': typeof B2bRoute
   '/cities': typeof CitiesRoute
   '/coupons': typeof CouponsRoute
   '/crm': typeof CrmRoute
@@ -185,6 +192,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
   '/auth': typeof AuthRoute
+  '/b2b': typeof B2bRoute
   '/cities': typeof CitiesRoute
   '/coupons': typeof CouponsRoute
   '/crm': typeof CrmRoute
@@ -212,6 +220,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
   '/auth': typeof AuthRoute
+  '/b2b': typeof B2bRoute
   '/cities': typeof CitiesRoute
   '/coupons': typeof CouponsRoute
   '/crm': typeof CrmRoute
@@ -240,6 +249,7 @@ export interface FileRouteTypes {
     | '/'
     | '/analytics'
     | '/auth'
+    | '/b2b'
     | '/cities'
     | '/coupons'
     | '/crm'
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
     | '/'
     | '/analytics'
     | '/auth'
+    | '/b2b'
     | '/cities'
     | '/coupons'
     | '/crm'
@@ -292,6 +303,7 @@ export interface FileRouteTypes {
     | '/'
     | '/analytics'
     | '/auth'
+    | '/b2b'
     | '/cities'
     | '/coupons'
     | '/crm'
@@ -319,6 +331,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRoute
   AuthRoute: typeof AuthRoute
+  B2bRoute: typeof B2bRoute
   CitiesRoute: typeof CitiesRoute
   CouponsRoute: typeof CouponsRoute
   CrmRoute: typeof CrmRoute
@@ -363,6 +376,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/b2b': {
+      id: '/b2b'
+      path: '/b2b'
+      fullPath: '/b2b'
+      preLoaderRoute: typeof B2bRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cities': {
@@ -519,6 +539,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
   AuthRoute: AuthRoute,
+  B2bRoute: B2bRoute,
   CitiesRoute: CitiesRoute,
   CouponsRoute: CouponsRoute,
   CrmRoute: CrmRoute,

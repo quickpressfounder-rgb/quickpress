@@ -20,6 +20,7 @@ import {
   ArrowRight,
   ShieldCheck,
   UserCheck,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -45,7 +46,7 @@ import type { Account, AuthSession } from "@/shared/types";
 const NAV_GROUPS = [
   {
     title: "OPERATIONS",
-    items: ["dashboard", "crm", "orders", "customers", "partners", "riders", "delivery-kits"],
+    items: ["dashboard", "crm", "orders", "customers", "partners", "riders", "delivery-kits", "b2b"],
   },
   {
     title: "CATALOG & NETWORK",
@@ -558,9 +559,9 @@ export function AdminShell({
                     <button
                       type="button"
                       onClick={() => setSearchOpen(false)}
-                      className="text-xs text-zinc-400 hover:text-zinc-600"
+                      className="text-xs text-zinc-400 hover:text-zinc-600 p-0.5"
                     >
-                      ✕
+                      <X className="size-3.5" />
                     </button>
                   </div>
 

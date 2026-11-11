@@ -1,6 +1,53 @@
 # QuickPress — Engineering Work History
 
-## Session: November 10, 2026 (Part 1)
+## Session: November 11, 2026 (Part 1)
+
+### Advanced B2B Commercial Enterprise Section & Admin Operations Engine
+
+1. **Context & Business Goal:**
+   - Designed and built a dedicated, advance-level **B2B Enterprise Operations Center** in the Admin Console (`ops.withquickpress.com/b2b`).
+   - Delivered unified command over institutional clients (hotels, hospitals, student hostels, salons, corporate offices), dynamic per-kg and itemized linen rate card contracts, multi-bag sealed custody logistics, dual scale doorstep vs hub weigh-in verification, monthly GST tax invoicing (HSN 9987), accounts receivable aging buckets, and inbound leads pipeline.
+
+2. **Backend Architecture & APIs (`backend-python`):**
+   - `backend-python/app/api/b2b_api.py`:
+     - `GET /api/b2b/admin/stats`: Top KPI summary ribbon (Active Accounts, Today's Volume in kg, Monthly Billed GMV, Outstanding A/R, Active Cargo Dispatches, and Aging Buckets).
+     - `GET /api/b2b/admin/clients`: Master corporate clients directory with rate cards, credit limits, and balances.
+     - `POST /api/b2b/admin/clients`: Direct admin onboarding of institutional contracts.
+     - `PUT /api/b2b/admin/clients/{b2b_id}/contract`: Dynamic rate card builder (per-kg & itemized linen rates: bed sheets, towels, pillow covers, duvet covers, scrubs; plus starch & stain removal add-ons), credit terms (`NET_7_DAYS`, `NET_15_DAYS`, `NET_30_DAYS`), approved credit limits, and auto-hold toggles.
+     - `GET /api/b2b/admin/orders`: Live commercial orders queue with scale readings and bag QR custody.
+     - `POST /api/b2b/admin/orders`: Schedule commercial bulk orders with automated multi-bag barcode generation (`QP-B2B-XXXX-BAG-1/N`).
+     - `PATCH /api/b2b/admin/orders/{order_id}/assign`: Assign cargo drivers (commercial van, auto, mini-truck) and processing laundromat hubs.
+     - `PATCH /api/b2b/admin/orders/{order_id}/weigh-in`: Dual weigh-in scale recording (doorstep driver scale vs hub net scale) with automated >5% discrepancy alerts.
+     - `PATCH /api/b2b/admin/orders/{order_id}/status`: Progress logistics delivery status.
+     - `POST /api/b2b/admin/orders/{order_id}/deliver`: Digital storekeeper handover signoff with delivery bay photo proof.
+     - `GET /api/b2b/admin/invoices`: Monthly compiled GST tax invoices with aging breakdown (`0-15d`, `16-30d`, `31-60d`, `>60d`).
+     - `POST /api/b2b/admin/invoices/generate`: Auto-compiles orders into official GST B2B tax invoices with HSN/SAC 9987 (18% GST).
+     - `POST /api/b2b/admin/invoices/{invoice_id}/pay`: Records bank NEFT/RTGS UTR numbers, amounts, TDS deductions, and updates client balances.
+     - `GET /api/b2b/admin/invoices/{invoice_id}/pdf`: Downloads generated official GST Tax Invoice PDF.
+     - `POST /api/b2b/admin/leads/{lead_id}/trial`: Schedules free 20 kg commercial trial linen wash.
+     - `POST /api/b2b/admin/leads/{lead_id}/convert`: 1-click converts inbound lead to active commercial contract.
+   - `backend-python/app/services/b2b_invoice_generator.py`:
+     - Generates official Indian GST Tax Invoice PDFs via ReportLab with live company profile (legal name, CIN, GSTIN, PAN, registered office) pulled dynamically from `admin_settings_repository`.
+   - `backend-python/tests/test_b2b_admin_engine.py`:
+     - Comprehensive pytest test suite verifying all 13 lifecycle steps (registration, trial, conversion, rate cards, orders, bags, logistics, weigh-in, delivery, GST invoice, PDF download, UTR payment, stats). 100% passing.
+
+3. **Frontend Architecture & Navigation (`admin-frontend`):**
+   - `admin-frontend/src/navigation/admin-routes.ts`: Registered `b2b: "/b2b"` and added sidebar navigation item with `Briefcase` Lucide vector icon.
+   - `admin-frontend/src/components/AdminShell.tsx`: Added `"b2b"` to `OPERATIONS` group in `NAV_GROUPS`.
+   - `admin-frontend/src/api/b2b-admin-api.ts`: Typed API client for stats, clients, contracts, bulk orders, weigh-in, invoices, and payments.
+   - `admin-frontend/src/routes/b2b.tsx`:
+     - 5-Card KPI ribbon at top.
+     - Tab 1: Commercial Clients & Contracts with dynamic rate card editor and credit limit auto-hold.
+     - Tab 2: Live Bulk Orders & Cargo Logistics with scale variance indicator and multi-bag seal tracking.
+     - Tab 3: Monthly GST Invoices & Accounts Receivable with aging summary, PDF download, WhatsApp payment reminders, and UTR payment modal.
+     - Tab 4: Inbound Leads Pipeline with 20 kg trial scheduler and 1-click contract activation.
+
+4. **Zero Cartoon Emoji & Legal Integrity Compliance:**
+   - 100% verified 0 cartoon emojis across all new and modified files; all icons use sleek Lucide SVG vector components.
+   - All legal entity details resolve dynamically from `admin_settings_repository` without hardcoding.
+   - Verified clean production builds with code 0 for both `admin-frontend` and `customer-frontend`.
+
+---
 
 ### Rider Delivery Kit Onboarding Gear Selection, Part-Payment (EMI) Rails & Admin Operations Hub
 
