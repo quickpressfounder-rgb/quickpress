@@ -152,6 +152,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "laundry service near me, dry cleaners near me, online laundry pickup, steam iron near me, wash and fold per kg, shoe dry cleaning, QuickPress",
       },
       { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1" },
+      { name: "msvalidate.01", content: "ADB434C5B391FA33A6AEAB9CC8939323" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "QuickPress" },
       { property: "og:image", content: "https://withquickpress.com/og-image.jpg" },
