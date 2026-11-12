@@ -5,6 +5,7 @@ export type PageType =
   | "privacy"
   | "terms"
   | "b2b-partner"
+  | "city-landing"
   | "store";
 
 export interface B2BPartnerLead {

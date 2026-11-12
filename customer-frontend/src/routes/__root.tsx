@@ -142,13 +142,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover",
       },
       { name: "referrer", content: "strict-origin-when-cross-origin" },
-      { title: "QuickPress — Laundry Pickup & Delivery" },
+      { title: "QuickPress — Premium Doorstep Laundry & Dry Cleaning" },
       {
         name: "description",
-        content: "QuickPress: premium laundry pickup and delivery, one secure mobile login.",
+        content: "QuickPress: India's leading hyper-local laundry marketplace. 15-minute doorstep pickup, Italian eco dry cleaning, steam ironing, and fast delivery.",
       },
+      {
+        name: "keywords",
+        content: "laundry service near me, dry cleaners near me, online laundry pickup, steam iron near me, wash and fold per kg, shoe dry cleaning, QuickPress",
+      },
+      { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1" },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "QuickPress" },
+      { property: "og:image", content: "https://withquickpress.com/og-image.jpg" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "https://withquickpress.com/og-image.jpg" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -159,6 +167,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
+      { rel: "canonical", href: "https://withquickpress.com/" },
     ],
   }),
 

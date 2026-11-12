@@ -199,7 +199,7 @@ export function SettingsPage() {
                 <span>Corporate Legal Entity &amp; Statutory Profile</span>
               </h2>
               <p className="text-xs sm:text-sm text-zinc-500 max-w-3xl leading-relaxed">
-                Configure your official company name, CIN, PAN, GSTIN, registered office, and authorized signatory. 
+                Configure your official company name, CIN, PAN, GSTIN, registered office, and authorized signatory.
                 Any details saved here automatically propagate across all <strong>customer bills, Rapido-style 3-way invoices, partner B2B statements, GSTR filings, emails</strong>, and corporate footers.
               </p>
             </div>

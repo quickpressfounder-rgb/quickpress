@@ -351,13 +351,16 @@ class WhatsAppService:
         customer_name: str,
         order_id: str,
         invoice_url: Optional[str] = None,
+        google_review_url: str = "https://g.page/r/withquickpress/review",
     ) -> Tuple[bool, str, Optional[str]]:
-        """Sends Order Delivered alert with invoice and rating request."""
+        """Sends Order Delivered alert with invoice, Google review invite, and rating request."""
         body = (
             f"*Order Delivered Successfully — QuickPress*\n\n"
             f"Hello *{customer_name}*,\n"
             f"Your laundry order *#{order_id}* has been safely delivered.\n\n"
-            f"We hope you love the crispness and fragrance of your fresh clothes!\n"
+            f"We hope you love the crispness and fragrance of your fresh clothes!\n\n"
+            f"Support your local care captain with a quick 5-star Google review:\n"
+            f"{google_review_url}\n\n"
             f"Your official GST Tax Invoice is available for download."
         )
 

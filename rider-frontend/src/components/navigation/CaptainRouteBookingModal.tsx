@@ -107,7 +107,7 @@ export const CaptainRouteBookingModal: React.FC<CaptainRouteBookingModalProps> =
       notifyChange(res.state);
       toast.success(
         nextActive
-          ? "Route Booking Active! Only on-route orders will be dispatched."
+          ? "Route Booking Active! 🚀 Only on-route orders will be dispatched."
           : "Route Booking Paused. Normal citywide orders resumed."
       );
     } catch {
@@ -134,7 +134,7 @@ export const CaptainRouteBookingModal: React.FC<CaptainRouteBookingModalProps> =
       if (res.ok) {
         setState(res.state);
         notifyChange(res.state);
-        toast.success(`Destination set to ${dest.name}`);
+        toast.success(`Destination set to ${dest.name} 📍`);
       }
     } catch {
       toast.error("Failed to update route destination.");
@@ -165,7 +165,7 @@ export const CaptainRouteBookingModal: React.FC<CaptainRouteBookingModalProps> =
         setSelectedDest(res.destination);
         setIsCustomMode(false);
         notifyChange(res.state);
-        toast.success(`Custom destination saved: ${customName}`);
+        toast.success(`Custom destination saved: ${customName} 📍`);
       }
     } catch {
       toast.error("Failed to save custom destination.");
@@ -220,11 +220,10 @@ export const CaptainRouteBookingModal: React.FC<CaptainRouteBookingModalProps> =
                   My Route Booking
                 </h3>
                 <span
-                  className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                    isActive
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-300 animate-pulse"
-                      : "bg-zinc-100 text-zinc-600 border-zinc-200"
-                  }`}
+                  className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${isActive
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-300 animate-pulse"
+                    : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                    }`}
                 >
                   {isActive ? "ACTIVE" : "INACTIVE"}
                 </span>
@@ -306,11 +305,10 @@ export const CaptainRouteBookingModal: React.FC<CaptainRouteBookingModalProps> =
                     type="button"
                     disabled={actionLoading}
                     onClick={() => handleSelectPreset(preset)}
-                    className={`flex items-start gap-2 p-2.5 rounded-2xl border text-left transition-all active:scale-98 cursor-pointer ${
-                      isSelected
-                        ? "bg-blue-50 border-blue-400 text-blue-950 shadow-2xs ring-1 ring-blue-400/30"
-                        : "bg-white border-zinc-200 text-zinc-800 hover:bg-zinc-50"
-                    }`}
+                    className={`flex items-start gap-2 p-2.5 rounded-2xl border text-left transition-all active:scale-98 cursor-pointer ${isSelected
+                      ? "bg-blue-50 border-blue-400 text-blue-950 shadow-2xs ring-1 ring-blue-400/30"
+                      : "bg-white border-zinc-200 text-zinc-800 hover:bg-zinc-50"
+                      }`}
                   >
                     <div className="mt-0.5 shrink-0">
                       {preset.type === "home" ? (
@@ -403,17 +401,15 @@ export const CaptainRouteBookingModal: React.FC<CaptainRouteBookingModalProps> =
                   key={opt.km}
                   type="button"
                   onClick={() => handleSetDetour(opt.km)}
-                  className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all active:scale-95 cursor-pointer ${
-                    detourKm === opt.km
-                      ? "bg-zinc-950 text-white border-zinc-950 shadow-xs"
-                      : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
-                  }`}
+                  className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all active:scale-95 cursor-pointer ${detourKm === opt.km
+                    ? "bg-zinc-950 text-white border-zinc-950 shadow-xs"
+                    : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
+                    }`}
                 >
                   <span className="text-xs font-black">{opt.label}</span>
                   <span
-                    className={`text-[9px] ${
-                      detourKm === opt.km ? "text-zinc-300" : "text-zinc-400"
-                    }`}
+                    className={`text-[9px] ${detourKm === opt.km ? "text-zinc-300" : "text-zinc-400"
+                      }`}
                   >
                     {opt.desc}
                   </span>
@@ -429,19 +425,18 @@ export const CaptainRouteBookingModal: React.FC<CaptainRouteBookingModalProps> =
             type="button"
             disabled={actionLoading || (!isActive && passesRem <= 0)}
             onClick={handleToggle}
-            className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm tracking-wide shadow-lg transition-all active:scale-98 cursor-pointer ${
-              isActive
-                ? "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20"
-                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/25"
-            } ${actionLoading ? "opacity-75 cursor-not-allowed" : ""}`}
+            className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm tracking-wide shadow-lg transition-all active:scale-98 cursor-pointer ${isActive
+              ? "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20"
+              : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/25"
+              } ${actionLoading ? "opacity-75 cursor-not-allowed" : ""}`}
           >
             <Zap className="size-4 fill-current stroke-none" />
             <span>
               {actionLoading
                 ? "Updating Route..."
                 : isActive
-                ? "Deactivate Route Booking"
-                : `Activate Route Booking (${passesRem} Passes Left)`}
+                  ? "Deactivate Route Booking"
+                  : `Activate Route Booking (${passesRem} Passes Left)`}
             </span>
           </button>
         </div>

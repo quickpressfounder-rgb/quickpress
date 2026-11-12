@@ -19,6 +19,7 @@ import { TermsPage } from "@/pages/TermsPage";
 import { ContactPage } from "@/pages/ContactPage";
 import { B2BPartnerPage } from "@/pages/B2BPartnerPage";
 import { StorePage } from "@/pages/StorePage";
+import { CityLandingPage } from "@/pages/CityLandingPage";
 
 // Mobile App Redirection Utility
 import {
@@ -35,6 +36,7 @@ interface ToastState {
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>("home");
   const [partnerStoreId, setPartnerStoreId] = useState<string>("");
+  const [cityServiceFocus, setCityServiceFocus] = useState<"laundry" | "dry-cleaning" | "steam-iron" | "shoe-cleaning">("laundry");
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedService, setSelectedService] = useState<ServiceInfo | null>(null);
   const [toast, setToast] = useState<ToastState>({ show: false, message: "" });
@@ -101,6 +103,28 @@ export default function App() {
         setCurrentPage("b2b-partner");
         return;
       }
+
+      // 3. Detect Hyper-Local SEO Landing Routes (e.g. /laundry-service-in-kasganj)
+      if (
+        target.includes("laundry-service-in-kasganj") ||
+        target.includes("laundry-kasganj") ||
+        target.includes("dry-cleaning-in-kasganj") ||
+        target.includes("steam-ironing-in-kasganj") ||
+        target.includes("shoe-cleaning-in-kasganj")
+      ) {
+        if (target.includes("dry-cleaning")) {
+          setCityServiceFocus("dry-cleaning");
+        } else if (target.includes("steam-ironing")) {
+          setCityServiceFocus("steam-iron");
+        } else if (target.includes("shoe-cleaning")) {
+          setCityServiceFocus("shoe-cleaning");
+        } else {
+          setCityServiceFocus("laundry");
+        }
+        setCurrentPage("city-landing");
+        return;
+      }
+
       const validPages: PageType[] = [
         "home",
         "about",
@@ -108,6 +132,7 @@ export default function App() {
         "privacy",
         "terms",
         "b2b-partner",
+        "city-landing",
         "store",
       ];
       if (validPages.includes(target as PageType)) {
@@ -223,6 +248,13 @@ export default function App() {
             <B2BPartnerPage
               onNavigate={navigateTo}
               onOpenModal={handleOpenModal}
+            />
+          )}
+
+          {currentPage === "city-landing" && (
+            <CityLandingPage
+              onOpenModal={handleOpenModal}
+              serviceFocus={cityServiceFocus}
             />
           )}
 

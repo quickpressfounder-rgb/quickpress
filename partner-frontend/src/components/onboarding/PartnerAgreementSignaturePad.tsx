@@ -291,11 +291,10 @@ export function PartnerAgreementSignaturePad({
         <button
           type="button"
           onClick={() => setActiveTab("agreement")}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black transition-all cursor-pointer ${
-            activeTab === "agreement"
+          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black transition-all cursor-pointer ${activeTab === "agreement"
               ? "bg-white text-zinc-900 shadow-sm border border-zinc-200"
               : "text-zinc-500 hover:text-zinc-900"
-          }`}
+            }`}
         >
           <FileText className="size-3.5 text-amber-500" />
           <span>1. Read Merchant SLA Terms</span>
@@ -304,11 +303,10 @@ export function PartnerAgreementSignaturePad({
         <button
           type="button"
           onClick={() => setActiveTab("signature")}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black transition-all cursor-pointer ${
-            activeTab === "signature"
+          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black transition-all cursor-pointer ${activeTab === "signature"
               ? "bg-white text-zinc-900 shadow-sm border border-zinc-200"
               : "text-zinc-500 hover:text-zinc-900"
-          }`}
+            }`}
         >
           <PenTool className="size-3.5 text-emerald-600" />
           <span>2. Digital Signature & Aadhaar E-Sign</span>
@@ -396,11 +394,10 @@ export function PartnerAgreementSignaturePad({
               <button
                 type="button"
                 onClick={() => setSignatureMode("upload")}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
-                  signatureMode === "upload"
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${signatureMode === "upload"
                     ? "bg-white text-emerald-800 shadow-xs border border-zinc-200"
                     : "text-zinc-600 hover:text-zinc-900"
-                }`}
+                  }`}
               >
                 <Camera className="size-3.5 text-emerald-600" />
                 <span>Upload Photo (Recommended)</span>
@@ -409,11 +406,10 @@ export function PartnerAgreementSignaturePad({
               <button
                 type="button"
                 onClick={() => setSignatureMode("draw")}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
-                  signatureMode === "draw"
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${signatureMode === "draw"
                     ? "bg-white text-emerald-800 shadow-xs border border-zinc-200"
                     : "text-zinc-600 hover:text-zinc-900"
-                }`}
+                  }`}
               >
                 <PenTool className="size-3.5 text-blue-600" />
                 <span>Draw</span>
@@ -422,11 +418,10 @@ export function PartnerAgreementSignaturePad({
               <button
                 type="button"
                 onClick={adoptVerifiedNameSignature}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
-                  signatureMode === "adopt"
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${signatureMode === "adopt"
                     ? "bg-white text-emerald-800 shadow-xs border border-zinc-200"
                     : "text-zinc-600 hover:text-zinc-900"
-                }`}
+                  }`}
               >
                 <Sparkles className="size-3.5 text-amber-600" />
                 <span>Auto E-Sign</span>

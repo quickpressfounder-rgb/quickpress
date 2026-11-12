@@ -284,8 +284,8 @@ export function CustomerFinance360View({ onInspectOrder, initialIdentifier = "" 
                                   o.paymentStatus === "PAID"
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                     : o.paymentStatus === "REFUNDED"
-                                    ? "bg-amber-50 text-amber-700 border-amber-200"
-                                    : "bg-zinc-100 text-zinc-700"
+                                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                                      : "bg-zinc-100 text-zinc-700"
                                 }
                               >
                                 {o.paymentStatus || "PENDING"}

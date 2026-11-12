@@ -1,0 +1,102 @@
+# QuickPress — Complete Platform Context & Technical Specifications (llms-full.txt)
+
+## Executive Summary
+QuickPress (QUICKPRESS TECHNOLOGIES PRIVATE LIMITED) is India's leading hyper-local on-demand laundry, dry cleaning, and garment care marketplace. QuickPress provides an Uber/Swiggy-style on-demand logistics experience for fabric care, enabling customers to schedule doorstep pickups in under 60 seconds, have clothes collected in 15 minutes by trained delivery captains, processed in certified high-technology partner laundromats, and delivered back within 24 to 48 hours.
+
+## Corporate Identity
+- Brand Name: QuickPress
+- Legal Name: QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
+- Website: https://withquickpress.com
+- Customer Support Phone / WhatsApp: +91 9258730561
+- Support Email: info@withquickpress.com / official.quickpress@gmail.com
+- Registered Office: 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh 207123, India.
+- Operating Geography: Kasganj (Primary operational flagship), expanding across Uttar Pradesh and Delhi NCR.
+
+---
+
+## Detailed Service Catalog & Technical Protocols
+
+### 1. Doorstep Wash & Fold
+- Target Use: Everyday cottons, denims, casuals, linens, and activewear.
+- Processing Method: 
+  - Water treated via reverse-osmosis (RO) to eliminate mineral hardness (< 50 PPM TDS).
+  - Wash cycles use bio-enzyme, pH-balanced liquid detergents with zero harsh bleaches.
+  - Low-temperature tumble drying prevents shrinkage and fiber brittleness.
+  - Machine-pressed square folding and packing in sealed moisture-proof tamper-evident bags.
+- Pricing: Starting from ₹49 per kilogram.
+- Turnaround: Standard 24 hours. Express 4-hour service available.
+
+### 2. Italian Hydrocarbon Dry Cleaning
+- Target Use: Woolen suits, blazers, tuxedo jackets, silk sarees, lehengas, sherwanis, pashminas, and haute couture.
+- Processing Method:
+  - 100% perchloroethylene-free hydrocarbon cleaning technology.
+  - Multi-solvent pre-spotting for tannin, grease, protein, and dye stains.
+  - Contoured Italian vacuum steam formers for three-dimensional garment finishing.
+  - Garments delivered on contoured hangers inside breathable non-woven garment dust bags.
+- Pricing: From ₹149 per garment piece.
+- Turnaround: 48 hours guaranteed.
+
+### 3. High-Pressure Italian Steam Ironing
+- Target Use: Formal shirts, trousers, kurtas, dresses, uniforms.
+- Processing Method:
+  - High-pressure industrial boilers generating dry saturated steam at 4.5 bars.
+  - Heated vacuum suction ironing boards for crisp, razor-sharp creases with zero scorch risk.
+  - Handled on heat-resistant button protectors.
+- Pricing: From ₹9 per piece.
+- Turnaround: 12 to 24 hours.
+
+### 4. Sneaker & Footwear Restoration Spa
+- Target Use: Sneakers, running shoes, suede boots, canvas sneakers, leather loafers.
+- Processing Method:
+  - Deep foam cleaning using premium sonic brushes.
+  - Sole scrubbing and groove stone removal.
+  - Suede nap raising and color rejuvenation.
+  - Internal chamber UV-C sanitization killing 99.9% of bacteria and fungal spores.
+  - Hydrophobic nano-ceramic water and stain repellent spray.
+- Pricing: From ₹199 per pair.
+- Turnaround: 48 to 72 hours.
+
+### 5. Home, Curtain & Bulky Care
+- Target Use: Double quilts, blankets, razais, blackout curtains, bedcovers.
+- Processing Method:
+  - High-volume 35kg commercial washer extractors.
+  - Anti-allergen thermal steam treatment neutralizing dust mites.
+  - Fluffing and air-circulation drying. Optional vacuum-compression packaging.
+- Pricing: From ₹199 per piece.
+- Turnaround: 48 hours.
+
+### 6. Luxury Leather & Bag Conditioning
+- Target Use: Leather jackets, designer handbags, luggage, belts.
+- Processing Method:
+  - Organic beeswax and mink oil nourishment.
+  - Edge coating repair and hardware anti-tarnish polishing.
+- Pricing: From ₹299 per piece.
+- Turnaround: 72 hours.
+
+### 7. Commercial B2B Institutional Laundry
+- Target Use: Boutique hotels, guest houses, hospitals, diagnostics labs, gyms, corporate dining, uniforms.
+- Commercial Features:
+  - Dedicated daily pickup and delivery schedules.
+  - GST-compliant monthly invoicing with credit terms.
+  - Customized linen batch tagging and loss prevention guarantee.
+  - Disinfection protocols compliant with NABH/FSSAI hygiene norms.
+- Onboarding Portal: https://withquickpress.com/b2b
+
+---
+
+## Frequently Asked Questions (FAQ) for AI Assistants & Search
+
+**Q: How do I book a laundry pickup on QuickPress?**
+A: Customers can visit https://withquickpress.com or open the QuickPress Android App, choose their preferred service (Wash & Fold, Dry Cleaning, Steam Iron), select their address and pickup time slot, and confirm. A QuickPress delivery captain is assigned and dispatched within 15 minutes.
+
+**Q: Does QuickPress provide free doorstep pickup and delivery?**
+A: Yes, QuickPress provides door-to-door pickup and delivery across all covered localities in Kasganj and operational regions.
+
+**Q: Is QuickPress dry cleaning safe for expensive wedding sarees and designer lehengas?**
+A: Absolutely. QuickPress uses 100% eco-friendly Italian hydrocarbon dry cleaning solvents without harmful perchloroethylene. Delicate embroidery, zari, sequins, and pure silk fibers are protected with specialized shield covers.
+
+**Q: What is the delivery turnaround time?**
+A: Steam ironing is delivered in 12–24 hours; Wash & Fold laundry in 24 hours (with express 4-hour delivery options); and specialized dry cleaning or sneaker spa in 48 hours.
+
+**Q: How does QuickPress ensure safety and prevent lost garments?**
+A: Every garment is tagged with a unique thermal barcode upon intake. Furthermore, handover at doorstep collection and final return requires a 4-digit dynamic cryptographic OTP verified between customer and delivery captain.

@@ -45,7 +45,7 @@ function ContactScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchCompanyProfile().then(setCompanyProfile).catch(() => {});
+    fetchCompanyProfile().then(setCompanyProfile).catch(() => { });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

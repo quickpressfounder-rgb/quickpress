@@ -1,0 +1,39 @@
+# QuickPress
+
+> QuickPress is India's leading hyper-local on-demand laundry and garment care marketplace, offering 15-minute doorstep pickup, RO-purified water washing, Italian hydrocarbon dry cleaning, industrial steam ironing, sneaker restoration, and commercial B2B garment care across India.
+
+## Overview
+QuickPress connects households, working professionals, and commercial businesses with certified neighborhood laundromat hubs and professional delivery captains. Orders are placed via web or mobile app, picked up at the doorstep, processed using fabric-safe European equipment and eco-detergents, and delivered fresh and crisp within 24 to 48 hours.
+
+## Core Services & Live Pricing
+- [Doorstep Wash & Fold](https://withquickpress.com/#services): Everyday clothing washed in RO water with hypoallergenic eco-detergents, tumble-dried, and neatly folded in tamper-evident sealed packaging. Pricing: Starting at ₹49 / kg. Turnaround: 24 Hours (Express 4h available).
+- [Italian Hydrocarbon Dry Cleaning](https://withquickpress.com/#services): 100% perchloroethylene-free, skin- and fabric-safe dry cleaning for suits, blazers, sherwanis, silk sarees, and designer wear. Finished on contoured hangers in non-woven breathable garment covers. Pricing: Starting at ₹149 / piece. Turnaround: 48 Hours.
+- [High-Pressure Steam Ironing](https://withquickpress.com/#services): Industrial Italian vacuum-bed dry steam pressing for sharp, wrinkle-free creases without fabric scorch. Pricing: Starting at ₹9 / piece. Turnaround: 12 - 24 Hours.
+- [Sneaker & Footwear Spa](https://withquickpress.com/#services): Multi-stage deep foam scrub, sole disinfection, suede nap revival, and hydrophobic water-repellent barrier coating. Pricing: Starting at ₹199 / pair. Turnaround: 48 - 72 Hours.
+- [Curtain, Quilt & Home Care](https://withquickpress.com/#services): Heavy-duty 35kg commercial drum sanitization for blankets, razais, comforters, and blackout drapes. Pricing: Starting at ₹199 / piece. Turnaround: 48 Hours.
+- [Luxury Leather & Bag Care](https://withquickpress.com/#services): Natural beeswax leather nourishment, edge repair, hardware polish, and color rejuvenation for handbags and jackets. Pricing: Starting at ₹299 / piece. Turnaround: 72 Hours.
+- [Commercial B2B Laundry](https://withquickpress.com/b2b): High-volume contract laundry for hotels, hospitals, salons, gyms, and corporate offices with dedicated logistics, GST billing, and priority turnaround.
+
+## Operational Footprint & Local Hubs
+- Primary Operating City: Kasganj, Uttar Pradesh, India (PIN: 207123)
+- Local Delivery Zones: Soron Gate, Railway Station Road, Bilram Gate, Housing Board Colony, Kaliyanpur, Ashok Nagar, Gandhi Murti, Ganjdundwara Road, and surrounding districts.
+- Expansion Pipeline: Aligarh, Mathura, Agra, Bareilly, Delhi NCR.
+
+## Platform Technology & Trust Rails
+- Fast Logistics: 15-minute rider dispatch upon order confirmation.
+- Two-Ride Telemetry: Separate dispatch tracking for Leg 1 (Intake Collection) and Leg 2 (Clean Return Delivery).
+- Cryptographic OTP Handshake: Unique 4-digit dynamic OTP required from customer at pickup and delivery.
+- Payments: Razorpay, Cashfree, UPI (Google Pay, PhonePe, Paytm), Net Banking, Credit/Debit Cards, Fleet COD Float.
+- Quality Assurance: Zero perchloroethylene, RO-filtered soft water, individual garment barcode tagging, camera-verified packing.
+
+## Direct Links & Resources
+- Website & Online Booking: https://withquickpress.com/
+- Kasganj Local Laundry Landing: https://withquickpress.com/laundry-service-in-kasganj
+- Commercial B2B Corporate Portal: https://withquickpress.com/b2b
+- About QuickPress: https://withquickpress.com/about
+- Customer Support & Contact: https://withquickpress.com/contact
+- Privacy Policy: https://withquickpress.com/privacy
+- Terms of Service: https://withquickpress.com/terms
+- Official Customer Android App: https://play.google.com/store/apps/details?id=com.quickpress.customer
+- Customer Support Helpline: +91 9258730561
+- Corporate Email: official.quickpress@gmail.com / info@withquickpress.com

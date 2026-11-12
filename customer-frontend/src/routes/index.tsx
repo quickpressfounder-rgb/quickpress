@@ -6,16 +6,66 @@ import { restoreCustomerSession, startCustomerAutoRefresh } from "@/api/customer
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "QuickPress — Starting up" },
+      { title: "QuickPress | Best Laundry Service, Dry Cleaning & Doorstep Delivery" },
       {
         name: "description",
         content:
-          "QuickPress is getting ready: checking your connection and session before taking you to laundry pickup and delivery.",
+          "QuickPress is India's leading on-demand laundry and garment care marketplace. 15-minute doorstep pickup, hygienic RO-wash, steam iron, and 24h delivery across India.",
       },
-      { property: "og:title", content: "QuickPress — Starting up" },
+      {
+        name: "keywords",
+        content:
+          "laundry service near me, dry cleaners near me, best laundry service Kasganj, online laundry pickup and delivery, steam iron near me, wash and fold per kg, shoe dry cleaning, saree dry clean, quickpress laundry",
+      },
+      { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1" },
+      { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "QuickPress" },
+      { property: "og:url", content: "https://withquickpress.com/" },
+      { property: "og:title", content: "QuickPress — Best Laundry & Dry Cleaning (Doorstep Pickup & Delivery)" },
       {
         property: "og:description",
-        content: "QuickPress is getting ready before taking you to pickup and delivery.",
+        content: "Top-rated on-demand laundry and garment care with 15-minute doorstep pickup, live GPS tracking, and 24h delivery. Book online starting at ₹29!",
+      },
+      { property: "og:image", content: "https://withquickpress.com/og-image.jpg" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "QuickPress | On-Demand Laundry & Garment Care" },
+      {
+        name: "twitter:description",
+        content: "India's hyper-local laundry marketplace starting at ₹29. Fast pickup & doorstep delivery!",
+      },
+      { name: "twitter:image", content: "https://withquickpress.com/og-image.jpg" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://withquickpress.com/" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "DryCleaningOrLaundry",
+          "name": "QuickPress",
+          "legalName": "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
+          "url": "https://withquickpress.com",
+          "logo": "https://withquickpress.com/quickpress-logo-yellow.jpg",
+          "telephone": "+919258730561",
+          "email": "info@withquickpress.com",
+          "priceRange": "₹29 - ₹499",
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "reviewCount": "1280",
+            "bestRating": "5",
+            "worstRating": "1"
+          },
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Kasganj",
+            "addressRegion": "Uttar Pradesh",
+            "postalCode": "207123",
+            "addressCountry": "IN"
+          }
+        }),
       },
     ],
   }),

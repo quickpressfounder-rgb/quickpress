@@ -20,6 +20,7 @@ import { Route as FaqsRouteImport } from './routes/faqs'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as LaundryServiceInKasganjRouteImport } from './routes/laundry-service-in-kasganj'
 import { Route as LocationRouteImport } from './routes/location'
 import { Route as LocationSearchRouteImport } from './routes/location-search'
 import { Route as LoginRouteImport } from './routes/login'
@@ -94,6 +95,11 @@ const HistoryRoute = HistoryRouteImport.update({
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LaundryServiceInKasganjRoute = LaundryServiceInKasganjRouteImport.update({
+  id: '/laundry-service-in-kasganj',
+  path: '/laundry-service-in-kasganj',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LocationRoute = LocationRouteImport.update({
@@ -209,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/help': typeof HelpRoute
   '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
+  '/laundry-service-in-kasganj': typeof LaundryServiceInKasganjRoute
   '/location': typeof LocationRoute
   '/location-search': typeof LocationSearchRoute
   '/login': typeof LoginRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/help': typeof HelpRoute
   '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
+  '/laundry-service-in-kasganj': typeof LaundryServiceInKasganjRoute
   '/location': typeof LocationRoute
   '/location-search': typeof LocationSearchRoute
   '/login': typeof LoginRoute
@@ -276,6 +284,7 @@ export interface FileRoutesById {
   '/help': typeof HelpRoute
   '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
+  '/laundry-service-in-kasganj': typeof LaundryServiceInKasganjRoute
   '/location': typeof LocationRoute
   '/location-search': typeof LocationSearchRoute
   '/login': typeof LoginRoute
@@ -311,6 +320,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/history'
     | '/home'
+    | '/laundry-service-in-kasganj'
     | '/location'
     | '/location-search'
     | '/login'
@@ -344,6 +354,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/history'
     | '/home'
+    | '/laundry-service-in-kasganj'
     | '/location'
     | '/location-search'
     | '/login'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/history'
     | '/home'
+    | '/laundry-service-in-kasganj'
     | '/location'
     | '/location-search'
     | '/login'
@@ -411,6 +423,7 @@ export interface RootRouteChildren {
   HelpRoute: typeof HelpRoute
   HistoryRoute: typeof HistoryRoute
   HomeRoute: typeof HomeRoute
+  LaundryServiceInKasganjRoute: typeof LaundryServiceInKasganjRoute
   LocationRoute: typeof LocationRoute
   LocationSearchRoute: typeof LocationSearchRoute
   LoginRoute: typeof LoginRoute
@@ -510,6 +523,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/laundry-service-in-kasganj': {
+      id: '/laundry-service-in-kasganj'
+      path: '/laundry-service-in-kasganj'
+      fullPath: '/laundry-service-in-kasganj'
+      preLoaderRoute: typeof LaundryServiceInKasganjRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/location': {
@@ -667,6 +687,7 @@ const rootRouteChildren: RootRouteChildren = {
   HelpRoute: HelpRoute,
   HistoryRoute: HistoryRoute,
   HomeRoute: HomeRoute,
+  LaundryServiceInKasganjRoute: LaundryServiceInKasganjRoute,
   LocationRoute: LocationRoute,
   LocationSearchRoute: LocationSearchRoute,
   LoginRoute: LoginRoute,

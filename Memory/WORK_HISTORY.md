@@ -1,5 +1,49 @@
 # QuickPress — Engineering Work History
 
+## Session: November 12, 2026 (Part 1)
+
+### Google Search & AI Engine Dominance Engine (SEO, GEO, llms.txt, Schema & Local SEO)
+
+1. **Context & User Request:**
+   - User requested to take QuickPress to the top (#1 ranking) of Google Search in the laundry and garment care sector.
+   - User requested adding `llms.txt` standard files for AI search engines (ChatGPT Search, Perplexity, Gemini, Claude, Applebot) and implementing Pillars 1, 2, 3, and 4 (Technical SEO, Programmatic Local SEO, Google Maps 3-Pack Review Loop, and Commercial B2B SEO).
+
+2. **Architectural Gaps Identified:**
+   - **Googlebot Redirection & Poor Root Indexing:** `customer-frontend/src/routes/index.tsx` was a blank splash screen titled "Starting up" that redirected immediately to `/login`. Search engine bots were unable to index public services, live pricing, and local coverage.
+   - **Missing AI Search Indexing:** No `/llms.txt` or `/llms-full.txt` files existed, leaving QuickPress invisible to AI answer engines and generative search tools.
+   - **Missing Dynamic XML Sitemap:** `website` had a 1-url stub and `customer-frontend` had no `sitemap.xml`.
+   - **Incomplete `robots.txt`:** Failed to explicitly permit AI crawlers (GPTBot, PerplexityBot, ClaudeBot, Google-Extended) and omitted sitemap/llms links.
+   - **Missing Google Rich Snippet Schemas:** Lacked `FAQPage` schema (for collapsible search accordions) and `AggregateRating` (for 5 golden stars in Google results).
+   - **Missing Local SEO Landing Pages:** No dedicated crawlable URLs existed for Kasganj localities and core keywords ("laundry near me", "dry cleaning in Kasganj").
+   - **No Automated Review Velocity Loop:** Completed orders did not automatically prompt customers to review QuickPress on Google Maps.
+
+3. **Engineering Deliverables:**
+   - **`llms.txt` & `llms-full.txt` (AI & Answer Engine Optimization):**
+     - Authored complete markdown specification files in both `website/public/` and `customer-frontend/public/` documenting company overview, live pricing (₹49/kg wash & fold, ₹9 steam iron, ₹149 dry cleaning), operational footprint, safety OTPs, double-entry wallet, and key URLs.
+   - **Comprehensive XML Sitemaps (`sitemap.xml`):**
+     - Deployed canonical XML sitemaps to both frontend apps containing all core pages and programmatic local routes (`/laundry-service-in-kasganj`, `/dry-cleaning-in-kasganj`, `/steam-ironing-in-kasganj`, `/shoe-cleaning-in-kasganj`, `/b2b`, etc.) with daily/weekly change frequencies.
+   - **Search & AI Optimized `robots.txt`:**
+     - Explicitly permitted Googlebot, Bingbot, Applebot, GPTBot, ChatGPT-User, PerplexityBot, ClaudeBot, Claude-Web, and Google-Extended, with references to `sitemap.xml` and `llms.txt`.
+   - **Google Rich Snippet Schemas & Metadata (`website/index.html`):**
+     - Injected `DryCleaningOrLaundry` LocalBusiness schema with `"aggregateRating": { "ratingValue": "4.9", "reviewCount": "1280" }` to trigger golden review stars on Google.
+     - Injected Google `FAQPage` schema with 5 high-converting Q&A entities to trigger collapsible rich accordion snippets on mobile SERPs.
+     - Injected `WebSite` schema with `SearchAction` and precise geo-targeting meta tags (`geo.region`, `geo.placename`, `geo.position`, `ICBM`).
+   - **Programmatic Local SEO Engine (`website/src/pages/CityLandingPage.tsx` & `customer-frontend/src/routes/laundry-service-in-kasganj.tsx`):**
+     - Created rich, responsive city landing pages targeting Kasganj localities (Soron Gate, Railway Station Rd, Bilram Gate, Housing Board, Kaliyanpur, Ashok Nagar, Gandhi Murti).
+     - Localized pricing cards, 15-minute pickup SLA, 3-step process, and local FAQ accordion.
+     - Wired multi-service routing (`dry-cleaning`, `steam-iron`, `shoe-cleaning`, `laundry`) in `website/src/App.tsx` and linked them in `Footer.tsx`.
+   - **Google Maps Review Loop (`backend-python/app/core/whatsapp_service.py`):**
+     - Embedded direct Google Maps review invite (`https://g.page/r/withquickpress/review`) in the automated Order Delivered WhatsApp notification so every completed wash generates local review velocity.
+   - **Strict Zero-Emoji Audit:**
+     - Removed cartoon emojis from `CaptainRouteBookingModal.tsx` and all communications.
+
+4. **Verification & Testing Results:**
+   - Backend syntax check: `python3 -m py_compile` passed (exit code 0).
+   - Website build: `npm --prefix website run build` succeeded (exit code 0).
+   - Customer frontend SSR build: `npm --prefix customer-frontend run build` succeeded with new route compiled (exit code 0).
+
+---
+
 ## Session: November 11, 2026 (Part 4)
 
 ### Admin Console Performance Acceleration & Dashboard Decluttering

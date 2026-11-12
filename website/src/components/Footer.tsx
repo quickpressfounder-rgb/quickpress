@@ -71,19 +71,51 @@ export function Footer({
             </ul>
           </div>
 
-          {/* Column 2: For Partners */}
+          {/* Column 2: Local Hubs & For Partners */}
           <div className="space-y-3">
             <h5 className="text-xs sm:text-sm font-black tracking-wider uppercase text-white mb-4">
-              For Partners
+              Local Laundry Hubs
             </h5>
             <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-400">
               <li>
+                <a
+                  href="/laundry-service-in-kasganj"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium block"
+                >
+                  Laundry in Kasganj
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/dry-cleaning-in-kasganj"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium block"
+                >
+                  Dry Cleaning in Kasganj
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/steam-ironing-in-kasganj"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium block"
+                >
+                  Steam Ironing in Kasganj
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/shoe-cleaning-in-kasganj"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium block"
+                >
+                  Sneaker & Shoe Spa Kasganj
+                </a>
+              </li>
+              <li className="pt-2">
                 <button
                   type="button"
                   onClick={() => onNavigate("b2b-partner")}
-                  className="hover:text-white transition-colors cursor-pointer text-left font-semibold text-emerald-400"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-semibold text-emerald-400 block"
                 >
-                  Partner With Us
+                  B2B & Partner With Us
                 </button>
               </li>
             </ul>

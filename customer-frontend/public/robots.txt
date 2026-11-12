@@ -1,14 +1,46 @@
+# QuickPress Robots Configuration (Optimized for Google & AI Search Engines)
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /ops/
+Disallow: /auth/callback
+
+# Explicit Permissions for Major Search Engine Bots
 User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
 Allow: /
 
 User-agent: Bingbot
 Allow: /
 
-User-agent: Twitterbot
+User-agent: Applebot
 Allow: /
 
-User-agent: facebookexternalhit
+User-agent: DuckDuckBot
 Allow: /
 
-User-agent: *
+# Generative AI & Large Language Model (LLM) Crawlers (GEO / Answer Engine Optimization)
+User-agent: GPTBot
 Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+# XML Sitemap and LLMs Standard Reference
+Sitemap: https://withquickpress.com/sitemap.xml
+# LLMs Context Standard: https://withquickpress.com/llms.txt
