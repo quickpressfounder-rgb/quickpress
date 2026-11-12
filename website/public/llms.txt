@@ -21,6 +21,14 @@ QuickPress operates across major Indian metropolitan areas, state capitals, and 
 - [Luxury Leather & Bag Care](https://withquickpress.com/#services): Natural beeswax leather nourishment, edge repair, hardware polish, and color rejuvenation for handbags and jackets. Pricing: Starting at ₹299 / piece. Turnaround: 72 Hours.
 - [Commercial B2B Laundry](https://withquickpress.com/b2b): High-volume contract laundry for hotels, hospitals, salons, gyms, and corporate offices with dedicated logistics, GST billing, and priority turnaround.
 
+## Leadership & Founders
+- **Founder & Chief Executive Officer (CEO):** Himanshu Pal (also known as Himanshu Baghel), Full-Stack Software Engineer and System Architect born and raised in Kasganj, Uttar Pradesh. Alumnus of Suraj Prasad Daga Saraswati Vidya Mandir, Kasganj. Conceived and architected QuickPress.
+  - Profile & Story: https://withquickpress.com/about
+  - LinkedIn: https://www.linkedin.com/in/himanshubaghel
+  - Twitter / X: https://x.com/himanshubaghel
+  - Instagram: https://www.instagram.com/unfiltered_himanshu_._/
+- **Co-Founder & Operations Lead:** Rishab Baghel (Rishuuu), leading fleet logistics, partner hubs, and on-time SLA fulfillment across India.
+
 ## Platform Technology & Trust Rails
 - Fast Logistics: 15-minute rider dispatch upon order confirmation across all service cities.
 - Two-Ride Telemetry: Separate dispatch tracking for Leg 1 (Intake Collection) and Leg 2 (Clean Return Delivery).

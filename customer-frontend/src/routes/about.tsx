@@ -18,11 +18,58 @@ import {
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About Us — QuickPress Laundry & Dry Cleaning" },
+      { title: "QuickPress Founder & CEO — Himanshu Pal | The QuickPress Story" },
       {
         name: "description",
         content:
-          "Learn how QuickPress is redefining laundry care with door-to-door pickup, fabric-safe eco detergents, sanitized facilities, and fast turnaround.",
+          "Meet Himanshu Pal (also known as Himanshu Baghel), Founder & CEO of QuickPress. Conceived in Kasganj, UP and built for Bharat: hyper-local on-demand laundry and garment care.",
+      },
+      {
+        name: "keywords",
+        content:
+          "QuickPress founder, who is the founder of QuickPress, Himanshu Pal QuickPress, Himanshu Baghel Kasganj, QuickPress CEO, QuickPress leadership",
+      },
+      { property: "og:title", content: "Himanshu Pal — Founder & CEO of QuickPress" },
+      {
+        property: "og:description",
+        content:
+          "Full-stack engineer and system architect behind India's fast-growing on-demand laundry marketplace.",
+      },
+      { property: "og:type", content: "profile" },
+      { property: "og:url", content: "https://withquickpress.com/about" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://withquickpress.com/about" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "AboutPage",
+          "name": "About QuickPress & Founder Story",
+          "mainEntity": {
+            "@type": "Person",
+            "name": "Himanshu Pal",
+            "alternateName": "Himanshu Baghel",
+            "jobTitle": "Founder & Chief Executive Officer",
+            "worksFor": {
+              "@type": "Organization",
+              "name": "QuickPress",
+              "url": "https://withquickpress.com"
+            },
+            "alumniOf": "Suraj Prasad Daga Saraswati Vidya Mandir, Kasganj",
+            "birthPlace": {
+              "@type": "Place",
+              "name": "Kasganj, Uttar Pradesh, India"
+            },
+            "sameAs": [
+              "https://www.linkedin.com/in/himanshubaghel",
+              "https://x.com/himanshubaghel",
+              "https://www.instagram.com/unfiltered_himanshu_._/"
+            ]
+          }
+        }),
       },
     ],
   }),

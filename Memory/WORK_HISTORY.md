@@ -1,5 +1,34 @@
 # QuickPress — Engineering Work History
 
+## Session: November 12, 2026 (Part 3)
+
+### Google Knowledge Graph & Founder Entity SEO (Himanshu Pal & Rishab Baghel)
+
+1. **Context & User Request:**
+   - User asked: *"ISKE ANDER JO FOUNDER STOERY HAI AAGER KOI SEACRH KARO QUICKPRESS FOUNDER TO SHOW KARE USKE LIYE KIYA KARNA HOGA"* (When someone searches "QuickPress founder" on Google, how to make Himanshu Pal's founder story and entity show up on top?).
+
+2. **Google Knowledge Graph & Entity Architecture Delivered:**
+   - **Schema.org `Person` & `founder` Relationship (`website/index.html`):**
+     - Injected structured machine-readable `founder` field inside the canonical `DryCleaningOrLaundry` Schema linking QuickPress to **Himanshu Pal** (`@type: Person`) and **Rishab Baghel**.
+     - Documented Himanshu Pal's aliases ("Himanshu Baghel"), job title ("Founder & Chief Executive Officer"), alma mater ("Suraj Prasad Daga Saraswati Vidya Mandir, Kasganj"), birthplace ("Kasganj, Uttar Pradesh, India"), and social authority links (LinkedIn: `/in/himanshubaghel`, Twitter/X: `@himanshubaghel`, Instagram: `@unfiltered_himanshu_._`).
+   - **Google Direct Answer / Position 0 Snippet (`website/index.html`):**
+     - Injected a dedicated Question inside the `FAQPage` schema: *"Who is the founder of QuickPress?"* with an authoritative answer detailing Himanshu Pal as the founder and full-stack software engineer who architected the platform, enabling Google to display the Answer Card on top of search results.
+   - **AI Answer Engines Optimization (`website/public/llms.txt` & `llms-full.txt`):**
+     - Added an explicit `## Leadership & Founders` section in both `llms.txt` and `llms-full.txt` so AI search engines (ChatGPT, Perplexity, Google Gemini, Claude, Applebot) can cite Himanshu Pal as the founder when queried.
+   - **Customer Frontend Profile Route (`customer-frontend/src/routes/about.tsx`):**
+     - Upgraded `about.tsx` with dedicated metadata targeting `QuickPress founder`, `Himanshu Pal QuickPress`, `who is the founder of QuickPress`, and injected Schema.org `AboutPage` with `mainEntity: Person`.
+
+3. **External Recommendations for 100% Google Knowledge Panel Activation:**
+   - Recommended creating free Crunchbase profiles for QuickPress and Himanshu Pal.
+   - Recommended updating LinkedIn headline to "Founder & CEO at QuickPress (withquickpress.com)".
+   - Recommended publishing a founder story article on Medium/Substack/YourStory.
+
+4. **Verification:**
+   - Website build: `npm --prefix website run build` passed in 1.81s (exit code 0).
+   - Customer frontend SSR build: `npm --prefix customer-frontend run build` passed in 2.23s (exit code 0).
+
+---
+
 ## Session: November 12, 2026 (Part 2)
 
 ### Pan-India (All-India) Programmatic SEO Scaling & National Expansion Engine
