@@ -104,6 +104,7 @@ class AsyncTaskQueue:
 
             func, args, kwargs = item
             start_ts = time.perf_counter()
+            task_name = getattr(func, "__name__", str(func))
             try:
                 res = func(*args, **kwargs)
                 if asyncio.iscoroutine(res):
@@ -113,23 +114,63 @@ class AsyncTaskQueue:
                 logger.debug(
                     "Worker %d processed task %s in %.2fms",
                     worker_id,
-                    getattr(func, "__name__", str(func)),
+                    task_name,
                     duration_ms,
                 )
+                asyncio.create_task(self._record_redis_telemetry(task_name, duration_ms, True))
             except asyncio.CancelledError:
                 break
             except Exception as exc:
                 self._failed_count += 1
+                duration_ms = (time.perf_counter() - start_ts) * 1000
                 logger.error(
                     "Worker %d task %s failed: %s",
                     worker_id,
-                    getattr(func, "__name__", str(func)),
+                    task_name,
                     exc,
                     exc_info=True,
                 )
+                asyncio.create_task(self._record_redis_telemetry(task_name, duration_ms, False))
             finally:
                 if self._queue is not None:
                     self._queue.task_done()
+
+    async def _record_redis_telemetry(self, task_name: str, duration_ms: float, success: bool) -> None:
+        """Asynchronously records task completion metrics to Upstash Redis without blocking."""
+        try:
+            from app.core.redis_limiter import _upstash_command
+            status_field = "processed_total" if success else "failed_total"
+            now_ts = int(time.time())
+            await _upstash_command("HINCRBY", "qp:queue:stats", status_field, 1)
+            await _upstash_command("HSET", "qp:queue:stats", "last_task", task_name, "last_updated_at", now_ts)
+        except Exception:
+            pass
+
+    async def get_combined_stats(self) -> Dict[str, Any]:
+        """Returns in-memory queue metrics combined with distributed Upstash Redis counters."""
+        local = self.stats()
+        redis_stats = {}
+        redis_alive = False
+        try:
+            from app.core.redis_limiter import _upstash_command
+            res = await _upstash_command("HGETALL", "qp:queue:stats")
+            if res:
+                if isinstance(res, list):
+                    redis_stats = {res[i]: res[i + 1] for i in range(0, len(res), 2)}
+                elif isinstance(res, dict):
+                    redis_stats = res
+                redis_alive = True
+            else:
+                pong = await _upstash_command("PING")
+                redis_alive = bool(pong)
+        except Exception:
+            redis_alive = False
+
+        return {
+            **local,
+            "redis_connected": redis_alive,
+            "redis_telemetry": redis_stats,
+        }
 
     def enqueue(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> bool:
         """Enqueues a task for async background execution.

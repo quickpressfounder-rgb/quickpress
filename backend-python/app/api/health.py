@@ -49,6 +49,17 @@ async def db_metrics() -> dict:
     return database.get_pool_metrics()
 
 
+@router.get("/health/queue", summary="Message Queue & Upstash Redis APM status")
+async def queue_status() -> dict:
+    """Returns real-time message queue status and Upstash Redis connectivity."""
+    from app.core.async_queue import async_task_queue
+    stats = await async_task_queue.get_combined_stats()
+    return {
+        "status": "ok",
+        "queue": stats,
+    }
+
+
 # ---------------------------------------------------------------------------
 # GET /countries  (mounted at /api/countries)
 # India is the only supported market for Phase 1. The list is static data —

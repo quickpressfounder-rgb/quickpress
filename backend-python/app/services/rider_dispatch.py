@@ -727,8 +727,10 @@ class RiderDispatchEngine:
         )
 
         from app.services.order_notifications import dispatch_order_transition_notifications
+        from app.core.async_queue import async_task_queue
 
-        await dispatch_order_transition_notifications(
+        async_task_queue.enqueue(
+            dispatch_order_transition_notifications,
             updated_doc,
             target_status,
             actor_id=rider_id,

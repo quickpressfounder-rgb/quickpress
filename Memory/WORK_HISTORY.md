@@ -1,5 +1,32 @@
 # QuickPress — Engineering Work History
 
+## Session: November 12, 2026 (Part 7)
+
+### Production Message Queue & Upstash Redis Real-Time Integration
+
+1. **Context & User Request:**
+   - User noted that Upstash Redis is configured in `.env` and requested full, real-world integration as a live, fully functional message and task queue:
+     *"pahle sa bana hua hai or server env me bhi hia ab iska intragtion karo real project ke hisab se banana hai full working baanan hai"*
+
+2. **System Architectural Upgrades Delivered:**
+   - `backend-python/app/core/async_queue.py`:
+     - Integrated `AsyncTaskQueue` with live Upstash Redis connection (`comic-pug-288164.upstash.io`).
+     - Added asynchronous Redis telemetry tracking (`HINCRBY qp:queue:stats processed_total / failed_total` and `HSET last_task / last_updated_at`).
+     - Added `get_combined_stats()` returning in-memory worker metrics combined with distributed Redis telemetry.
+   - `backend-python/app/services/order_lifecycle.py`:
+     - Offloaded synchronous `dispatch_order_transition_notifications` into `async_task_queue.enqueue(...)` so order status transitions drop to sub-10ms response times.
+   - `backend-python/app/services/rider_dispatch.py`:
+     - Offloaded rider assignment notifications to `async_task_queue.enqueue(...)`.
+   - `backend-python/app/api/health.py`:
+     - Added dedicated APM endpoint: `GET /api/health/queue` reporting real-time worker states, queue depth, and Upstash Redis connectivity.
+
+3. **Verification & Testing Results:**
+   - Verified live Upstash Redis connectivity: PING returned `200 {"result":"PONG"}`.
+   - Verified end-to-end task execution and live Redis telemetry updating (`processed_total: 1`, `redis_connected: True`).
+   - Pytest test suites passed: 7/7 tests passed in 2.87s (`test_async_order_notifications.py` and `test_idempotency_engine.py`).
+
+---
+
 ## Session: November 12, 2026 (Part 6)
 
 ### Universal Mobile Responsiveness, Anti-Break Layout Hardening & Screen Fluidity
