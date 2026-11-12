@@ -2,34 +2,215 @@ import React, { useState } from "react";
 import { ModalType } from "@/types";
 import {
   IconCheck,
-  IconSparkle,
   IconMapPin,
   IconArrowRight,
   IconIron,
   IconFootprints,
   IconShield,
   IconBolt,
+  IconSparkle,
 } from "@/components/Icons";
 import { handleGetStartedRedirect } from "@/utils/storeRedirect";
 
 interface CityLandingPageProps {
   onOpenModal: (modal: ModalType) => void;
   serviceFocus?: "laundry" | "dry-cleaning" | "steam-iron" | "shoe-cleaning";
+  cityName?: string;
 }
 
-const LOCAL_AREAS = [
-  "Soron Gate",
-  "Railway Station Road",
-  "Bilram Gate",
-  "Housing Board Colony",
-  "Kaliyanpur",
-  "Ashok Nagar",
-  "Gandhi Murti",
-  "Prabhu Park",
-  "Ganjdundwara Road",
-  "Mission Compound",
-  "Nadarai Gate",
-  "Chungi Chauraha",
+// Comprehensive Locality Mappings for Major Indian Cities & Metros
+const CITY_LOCALITIES: Record<string, string[]> = {
+  delhi: [
+    "Connaught Place",
+    "South Extension",
+    "Hauz Khas",
+    "Saket",
+    "Dwarka",
+    "Rohini",
+    "Vasant Kunj",
+    "Lajpat Nagar",
+    "Karol Bagh",
+    "Pitampura",
+    "Janakpuri",
+    "Mayur Vihar",
+  ],
+  noida: [
+    "Sector 18",
+    "Sector 62",
+    "Sector 137",
+    "Sector 76",
+    "Sector 50",
+    "Sector 150",
+    "Greater Noida West",
+    "Noida Expressway",
+    "Sector 128",
+    "Sector 104",
+  ],
+  gurgaon: [
+    "Cyber City",
+    "DLF Phase 1-5",
+    "Golf Course Road",
+    "Sohna Road",
+    "Sector 56",
+    "Sushant Lok",
+    "MG Road",
+    "Sector 48",
+    "Golf Course Extension",
+  ],
+  mumbai: [
+    "Bandra West",
+    "Andheri West",
+    "Juhu",
+    "Powai",
+    "Colaba",
+    "Lower Parel",
+    "Dadar",
+    "Malad West",
+    "Thane West",
+    "Navi Mumbai",
+    "Borivali",
+    "Ghatkopar",
+  ],
+  bangalore: [
+    "Koramangala",
+    "Indiranagar",
+    "HSR Layout",
+    "Whitefield",
+    "Electronic City",
+    "Marathahalli",
+    "Bellandur",
+    "JP Nagar",
+    "Jayanagar",
+    "Sarjapur Road",
+  ],
+  bengaluru: [
+    "Koramangala",
+    "Indiranagar",
+    "HSR Layout",
+    "Whitefield",
+    "Electronic City",
+    "Marathahalli",
+    "Bellandur",
+    "JP Nagar",
+    "Jayanagar",
+    "Sarjapur Road",
+  ],
+  hyderabad: [
+    "Gachibowli",
+    "Hitec City",
+    "Madhapur",
+    "Jubilee Hills",
+    "Banjara Hills",
+    "Kondapur",
+    "Kukatpally",
+    "Secunderabad",
+    "Begumpet",
+    "Manikonda",
+  ],
+  pune: [
+    "Kothrud",
+    "Viman Nagar",
+    "Baner",
+    "Wakad",
+    "Hinjawadi",
+    "Koregaon Park",
+    "Aundh",
+    "Hadapsar",
+    "Magarpatta",
+    "Kalyani Nagar",
+  ],
+  lucknow: [
+    "Gomti Nagar",
+    "Hazratganj",
+    "Alambagh",
+    "Indira Nagar",
+    "Mahanagar",
+    "Aliganj",
+    "Ashiyana",
+    "Chowk",
+    "Vibhuti Khand",
+    "Jankipuram",
+  ],
+  jaipur: [
+    "Malviya Nagar",
+    "Vaishali Nagar",
+    "C-Scheme",
+    "Mansarovar",
+    "Raja Park",
+    "Tonk Road",
+    "Vidhyadhar Nagar",
+    "Civil Lines",
+    "Jagatpura",
+  ],
+  chandigarh: [
+    "Sector 17",
+    "Sector 35",
+    "Sector 22",
+    "Sector 8",
+    "Mohali Phase 7",
+    "Panchkula Sector 20",
+    "Zirakpur",
+    "Sector 43",
+  ],
+  kolkata: [
+    "Salt Lake",
+    "New Town",
+    "Park Street",
+    "Ballygunge",
+    "Alipore",
+    "Gariahat",
+    "Dum Dum",
+    "Rajarhat",
+    "Behala",
+    "Howrah",
+  ],
+  kasganj: [
+    "Soron Gate",
+    "Railway Station Road",
+    "Bilram Gate",
+    "Housing Board Colony",
+    "Kaliyanpur",
+    "Ashok Nagar",
+    "Gandhi Murti",
+    "Prabhu Park",
+    "Ganjdundwara Road",
+    "Mission Compound",
+    "Nadarai Gate",
+    "Chungi Chauraha",
+  ],
+  aligarh: [
+    "Civil Lines",
+    "Center Point",
+    "Ramghat Road",
+    "Medical College Road",
+    "Marris Road",
+    "Swarna Jayanti Nagar",
+    "GT Road",
+    "Quarsi",
+  ],
+  agra: [
+    "Sanjay Place",
+    "Fatehabad Road",
+    "Kamla Nagar",
+    "Dayalbagh",
+    "Shahganj",
+    "Sikandra",
+    "Tajganj",
+    "Khandari",
+  ],
+};
+
+const DEFAULT_LOCALITIES = [
+  "City Center",
+  "Commercial District",
+  "IT & Business Park Zone",
+  "Civil Lines",
+  "Sector 1 to 25",
+  "Main Market Area",
+  "Residential Enclaves",
+  "Railway Station Corridor",
+  "University Campus Area",
+  "Expressway & Bypass Road",
 ];
 
 const LOCAL_SERVICES = [
@@ -73,59 +254,86 @@ const LOCAL_SERVICES = [
     highlight: "Heavy-duty 35kg commercial drum sanitization removes dust mites, allergens, and odors.",
     tag: "Seasonal Care",
   },
-];
-
-const FAQS = [
   {
-    q: "How fast is QuickPress laundry pickup in Kasganj?",
-    a: "Our trained delivery captain arrives at your doorstep within 15 minutes of booking anywhere in Kasganj, or at your selected scheduled time slot.",
-  },
-  {
-    q: "Do you charge extra for doorstep pickup and delivery in Kasganj?",
-    a: "No! QuickPress offers transparent rates with free doorstep collection and delivery across all primary residential and commercial areas in Kasganj.",
-  },
-  {
-    q: "Which localities in Kasganj do you cover?",
-    a: "We cover all major areas including Soron Gate, Bilram Gate, Railway Station Road, Housing Board Colony, Kaliyanpur, Ashok Nagar, Gandhi Murti, and surrounding neighborhoods.",
-  },
-  {
-    q: "Are my expensive silk sarees and suits safe?",
-    a: "Yes. We use 100% perchloroethylene-free Italian hydrocarbon dry cleaning that preserves natural silk proteins, zari, and delicate embroidery without chemical odor or fading.",
-  },
-  {
-    q: "How do I book online laundry pickup?",
-    a: "You can book directly on this website, tap WhatsApp (+91 9258730561), or download the QuickPress Android App. Booking takes less than 60 seconds.",
+    id: "b2b-contract",
+    title: "Commercial Institutional Laundry",
+    price: "Volume Contract Rates",
+    turnaround: "Scheduled Daily Logistics",
+    highlight: "NABH-compliant linen washing and uniform care for hotels, hospitals, gyms, and corporate offices.",
+    tag: "Enterprise B2B",
   },
 ];
 
-export function CityLandingPage({ onOpenModal, serviceFocus = "laundry" }: CityLandingPageProps) {
+function formatCityDisplay(raw: string): string {
+  if (!raw) return "All India";
+  const cleaned = raw.trim().replace(/-/g, " ");
+  return cleaned
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+export function CityLandingPage({ onOpenModal, serviceFocus = "laundry", cityName = "All India" }: CityLandingPageProps) {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
+  const displayCity = formatCityDisplay(cityName);
+  const cityKey = (cityName || "").toLowerCase().replace(/[^a-z]/g, "");
+  const activeAreas = CITY_LOCALITIES[cityKey] || DEFAULT_LOCALITIES;
+
+  const isNational = !cityName || cityKey === "allindia" || cityKey === "india";
+
   const getH1 = () => {
+    const locText = isNational ? "in India" : `in ${displayCity}`;
     switch (serviceFocus) {
       case "dry-cleaning":
-        return "Best Dry Cleaning Service in Kasganj — Free Doorstep Pickup";
+        return `Best Dry Cleaning Service ${locText} — Free Doorstep Pickup`;
       case "steam-iron":
-        return "Best Steam Ironing Service in Kasganj — 15-Minute Pickup";
+        return `Best Steam Ironing Service ${locText} — 15-Minute Pickup`;
       case "shoe-cleaning":
-        return "Best Sneaker & Shoe Spa in Kasganj — Deep Restoration";
+        return `Best Sneaker & Shoe Spa ${locText} — Deep Restoration`;
       default:
-        return "Best Laundry & Dry Cleaning Service in Kasganj — Doorstep Pickup";
+        return `Best Laundry & Dry Cleaning Service ${locText} — Doorstep Pickup`;
     }
   };
 
   const getSubtitle = () => {
+    const locText = isNational ? "across India" : `across ${displayCity}`;
     switch (serviceFocus) {
       case "dry-cleaning":
-        return "Italian hydrocarbon eco dry cleaning for suits, silk sarees, blazers, and wedding wear with 15-minute doorstep pickup and 48-hour delivery across Kasganj.";
+        return `Italian hydrocarbon eco dry cleaning for suits, silk sarees, blazers, and wedding wear with 15-minute doorstep pickup and 48-hour delivery ${locText}.`;
       case "steam-iron":
-        return "Industrial Italian vacuum-bed dry steam pressing for crisp, razor-sharp creases with zero scorch risk. Fast 12 to 24-hour return delivery.";
+        return `Industrial Italian vacuum-bed dry steam pressing for crisp, razor-sharp creases with zero scorch risk. Fast 12 to 24-hour return delivery ${locText}.`;
       case "shoe-cleaning":
-        return "Professional footwear restoration, sole disinfection, suede nap revival, and water-repellent coating for sneakers, sports shoes, and leather formals.";
+        return `Professional footwear restoration, sole disinfection, suede nap revival, and water-repellent coating for sneakers, sports shoes, and leather formals ${locText}.`;
       default:
-        return "QuickPress is Kasganj's #1 on-demand laundry and garment care service. 15-minute doorstep pickup, hygienic RO-purified water washing, steam iron, and 24-hour fast delivery.";
+        return `QuickPress is India's leading on-demand hyper-local laundry and garment care marketplace. 15-minute doorstep collection, hygienic RO water washing, steam iron, and 24-hour delivery ${locText}.`;
     }
   };
+
+  const faqs = [
+    {
+      q: `How fast is QuickPress laundry pickup ${isNational ? "in my city" : `in ${displayCity}`}?`,
+      a: `Our trained delivery captain arrives at your doorstep within 15 minutes of booking ${isNational ? "across covered cities in India" : `in ${displayCity}`}, or at your selected scheduled time slot.`,
+    },
+    {
+      q: `Do you charge extra for doorstep pickup and delivery ${isNational ? "in India" : `in ${displayCity}`}?`,
+      a: "No! QuickPress offers transparent per-kg and per-piece rates with free doorstep collection and delivery across all primary residential and commercial areas.",
+    },
+    {
+      q: `Which localities ${isNational ? "are covered by QuickPress" : `in ${displayCity} do you cover`}?`,
+      a: isNational
+        ? "We operate across major metros and urban hubs including Delhi NCR, Mumbai, Bangalore, Hyderabad, Pune, Lucknow, Jaipur, Chandigarh, Kasganj, and are rapidly expanding pan-India."
+        : `We cover all major neighborhoods across ${displayCity} including ${activeAreas.slice(0, 6).join(", ")}, and surrounding districts.`,
+    },
+    {
+      q: "Are my expensive silk sarees, suits, and designer wear safe?",
+      a: "Yes, 100%. QuickPress uses Italian hydrocarbon dry cleaning that is completely free of perchloroethylene, protecting natural silk proteins, zari, and delicate embroidery without chemical odors or fabric degradation.",
+    },
+    {
+      q: "Does QuickPress provide commercial B2B contracts for hotels and hospitals?",
+      a: "Yes! QuickPress Enterprise provides high-capacity institutional laundry contracts with dedicated daily logistics, GST billing, and NABH-compliant sanitization protocols across India.",
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pt-20">
@@ -133,13 +341,17 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry" }: CityL
       <section className="relative overflow-hidden bg-gradient-to-b from-emerald-50/70 via-white to-slate-50 py-16 md:py-24 border-b border-slate-200/80">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="flex flex-col items-center text-center">
-            {/* Local Badge */}
+            {/* National / Local Badge */}
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-100/70 px-4 py-1.5 text-xs font-bold text-emerald-900 shadow-2xs mb-6">
               <IconMapPin className="size-3.5 text-emerald-700" />
-              <span>Kasganj Primary Flagship Hub • 15-Min Doorstep Dispatch</span>
+              <span>
+                {isNational
+                  ? "India's #1 On-Demand Garment Care Network • Pan-India Doorstep Dispatch"
+                  : `${displayCity} Verified Hub • 15-Minute Doorstep Dispatch`}
+              </span>
             </div>
 
-            {/* Main Local H1 */}
+            {/* Main H1 */}
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-950 max-w-4xl leading-tight">
               {getH1()}
             </h1>
@@ -152,7 +364,7 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry" }: CityL
             {/* Key Trust Highlights */}
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-slate-700">
               <span className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs">
-                <IconCheck className="size-3.5 text-emerald-600" /> 15-Min Pickup
+                <IconCheck className="size-3.5 text-emerald-600" /> 15-Min Doorstep Pickup
               </span>
               <span className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs">
                 <IconCheck className="size-3.5 text-emerald-600" /> 100% RO Water Wash
@@ -161,7 +373,7 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry" }: CityL
                 <IconCheck className="size-3.5 text-emerald-600" /> 4-Digit Security OTP
               </span>
               <span className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs">
-                <IconCheck className="size-3.5 text-emerald-600" /> Rated 4.9/5 by 1,280+ Customers
+                <IconCheck className="size-3.5 text-emerald-600" /> Rated 4.9/5 Across India
               </span>
             </div>
 
@@ -176,7 +388,9 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry" }: CityL
                 <IconArrowRight className="size-4" />
               </button>
               <a
-                href="https://wa.me/919258730561?text=Hi%20QuickPress,%20I%20want%20to%20book%20a%20laundry%20pickup%20in%20Kasganj"
+                href={`https://wa.me/919258730561?text=${encodeURIComponent(
+                  `Hi QuickPress, I want to book a laundry pickup in ${displayCity}`
+                )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3.5 text-sm font-bold text-slate-800 shadow-2xs hover:bg-slate-50 active:scale-95 transition-all"
@@ -188,20 +402,24 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry" }: CityL
         </div>
       </section>
 
-      {/* Local Coverage Map & Zones */}
+      {/* Coverage Map & Localities */}
       <section className="py-12 bg-white border-b border-slate-200/80">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="text-center max-w-3xl mx-auto">
             <h2 className="text-xl sm:text-2xl font-black text-slate-950">
-              Active Doorstep Pickup Zones in Kasganj
+              {isNational
+                ? "Active Metro & Regional Operating Hubs Across India"
+                : `Active Doorstep Pickup Zones in ${displayCity}`}
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              Our delivery fleet operates throughout Kasganj with guaranteed 15-minute collection response.
+              {isNational
+                ? "Our certified laundromat partners and delivery captains provide seamless doorstep service in key Indian urban hubs."
+                : `Our delivery fleet operates throughout ${displayCity} with guaranteed 15-minute collection response.`}
             </p>
           </div>
 
           <div className="mt-8 flex flex-wrap justify-center gap-2 sm:gap-3 max-w-4xl mx-auto">
-            {LOCAL_AREAS.map((area) => (
+            {activeAreas.map((area) => (
               <span
                 key={area}
                 className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-xs font-semibold text-slate-800"
@@ -218,9 +436,9 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry" }: CityL
       <section className="py-16 bg-slate-50 border-b border-slate-200/80">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="text-center max-w-3xl mx-auto mb-12">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Transparent Local Rates</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Transparent National Rates</span>
             <h2 className="mt-1 text-2xl sm:text-3xl font-black text-slate-950">
-              Kasganj Service Menu & Delivery Timelines
+              {displayCity} Service Menu & Delivery Timelines
             </h2>
             <p className="mt-2 text-sm text-slate-600">
               Zero hidden fees. We weigh and inspect garments right at your doorstep before issuing digital receipt.
@@ -267,7 +485,7 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry" }: CityL
           <div className="text-center max-w-3xl mx-auto mb-12">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Simple 3-Step Process</span>
             <h2 className="mt-1 text-2xl sm:text-3xl font-black text-slate-950">
-              How Doorstep Laundry Works in Kasganj
+              How Doorstep Laundry Works {isNational ? "Across India" : `in ${displayCity}`}
             </h2>
           </div>
 
@@ -305,18 +523,18 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry" }: CityL
         </div>
       </section>
 
-      {/* Local Kasganj FAQs Accordion */}
+      {/* Local FAQs Accordion */}
       <section className="py-16 bg-slate-50">
         <div className="mx-auto max-w-4xl px-4 sm:px-6">
           <div className="text-center max-w-2xl mx-auto mb-10">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Got Questions?</span>
             <h2 className="mt-1 text-2xl sm:text-3xl font-black text-slate-950">
-              Kasganj Laundry Service FAQs
+              {displayCity} Laundry Service FAQs
             </h2>
           </div>
 
           <div className="space-y-3">
-            {FAQS.map((faq, idx) => {
+            {faqs.map((faq, idx) => {
               const isOpen = openFaq === idx;
               return (
                 <div
@@ -345,7 +563,9 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry" }: CityL
 
           {/* Bottom CTA Banner */}
           <div className="mt-12 rounded-2xl bg-gradient-to-r from-emerald-800 to-emerald-950 p-8 text-center text-white shadow-lg">
-            <h3 className="text-xl sm:text-2xl font-black">Ready for Fresh, Clean Clothes in Kasganj?</h3>
+            <h3 className="text-xl sm:text-2xl font-black">
+              Ready for Fresh, Clean Clothes {isNational ? "in India" : `in ${displayCity}`}?
+            </h3>
             <p className="mt-2 text-xs sm:text-sm text-emerald-100 max-w-xl mx-auto">
               Schedule your doorstep pickup in 60 seconds. Our delivery captain will arrive at your home within 15 minutes!
             </p>

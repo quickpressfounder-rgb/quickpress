@@ -37,6 +37,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>("home");
   const [partnerStoreId, setPartnerStoreId] = useState<string>("");
   const [cityServiceFocus, setCityServiceFocus] = useState<"laundry" | "dry-cleaning" | "steam-iron" | "shoe-cleaning">("laundry");
+  const [selectedCityName, setSelectedCityName] = useState<string>("All India");
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedService, setSelectedService] = useState<ServiceInfo | null>(null);
   const [toast, setToast] = useState<ToastState>({ show: false, message: "" });
@@ -104,23 +105,37 @@ export default function App() {
         return;
       }
 
-      // 3. Detect Hyper-Local SEO Landing Routes (e.g. /laundry-service-in-kasganj)
-      if (
-        target.includes("laundry-service-in-kasganj") ||
-        target.includes("laundry-kasganj") ||
-        target.includes("dry-cleaning-in-kasganj") ||
-        target.includes("steam-ironing-in-kasganj") ||
-        target.includes("shoe-cleaning-in-kasganj")
-      ) {
+      // 3. Detect Programmatic City & Pan-India Landing Routes
+      // Examples: /laundry-service-in-delhi, /dry-cleaning-in-mumbai, /laundry-in-bangalore, /laundry-services-in-india
+      const cityMatch = target.match(
+        /^(?:laundry|dry-cleaning|steam-ironing|shoe-cleaning|wash-fold)(?:-service|-services)?-in-([a-zA-Z0-9_-]+)/i
+      );
+
+      if (cityMatch && cityMatch[1]) {
+        const rawCity = cityMatch[1].replace(/[-_]/g, " ");
+        setSelectedCityName(rawCity);
+
         if (target.includes("dry-cleaning")) {
           setCityServiceFocus("dry-cleaning");
-        } else if (target.includes("steam-ironing")) {
+        } else if (target.includes("steam-ironing") || target.includes("steam-iron")) {
           setCityServiceFocus("steam-iron");
-        } else if (target.includes("shoe-cleaning")) {
+        } else if (target.includes("shoe-cleaning") || target.includes("shoe-spa")) {
           setCityServiceFocus("shoe-cleaning");
         } else {
           setCityServiceFocus("laundry");
         }
+        setCurrentPage("city-landing");
+        return;
+      }
+
+      if (
+        target === "india" ||
+        target === "all-india" ||
+        target === "laundry-india" ||
+        target === "laundry-service-india"
+      ) {
+        setSelectedCityName("All India");
+        setCityServiceFocus("laundry");
         setCurrentPage("city-landing");
         return;
       }
@@ -255,6 +270,7 @@ export default function App() {
             <CityLandingPage
               onOpenModal={handleOpenModal}
               serviceFocus={cityServiceFocus}
+              cityName={selectedCityName}
             />
           )}
 

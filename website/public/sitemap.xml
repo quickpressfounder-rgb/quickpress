@@ -2,15 +2,89 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-  <!-- Core Homepage & Booking Portal -->
+  <!-- Core Homepage & National Service Portal -->
   <url>
     <loc>https://withquickpress.com/</loc>
     <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
+  <url>
+    <loc>https://withquickpress.com/laundry-services-in-india</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
 
-  <!-- Hyper-Local Programmatic SEO Landing Pages -->
+  <!-- Pan-India Major Metros & Tech Hubs -->
+  <url>
+    <loc>https://withquickpress.com/laundry-service-in-delhi</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://withquickpress.com/laundry-service-in-noida</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://withquickpress.com/laundry-service-in-gurgaon</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://withquickpress.com/laundry-service-in-mumbai</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://withquickpress.com/laundry-service-in-bangalore</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://withquickpress.com/laundry-service-in-hyderabad</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://withquickpress.com/laundry-service-in-pune</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://withquickpress.com/laundry-service-in-kolkata</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://withquickpress.com/laundry-service-in-lucknow</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://withquickpress.com/laundry-service-in-jaipur</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://withquickpress.com/laundry-service-in-chandigarh</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Regional Hubs & Operational Flagships -->
   <url>
     <loc>https://withquickpress.com/laundry-service-in-kasganj</loc>
     <lastmod>2026-11-12</lastmod>
@@ -18,22 +92,54 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://withquickpress.com/dry-cleaning-in-kasganj</loc>
+    <loc>https://withquickpress.com/laundry-service-in-aligarh</loc>
     <lastmod>2026-11-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://withquickpress.com/laundry-service-in-agra</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Specialized Dry Cleaning & Care Verticals -->
+  <url>
+    <loc>https://withquickpress.com/dry-cleaning-in-delhi</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://withquickpress.com/dry-cleaning-in-mumbai</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://withquickpress.com/dry-cleaning-in-bangalore</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://withquickpress.com/dry-cleaning-in-kasganj</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
   </url>
   <url>
     <loc>https://withquickpress.com/steam-ironing-in-kasganj</loc>
     <lastmod>2026-11-12</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.85</priority>
   </url>
   <url>
     <loc>https://withquickpress.com/shoe-cleaning-in-kasganj</loc>
     <lastmod>2026-11-12</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.85</priority>
   </url>
 
   <!-- Commercial Enterprise B2B Portal -->
@@ -44,7 +150,7 @@
     <priority>0.85</priority>
   </url>
 
-  <!-- Company & Trust Pages -->
+  <!-- Corporate & Trust Pages -->
   <url>
     <loc>https://withquickpress.com/about</loc>
     <lastmod>2026-11-12</lastmod>

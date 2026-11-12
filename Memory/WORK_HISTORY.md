@@ -1,5 +1,36 @@
 # QuickPress — Engineering Work History
 
+## Session: November 12, 2026 (Part 2)
+
+### Pan-India (All-India) Programmatic SEO Scaling & National Expansion Engine
+
+1. **Context & User Request:**
+   - User explicitly instructed: *"only kasganj ke liye nahi, all india ke liye karna hai"* (Scale SEO from single-city Kasganj focus to full Pan-India national dominance across all Indian states, metros, and urban cities).
+
+2. **Pan-India Architectural Upgrades:**
+   - **Dynamic Regex-Driven Programmatic City Router (`website/src/App.tsx`):**
+     - Replaced hardcoded city routing with dynamic regex pattern:
+       `/^(?:laundry|dry-cleaning|steam-ironing|shoe-cleaning|wash-fold)(?:-service|-services)?-in-([a-zA-Z0-9_-]+)/i`.
+     - Enables QuickPress to serve dynamic, search-engine-indexed landing pages for ANY of India's 4,000+ cities and towns instantly (e.g. `/laundry-service-in-delhi`, `/laundry-service-in-mumbai`, `/laundry-service-in-bangalore`, `/laundry-service-in-pune`, `/laundry-service-in-hyderabad`, `/laundry-services-in-india`).
+   - **Pan-India Programmatic Landing Page Engine (`website/src/pages/CityLandingPage.tsx`):**
+     - Implemented dynamic dictionary of top Indian metros and state capitals (Delhi NCR, Noida, Gurgaon, Mumbai, Bengaluru, Hyderabad, Pune, Lucknow, Jaipur, Chandigarh, Kolkata, Aligarh, Agra, Kasganj) with genuine local landmark mappings.
+     - Auto-generates city-specific H1s, meta tags, local pricing cards, localized 3-step flows, and local FAQ accordions matching user search intent.
+   - **National Breadth in Structured Data (`website/index.html`):**
+     - Scaled `areaServed` in `DryCleaningOrLaundry` Schema to Country `India` plus major Indian metropolitan centers (Delhi NCR, Mumbai, Bengaluru, Hyderabad, Pune, Lucknow, Jaipur, Chandigarh, Kasganj).
+     - Updated primary `meta name="title"`, `description`, `keywords`, and `geo.region: IN` for national ranking authority.
+   - **Comprehensive Pan-India XML Sitemap (`sitemap.xml`):**
+     - Expanded `sitemap.xml` in both `website` and `customer-frontend` with top Indian metros (Delhi, Noida, Gurgaon, Mumbai, Bangalore, Hyderabad, Pune, Kolkata, Lucknow, Jaipur, Chandigarh) and specialized vertical landing URLs with daily/weekly crawl priority.
+   - **Pan-India AI Standard (`llms.txt` & `llms-full.txt`):**
+     - Re-authored specification files presenting QuickPress as India's premier national on-demand laundry and garment care marketplace.
+   - **Pan-India Footer Navigation (`website/src/components/Footer.tsx`):**
+     - Linked top national metro hubs in the global footer to provide permanent crawl paths for Googlebot across all web sessions.
+
+3. **Verification:**
+   - Website build: `npm --prefix website run build` succeeded (exit code 0).
+   - Customer frontend SSR build: `npm --prefix customer-frontend run build` succeeded (exit code 0).
+
+---
+
 ## Session: November 12, 2026 (Part 1)
 
 ### Google Search & AI Engine Dominance Engine (SEO, GEO, llms.txt, Schema & Local SEO)

@@ -71,42 +71,50 @@ export function Footer({
             </ul>
           </div>
 
-          {/* Column 2: Local Hubs & For Partners */}
+          {/* Column 2: Pan-India Operating Hubs */}
           <div className="space-y-3">
             <h5 className="text-xs sm:text-sm font-black tracking-wider uppercase text-white mb-4">
-              Local Laundry Hubs
+              Pan-India Laundry Hubs
             </h5>
-            <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-400">
+            <ul className="space-y-2 text-xs text-zinc-400">
               <li>
-                <a
-                  href="/laundry-service-in-kasganj"
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium block"
-                >
-                  Laundry in Kasganj
+                <a href="/laundry-service-in-delhi" className="hover:text-white transition-colors block">
+                  Delhi NCR Laundry
                 </a>
               </li>
               <li>
-                <a
-                  href="/dry-cleaning-in-kasganj"
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium block"
-                >
-                  Dry Cleaning in Kasganj
+                <a href="/laundry-service-in-mumbai" className="hover:text-white transition-colors block">
+                  Mumbai Dry Cleaning
                 </a>
               </li>
               <li>
-                <a
-                  href="/steam-ironing-in-kasganj"
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium block"
-                >
-                  Steam Ironing in Kasganj
+                <a href="/laundry-service-in-bangalore" className="hover:text-white transition-colors block">
+                  Bengaluru Garment Care
                 </a>
               </li>
               <li>
-                <a
-                  href="/shoe-cleaning-in-kasganj"
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium block"
-                >
-                  Sneaker & Shoe Spa Kasganj
+                <a href="/laundry-service-in-hyderabad" className="hover:text-white transition-colors block">
+                  Hyderabad Laundry
+                </a>
+              </li>
+              <li>
+                <a href="/laundry-service-in-pune" className="hover:text-white transition-colors block">
+                  Pune Steam Ironing
+                </a>
+              </li>
+              <li>
+                <a href="/laundry-service-in-lucknow" className="hover:text-white transition-colors block">
+                  Lucknow Laundry Hub
+                </a>
+              </li>
+              <li>
+                <a href="/laundry-service-in-jaipur" className="hover:text-white transition-colors block">
+                  Jaipur Dry Cleaners
+                </a>
+              </li>
+              <li>
+                <a href="/laundry-service-in-kasganj" className="hover:text-white transition-colors block">
+                  Kasganj Flagship Hub
                 </a>
               </li>
               <li className="pt-2">
@@ -115,7 +123,7 @@ export function Footer({
                   onClick={() => onNavigate("b2b-partner")}
                   className="hover:text-white transition-colors cursor-pointer text-left font-semibold text-emerald-400 block"
                 >
-                  B2B & Partner With Us
+                  Commercial B2B Laundry
                 </button>
               </li>
             </ul>
