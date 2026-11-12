@@ -31,7 +31,7 @@ export function IPhone15OrderTracking({
       <div className="absolute -inset-4 bg-gradient-to-tr from-emerald-500/20 via-emerald-600/10 to-teal-400/20 rounded-[64px] blur-2xl opacity-75 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
       {/* ─── REAL IPHONE 15 PRO CHASSIS ─── */}
-      <div className="relative w-[320px] sm:w-[350px] rounded-[54px] p-3.5 bg-gradient-to-b from-[#4A4B50] via-[#28292D] to-[#18191C] shadow-[0_30px_90px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.18),inset_0_1px_2px_rgba(255,255,255,0.4)] transition-all duration-500 hover:scale-[1.02]">
+      <div className="relative w-full max-w-[320px] sm:max-w-[350px] rounded-[54px] p-3.5 bg-gradient-to-b from-[#4A4B50] via-[#28292D] to-[#18191C] shadow-[0_30px_90px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.18),inset_0_1px_2px_rgba(255,255,255,0.4)] transition-all duration-500 hover:scale-[1.02]">
         {/* Hardware: Left Side Buttons */}
         {/* Action Button */}
         <div className="absolute -left-[6px] top-24 w-1.5 h-7 bg-[#34353A] rounded-l-md border-r border-[#1B1C1E] shadow-xs" />

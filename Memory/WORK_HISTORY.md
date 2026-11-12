@@ -1,5 +1,40 @@
 # QuickPress — Engineering Work History
 
+## Session: November 12, 2026 (Part 6)
+
+### Universal Mobile Responsiveness, Anti-Break Layout Hardening & Screen Fluidity
+
+1. **Context & User Request:**
+   - User requested verification that the design never breaks on ANY screen size or mobile model (from ultra-narrow 320px compact phones to foldables, standard Android/iPhones, and tablets):
+     *"ab ek chiz verfiy karo ki mer desing kahi bhi kisi me screen par tute nahi cahe mobile ke koisa bhi model ho ye koisa bhi moble ho or iska solvution batao kiya hai"*
+
+2. **Root Cause Analysis (Why Designs Break on Mobile Devices):**
+   - **Horizontal Side-Scroll (Overflow Leaks):** Decorative absolute blur circles and fixed-width containers push past the viewport width on screens < 375px when `overflow-x: hidden / clip` is absent on root HTML/body.
+   - **Fixed Pixel Widths:** Rigid classes like `w-[320px]` inside padded containers (e.g. `px-4`) exceed the 320px screen boundary (320 - 32 = 288px available).
+   - **iOS Safari Input Zoom Distortion:** Form inputs with font-size < 16px trigger automatic WebKit viewport zooming upon focus, throwing the page out of alignment until manual pinch-to-zoom.
+   - **iPhone Notch & Dynamic Island Cutoffs:** Missing `viewport-fit=cover` causes letterbox white bars or clipping under modern hardware insets.
+   - **Text Clipping on Narrow Screens:** Long unbroken strings or rigid headings (`text-4xl`) overflowing 320px viewport boundaries.
+
+3. **Engineering Solutions Delivered:**
+   - `website/index.html`:
+     - Upgraded viewport meta tag: `<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />`.
+   - `website/src/index.css`:
+     - Added global `overflow-x: hidden`, `overflow-x: clip`, and `overscroll-behavior-x: none` to `html`, `body`, and `#root`.
+     - Injected universal fluid media constraints: `max-width: 100%; height: auto;` across `img, svg, video, canvas`.
+     - Enforced WebKit input zoom prevention (`font-size: 16px !important` on inputs under mobile WebKit pixel ratio).
+     - Applied `overflow-wrap: break-word` across all typography elements.
+   - `website/src/components/IPhone15OrderTracking.tsx`:
+     - Converted rigid `w-[320px] sm:w-[350px]` into fully fluid `w-full max-w-[320px] sm:max-w-[350px]`.
+   - `website/src/pages/HomePage.tsx`:
+     - Added `text-[32px] sm:text-6xl break-words` to Hero H1 to ensure clean rendering on 320px screens.
+     - Hardened dual search bar with flexible fluid wrapping on mobile displays.
+
+4. **Verification & Testing Results:**
+   - Website build: `npm --prefix website run build` passed in 1.49s (exit code 0).
+   - Customer frontend SSR build: `npm --prefix customer-frontend run build` passed in 1.71s (exit code 0).
+
+---
+
 ## Session: November 12, 2026 (Part 5)
 
 ### Microsoft Bing Webmaster Tools & IndexNow Verification Deployment
