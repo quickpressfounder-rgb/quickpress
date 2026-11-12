@@ -1,5 +1,32 @@
 # QuickPress — Engineering Work History
 
+## Session: November 12, 2026 (Part 4)
+
+### Official Founder LinkedIn Integration Across Web Properties & Knowledge Graph Schemas
+
+1. **Context & User Request:**
+   - User created their personal professional LinkedIn profile (`https://www.linkedin.com/in/himanshubaghel999`) and requested to link it everywhere across the project:
+     *"bana kiya ab iska link harjgha laga do www.linkedin.com/in/himanshubaghel999"*
+   - User also reaffirmed the earlier dashboard simplification and latency fixes (removing Category-Wise Services Catalog and Platform Automation Surveillance, and speeding up admin console queries).
+
+2. **Files Modified & Linked:**
+   - `website/index.html`:
+     - Updated canonical `DryCleaningOrLaundry` Schema.org `founder` entity: `sameAs` array now includes `"https://www.linkedin.com/in/himanshubaghel999"`.
+   - `website/src/pages/AboutPage.tsx`:
+     - Updated Founder spotlight social anchor button to point directly to `https://www.linkedin.com/in/himanshubaghel999`.
+   - `website/public/llms.txt` & `website/public/llms-full.txt`:
+     - Updated AI search knowledge base founder records to reference `https://www.linkedin.com/in/himanshubaghel999`.
+   - `customer-frontend/public/llms.txt` & `customer-frontend/public/llms-full.txt`:
+     - Synchronized web app SSR AI search knowledge base to `https://www.linkedin.com/in/himanshubaghel999`.
+   - `customer-frontend/src/routes/about.tsx`:
+     - Updated `AboutPage` Schema.org `Person` entity: `sameAs` array now references `https://www.linkedin.com/in/himanshubaghel999`.
+
+3. **Verification:**
+   - Website build: `PATH=$PATH:/usr/local/bin:/opt/homebrew/bin /usr/local/bin/npm --prefix website run build` passed in 1.81s (exit code 0).
+   - Customer frontend SSR build: `PATH=$PATH:/usr/local/bin:/opt/homebrew/bin /usr/local/bin/npm --prefix customer-frontend run build` passed in 2.23s (exit code 0).
+
+---
+
 ## Session: November 12, 2026 (Part 3)
 
 ### Google Knowledge Graph & Founder Entity SEO (Himanshu Pal & Rishab Baghel)

@@ -760,7 +760,7 @@ export function AboutPage({
                 </a>
 
                 <a
-                  href="https://www.linkedin.com/in/himanshubaghel"
+                  href="https://www.linkedin.com/in/himanshubaghel999"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Himanshu Pal on LinkedIn"

@@ -64,7 +64,7 @@ export const Route = createFileRoute("/about")({
               "name": "Kasganj, Uttar Pradesh, India"
             },
             "sameAs": [
-              "https://www.linkedin.com/in/himanshubaghel",
+              "https://www.linkedin.com/in/himanshubaghel999",
               "https://x.com/himanshubaghel",
               "https://www.instagram.com/unfiltered_himanshu_._/"
             ]
