@@ -984,3 +984,26 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
        - Category-Wise Services 4 KPI Summary Strip (Active Services, #1 Top Grossing SKU, Highest Volume SKU, Partner Adoption).
        - Regional City & Operating Zone Breakdown table header & Quick Actions panel icons.
    - **Verification:** Ran `npm --prefix admin-frontend run build` passing with exit code 0 (`vite build` via Nitro). Layout completely preserved with zero structural regressions.
+
+7. **Admin Console Finance Engine Modernization & Pilot Operational Upgrades (`finance-engine.tsx`):**
+   - **Distributed Message Queue & Redis APM Widget (`QueueTelemetryPill.tsx`):**
+     - Connected `fetchQueueHealth()` (`/api/health/queue`) to display real-time Upstash Redis connectivity (`comic-pug-288164.upstash.io`), queue depth, and background job metrics in the Finance header.
+     - Added interactive modal with ping diagnostics for async payout and notification batches.
+   - **Kasganj Pilot Quick Controls & Emergency Surcharges (`KasganjPilotQuickBar.tsx`):**
+     - Built prominent 1-click operational controls for local pilot operations:
+       - 🌧️ Rain Surge (+₹15) on/off toggle.
+       - 🌙 Night Surge (+₹20) on/off toggle.
+       - ⚡ Free Delivery Threshold editable presets (₹99, ₹149 pilot default, ₹199, ₹249).
+       - 📦 Minimum Order Value (₹99) and Base Delivery Fee (₹30 for 2 km + ₹10/km).
+       - Direct "Save Live" button broadcasting mutations straight to `updateFinancialRules(...)` with query invalidation and toast feedback.
+   - **2-Tier Categorized Navigation Hub (`finance-engine.tsx`):**
+     - Eliminated clumsy `<select>` dropdown hiding 12 modules; converted into a sleek 2-tier segmented navigation:
+       - **Tier 1:** Category Filter Ribbon (`All Engines (19)`, `📊 Core & Analytics (4)`, `💳 Payouts & Disbursals (3)`, `⚙️ Rules & Tariffs (3)`, `🛵 Fleet & COD (2)`, `🏛️ Accounting & Tax (7)`) + quick direct jump selector.
+       - **Tier 2:** Dynamic segmented TabsList displaying all matching modules as crisp, icon-badged pill buttons with active states and URL query param synchronization.
+     - Fixed `resolveFinanceTab` bug where `cod` and `general-ledger` routes were previously coerced into `settlements` and `accounting-statements`.
+   - **Fleet COD Float Risk Safety Gauge (`FinanceOverviewCommandCenter.tsx`):**
+     - Added real-time rider COD float safety monitor in Section 4 (Treasury Liquidity Distribution) monitoring rider cash in hand vs the ₹3,000 threshold limit with 1-click navigation to COD management.
+   - **Verification & Tests:**
+     - `admin-frontend` production build passed cleanly (`vite v8.2.1` & `nitro`).
+     - Backend pytest suites `test_async_order_notifications.py` and `test_unified_finance_engine.py` passed 9/9 tests (3.50s).
+

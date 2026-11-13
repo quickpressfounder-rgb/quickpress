@@ -102,7 +102,11 @@ function parseOrderAmount(val?: string | number): number {
   return isNaN(num) ? 0 : num;
 }
 
-export function FinanceOverviewCommandCenter() {
+interface FinanceOverviewCommandCenterProps {
+  onNavigateTab?: (tab: string) => void;
+}
+
+export function FinanceOverviewCommandCenter({ onNavigateTab }: FinanceOverviewCommandCenterProps = {}) {
   // --------------------------------------------------------------------------
   // 1. Filter States (Orders Page Theme Standard)
   // --------------------------------------------------------------------------
@@ -1198,6 +1202,30 @@ export function FinanceOverviewCommandCenter() {
                 <span className="text-[10px] text-amber-700 font-bold block mt-0.5">Fleet Float</span>
               </div>
             </div>
+
+            {/* Fleet COD Holding Risk Indicator */}
+            <div className="mt-3 p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/80 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <Wallet className="size-4 text-amber-700 shrink-0" />
+                <div>
+                  <span className="font-bold text-amber-950 block text-[11px] leading-tight">
+                    Rider COD Float Safety Cap
+                  </span>
+                  <span className="text-[10px] text-amber-800">
+                    Max ₹3,000 / rider threshold before automated dispatch block
+                  </span>
+                </div>
+              </div>
+              {onNavigateTab && (
+                <button
+                  type="button"
+                  onClick={() => onNavigateTab("cod")}
+                  className="text-[10px] font-black text-amber-800 hover:text-amber-950 hover:underline shrink-0 cursor-pointer"
+                >
+                  Manage Float →
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Quick Actions Footer */}
@@ -1227,7 +1255,7 @@ export function FinanceOverviewCommandCenter() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setSelectedReport("earnings")}
+              onClick={() => onNavigateTab ? onNavigateTab("ledger") : setSelectedReport("earnings")}
               className="text-xs font-bold text-zinc-900 hover:text-emerald-700 hover:underline cursor-pointer flex items-center gap-1"
             >
               <span>Open Full Ledger View</span>

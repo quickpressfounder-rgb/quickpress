@@ -108,6 +108,8 @@ import { TreasuryCenterView } from "../components/finance/TreasuryCenterView";
 import { ApprovalCenterView } from "../components/finance/ApprovalCenterView";
 import { AiFinanceAssistantView } from "../components/finance/AiFinanceAssistantView";
 import { SettlementEngineControlHub } from "../components/finance/SettlementEngineControlHub";
+import { QueueTelemetryPill } from "../components/finance/QueueTelemetryPill";
+import { KasganjPilotQuickBar } from "../components/finance/KasganjPilotQuickBar";
 import {
   fetchFinancialRules,
   updateFinancialRules,
@@ -960,14 +962,11 @@ export function FinanceEnginePage() {
 
   const resolveFinanceTab = (raw?: string) => {
     if (!raw) return "overview";
-    if (raw === "payouts" || raw === "settlements" || raw === "cod") return "settlements";
-    if (raw === "accounting" || raw === "accounting-statements" || raw === "general-ledger")
-      return "accounting-statements";
-    if (raw === "tax" || raw === "tax-center") return "tax-center";
-    if (raw === "membership" || raw === "memberships") return "memberships";
-    if (raw === "finance-rules" || raw === "rules") return "rules";
-    if (raw === "loyalty") return "loyalty";
-    if (raw === "overview") return "overview";
+    if (raw === "payouts") return "settlements";
+    if (raw === "tax") return "tax-center";
+    if (raw === "membership") return "memberships";
+    if (raw === "finance-rules") return "rules";
+    if (raw === "accounting") return "accounting-statements";
     return raw;
   };
 
@@ -990,6 +989,45 @@ export function FinanceEnginePage() {
       replace: true,
     });
   };
+
+  const [selectedNavCategory, setSelectedNavCategory] = useState<string>("all");
+
+  const financeCategories = useMemo(
+    () => [
+      { id: "all", label: "All Engines (19)" },
+      { id: "core", label: "Core & Analytics (4)" },
+      { id: "settlements", label: "Payouts & Disbursals (3)" },
+      { id: "rules", label: "Rules & Tariffs (3)" },
+      { id: "fleet", label: "Fleet & COD (2)" },
+      { id: "accounting", label: "Accounting & Tax (7)" },
+    ],
+    []
+  );
+
+  const allFinanceModules = useMemo(
+    () => [
+      { id: "overview", label: "Overview & Analytics", category: "core", icon: Activity, color: "text-zinc-900" },
+      { id: "settlements", label: "Payouts Command Center", category: "settlements", icon: Landmark, color: "text-emerald-700" },
+      { id: "rules", label: "Rules & Fare Engine", category: "rules", icon: Sliders, color: "text-blue-700" },
+      { id: "cod", label: "COD & Fleet Vault", category: "fleet", icon: Wallet, color: "text-amber-700" },
+      { id: "tax-center", label: "Tax Center (GST/TDS)", category: "accounting", icon: Receipt, color: "text-purple-700" },
+      { id: "general-ledger", label: "Double-Entry Ledger", category: "accounting", icon: Scale, color: "text-indigo-700" },
+      { id: "recon", label: "3-Way Recon", category: "fleet", icon: RotateCcw, color: "text-sky-700" },
+      { id: "unit-economics", label: "Unit Economics", category: "core", icon: TrendingUp, color: "text-teal-700" },
+      { id: "profitability", label: "Profitability Heatmap", category: "core", icon: Activity, color: "text-emerald-700" },
+      { id: "expenses", label: "Operating Expenses", category: "accounting", icon: IndianRupee, color: "text-rose-700" },
+      { id: "treasury", label: "Treasury & Escrow", category: "settlements", icon: Building2, color: "text-blue-700" },
+      { id: "memberships", label: "Membership Plans", category: "rules", icon: Award, color: "text-amber-700" },
+      { id: "loyalty", label: "Loyalty & Rewards", category: "rules", icon: Gift, color: "text-pink-700" },
+      { id: "approvals", label: "Maker-Checker", category: "settlements", icon: ShieldCheck, color: "text-indigo-700" },
+      { id: "ai-assistant", label: "AI Simulator", category: "core", icon: Sparkles, color: "text-purple-700" },
+      { id: "customer-360", label: "Customer 360", category: "accounting", icon: User, color: "text-zinc-700" },
+      { id: "accounting-statements", label: "GAAP Statements", category: "accounting", icon: FileText, color: "text-zinc-700" },
+      { id: "audit", label: "Audit Logs", category: "accounting", icon: History, color: "text-zinc-700" },
+      { id: "ledger", label: "Order Inspector", category: "accounting", icon: Search, color: "text-zinc-700" },
+    ],
+    []
+  );
 
   // Quick View Drawer states
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -1476,6 +1514,8 @@ export function FinanceEnginePage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <QueueTelemetryPill />
+
             <Button
               variant="outline"
               size="sm"
@@ -1525,74 +1565,96 @@ export function FinanceEnginePage() {
           }}
         />
 
+        {/* Kasganj Pilot Operational Quick Controls */}
+        <KasganjPilotQuickBar
+          currentRules={rulesQuery.data}
+          onNavigateToRulesTab={() => handleTabChange("rules")}
+        />
+
         {/* Primary Enterprise Navigation Tabs */}
-        {/* Streamlined Primary Navigation Switcher */}
-        <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as any)} className="w-full">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-zinc-100/90 p-1.5 rounded-2xl border border-zinc-200 shadow-2xs">
-            <TabsList className="flex items-center gap-1 bg-transparent p-0 h-auto overflow-x-auto">
-              {/* 1. Overview */}
-              <TabsTrigger
-                value="overview"
-                className="font-black text-xs py-2 px-3.5 flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow-xs rounded-xl transition-all"
-              >
-                <Activity className="size-3.5 text-zinc-900" />
-                <span>Overview & Analytics</span>
-              </TabsTrigger>
+        <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as any)} className="w-full space-y-3">
+          {/* Tier 1: Category Filter Ribbon & Direct Jump Selector */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pb-1">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+              {financeCategories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedNavCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shadow-2xs ${
+                    selectedNavCategory === cat.id
+                      ? "bg-zinc-950 text-white shadow-xs"
+                      : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
 
-              {/* 2. Payouts Command Center */}
-              <TabsTrigger
-                value="settlements"
-                className="font-black text-xs py-2 px-3.5 flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs rounded-xl transition-all"
-              >
-                <Landmark className="size-3.5 text-emerald-600" />
-                <span>Payouts Command Center</span>
-              </TabsTrigger>
-
-              {/* 3. Tax Center */}
-              <TabsTrigger
-                value="tax-center"
-                className="font-black text-xs py-2 px-3.5 flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-xs rounded-xl transition-all"
-              >
-                <Receipt className="size-3.5 text-purple-600" />
-                <span>Tax Center (GST/TDS)</span>
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Advanced Secondary Modules Dropdown */}
-            <div className="flex items-center gap-2 pr-2">
-              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider">Other Engines:</span>
+            {/* Quick Direct Jump Selector */}
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider hidden md:inline">
+                Jump To:
+              </span>
               <select
-                value={["overview", "settlements", "tax-center"].includes(activeTab) ? "" : activeTab}
+                value={activeTab}
                 onChange={(e) => {
                   if (e.target.value) {
                     handleTabChange(e.target.value as any);
                   }
                 }}
-                className="h-8 rounded-xl border border-zinc-200 bg-white px-2.5 text-xs font-bold text-zinc-900 focus:border-zinc-950 focus:outline-none"
+                className="h-8 rounded-xl border border-zinc-200 bg-white px-2.5 text-xs font-bold text-zinc-900 focus:border-zinc-950 focus:outline-none shadow-2xs cursor-pointer"
               >
-                <option value="" disabled>Select Technical Module...</option>
-                <option value="rules">Finance Rules Engine</option>
-                <option value="memberships">Membership Plans & MRR</option>
-                <option value="general-ledger">General Ledger</option>
-                <option value="expenses">Expense & Net Profit</option>
-                <option value="profitability">Profitability Heatmap</option>
-                <option value="treasury">Treasury & Banks</option>
-                <option value="cod">COD & Fleet Vault</option>
-                <option value="recon">3-Way Recon</option>
-                <option value="unit-economics">Unit Economics</option>
-                <option value="approvals">Maker-Checker</option>
-                <option value="ai-assistant">AI Simulator</option>
-                <option value="ledger">Order Inspector</option>
-                <option value="audit">Audit Logs</option>
+                {allFinanceModules.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
               </select>
             </div>
+          </div>
+
+          {/* Tier 2: Module Tabs Strip */}
+          <div className="bg-zinc-100/90 p-1.5 rounded-2xl border border-zinc-200 shadow-2xs overflow-x-auto">
+            <TabsList className="flex items-center gap-1 bg-transparent p-0 h-auto w-max min-w-full">
+              {allFinanceModules
+                .filter(
+                  (m) =>
+                    selectedNavCategory === "all" ||
+                    m.category === selectedNavCategory ||
+                    m.id === activeTab
+                )
+                .map((m) => {
+                  const Icon = m.icon;
+                  const isActive = activeTab === m.id;
+                  return (
+                    <TabsTrigger
+                      key={m.id}
+                      value={m.id}
+                      className={`font-black text-xs py-2 px-3.5 flex items-center gap-2 rounded-xl transition-all whitespace-nowrap cursor-pointer ${
+                        isActive
+                          ? "bg-white text-zinc-950 shadow-xs border border-zinc-200/80"
+                          : "text-zinc-600 hover:text-zinc-900 hover:bg-white/60"
+                      }`}
+                    >
+                      <Icon
+                        className={`size-3.5 ${
+                          isActive ? m.color || "text-zinc-900" : "text-zinc-400"
+                        }`}
+                      />
+                      <span>{m.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+            </TabsList>
           </div>
 
           {/* =========================================================================
               TAB 1: FINANCIAL OVERVIEW & COMMAND CENTER
              ========================================================================= */}
           <TabsContent value="overview" className="mt-6 space-y-6">
-            <FinanceOverviewCommandCenter />
+            <FinanceOverviewCommandCenter onNavigateTab={handleTabChange} />
           </TabsContent>
 
           {/* =========================================================================

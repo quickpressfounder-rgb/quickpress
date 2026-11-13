@@ -1896,4 +1896,29 @@ export async function issueCustomerCompensation(payload: {
   return await apiPostJson("/api/finance-engine/payouts/customer-compensation", payload);
 }
 
+// --------------------------------------------------------------------------
+// MESSAGE QUEUE & DISTRIBUTED TELEMETRY APM
+// --------------------------------------------------------------------------
+
+export interface QueueHealthStats {
+  is_running?: boolean;
+  worker_running?: boolean;
+  workers_count?: number;
+  queue_depth?: number;
+  processed_count?: number;
+  failed_count?: number;
+  active_tasks_count?: number;
+  total_processed?: number;
+  total_failed?: number;
+  redis_connected?: boolean;
+  redis_available?: boolean;
+  redis_host?: string;
+  redis_telemetry?: Record<string, string | number>;
+  last_task?: string | null;
+}
+
+export async function fetchQueueHealth(): Promise<{ status: string; queue: QueueHealthStats }> {
+  return await apiGetJson<{ status: string; queue: QueueHealthStats }>("/api/health/queue");
+}
+
 
