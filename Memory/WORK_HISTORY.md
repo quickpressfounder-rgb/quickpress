@@ -1,5 +1,42 @@
 # QuickPress — Engineering Work History
 
+## Session: November 13, 2026 (Part 7)
+
+### GST Tax Engine, Rider Level-Wise Milestones, Fine/Penalty Management & PDF-Exclusive Letterhead
+
+1. **Context & User Request:**
+   - User directive:
+     *"ab rules engine me gst set karne ka option bhi add karo or rider me rider incevtive bhi lekar aao jaha se set kar sake ki lelel wise bala or penalyt bala system bhi add karo jisme hum penaly bhi set kar sake ,bouns , etc etc add karo karo or ye sab real engine se intragtion karna hai or officeal report ka layout ab desing recrect karo or header and footer ko yaha nahi only pdf me lega aana ai bo bhi black text me white backgoud me"*
+
+2. **Engineering Solutions Delivered:**
+   - **GST & Statutory Tax Configuration (`UnifiedStakeholderRulesEngine.tsx`):**
+     - Added dedicated tab: **4. GST & Tax Engine**.
+     - Master GST active toggle, Platform fee GST (18% - SAC 998599), Delivery Transit GST (18% - SAC 996812), Laundry Service GST (5% - SAC 999799).
+     - E-Commerce Section 52 TCS (1%) and Section 194-O TDS (1%).
+     - Corporate Tax Credentials: QuickPress GSTIN input (`07AABCQ1234F1Z5`), default operating state (`Uttar Pradesh` / `Delhi`), and Intra-State (CGST 9% + SGST 9%) vs Inter-State (IGST 18%) compliance logic.
+     - Dynamic Category Tax Overrides (Dry Cleaning @ 12%, Premium Leather Care @ 18%) with interactive Add/Delete row handlers.
+     - Fully wired to backend `editableRules.gst`.
+   - **Rider Level-Wise Milestone Incentives & Gamification:**
+     - Added Level-wise Gamified Milestones (Candy Crush Levels 1 through 10: Rookie, Street Cruiser, Speedster Star, Rush Hour Hero, Super Captain, etc.).
+     - Interactive table enabling admins to configure trip targets and cash reward bonuses for each level tier, with Add Tier and Delete Tier controls.
+     - Weekly Performance Streak Bonus configuration (e.g. 50 orders $\rightarrow$ ₹800 reward) and Daily Peak Hour Bonus.
+     - Fully connected to `editableRules.incentives.candyCrushLevels` and `editableRules.incentives.riderWeeklyStreak`.
+   - **Penalties, Fines & SLA Breach System:**
+     - Added dedicated tab: **5. Penalties & Fines**.
+     - **Store Partner Penalties:** Order Rejection / Unfulfilled Order Fine (₹50), Garment Damage Claim (₹300), Missing Item Claim (₹250), False Ready Status Fine (₹100).
+     - **Rider Captain Penalties:** Cancellation after accepting dispatch (₹75), Severe transit delay beyond SLA (₹50).
+     - **Customer Penalties:** Cancellation after rider arrives/dispatches (₹50), Doorstep customer no-show surcharge (₹40).
+     - Fully connected to `editableRules.penalties`.
+   - **Official Reports Redesign (Screen vs. PDF Separation):**
+     - **On Web Screen (Dashboard):** Completely removed the printed letterhead banner and signature footer from browser view. Rendered a clean SaaS command toolbar with Period Selector, Report Pills, KPI cards, and interactive tables.
+     - **In PDF / Print Mode (`@media print`):** Formal QuickPress letterhead (Corporate name, CIN, GSTIN, PAN, Registered Address, Statement Name, Reference Number, Date/Period) and formal Authorized Signatory stamp appear **strictly in print/PDF output**.
+     - **Strict Black & White Styling:** Output enforced in pure `#000000` text on pure `#ffffff` background with solid black borders for maximum contrast, zero ink-wasting dark blocks, and authentic legal financial statement aesthetics.
+
+3. **Verification & Testing Results:**
+   - Production build verified: `npm --prefix admin-frontend run build` exited with code 0 in 4.63s (0 errors).
+
+---
+
 ## Session: November 13, 2026 (Part 6)
 
 ### Rules Engine Redesign by Stakeholder & Official QuickPress Financial Reporting Center
