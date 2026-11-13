@@ -109,7 +109,7 @@ import { ApprovalCenterView } from "../components/finance/ApprovalCenterView";
 import { AiFinanceAssistantView } from "../components/finance/AiFinanceAssistantView";
 import { SettlementEngineControlHub } from "../components/finance/SettlementEngineControlHub";
 import { QueueTelemetryPill } from "../components/finance/QueueTelemetryPill";
-import { KasganjPilotQuickBar } from "../components/finance/KasganjPilotQuickBar";
+import { PanIndiaQuickControlBar } from "../components/finance/PanIndiaQuickControlBar";
 import {
   fetchFinancialRules,
   updateFinancialRules,
@@ -1565,8 +1565,8 @@ export function FinanceEnginePage() {
           }}
         />
 
-        {/* Kasganj Pilot Operational Quick Controls */}
-        <KasganjPilotQuickBar
+        {/* Pan-India Dynamic Fare & Surcharge Controls */}
+        <PanIndiaQuickControlBar
           currentRules={rulesQuery.data}
           onNavigateToRulesTab={() => handleTabChange("rules")}
         />

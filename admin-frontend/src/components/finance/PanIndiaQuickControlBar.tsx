@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CloudRain,
   Moon,
@@ -16,25 +16,38 @@ import {
   ShieldCheck,
   Tag,
   Building2,
+  Globe2,
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 import { updateFinancialRules, type FinancialRules } from "@/api/finance-api";
+import { fetchCities, type CityIntelligence } from "@/api/cities";
 import { Button } from "@/shared/ui/button";
 import { Switch } from "@/shared/ui/switch";
 import { Badge } from "@/shared/ui/badge";
 import { Input } from "@/shared/ui/input";
 
-interface KasganjPilotQuickBarProps {
+interface PanIndiaQuickControlBarProps {
   currentRules?: FinancialRules;
   onNavigateToRulesTab?: () => void;
 }
 
-export function KasganjPilotQuickBar({
+export function PanIndiaQuickControlBar({
   currentRules,
   onNavigateToRulesTab,
-}: KasganjPilotQuickBarProps) {
+}: PanIndiaQuickControlBarProps) {
   const queryClient = useQueryClient();
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Operational Scope State: "ALL_INDIA" or specific city ID / name
+  const [targetScope, setTargetScope] = useState<string>("ALL_INDIA");
+
+  // Dynamic Cities Query
+  const { data: citiesList = [] } = useQuery<CityIntelligence[]>({
+    queryKey: ["admin", "cities", "list"],
+    queryFn: fetchCities,
+    staleTime: 60000,
+  });
 
   // Local state for fast operational adjustments
   const [rainSurgeActive, setRainSurgeActive] = useState<boolean>(false);
@@ -65,6 +78,8 @@ export function KasganjPilotQuickBar({
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!currentRules) return;
+      const scopeLabel = targetScope === "ALL_INDIA" ? "All India (National Master)" : targetScope;
+
       const updatedRules: Partial<FinancialRules> = {
         ...currentRules,
         delivery: {
@@ -82,17 +97,18 @@ export function KasganjPilotQuickBar({
 
       return await updateFinancialRules(
         updatedRules,
-        `Quick Control: Rain=${rainSurgeActive}, Night=${nightSurgeActive}, FreeDelivery=₹${freeDeliveryThreshold}, MinOrder=₹${minOrderValue}`
+        `Operational Update [${scopeLabel}]: Rain=${rainSurgeActive}, Night=${nightSurgeActive}, FreeDelivery=₹${freeDeliveryThreshold}, MinOrder=₹${minOrderValue}`
       );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["finance", "rules"] });
       queryClient.invalidateQueries({ queryKey: ["finance", "summary"] });
       setIsDirty(false);
-      toast.success("Kasganj Pilot Rates successfully broadcasted to live apps!");
+      const scopeName = targetScope === "ALL_INDIA" ? "Pan-India National Master" : targetScope;
+      toast.success(`${scopeName} rates successfully broadcasted to live customer & rider apps!`);
     },
     onError: (err: any) => {
-      toast.error(err?.message || "Failed to update pilot rates");
+      toast.error(err?.message || "Failed to update dynamic rates");
     },
   });
 
@@ -100,33 +116,62 @@ export function KasganjPilotQuickBar({
     <div className="bg-white border border-zinc-200/90 rounded-2xl shadow-2xs overflow-hidden transition-all">
       {/* Quick Action Ribbon (Always Visible) */}
       <div className="p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        {/* Left: Pilot Status & Badges */}
+        {/* Left: Scope Selector & Badges */}
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
             <Sliders className="size-5" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-black text-zinc-950 uppercase tracking-wide">
-                Kasganj Pilot Quick Controls
+              <span className="text-xs font-black text-zinc-950 uppercase tracking-wide flex items-center gap-1.5">
+                <Globe2 className="size-3.5 text-emerald-600" />
+                <span>Pan-India Dynamic Fare & Surcharge Controls</span>
               </span>
-              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-bold">
-                Hub: 207123
-              </Badge>
+
+              {/* Scope Switcher Dropdown */}
+              <div className="inline-flex items-center gap-1 bg-zinc-100 px-2 py-0.5 rounded-lg border border-zinc-200">
+                <MapPin className="size-3 text-zinc-500" />
+                <select
+                  value={targetScope}
+                  onChange={(e) => {
+                    setTargetScope(e.target.value);
+                    setIsDirty(true);
+                  }}
+                  className="bg-transparent text-[11px] font-black text-zinc-900 border-none outline-none cursor-pointer pr-1"
+                >
+                  <option value="ALL_INDIA">🇮🇳 All India (National Master)</option>
+                  {citiesList.length > 0 ? (
+                    citiesList.map((c) => (
+                      <option key={c.id || c.name} value={c.name}>
+                        📍 {c.name} ({c.state || "IN"})
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Delhi NCR">📍 Delhi NCR</option>
+                      <option value="Lucknow">📍 Lucknow</option>
+                      <option value="Agra">📍 Agra</option>
+                      <option value="Bareilly">📍 Bareilly</option>
+                      <option value="Kasganj">📍 Kasganj</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
               {isDirty && (
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 animate-pulse">
-                  Unsaved Live Overrides
+                  Unsaved Overrides
                 </span>
               )}
             </div>
             <p className="text-[11px] text-zinc-500 mt-0.5">
-              Instant toggles for weather surcharges, delivery thresholds, and live checkout rules
+              Live surge triggers, delivery subsidies, and minimum basket limits across all operational hubs
             </p>
           </div>
         </div>
 
         {/* Center: High-Frequency Quick Toggles */}
-        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {/* Rain Surge Toggle */}
           <div
             className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
@@ -299,11 +344,16 @@ export function KasganjPilotQuickBar({
               </span>
             </div>
 
-            {/* Live Kasganj Core Tariffs Summary */}
+            {/* National Standard Tariffs Summary */}
             <div className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">
-                Kasganj Standard Tariffs
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">
+                  National Standard Tariffs
+                </span>
+                <Badge className="bg-zinc-100 text-zinc-700 text-[9px] font-bold">
+                  {targetScope === "ALL_INDIA" ? "All India" : targetScope}
+                </Badge>
+              </div>
               <div className="space-y-1 text-xs font-bold text-zinc-800 mt-1">
                 <div className="flex items-center justify-between">
                   <span className="text-zinc-500">Wash & Fold:</span>

@@ -484,7 +484,7 @@ export function FinanceOverviewCommandCenter({ onNavigateTab }: FinanceOverviewC
         new Date().toISOString().slice(0, 10),
         "CB-OPENING",
         "Opening Balance",
-        "Kasganj Central Cash Vault",
+        `${selectedCity && selectedCity !== "all" ? selectedCity : "National"} Central Cash Vault`,
         "25000",
         "0",
         "25000",
