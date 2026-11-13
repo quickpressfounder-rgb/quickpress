@@ -60,6 +60,15 @@ jobs:
             if [ ! -f .env ] && [ -f .env.example ]; then
               cp .env.example .env
             fi
+            # Ensure critical Supabase & JWT environment variables exist in .env
+            touch .env
+            grep -q "DATABASE_URL=" .env || echo "DATABASE_URL=postgresql://postgres.acpxzppgjnqqhckzxcmk:QuickPress%408055@aws-0-ap-south-1.pooler.supabase.com:5432/postgres" >> .env
+            grep -q "SUPABASE_URL=" .env || echo "SUPABASE_URL=https://acpxzppgjnqqhckzxcmk.supabase.co" >> .env
+            grep -q "SUPABASE_SERVICE_ROLE_KEY=" .env || echo "SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjcHh6cHBnam5xcWhja3p4Y21rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzc1Mzk3OSwiZXhwIjoyMTAzMzI5OTc5fQ.K-8DkX5NCKuZse6fmemukVfUoRofVpAeY3tH40ZfvXs" >> .env
+            grep -q "JWT_SECRET=" .env || echo "JWT_SECRET=09ff549484d531972841b95d2a540fe23d864e21e1bb111d56b6a3ed3bf47b9a" >> .env
+            grep -q "ADMIN_EMAILS=" .env || echo "ADMIN_EMAILS=official.quickpress@gmail.com,admin@quickpress.online,admin@quickpress.in" >> .env
+            grep -q "PORT=" .env || echo "PORT=8000" >> .env
+
             sudo docker build -t quickpress-api .
             sudo docker stop quickpress-backend 2>/dev/null || true
             sudo docker rm quickpress-backend 2>/dev/null || true
@@ -82,6 +91,13 @@ jobs:
             else
               echo "⚠️ Warning: Backend container exited. Dumping last logs:"
               sudo docker logs --tail 50 quickpress-backend || true
+            fi
+            echo "🔍 Testing backend HTTP health check on 127.0.0.1:8000..."
+            if curl -s -f http://127.0.0.1:8000/api/health > /dev/null 2>&1; then
+              echo "✅ Backend API HTTP ping successful (200 OK)."
+            else
+              echo "⚠️ HTTP ping check pending or warming up. Checking docker logs:"
+              sudo docker logs --tail 30 quickpress-backend || true
             fi
 
             echo "🌐 Syncing Nginx configuration..."

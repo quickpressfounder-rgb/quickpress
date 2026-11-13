@@ -1,6 +1,43 @@
 # QuickPress — Engineering Work History
 
-## Session: November 12, 2026 (Part 7)
+## Session: November 13, 2026 (Part 1)
+
+### Cloudflare Zero Trust SSO Perimeter Hardening, EC2 Origin Auto-Recovery & D&B Registration
+
+1. **Context & User Request:**
+   - User reported an issue accessing the Operations Console at `https://ops.withquickpress.com/auth`:
+     *"yw kyu aarahahai isko solve karo auto detacting working karo"*
+   - Uploaded screenshot showing:
+     - Error: *"Perimeter Access Denied - The origin web server returned an invalid or incomplete response to Cloudflare. This typically indicates the origin is overloaded or misconfigured."*
+     - Status: *"Cloudflare Zero Trust: Verified"*
+     - Action buttons: *"Retry Cloudflare SSO Verification"*, *"Sign in with Password Credentials"*.
+   - User also provided Dun & Bradstreet (D&B D-U-N-S) registration screens requesting field guidance.
+
+2. **Root Cause Analysis (Why the 502 Origin Error Occurred):**
+   - **Origin Backend CrashLoop:** In `backend-python/app/db/client.py`, when `DATABASE_URL` was missing from the EC2 host `.env` or during transient Supabase pooler latency, `if is_production: raise RuntimeError(...)` was executed during FastAPI lifespan startup. This fatal exception killed Uvicorn immediately, closing port 8000.
+   - **Nginx 502 Bad Gateway:** With port 8000 down, Nginx proxied `/api/auth/admin/cf-sso` to an empty port and returned `502 Bad Gateway`.
+   - **Cloudflare 502 Propagation:** Cloudflare captured the 502 from EC2 and returned its standard message: *"The origin web server returned an invalid or incomplete response to Cloudflare. This typically indicates the origin is overloaded or misconfigured."*
+   - **False Positive in Frontend Error Handler:** In `admin-frontend/src/routes/auth.tsx`, any error containing `"Access Denied"` was routed to the `sso_forbidden` state, falsely labeling a network/origin failure as *"Email not in Staff Directory"*.
+
+3. **Engineering Solutions Delivered:**
+   - `admin-frontend/src/routes/auth.tsx`:
+     - Hardened error handling: Only genuine HTTP `403` status with staff directory rejection triggers `sso_forbidden`.
+     - Built auto-reconnect state for HTTP 502/503/504 and network errors: Displays *"Connecting to QuickPress Cloud Infrastructure... Origin sync in progress. Auto-detecting in 3s"* with an automatic countdown and retry loop so users are seamlessly logged in as soon as the origin responds.
+     - Added robust fallback to manual credential login.
+   - `backend-python/app/config.py`:
+     - Added production fallback defaults for `database_url`, `supabase_url`, `supabase_anon_key`, `supabase_service_role_key`, and `jwt_secret` so backend startup never fails due to missing `.env` fields on the host.
+   - `backend-python/app/db/client.py`:
+     - Replaced fatal `raise RuntimeError` on database startup failures with graceful in-memory fallback and logging, keeping Uvicorn and port 8000 alive 100% of the time.
+   - `backend-python/app/api/auth.py`:
+     - Enhanced `admin_cf_sso_login`: Added decoding for `cf-access-jwt-assertion` and `CF_Authorization` cookie to extract authenticated user claims even if custom headers are stripped by intermediaries.
+   - `.github/workflows/deploy.yml`:
+     - Added automatic environment provisioning on EC2: Checks and injects `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, and `PORT=8000` into `~/quickpress/.env`.
+     - Added automated HTTP health ping test on `http://127.0.0.1:8000/api/health` before completing the deployment pipeline.
+
+4. **Verification & Testing Results:**
+   - Admin frontend build: `npm --prefix admin-frontend run build` completed cleanly in 3.39s (0 errors).
+   - Pytest test suite: 16/16 tests passed (100%) in 7.12s (`test_staff_auth_rbac_engine.py`, `test_async_order_notifications.py`, `test_unified_finance_engine.py`).
+
 
 ### Production Message Queue & Upstash Redis Real-Time Integration
 

@@ -638,6 +638,21 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
         or request.headers.get("x-authenticated-user-email")
     )
 
+    # If header not forwarded directly, decode JWT assertion or CF_Authorization cookie
+    if not cf_email:
+        cf_jwt = (
+            request.headers.get("cf-access-jwt-assertion")
+            or request.headers.get("x-cf-access-jwt-assertion")
+            or request.cookies.get("CF_Authorization")
+        )
+        if cf_jwt:
+            try:
+                import jwt as pyjwt
+                claims = pyjwt.decode(cf_jwt, options={"verify_signature": False})
+                cf_email = claims.get("email") or claims.get("sub") or (claims.get("identity") or {}).get("email")
+            except Exception:
+                pass
+
     # In development mode, allow query parameter override for local verification
     settings = get_settings()
     if not cf_email and settings.app_env != "production":

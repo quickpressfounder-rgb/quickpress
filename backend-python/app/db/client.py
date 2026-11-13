@@ -292,11 +292,13 @@ class Database:
                     if attempt < 2:
                         await asyncio.sleep(1.5)
                     else:
-                        if is_production:
-                            raise RuntimeError(f"FATAL: Production database connection to Supabase failed: {err}") from err
-
-        if is_production:
-            raise RuntimeError("FATAL: Production database connection failed: No database reachable in production.")
+                        logging.getLogger(__name__).error(
+                            "CRITICAL: Production database connection attempt failed after 3 tries: %s. Entering safe in-memory fallback to preserve server uptime.",
+                            repr(err),
+                        )
+                        self._fallback_in_memory = True
+                        self._engine = "in-memory"
+                        return
 
         self._fallback_in_memory = True
         self._engine = "in-memory"

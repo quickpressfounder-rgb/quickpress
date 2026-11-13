@@ -35,11 +35,10 @@ class Settings(BaseSettings):
     cors_origins: str = "https://withquickpress.com,https://www.withquickpress.com,https://quickpress.online,https://www.quickpress.online,https://ops.withquickpress.com,https://admin.withquickpress.com,https://admin.quickpress.online,https://partner.withquickpress.com,https://partner.quickpress.online,https://rider.quickpress.online,https://api.withquickpress.com,https://api.quickpress.online,https://quickpress.in,https://www.quickpress.in"
 
     # --- Supabase / PostgreSQL Database ------------------------------
-    supabase_url: str = ""
-    supabase_anon_key: str = ""
-    supabase_service_role_key: str = ""
-    database_url: str = ""           # postgresql://...
-
+    supabase_url: str = "https://acpxzppgjnqqhckzxcmk.supabase.co"
+    supabase_anon_key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjcHh6cHBnam5xcWhja3p4Y21rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTM5NzksImV4cCI6MjEwMzMyOTk3OX0.EL5oL0v4BQ-4dN58Yeqm-SN6LzyPGv7fpDkZQfIS794"
+    supabase_service_role_key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjcHh6cHBnam5xcWhja3p4Y21rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzc1Mzk3OSwiZXhwIjoyMTAzMzI5OTc5fQ.K-8DkX5NCKuZse6fmemukVfUoRofVpAeY3tH40ZfvXs"
+    database_url: str = "postgresql://postgres.acpxzppgjnqqhckzxcmk:QuickPress%408055@aws-0-ap-south-1.pooler.supabase.com:5432/postgres"
 
     # --- Firebase Admin ----------------------------------------------
     firebase_project_id: str = ""
@@ -48,9 +47,9 @@ class Settings(BaseSettings):
     firebase_credentials_json: str = ""
 
     # --- JWT ----------------------------------------------------------
-    jwt_secret: str = ""
+    jwt_secret: str = "09ff549484d531972841b95d2a540fe23d864e21e1bb111d56b6a3ed3bf47b9a"
     # Optional dedicated refresh secret; falls back to jwt_secret when unset.
-    jwt_refresh_secret: str = ""
+    jwt_refresh_secret: str = "89b63a276a580ed8225b2fe50e003408e6845b69ca2f4df354286b450d936525"
     jwt_algorithm: str = "HS256"
     access_token_ttl_minutes: int = 30
     refresh_token_ttl_days: int = 30

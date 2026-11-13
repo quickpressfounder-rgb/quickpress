@@ -59,6 +59,7 @@ export function AdminAuthPage() {
   // 1. Initial Auto-Authentication: Check active session or Cloudflare Zero Trust SSO
   useEffect(() => {
     let active = true;
+    let retryTimer: number | null = null;
 
     async function initAuth() {
       // Step A: Check local existing token
@@ -88,14 +89,36 @@ export function AdminAuthPage() {
       } catch (err: any) {
         if (!active) return;
         const status = err?.status;
-        const msg = err?.message || "";
+        const msg = String(err?.message || "");
 
-        // If 403 Forbidden: Cloudflare perimeter allowed them, but email not enrolled in admin_staff table
-        if (status === 403 || msg.includes("not enrolled in the QuickPress Staff Directory") || msg.includes("Access Denied")) {
-          setSsoErrorMessage(msg || "Your Cloudflare Zero Trust identity is verified, but this email is not registered in the QuickPress Staff Directory.");
+        // Only true 403 Forbidden with staff directory rejection triggers sso_forbidden
+        const isStaffDirectoryForbidden =
+          status === 403 &&
+          (msg.includes("not enrolled in the QuickPress Staff Directory") ||
+            msg.includes("is currently suspended") ||
+            msg.includes("is currently blocked") ||
+            msg.includes("is currently inactive"));
+
+        if (isStaffDirectoryForbidden) {
+          setSsoErrorMessage(msg);
           setLoginStep("sso_forbidden");
+        } else if (
+          status === 502 ||
+          status === 503 ||
+          status === 504 ||
+          msg.includes("overloaded or misconfigured") ||
+          msg.includes("502") ||
+          msg.includes("Bad Gateway") ||
+          msg.includes("could not reach the server")
+        ) {
+          // Cloudflare/Nginx origin temporary sync or deployment in progress: Auto-retry in 3 seconds!
+          setSsoErrorMessage("Connecting to QuickPress Cloud Infrastructure... Origin sync in progress. Auto-detecting in 3s.");
+          setLoginStep("sso_checking");
+          retryTimer = window.setTimeout(() => {
+            if (active) void initAuth();
+          }, 3000);
         } else {
-          // If 401 or network (e.g. dev environment without Cloudflare headers) -> Fall back to manual login
+          // If 401 or dev environment without Cloudflare headers -> Fall back to manual login
           setLoginStep("credentials");
         }
       }
@@ -104,6 +127,7 @@ export function AdminAuthPage() {
     void initAuth();
     return () => {
       active = false;
+      if (retryTimer) clearTimeout(retryTimer);
     };
   }, [navigate]);
 
@@ -305,14 +329,22 @@ export function AdminAuthPage() {
                   type="button"
                   onClick={() => {
                     setLoginStep("sso_checking");
+                    setSsoErrorMessage(null);
                     void authenticateCloudflareZeroTrust()
                       .then((s) => {
                         toast.success(`Welcome back, ${s.account?.name}!`);
                         navigate({ to: adminRoutes.dashboard });
                       })
                       .catch((err) => {
-                        setSsoErrorMessage(err?.message || "Verification failed.");
-                        setLoginStep("sso_forbidden");
+                        const m = String(err?.message || "");
+                        if (err?.status === 403 && (m.includes("Directory") || m.includes("suspended") || m.includes("blocked"))) {
+                          setSsoErrorMessage(m);
+                          setLoginStep("sso_forbidden");
+                        } else {
+                          toast.error(m || "Verification failed. Retrying...");
+                          setSsoErrorMessage(m);
+                          setLoginStep("sso_checking");
+                        }
                       });
                   }}
                   className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 text-xs font-bold text-white hover:bg-black transition-all cursor-pointer"
@@ -345,14 +377,22 @@ export function AdminAuthPage() {
                 type="button"
                 onClick={() => {
                   setLoginStep("sso_checking");
+                  setSsoErrorMessage(null);
                   void authenticateCloudflareZeroTrust()
                     .then((s) => {
                       toast.success(`Welcome back, ${s.account?.name}!`);
                       navigate({ to: adminRoutes.dashboard });
                     })
                     .catch((err) => {
-                      setSsoErrorMessage(err?.message || "Perimeter SSO check failed.");
-                      setLoginStep("sso_forbidden");
+                      const m = String(err?.message || "");
+                      if (err?.status === 403 && (m.includes("Directory") || m.includes("suspended") || m.includes("blocked"))) {
+                        setSsoErrorMessage(m);
+                        setLoginStep("sso_forbidden");
+                      } else {
+                        toast.error(m || "Verification failed. Retrying...");
+                        setSsoErrorMessage(m);
+                        setLoginStep("sso_checking");
+                      }
                     });
                 }}
                 className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50/80 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all cursor-pointer shadow-xs"
