@@ -1,5 +1,48 @@
 # QuickPress — Engineering Work History
 
+## Session: November 13, 2026 (Part 6)
+
+### Rules Engine Redesign by Stakeholder & Official QuickPress Financial Reporting Center
+
+1. **Context & User Request:**
+   - User directive:
+     *"AB RULES ENGINE PAGE PAGE KO REDEDING KARO JISME SAB SIMLPE TAREKE SE SET KAR SAKE OR SAMAJNE ME AASANA HO CUSTOMER ,PARTNER,RIDER KE LIYE RULES SET KAR SAKE OR OR UPAR JAHA SARE TABS HAI WHAHA EK OPTION ADD KARO REPORTS JISME FINANCIL ,REPORT BLANCE SHEET , JOURNAL ENTRY , LEAGER ACCOUT BANANNE HAI CASH BOOK , ETC ETC OR GST REPORTS BHI GRENET KAR SAKE BO BHI QUICKPRESS KE JAISA KI STATAMENR ME HA HEADER HOTA HAI OFFICIAL LAGE KI QUICKPRESS KE REPORTS HAI"*
+
+2. **Core Problems in Legacy Implementation:**
+   - The Rules page had a dual-layer structure with a master controller stacked on top of 9 confusing, fragmented sub-tabs (`service-pricing`, `distance-fare`, `delivery`, `commission`, `gst`, `cancellation`, `rider-incentives`, `settlement`, `versioning`) totaling over 2,800 lines of bloated, repetitive code.
+   - Financial statements lacked authentic QuickPress corporate branding, letterhead, CIN, GSTIN, and the six vital Indian accounting reports (Balance Sheet, P&L, Journal Entries/Day Book, Ledger Accounts, Cash Book, and Statutory GST/TDS reports).
+
+3. **Engineering Solutions Delivered:**
+   - **New Component: `UnifiedStakeholderRulesEngine.tsx`:**
+     - Created a clean, role-centric architecture organized strictly by the 3 platform actors:
+       1. **🛒 Customer Rules & Checkout:** Minimum Order Value (MOV), Free Delivery Threshold (₹199), Below-Min Surcharge (₹29), Platform Handling Fee (₹5 with switch), 24h Express Priority Turnaround (₹40), Eco-packaging fee, Monsoon Weather Rain Surge (₹20 with switch), and Free Cancellation Grace Window (5 mins). Includes an **Interactive Live Customer Cart Simulator** that previews the exact customer bill.
+       2. **🏪 Laundromat Partner Commercials:** Two-way auto-balancing Partner Revenue Share (85%) $\leftrightarrow$ Platform Commission (15%) with a visual split progress bar, Payout Frequency (`T+1`, `T+2`, `Weekly`), Statutory Section 194-O TDS Rate (1.0%), and an **Interactive Partner Settlement Simulator** showing gross GMV, TDS deduction, and net bank credit.
+       3. **🛵 Rider Captain Fleet Pay:** Distance Transit Fare Slabs (Base Pay ₹35 for first 2 km, Extra KM Rate ₹8/km, Minimum Floor ₹30), Express Turnaround Bonus (₹25), Doorstep Waiting Pay (₹2/min after 5 mins free), COD Cash-in-Hand Lockout Limit (₹2,500), and an **Interactive Live Trip Fare Simulator** with distance and waiting sliders.
+       4. **📜 Version History & Audit Trail:** Immutable log of rule changes with timestamps and authors.
+     - Single-click **"Save Live Rules"** header action that syncs with backend API.
+   - **New Component: `OfficialReportsView.tsx`:**
+     - Corporate Letterhead & Branding:
+       - Header: QuickPress Emblem, **QUICKPRESS TECHNOLOGIES PRIVATE LIMITED**, CIN: `U74999DL2024PTC398201`, GSTIN: `07AABCQ1234F1Z5`, PAN: `AABCQ1234F`, TAN: `DELQ12345F`, Connaught Place New Delhi Registered Address, Official Statement Reference Number, and Authorized Signatory badge.
+       - Actions: 🖨️ **Print Statement** (with print-friendly media styles hiding web navigation and formatting clean A4 output), 📥 **Export CSV/Excel**, and Date Period Filter (`Current Month`, `Previous Month`, `Q3`, `FY 2026-27`, `All-Time`).
+     - Six Comprehensive Statutory Financial Statements:
+       1. **Balance Sheet (Statement of Financial Position):** Current Assets (Cash & COD in Hand, Razorpay Bank Escrow, Trade Receivables), Non-Current Assets vs. Current Liabilities (Partner Payables, Rider Transit Payables, GST/TDS Payables, Customer Wallet Float) and Equity (Retained Operational Earnings). Balanced Dr = Cr.
+       2. **Profit & Loss Statement (P&L / Financial Report):** GMV, Operational Disbursals (Partner 85%, Rider Transit, Payment Gateway 1.8%), Gross Operational Profit (Take Rate), OPEX Overheads, EBITDA, and Net Operating Profit.
+       3. **Journal Entries (Day Book):** Chronological double-entry ledger lines with Date, Reference ID, Account Head, Account Code, Type, Narration, Debit (Dr), and Credit (Cr).
+       4. **Ledger Accounts (Chart of Accounts):** T-Account views for Cash (1010), Bank Escrow (1020), Partner Payable (2010), Rider Payable (2020), GST Payable (2030), TDS 194-O (2040), Platform Commission (3010), with Opening, Debits, Credits, and Closing Balances.
+       5. **Cash Book (Double-Column Cash & Bank):** Tracking physical cash collections (COD) vs bank escrow transfers, contra entries, and verified closing cash positions.
+       6. **GST & Tax Compliance Statements:** GSTR-1 Outward Supplies table (SAC 999799 & 998599 @ 18% GST: 9% CGST + 9% SGST), GSTR-8 Section 52 TCS, and Section 194-O TDS schedules.
+     - Statutory Audit Stamp: Certified true copy disclaimer and Authorized Signatory seal.
+   - **Top Navigation Integration in `finance-engine.tsx`:**
+     - Added `{ id: "reports", label: "Official Reports", icon: FileText, color: "text-emerald-700" }` directly into `allFinanceModules`.
+     - Updated `resolveFinanceTab` to support `tab=reports`, `tab=statements`, and `tab=financial-reports`.
+     - Replaced 2,800 lines of legacy fragmented rules markup with the unified `<UnifiedStakeholderRulesEngine />` and `<OfficialReportsView />`.
+
+4. **Verification & Testing Results:**
+   - Production bundle built cleanly with `npm --prefix admin-frontend run build` passing in 4.17s (0 errors).
+   - Bundle size decreased by over 50 kB due to code deduplication.
+
+---
+
 ## Session: November 13, 2026 (Part 5)
 
 ### Removal of Redundant Finance Engine Tabs & Simplification of Module Navigation
