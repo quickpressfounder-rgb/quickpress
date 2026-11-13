@@ -1,5 +1,54 @@
 # QuickPress — Engineering Work History
 
+## Session: November 13, 2026 (Part 5)
+
+### Removal of Redundant Finance Engine Tabs & Simplification of Module Navigation
+
+1. **Context & User Request:**
+   - User provided 4 screenshots marking redundant items to remove from the Finance Engine (`/finance-engine`):
+     - Image 1: `Profitability Heatmap` tab
+     - Image 2: `Maker-Checker` & `AI Simulator` tabs
+     - Image 3: `GAAP Statements` tab
+     - Image 4: Category Filter Ribbon (`All Engines (19)`, `Core & Analytics (4)`, `Payouts & Disbursals (3)`, `Rules & Tariffs (3)`, `Fleet & COD (2)`, `Accounting & Tax (7)`) and "Jump To" dropdown.
+   - User directive: *"YE SAB HATAO ISKE JO JO MNENE DIYA HAI ISME"*.
+
+2. **Root Cause & Operational Realities:**
+   - As an early-to-growth stage hyper-local laundry marketplace in India, US GAAP accounting schedules, enterprise dual-custody maker-checker approval workflows, hypothetical AI simulators, and redundant multi-city heatmaps added unnecessary complexity and confusion.
+   - The 2-tier Category Filter ribbon forced users to toggle category filters before finding certain tabs or use an awkward jump-to dropdown.
+
+3. **Engineering Changes Delivered:**
+   - **File Modified:** `admin-frontend/src/routes/finance-engine.tsx`
+   - **Tabs Removed:**
+     - Removed `profitability` (`ProfitabilityAnalyticsView`)
+     - Removed `approvals` (`ApprovalCenterView`)
+     - Removed `ai-assistant` (`AiFinanceAssistantView`)
+     - Removed `accounting-statements` (`AccountingStatementsView`)
+   - **Navigation Ribbon Simplified:**
+     - Removed `financeCategories` state and Tier 1 category filter buttons.
+     - Removed redundant "Jump To" select dropdown.
+     - Direct 1-tier scrollable module tab bar mapping all 15 active real-world modules:
+       1. Overview & Analytics (`overview`)
+       2. Payouts Command Center (`settlements`)
+       3. Rules & Fare Engine (`rules`)
+       4. COD & Fleet Vault (`cod`)
+       5. Tax Center (GST/TDS) (`tax-center`)
+       6. Double-Entry Ledger (`general-ledger`)
+       7. 3-Way Recon (`recon`)
+       8. Unit Economics (`unit-economics`)
+       9. Operating Expenses (`expenses`)
+       10. Treasury & Escrow (`treasury`)
+       11. Membership Plans (`memberships`)
+       12. Loyalty & Rewards (`loyalty`)
+       13. Customer 360 (`customer-360`)
+       14. Audit Logs (`audit`)
+       15. Order Inspector (`ledger`)
+   - **Fallback Updated:** Updated URL alias `tab=accounting` to route to `general-ledger`.
+
+4. **Verification & Commit:**
+   - Production build verified: `npm --prefix admin-frontend run build` exited 0 in 2.75s with 0 errors.
+
+---
+
 ## Session: November 13, 2026 (Part 4)
 
 ### Elimination of Duplicate Fare Panels & Unified 3-Pillar Master Architecture Implementation

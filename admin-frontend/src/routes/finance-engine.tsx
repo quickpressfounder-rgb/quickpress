@@ -101,12 +101,8 @@ import { UnitEconomicsView } from "../components/finance/UnitEconomicsView";
 import { MembershipFinanceView } from "../components/finance/MembershipFinanceView";
 import { ExpenseTrackerNetProfitView } from "../components/finance/ExpenseTrackerNetProfitView";
 import { CustomerFinance360View } from "../components/finance/CustomerFinance360View";
-import { AccountingStatementsView } from "../components/finance/AccountingStatementsView";
-import { ProfitabilityAnalyticsView } from "../components/finance/ProfitabilityAnalyticsView";
 import { TaxComplianceCenterView } from "../components/finance/TaxComplianceCenterView";
 import { TreasuryCenterView } from "../components/finance/TreasuryCenterView";
-import { ApprovalCenterView } from "../components/finance/ApprovalCenterView";
-import { AiFinanceAssistantView } from "../components/finance/AiFinanceAssistantView";
 import { SettlementEngineControlHub } from "../components/finance/SettlementEngineControlHub";
 import { QueueTelemetryPill } from "../components/finance/QueueTelemetryPill";
 import {
@@ -967,7 +963,7 @@ export function FinanceEnginePage() {
     if (raw === "tax") return "tax-center";
     if (raw === "membership") return "memberships";
     if (raw === "finance-rules") return "rules";
-    if (raw === "accounting") return "accounting-statements";
+    if (raw === "accounting") return "general-ledger";
     return raw;
   };
 
@@ -991,41 +987,23 @@ export function FinanceEnginePage() {
     });
   };
 
-  const [selectedNavCategory, setSelectedNavCategory] = useState<string>("all");
-
-  const financeCategories = useMemo(
-    () => [
-      { id: "all", label: "All Engines (19)" },
-      { id: "core", label: "Core & Analytics (4)" },
-      { id: "settlements", label: "Payouts & Disbursals (3)" },
-      { id: "rules", label: "Rules & Tariffs (3)" },
-      { id: "fleet", label: "Fleet & COD (2)" },
-      { id: "accounting", label: "Accounting & Tax (7)" },
-    ],
-    []
-  );
-
   const allFinanceModules = useMemo(
     () => [
-      { id: "overview", label: "Overview & Analytics", category: "core", icon: Activity, color: "text-zinc-900" },
-      { id: "settlements", label: "Payouts Command Center", category: "settlements", icon: Landmark, color: "text-emerald-700" },
-      { id: "rules", label: "Rules & Fare Engine", category: "rules", icon: Sliders, color: "text-blue-700" },
-      { id: "cod", label: "COD & Fleet Vault", category: "fleet", icon: Wallet, color: "text-amber-700" },
-      { id: "tax-center", label: "Tax Center (GST/TDS)", category: "accounting", icon: Receipt, color: "text-purple-700" },
-      { id: "general-ledger", label: "Double-Entry Ledger", category: "accounting", icon: Scale, color: "text-indigo-700" },
-      { id: "recon", label: "3-Way Recon", category: "fleet", icon: RotateCcw, color: "text-sky-700" },
-      { id: "unit-economics", label: "Unit Economics", category: "core", icon: TrendingUp, color: "text-teal-700" },
-      { id: "profitability", label: "Profitability Heatmap", category: "core", icon: Activity, color: "text-emerald-700" },
-      { id: "expenses", label: "Operating Expenses", category: "accounting", icon: IndianRupee, color: "text-rose-700" },
-      { id: "treasury", label: "Treasury & Escrow", category: "settlements", icon: Building2, color: "text-blue-700" },
-      { id: "memberships", label: "Membership Plans", category: "rules", icon: Award, color: "text-amber-700" },
-      { id: "loyalty", label: "Loyalty & Rewards", category: "rules", icon: Gift, color: "text-pink-700" },
-      { id: "approvals", label: "Maker-Checker", category: "settlements", icon: ShieldCheck, color: "text-indigo-700" },
-      { id: "ai-assistant", label: "AI Simulator", category: "core", icon: Sparkles, color: "text-purple-700" },
-      { id: "customer-360", label: "Customer 360", category: "accounting", icon: User, color: "text-zinc-700" },
-      { id: "accounting-statements", label: "GAAP Statements", category: "accounting", icon: FileText, color: "text-zinc-700" },
-      { id: "audit", label: "Audit Logs", category: "accounting", icon: History, color: "text-zinc-700" },
-      { id: "ledger", label: "Order Inspector", category: "accounting", icon: Search, color: "text-zinc-700" },
+      { id: "overview", label: "Overview & Analytics", icon: Activity, color: "text-zinc-900" },
+      { id: "settlements", label: "Payouts Command Center", icon: Landmark, color: "text-emerald-700" },
+      { id: "rules", label: "Rules & Fare Engine", icon: Sliders, color: "text-blue-700" },
+      { id: "cod", label: "COD & Fleet Vault", icon: Wallet, color: "text-amber-700" },
+      { id: "tax-center", label: "Tax Center (GST/TDS)", icon: Receipt, color: "text-purple-700" },
+      { id: "general-ledger", label: "Double-Entry Ledger", icon: Scale, color: "text-indigo-700" },
+      { id: "recon", label: "3-Way Recon", icon: RotateCcw, color: "text-sky-700" },
+      { id: "unit-economics", label: "Unit Economics", icon: TrendingUp, color: "text-teal-700" },
+      { id: "expenses", label: "Operating Expenses", icon: IndianRupee, color: "text-rose-700" },
+      { id: "treasury", label: "Treasury & Escrow", icon: Building2, color: "text-blue-700" },
+      { id: "memberships", label: "Membership Plans", icon: Award, color: "text-amber-700" },
+      { id: "loyalty", label: "Loyalty & Rewards", icon: Gift, color: "text-pink-700" },
+      { id: "customer-360", label: "Customer 360", icon: User, color: "text-zinc-700" },
+      { id: "audit", label: "Audit Logs", icon: History, color: "text-zinc-700" },
+      { id: "ledger", label: "Order Inspector", icon: Search, color: "text-zinc-700" },
     ],
     []
   );
@@ -1577,59 +1555,10 @@ export function FinanceEnginePage() {
 
         {/* Primary Enterprise Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as any)} className="w-full space-y-3">
-          {/* Tier 1: Category Filter Ribbon & Direct Jump Selector */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pb-1">
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-              {financeCategories.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setSelectedNavCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shadow-2xs ${
-                    selectedNavCategory === cat.id
-                      ? "bg-zinc-950 text-white shadow-xs"
-                      : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Quick Direct Jump Selector */}
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider hidden md:inline">
-                Jump To:
-              </span>
-              <select
-                value={activeTab}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    handleTabChange(e.target.value as any);
-                  }
-                }}
-                className="h-8 rounded-xl border border-zinc-200 bg-white px-2.5 text-xs font-bold text-zinc-900 focus:border-zinc-950 focus:outline-none shadow-2xs cursor-pointer"
-              >
-                {allFinanceModules.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Tier 2: Module Tabs Strip */}
+          {/* Module Tabs Strip */}
           <div className="bg-zinc-100/90 p-1.5 rounded-2xl border border-zinc-200 shadow-2xs overflow-x-auto">
             <TabsList className="flex items-center gap-1 bg-transparent p-0 h-auto w-max min-w-full">
-              {allFinanceModules
-                .filter(
-                  (m) =>
-                    selectedNavCategory === "all" ||
-                    m.category === selectedNavCategory ||
-                    m.id === activeTab
-                )
-                .map((m) => {
+              {allFinanceModules.map((m) => {
                   const Icon = m.icon;
                   const isActive = activeTab === m.id;
                   return (
@@ -5076,20 +5005,6 @@ export function FinanceEnginePage() {
           </TabsContent>
 
           {/* =========================================================================
-              PHASE 2: GAAP STATEMENTS (P&L, BALANCE SHEET, CASH FLOW, AGING)
-             ========================================================================= */}
-          <TabsContent value="accounting-statements" className="mt-6 space-y-6">
-            <AccountingStatementsView />
-          </TabsContent>
-
-          {/* =========================================================================
-              PHASE 2: MULTI-DIMENSIONAL PROFITABILITY ANALYTICS (CITY, SERVICE, RIDER)
-             ========================================================================= */}
-          <TabsContent value="profitability" className="mt-6 space-y-6">
-            <ProfitabilityAnalyticsView />
-          </TabsContent>
-
-          {/* =========================================================================
               PHASE 2 & 4: GST & STATUTORY TAX COMPLIANCE CENTER
              ========================================================================= */}
           <TabsContent value="tax-center" className="mt-6 space-y-6">
@@ -5101,20 +5016,6 @@ export function FinanceEnginePage() {
              ========================================================================= */}
           <TabsContent value="treasury" className="mt-6 space-y-6">
             <TreasuryCenterView />
-          </TabsContent>
-
-          {/* =========================================================================
-              PHASE 1 & 3: MAKER-CHECKER APPROVALS & FINANCIAL PERIOD CLOSING
-             ========================================================================= */}
-          <TabsContent value="approvals" className="mt-6 space-y-6">
-            <ApprovalCenterView />
-          </TabsContent>
-
-          {/* =========================================================================
-              PHASE 3: AI FINANCE ASSISTANT & COMMERCIAL SCENARIO SIMULATOR
-             ========================================================================= */}
-          <TabsContent value="ai-assistant" className="mt-6 space-y-6">
-            <AiFinanceAssistantView />
           </TabsContent>
         </Tabs>
 
