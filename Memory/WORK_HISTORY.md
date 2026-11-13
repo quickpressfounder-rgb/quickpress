@@ -1,5 +1,51 @@
 # QuickPress — Engineering Work History
 
+## Session: November 13, 2026 (Part 8)
+
+### Pan-India Area-Wise & Hub-Specific Rules Configuration, Matrix Viewer & Official Reports Geographical Filtering
+
+1. **Context & User Request:**
+   - User directive:
+     *"in sab ko area wise set kar saku or area wise dekh saku"*
+   - User uploaded reference screenshots highlighting dynamic fare controls, universal base pricing, rider tariff sliders, and stakeholder navigation tabs, requesting the ability to set and view rules and financial reports area-wise and city-wise across the platform.
+
+2. **Engineering Solutions Delivered:**
+   - **Area Scope Controller (`UnifiedStakeholderRulesEngine.tsx`):**
+     - Integrated a prominent **Geographic Scope Header** at the top of the Rules Engine.
+     - Selector supports `🇮🇳 All India (National Master Default)` alongside all live operational hubs and city sectors (`Kasganj – Soron Gate`, `Kasganj – Outer Bypass`, `Kasganj – Bilram Gate`, `New Delhi – Connaught Place`, `New Delhi – South Extension`, `Aligarh – Center Hub`, etc.).
+     - Status badges clearly inform the admin: `Default Baseline`, `Custom Area Override Active`, or `Inheriting National Master`.
+     - Direct actions: `⚡ Customize This Area` (auto-initializes custom area rules from master baseline) and `↺ Revert to Master` (removes custom override, restoring inheritance).
+     - Quick Surcharge Strip: Real-time toggles for Rain Surge (+₹15), Night Surge (+₹20), and Free Delivery Threshold (₹149) reacting specifically to the selected scope.
+   - **Area-Aware Dynamic Inputs in All Stakeholder Tabs:**
+     - **Customer Pricing:** Area-specific Base Delivery Fee, Extra /km Rate, Free Delivery Min, MOV, Platform Handling Fee, Express Priority Surcharge.
+     - **Live Customer Cart Simulator:** Dynamically computes customer billings in real-time based on the selected area's exact rates.
+     - **Partner Commercials:** Area-specific Partner Take Rate / Commission % (e.g. 12% in tier-2 Kasganj vs 15% Master), settlement cycle, Section 194-O TDS.
+     - **Live Partner Disbursal Simulator:** Calculates partner bank earnings and platform commission using the active area's commission %.
+     - **Rider Pay & Incentives:** Area-specific Rider Base Tariff (first 2 km), Extra KM rate, Doorstep waiting fee, Minimum Floor Guarantee, and Express bonus.
+     - **Candy Crush Level-Wise Milestones:** Tiered trip targets (Levels 1-10) with cash rewards and weekly streak jackpot.
+     - **Live Trip Fare Simulator:** Calculates rider trip earnings using the active area's exact tariff.
+     - **GST & Tax Engine:** State jurisdiction mapping (UP SGST+CGST for Kasganj, Delhi IGST for Delhi).
+     - **Penalties & Fines:** Store rejection, rider cancellation, customer late cancellation, doorstep no-show.
+     - **Audit History:** Live audit trail.
+   - **Pan-India All-Areas Pricing & Commercials Matrix Modal (`isMatrixModalOpen`):**
+     - Interactive side-by-side comparative table of all operational hubs and areas.
+     - Columns: City & Area, Scope Status (Custom Override vs Inheriting Master), Customer Delivery Base & Extra /km, Free Delivery Above, Partner Commission %, Rider Base Pay & Extra /km, and Quick Actions.
+     - Search & filter by city or area name.
+     - Quick "Add New Area Override" modal dialog (`isAddAreaModalOpen`) allowing instant creation of a new operating area with custom rates.
+   - **Geographical Hub Filtering in Official Financial Reports (`OfficialReportsView.tsx`):**
+     - Added Geographical Hub selector (`All India Consolidated`, `Kasganj Hub`, `New Delhi Central Hub`, `Aligarh Hub`).
+     - Real-time hub apportioning for Balance Sheet, P&L, Journal Entries, Chart of Accounts, and Cash Book.
+     - PDF/Print Letterhead: Strictly displays `OPERATIONAL HUB: KASGANJ HUB (UTTAR PRADESH)` (or Delhi Hub / Consolidated) and `JURISDICTION GSTIN` in formal black-on-white legal format.
+     - CSV Export: Embeds active geographical scope in corporate export header.
+   - **Data Fidelity & Persistence (`finance-engine.tsx` & `finance-api.ts`):**
+     - Enhanced `mapServerRulesToForm` and `mapFormToPayload` to preserve all area-specific fields: `freeDeliveryThreshold`, `expressDeliveryFee`, `rainSurge`, `nightSurge`, `partnerCommissionPercent`, `riderBasePay`, `riderPerKmRate`, `minimumFloor`.
+     - Updated TypeScript types in `finance-api.ts`.
+
+3. **Verification & Testing Results:**
+   - Production build verified: `npm --prefix admin-frontend run build` exited with code 0 in 7.32s (0 errors).
+
+---
+
 ## Session: November 13, 2026 (Part 7)
 
 ### GST Tax Engine, Rider Level-Wise Milestones, Fine/Penalty Management & PDF-Exclusive Letterhead

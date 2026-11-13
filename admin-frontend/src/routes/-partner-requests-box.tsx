@@ -314,11 +314,10 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
           <div
             onClick={() => setStatusFilter("pending")}
-            className={`cursor-pointer p-3.5 rounded-xl border transition-all ${
-              statusFilter === "pending"
-                ? "bg-amber-50/80 border-amber-300 ring-2 ring-amber-400/20 shadow-xs"
-                : "bg-zinc-50/70 border-zinc-200/80 hover:bg-amber-50/40"
-            }`}
+            className={`cursor-pointer p-3.5 rounded-xl border transition-all ${statusFilter === "pending"
+              ? "bg-amber-50/80 border-amber-300 ring-2 ring-amber-400/20 shadow-xs"
+              : "bg-zinc-50/70 border-zinc-200/80 hover:bg-amber-50/40"
+              }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
@@ -335,11 +334,10 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
 
           <div
             onClick={() => setStatusFilter("approved")}
-            className={`cursor-pointer p-3.5 rounded-xl border transition-all ${
-              statusFilter === "approved"
-                ? "bg-emerald-50/80 border-emerald-300 ring-2 ring-emerald-400/20 shadow-xs"
-                : "bg-zinc-50/70 border-zinc-200/80 hover:bg-emerald-50/40"
-            }`}
+            className={`cursor-pointer p-3.5 rounded-xl border transition-all ${statusFilter === "approved"
+              ? "bg-emerald-50/80 border-emerald-300 ring-2 ring-emerald-400/20 shadow-xs"
+              : "bg-zinc-50/70 border-zinc-200/80 hover:bg-emerald-50/40"
+              }`}
           >
             <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
               <CheckCircle2 className="size-3.5 text-emerald-600" />
@@ -353,11 +351,10 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
 
           <div
             onClick={() => setStatusFilter("rejected")}
-            className={`cursor-pointer p-3.5 rounded-xl border transition-all ${
-              statusFilter === "rejected"
-                ? "bg-rose-50/80 border-rose-300 ring-2 ring-rose-400/20 shadow-xs"
-                : "bg-zinc-50/70 border-zinc-200/80 hover:bg-rose-50/40"
-            }`}
+            className={`cursor-pointer p-3.5 rounded-xl border transition-all ${statusFilter === "rejected"
+              ? "bg-rose-50/80 border-rose-300 ring-2 ring-rose-400/20 shadow-xs"
+              : "bg-zinc-50/70 border-zinc-200/80 hover:bg-rose-50/40"
+              }`}
           >
             <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wider flex items-center gap-1.5">
               <XCircle className="size-3.5 text-rose-600" />
@@ -371,11 +368,10 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
 
           <div
             onClick={() => setStatusFilter("all")}
-            className={`cursor-pointer p-3.5 rounded-xl border transition-all ${
-              statusFilter === "all"
-                ? "bg-zinc-100 border-zinc-300 ring-2 ring-zinc-400/20 shadow-xs"
-                : "bg-zinc-50/70 border-zinc-200/80 hover:bg-zinc-100"
-            }`}
+            className={`cursor-pointer p-3.5 rounded-xl border transition-all ${statusFilter === "all"
+              ? "bg-zinc-100 border-zinc-300 ring-2 ring-zinc-400/20 shadow-xs"
+              : "bg-zinc-50/70 border-zinc-200/80 hover:bg-zinc-100"
+              }`}
           >
             <span className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider flex items-center gap-1.5">
               <Layers className="size-3.5 text-zinc-500" />
@@ -426,11 +422,10 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
               <button
                 key={t.id}
                 onClick={() => setTypeFilter(t.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                  typeFilter === t.id
-                    ? "bg-emerald-600 text-white shadow-xs"
-                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200/70"
-                }`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${typeFilter === t.id
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200/70"
+                  }`}
               >
                 {t.label}
               </button>
@@ -450,17 +445,15 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
             <button
               key={s.id}
               onClick={() => setStatusFilter(s.id as any)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                statusFilter === s.id
-                  ? "bg-zinc-900 text-white font-bold"
-                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-              }`}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${statusFilter === s.id
+                ? "bg-zinc-900 text-white font-bold"
+                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                }`}
             >
               <span>{s.label}</span>
               <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  statusFilter === s.id ? "bg-zinc-800 text-zinc-200" : "bg-white text-zinc-700 border border-zinc-200"
-                }`}
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${statusFilter === s.id ? "bg-zinc-800 text-zinc-200" : "bg-white text-zinc-700 border border-zinc-200"
+                  }`}
               >
                 {s.count}
               </span>
@@ -515,13 +508,12 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
             return (
               <div
                 key={reqId}
-                className={`bg-white rounded-2xl border transition-all shadow-xs overflow-hidden ${
-                  isPending
-                    ? "border-amber-300 ring-1 ring-amber-200/70"
-                    : req.status === "approved"
+                className={`bg-white rounded-2xl border transition-all shadow-xs overflow-hidden ${isPending
+                  ? "border-amber-300 ring-1 ring-amber-200/70"
+                  : req.status === "approved"
                     ? "border-zinc-200"
                     : "border-rose-200"
-                }`}
+                  }`}
               >
                 {/* Main Card Header */}
                 <div className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -941,11 +933,10 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
                       setSelectedQuickReason(qr);
                       setRejectReason(qr);
                     }}
-                    className={`w-full text-left text-xs p-2 rounded-lg border transition-all ${
-                      selectedQuickReason === qr
-                        ? "bg-rose-50 border-rose-300 text-rose-900 font-medium"
-                        : "bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100"
-                    }`}
+                    className={`w-full text-left text-xs p-2 rounded-lg border transition-all ${selectedQuickReason === qr
+                      ? "bg-rose-50 border-rose-300 text-rose-900 font-medium"
+                      : "bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100"
+                      }`}
                   >
                     • {qr}
                   </button>

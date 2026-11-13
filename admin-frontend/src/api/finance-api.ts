@@ -58,7 +58,23 @@ export interface FinancialRules {
     nightSurge: number;
     rainSurge: number;
     rushHourSurge?: number;
-    cityAreaPricing?: Array<{ id: string; city: string; area: string; baseFee: number; perKmRate: number; minFee: number; active: boolean }>;
+    cityAreaPricing?: Array<{
+      id: string;
+      city: string;
+      area: string;
+      baseFee: number;
+      perKmRate: number;
+      minFee: number;
+      freeDeliveryThreshold?: number;
+      expressDeliveryFee?: number;
+      rainSurge?: number;
+      nightSurge?: number;
+      partnerCommissionPercent?: number;
+      riderBasePay?: number;
+      riderPerKmRate?: number;
+      minimumFloor?: number;
+      active: boolean;
+    }>;
   };
   cancellation: Record<
     string,

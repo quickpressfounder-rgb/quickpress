@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Sliders,
   Save,
@@ -24,6 +25,16 @@ import {
   Trash2,
   Award,
   Zap,
+  MapPin,
+  Globe,
+  Search,
+  CloudRain,
+  Moon,
+  Eye,
+  Edit3,
+  Filter,
+  Check,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -38,7 +49,15 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/shared/ui/dialog";
 import { toast } from "sonner";
+import { fetchCities, type CityIntelligence } from "@/api/cities";
 
 interface UnifiedStakeholderRulesEngineProps {
   editableRules: any;
@@ -57,17 +76,310 @@ export function UnifiedStakeholderRulesEngine({
   isSaving = false,
   auditLogs = [],
 }: UnifiedStakeholderRulesEngineProps) {
+  // Active Stakeholder Tab
   const [activeRoleTab, setActiveRoleTab] = useState<
     "customer" | "partner" | "rider" | "gst" | "penalties" | "history"
   >("customer");
+
+  // Geographic Scope Selection ("NATIONAL_MASTER" or "City::Area")
+  const [selectedScope, setSelectedScope] = useState<string>("NATIONAL_MASTER");
+
+  // Modals for Area Management
+  const [isMatrixModalOpen, setIsMatrixModalOpen] = useState(false);
+  const [isAddAreaModalOpen, setIsAddAreaModalOpen] = useState(false);
+  const [matrixSearchQuery, setMatrixSearchQuery] = useState("");
+
+  // New Area Form State
+  const [newAreaCity, setNewAreaCity] = useState("Kasganj");
+  const [newAreaName, setNewAreaName] = useState("");
+  const [newAreaBaseFee, setNewAreaBaseFee] = useState("25");
+  const [newAreaPerKm, setNewAreaPerKm] = useState("7.0");
+  const [newAreaFreeDelivery, setNewAreaFreeDelivery] = useState("149");
+  const [newAreaCommission, setNewAreaCommission] = useState("12");
+  const [newAreaRiderBase, setNewAreaRiderBase] = useState("30");
+  const [newAreaRiderPerKm, setNewAreaRiderPerKm] = useState("7.0");
+
+  // Query: Operational Cities & Zones
+  const citiesQuery = useQuery<CityIntelligence[]>({
+    queryKey: ["admin", "cities", "list"],
+    queryFn: fetchCities,
+    staleTime: 60000,
+  });
+
+  // Consolidated List of Operational Hubs and Areas
+  const allOperationalAreas = useMemo(() => {
+    const list: Array<{ city: string; area: string; key: string }> = [
+      { city: "Kasganj", area: "Soron Gate", key: "Kasganj::Soron Gate" },
+      { city: "Kasganj", area: "Outer Bypass", key: "Kasganj::Outer Bypass" },
+      { city: "Kasganj", area: "Bilram Gate", key: "Kasganj::Bilram Gate" },
+      { city: "Kasganj", area: "City Center", key: "Kasganj::City Center" },
+      { city: "New Delhi", area: "Connaught Place", key: "New Delhi::Connaught Place" },
+      { city: "New Delhi", area: "South Extension", key: "New Delhi::South Extension" },
+      { city: "Aligarh", area: "Center Hub", key: "Aligarh::Center Hub" },
+    ];
+
+    // Merge from cities query if available
+    if (citiesQuery.data) {
+      citiesQuery.data.forEach((c) => {
+        if (c.zones) {
+          c.zones.forEach((z) => {
+            const key = `${c.city}::${z.name}`;
+            if (!list.some((item) => item.key.toLowerCase() === key.toLowerCase())) {
+              list.push({ city: c.city, area: z.name, key });
+            }
+          });
+        }
+      });
+    }
+
+    // Merge any existing overrides from editableRules
+    const existing = editableRules?.delivery?.cityAreaPricing || [];
+    existing.forEach((p: any) => {
+      const key = `${p.city}::${p.area}`;
+      if (!list.some((item) => item.key.toLowerCase() === key.toLowerCase())) {
+        list.push({ city: p.city, area: p.area, key });
+      }
+    });
+
+    return list;
+  }, [citiesQuery.data, editableRules?.delivery?.cityAreaPricing]);
+
+  // Current Scope Helpers
+  const isAreaScope = selectedScope !== "NATIONAL_MASTER";
+
+  const activeOverrideIndex = useMemo(() => {
+    if (!isAreaScope) return -1;
+    const [c, a] = selectedScope.split("::");
+    const list = editableRules?.delivery?.cityAreaPricing || [];
+    return list.findIndex(
+      (item: any) =>
+        item.city?.toLowerCase() === c?.toLowerCase() &&
+        item.area?.toLowerCase() === a?.toLowerCase()
+    );
+  }, [selectedScope, isAreaScope, editableRules?.delivery?.cityAreaPricing]);
+
+  const activeAreaOverride = activeOverrideIndex >= 0
+    ? editableRules?.delivery?.cityAreaPricing[activeOverrideIndex]
+    : null;
+
+  const hasActiveAreaOverride = Boolean(activeAreaOverride);
+
+  const currentScopeCity = isAreaScope ? selectedScope.split("::")[0] : "All India";
+  const currentScopeArea = isAreaScope ? selectedScope.split("::")[1] : "National Master";
+  const currentScopeLabel = isAreaScope ? `${currentScopeCity} – ${currentScopeArea}` : "All India (National Master)";
+
+  // Update a field specifically for the active area override
+  const handleUpdateAreaField = (fieldKey: string, val: any) => {
+    if (!isAreaScope) return;
+    const [city, area] = selectedScope.split("::");
+    const currentList = [...(editableRules?.delivery?.cityAreaPricing || [])];
+
+    if (activeOverrideIndex >= 0) {
+      currentList[activeOverrideIndex] = {
+        ...currentList[activeOverrideIndex],
+        [fieldKey]: val,
+      };
+    } else {
+      // Auto-initialize override cloned from master
+      currentList.push({
+        id: `del-${Date.now()}`,
+        city,
+        area,
+        baseFee: editableRules?.delivery?.baseFee ?? "29",
+        perKmRate: editableRules?.delivery?.perKmRate ?? "8.0",
+        minFee: editableRules?.pricing?.minimumOrderValue ?? "99",
+        freeDeliveryThreshold: editableRules?.delivery?.freeDeliveryThreshold ?? "149",
+        expressDeliveryFee: editableRules?.pricing?.universalExpressPrice ?? "40",
+        rainSurge: editableRules?.surge?.rainSurgeFee ?? "20",
+        nightSurge: editableRules?.delivery?.nightSurge ?? "25",
+        partnerCommissionPercent: String(100 - (Number(editableRules?.commission?.partnerPayoutPercent) || 85)),
+        riderBasePay: editableRules?.riderPayout?.basePay ?? "35",
+        riderPerKmRate: editableRules?.riderPayout?.perKmRate ?? "8.0",
+        minimumFloor: editableRules?.riderPayout?.minimumFloor ?? "30",
+        active: true,
+        [fieldKey]: val,
+      });
+    }
+
+    updateField("delivery.cityAreaPricing", currentList);
+  };
+
+  // One-click create custom override for the selected area
+  const handleCustomizeArea = () => {
+    if (!isAreaScope || hasActiveAreaOverride) return;
+    const [city, area] = selectedScope.split("::");
+    const currentList = [...(editableRules?.delivery?.cityAreaPricing || [])];
+
+    currentList.push({
+      id: `del-${Date.now()}`,
+      city,
+      area,
+      baseFee: editableRules?.delivery?.baseFee ?? "25",
+      perKmRate: editableRules?.delivery?.perKmRate ?? "7.0",
+      minFee: editableRules?.pricing?.minimumOrderValue ?? "99",
+      freeDeliveryThreshold: editableRules?.delivery?.freeDeliveryThreshold ?? "149",
+      expressDeliveryFee: editableRules?.pricing?.universalExpressPrice ?? "35",
+      rainSurge: editableRules?.surge?.rainSurgeFee ?? "15",
+      nightSurge: editableRules?.delivery?.nightSurge ?? "20",
+      partnerCommissionPercent: "12",
+      riderBasePay: "30",
+      riderPerKmRate: "7.0",
+      minimumFloor: "25",
+      active: true,
+    });
+
+    updateField("delivery.cityAreaPricing", currentList);
+    toast.success(`Custom pricing rules enabled for ${area}, ${city}`);
+  };
+
+  // Revert active area to inherit from National Master
+  const handleRevertToNationalMaster = () => {
+    if (!isAreaScope || !hasActiveAreaOverride) return;
+    const currentList = [...(editableRules?.delivery?.cityAreaPricing || [])];
+    currentList.splice(activeOverrideIndex, 1);
+    updateField("delivery.cityAreaPricing", currentList);
+    toast.info(`${currentScopeLabel} reverted to National Master baseline.`);
+  };
+
+  // Delete an area override by ID
+  const handleDeleteAreaOverrideById = (id: string) => {
+    const currentList = (editableRules?.delivery?.cityAreaPricing || []).filter(
+      (item: any) => item.id !== id
+    );
+    updateField("delivery.cityAreaPricing", currentList);
+    toast.info("Area override removed.");
+  };
+
+  // Add new area override from dialog
+  const handleCreateNewAreaFromDialog = () => {
+    if (!newAreaName.trim()) {
+      toast.error("Please enter an Area / Zone name");
+      return;
+    }
+
+    const currentList = [...(editableRules?.delivery?.cityAreaPricing || [])];
+    const key = `${newAreaCity}::${newAreaName.trim()}`;
+
+    currentList.push({
+      id: `del-${Date.now()}`,
+      city: newAreaCity,
+      area: newAreaName.trim(),
+      baseFee: newAreaBaseFee,
+      perKmRate: newAreaPerKm,
+      minFee: "99",
+      freeDeliveryThreshold: newAreaFreeDelivery,
+      expressDeliveryFee: "35",
+      rainSurge: "15",
+      nightSurge: "20",
+      partnerCommissionPercent: newAreaCommission,
+      riderBasePay: newAreaRiderBase,
+      riderPerKmRate: newAreaRiderPerKm,
+      minimumFloor: "25",
+      active: true,
+    });
+
+    updateField("delivery.cityAreaPricing", currentList);
+    setSelectedScope(key);
+    setIsAddAreaModalOpen(false);
+    setNewAreaName("");
+    toast.success(`Added new operational area: ${newAreaName.trim()}, ${newAreaCity}`);
+  };
+
+  // Effective Values (Takes area override if active, else fallback to national master)
+  const effectiveFreeDeliveryThreshold = Number(
+    isAreaScope && activeAreaOverride?.freeDeliveryThreshold !== undefined
+      ? activeAreaOverride.freeDeliveryThreshold
+      : (editableRules?.delivery?.freeDeliveryThreshold ?? 199)
+  );
+
+  const effectiveDeliveryBaseFee = Number(
+    isAreaScope && activeAreaOverride?.baseFee !== undefined
+      ? activeAreaOverride.baseFee
+      : (editableRules?.delivery?.baseFee ?? 29)
+  );
+
+  const effectivePerKmRate = Number(
+    isAreaScope && activeAreaOverride?.perKmRate !== undefined
+      ? activeAreaOverride.perKmRate
+      : (editableRules?.delivery?.perKmRate ?? 8.0)
+  );
+
+  const effectiveMov = Number(
+    isAreaScope && activeAreaOverride?.minFee !== undefined
+      ? activeAreaOverride.minFee
+      : (editableRules?.pricing?.minimumOrderValue ?? 99)
+  );
+
+  const effectivePartnerCommission = Number(
+    isAreaScope && activeAreaOverride?.partnerCommissionPercent !== undefined
+      ? activeAreaOverride.partnerCommissionPercent
+      : (100 - (Number(editableRules?.commission?.partnerPayoutPercent) || 85))
+  );
+
+  const effectiveRiderBasePay = Number(
+    isAreaScope && activeAreaOverride?.riderBasePay !== undefined
+      ? activeAreaOverride.riderBasePay
+      : (editableRules?.riderPayout?.basePay ?? 35)
+  );
+
+  const effectiveRiderPerKmRate = Number(
+    isAreaScope && activeAreaOverride?.riderPerKmRate !== undefined
+      ? activeAreaOverride.riderPerKmRate
+      : (editableRules?.riderPayout?.perKmRate ?? 8.0)
+  );
+
+  const effectiveRainSurge = Number(
+    isAreaScope && activeAreaOverride?.rainSurge !== undefined
+      ? activeAreaOverride.rainSurge
+      : (editableRules?.surge?.rainSurgeFee ?? 20)
+  );
+
+  const effectiveNightSurge = Number(
+    isAreaScope && activeAreaOverride?.nightSurge !== undefined
+      ? activeAreaOverride.nightSurge
+      : (editableRules?.delivery?.nightSurge ?? 25)
+  );
+
+  const handlingFee =
+    editableRules?.fees?.handlingFeeEnabled !== false
+      ? Number(editableRules?.fees?.handlingFee || 5)
+      : 0;
+
+  const packagingFee = editableRules?.fees?.packagingFeeEnabled
+    ? Number(editableRules?.fees?.packagingFee || 10)
+    : 0;
+
+  const expressCustomerFee = Number(
+    editableRules?.pricing?.universalExpressPrice ||
+      editableRules?.delivery?.expressDeliveryFee ||
+      40
+  );
 
   // Customer Cart Simulator State
   const [simCartValue, setSimCartValue] = useState<number>(180);
   const [simCustomerIsExpress, setSimCustomerIsExpress] = useState<boolean>(false);
   const [simCustomerIsRain, setSimCustomerIsRain] = useState<boolean>(false);
 
+  // Customer Cart Calculations
+  const isFreeDelivery = simCartValue >= effectiveFreeDeliveryThreshold;
+  const effectiveSimDeliveryFee = isFreeDelivery ? 0 : effectiveDeliveryBaseFee;
+  const effectiveSimSurgeFee = simCustomerIsRain ? effectiveRainSurge : 0;
+  const effectiveSimExpressFee = simCustomerIsExpress ? expressCustomerFee : 0;
+  const totalCustomerPay =
+    simCartValue +
+    effectiveSimDeliveryFee +
+    handlingFee +
+    packagingFee +
+    effectiveSimSurgeFee +
+    effectiveSimExpressFee;
+
   // Partner Calculator State
   const [simPartnerGmv, setSimPartnerGmv] = useState<number>(1000);
+  const partnerGrossShare = (simPartnerGmv * (100 - effectivePartnerCommission)) / 100;
+  const partnerTds194o = (simPartnerGmv * 1.0) / 100; // 1% Section 194-O TDS
+  const partnerNetDisbursal = partnerGrossShare - partnerTds194o;
+  const platformCommissionAmount = (simPartnerGmv * effectivePartnerCommission) / 100;
+  const platformGstAmount = (platformCommissionAmount * 18) / 100;
 
   // Rider Fare Simulator State
   const [simRiderDistance, setSimRiderDistance] = useState<number>(3.5);
@@ -75,69 +387,25 @@ export function UnifiedStakeholderRulesEngine({
   const [simRiderIsExpress, setSimRiderIsExpress] = useState<boolean>(false);
   const [simRiderIsRain, setSimRiderIsRain] = useState<boolean>(false);
 
-  // Helper values
-  const freeDeliveryThreshold = Number(editableRules?.delivery?.freeDeliveryThreshold) || 199;
-  const belowThresholdFee = Number(editableRules?.delivery?.baseFee) || 29;
-  const handlingFee =
-    editableRules?.fees?.handlingFeeEnabled !== false
-      ? Number(editableRules?.fees?.handlingFee || 5)
-      : 0;
-  const packagingFee = editableRules?.fees?.packagingFeeEnabled
-    ? Number(editableRules?.fees?.packagingFee || 10)
-    : 0;
-  const expressCustomerFee = Number(
-    editableRules?.pricing?.universalExpressPrice ||
-      editableRules?.delivery?.expressDeliveryFee ||
-      40
-  );
-  const rainSurgeFee = editableRules?.surge?.enabled
-    ? Number(editableRules?.surge?.rainSurgeFee || editableRules?.surge?.surgeFee || 20)
-    : 0;
-
-  // Customer Cart Calculations
-  const isFreeDelivery = simCartValue >= freeDeliveryThreshold;
-  const effectiveDeliveryFee = isFreeDelivery ? 0 : belowThresholdFee;
-  const effectiveSurgeFee = simCustomerIsRain ? rainSurgeFee : 0;
-  const effectiveExpressFee = simCustomerIsExpress ? expressCustomerFee : 0;
-  const totalCustomerPay =
-    simCartValue +
-    effectiveDeliveryFee +
-    handlingFee +
-    packagingFee +
-    effectiveSurgeFee +
-    effectiveExpressFee;
-
-  // Partner Calculations
-  const partnerSharePercent = Number(editableRules?.commission?.partnerPayoutPercent) || 85;
-  const platformCommPercent = Math.max(0, 100 - partnerSharePercent);
-  const partnerGrossShare = (simPartnerGmv * partnerSharePercent) / 100;
-  const partnerTds194o = (simPartnerGmv * 1.0) / 100; // 1% Section 194-O TDS
-  const partnerNetDisbursal = partnerGrossShare - partnerTds194o;
-  const platformCommissionAmount = (simPartnerGmv * platformCommPercent) / 100;
-  const platformGstAmount = (platformCommissionAmount * 18) / 100;
-
-  // Rider Calculations
-  const riderBasePay = Number(editableRules?.riderPayout?.basePay) || 35;
   const riderBaseDistance = 2.0;
-  const riderPerKmRate = Number(editableRules?.riderPayout?.perKmRate) || 8.0;
   const riderWaitingRate = Number(editableRules?.riderPayout?.waitingRatePerMin) || 2.0;
   const riderExpressBonus = Number(editableRules?.delivery?.expressDeliveryFee || 25);
 
   const extraDistanceKm = Math.max(0, simRiderDistance - riderBaseDistance);
-  const extraDistancePay = extraDistanceKm * riderPerKmRate;
+  const extraDistancePay = extraDistanceKm * effectiveRiderPerKmRate;
   const chargeableWaitingMins = Math.max(0, simRiderWaitingMins - 5); // 5 mins free
   const waitingPay = chargeableWaitingMins * riderWaitingRate;
   const expressBonusPay = simRiderIsExpress ? riderExpressBonus : 0;
-  const rainBonusPay = simRiderIsRain ? rainSurgeFee : 0;
+  const rainBonusPay = simRiderIsRain ? effectiveRainSurge : 0;
   const totalRiderPay = Math.max(
     Number(editableRules?.riderPayout?.minimumFloor || 30),
     Math.min(
       Number(editableRules?.riderPayout?.maximumCap || 600),
-      riderBasePay + extraDistancePay + waitingPay + expressBonusPay + rainBonusPay
+      effectiveRiderBasePay + extraDistancePay + waitingPay + expressBonusPay + rainBonusPay
     )
   );
 
-  // Level Incentive Handlers
+  // Candy Crush Level Milestone Incentives Handlers
   const handleUpdateIncentiveLevel = (index: number, key: string, val: any) => {
     const list = [...(editableRules?.incentives?.candyCrushLevels || [])];
     if (list[index]) {
@@ -222,12 +490,21 @@ export function UnifiedStakeholderRulesEngine({
                 )}
               </div>
               <p className="text-xs text-zinc-500 mt-0.5">
-                Central configuration for <strong>Customers</strong>, <strong>Partners</strong>, <strong>Riders</strong>, <strong>GST/Taxes</strong>, and <strong>Penalties</strong>.
+                Centralized configuration for <strong>Customers</strong>, <strong>Partners</strong>, <strong>Riders</strong>, <strong>GST/Taxes</strong>, and <strong>Penalties</strong> with full <strong>Area &amp; City-Wise Control</strong>.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <Button
+              onClick={() => setIsMatrixModalOpen(true)}
+              variant="outline"
+              className="border-zinc-300 hover:bg-zinc-100 text-zinc-900 font-bold text-xs px-3.5 py-2.5 rounded-xl gap-2 shadow-2xs cursor-pointer"
+            >
+              <Globe className="size-4 text-zinc-600" />
+              <span>All-Areas Matrix</span>
+            </Button>
+
             <Button
               onClick={onSave}
               disabled={isSaving}
@@ -239,7 +516,142 @@ export function UnifiedStakeholderRulesEngine({
           </div>
         </div>
 
-        {/* Stakeholder Role Selector Switcher (6 Focused Tabs) */}
+        {/* =========================================================================
+            PROMINENT GEOGRAPHIC SCOPE & CITY-AREA CONTROLLER
+           ========================================================================= */}
+        <div className="bg-gradient-to-r from-emerald-50/60 via-teal-50/40 to-blue-50/40 p-4 rounded-2xl border border-emerald-200/80 shadow-2xs space-y-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-white border border-emerald-300 flex items-center justify-center text-emerald-700 shadow-2xs shrink-0">
+                <MapPin className="size-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-black uppercase tracking-wider text-emerald-950">
+                    Active Operational Scope:
+                  </span>
+                  {!isAreaScope ? (
+                    <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 font-black text-[10px]">
+                      🇮🇳 All India (National Master Baseline)
+                    </Badge>
+                  ) : hasActiveAreaOverride ? (
+                    <Badge className="bg-blue-100 text-blue-900 border border-blue-300 font-black text-[10px]">
+                      📍 Custom Area Override Active
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[10px]">
+                      ⚡ Inheriting National Master
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-[11px] text-zinc-600 mt-0.5">
+                  {!isAreaScope
+                    ? `Default baseline applied across all operating cities unless an area has a dedicated override. (${(editableRules?.delivery?.cityAreaPricing || []).length} active area overrides)`
+                    : `Configuring rates specifically for ${currentScopeLabel}. Changes affect only this zone.`}
+                </p>
+              </div>
+            </div>
+
+            {/* Scope Selection Dropdown & Quick Actions */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="w-64">
+                <Select value={selectedScope} onValueChange={(v) => setSelectedScope(v)}>
+                  <SelectTrigger className="h-9 w-full bg-white border-zinc-300 text-xs font-bold text-zinc-900 shadow-2xs">
+                    <SelectValue placeholder="Select Area / City" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="NATIONAL_MASTER" className="text-xs font-black text-emerald-900">
+                      🇮🇳 All India (National Master Default)
+                    </SelectItem>
+                    <div className="px-2 py-1 text-[10px] font-black uppercase text-zinc-400 bg-zinc-50 my-1">
+                      Operational Areas &amp; Hubs
+                    </div>
+                    {allOperationalAreas.map((item) => {
+                      const hasOverride = (editableRules?.delivery?.cityAreaPricing || []).some(
+                        (p: any) =>
+                          p.city?.toLowerCase() === item.city?.toLowerCase() &&
+                          p.area?.toLowerCase() === item.area?.toLowerCase()
+                      );
+                      return (
+                        <SelectItem key={item.key} value={item.key} className="text-xs font-medium">
+                          <div className="flex items-center justify-between w-full gap-2">
+                            <span>{item.city} – {item.area}</span>
+                            {hasOverride && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 font-bold">
+                                Custom
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isAreaScope && !hasActiveAreaOverride && (
+                <Button
+                  size="sm"
+                  onClick={handleCustomizeArea}
+                  className="h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-2xs gap-1.5 cursor-pointer"
+                >
+                  <Zap className="size-3.5" />
+                  <span>Customize This Area</span>
+                </Button>
+              )}
+
+              {isAreaScope && hasActiveAreaOverride && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleRevertToNationalMaster}
+                  className="h-9 border-zinc-300 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 text-zinc-700 font-bold text-xs rounded-xl shadow-2xs gap-1.5 cursor-pointer"
+                >
+                  <RotateCcw className="size-3.5" />
+                  <span>Revert to Master</span>
+                </Button>
+              )}
+
+              <Button
+                size="sm"
+                onClick={() => setIsAddAreaModalOpen(true)}
+                className="h-9 bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs rounded-xl shadow-2xs gap-1.5 cursor-pointer"
+              >
+                <Plus className="size-3.5" />
+                <span>Add Area</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Quick Dynamic Surcharge Strip for Active Scope */}
+          <div className="flex items-center justify-between pt-2 border-t border-emerald-200/60 flex-wrap gap-2 text-xs">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
+                <CloudRain className="size-3.5 text-blue-600" />
+                <span className="font-bold text-zinc-800">Rain Surge:</span>
+                <span className="font-black text-blue-700">+₹{effectiveRainSurge}</span>
+              </div>
+
+              <div className="flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
+                <Moon className="size-3.5 text-indigo-600" />
+                <span className="font-bold text-zinc-800">Night Surge:</span>
+                <span className="font-black text-indigo-700">+₹{effectiveNightSurge}</span>
+              </div>
+
+              <div className="flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
+                <Truck className="size-3.5 text-emerald-600" />
+                <span className="font-bold text-zinc-800">Free Delivery $\ge$:</span>
+                <span className="font-black text-emerald-700">₹{effectiveFreeDeliveryThreshold}</span>
+              </div>
+            </div>
+
+            <div className="text-[11px] text-zinc-500 font-medium">
+              Scope: <strong>{currentScopeLabel}</strong>
+            </div>
+          </div>
+        </div>
+
+        {/* Stakeholder Role Switcher Tabs */}
         <div className="bg-zinc-100/90 p-1.5 rounded-2xl border border-zinc-200 shadow-2xs overflow-x-auto">
           <Tabs value={activeRoleTab} onValueChange={(v) => setActiveRoleTab(v as any)}>
             <TabsList className="flex items-center gap-1 bg-transparent p-0 h-auto w-max min-w-full">
@@ -296,12 +708,105 @@ export function UnifiedStakeholderRulesEngine({
       </div>
 
       {/* =========================================================================
-          ROLE 1: CUSTOMER RULES & CHECKOUT PRICING
+          ROLE 1: CUSTOMER RULES & CHECKOUT PRICING (AREA-AWARE)
          ========================================================================= */}
       {activeRoleTab === "customer" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-5">
+              {/* Universal Base Pricing */}
+              <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-2xs">
+                <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="size-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm">
+                      🏷️
+                    </span>
+                    <div>
+                      <h3 className="text-sm font-black text-zinc-950">Universal Base Pricing &amp; Core Fees</h3>
+                      <p className="text-[11px] text-zinc-500">
+                        Base item pricing and checkout convenience applicable to {currentScopeLabel}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
+                    {isAreaScope ? "Area Rule" : "National Master"}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-1.5 bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-200">
+                    <Label className="text-xs font-black text-emerald-950">Universal Base Price (₹)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={editableRules?.pricing?.universalBasePrice ?? "69"}
+                        onChange={(e) => updateField("pricing.universalBasePrice", e.target.value)}
+                        className="bg-white border-emerald-300 text-emerald-950 font-black text-sm pl-7 shadow-2xs"
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500">Standard base per order.</p>
+                  </div>
+
+                  <div className="space-y-1.5 bg-amber-50/50 p-3.5 rounded-2xl border border-amber-200">
+                    <Label className="text-xs font-black text-amber-950">Express Priority Price (₹)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={editableRules?.pricing?.universalExpressPrice ?? "99"}
+                        onChange={(e) => {
+                          updateField("pricing.universalExpressPrice", e.target.value);
+                          updateField("delivery.expressDeliveryFee", e.target.value);
+                        }}
+                        className="bg-white border-amber-300 text-amber-950 font-black text-sm pl-7 shadow-2xs"
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500">24-hour turnaround fee.</p>
+                  </div>
+
+                  <div className="space-y-1.5 bg-blue-50/50 p-3.5 rounded-2xl border border-blue-200">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-black text-blue-950">Handling Fee (₹)</Label>
+                      <Switch
+                        checked={editableRules?.fees?.handlingFeeEnabled !== false}
+                        onCheckedChange={(checked) => updateField("fees.handlingFeeEnabled", checked)}
+                      />
+                    </div>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={editableRules?.fees?.handlingFee ?? "2"}
+                        onChange={(e) => updateField("fees.handlingFee", e.target.value)}
+                        disabled={editableRules?.fees?.handlingFeeEnabled === false}
+                        className="bg-white border-blue-300 text-blue-950 font-black text-sm pl-7 shadow-2xs disabled:bg-zinc-100"
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500">Packaging &amp; sanitization.</p>
+                  </div>
+
+                  <div className="space-y-1.5 bg-purple-50/50 p-3.5 rounded-2xl border border-purple-200">
+                    <Label className="text-xs font-black text-purple-950">Platform Convenience (₹)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={editableRules?.fees?.platformConvenienceFee ?? "5"}
+                        onChange={(e) => updateField("fees.platformConvenienceFee", e.target.value)}
+                        className="bg-white border-purple-300 text-purple-950 font-black text-sm pl-7 shadow-2xs"
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500">Cloud &amp; app infra fee.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Free Delivery & Distance Fare */}
               <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-2xs">
                 <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
                   <div className="flex items-center gap-2.5">
@@ -309,13 +814,17 @@ export function UnifiedStakeholderRulesEngine({
                       📦
                     </span>
                     <div>
-                      <h3 className="text-sm font-black text-zinc-950">Free Delivery &amp; Cart Limits</h3>
-                      <p className="text-[11px] text-zinc-500">Thresholds to incentivize basket size and order completion</p>
+                      <h3 className="text-sm font-black text-zinc-950">Free Delivery &amp; Distance Fare Limits</h3>
+                      <p className="text-[11px] text-zinc-500">
+                        Zone thresholds for <strong>{currentScopeLabel}</strong>
+                      </p>
                     </div>
                   </div>
-                  <Badge className="bg-sky-50 text-sky-800 border border-sky-200 text-[10px] font-bold">
-                    Checkout Inflow
-                  </Badge>
+                  {isAreaScope && (
+                    <Badge className="bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-bold">
+                      {hasActiveAreaOverride ? "Custom Override" : "Inherits Master"}
+                    </Badge>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -330,8 +839,15 @@ export function UnifiedStakeholderRulesEngine({
                         type="number"
                         min="0"
                         step="10"
-                        value={editableRules?.delivery?.freeDeliveryThreshold ?? "199"}
-                        onChange={(e) => updateField("delivery.freeDeliveryThreshold", e.target.value)}
+                        value={
+                          isAreaScope && activeAreaOverride?.freeDeliveryThreshold !== undefined
+                            ? activeAreaOverride.freeDeliveryThreshold
+                            : (editableRules?.delivery?.freeDeliveryThreshold ?? "149")
+                        }
+                        onChange={(e) => {
+                          if (isAreaScope) handleUpdateAreaField("freeDeliveryThreshold", e.target.value);
+                          else updateField("delivery.freeDeliveryThreshold", e.target.value);
+                        }}
                         className="bg-white border-zinc-300 text-emerald-800 font-black text-sm pl-7 shadow-2xs"
                       />
                     </div>
@@ -341,7 +857,7 @@ export function UnifiedStakeholderRulesEngine({
                   <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-bold text-zinc-800">Delivery Fee Below Min (₹)</Label>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 font-bold">Surcharge</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 font-bold">Fee</span>
                     </div>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
@@ -349,8 +865,15 @@ export function UnifiedStakeholderRulesEngine({
                         type="number"
                         min="0"
                         step="5"
-                        value={editableRules?.delivery?.baseFee ?? "29"}
-                        onChange={(e) => updateField("delivery.baseFee", e.target.value)}
+                        value={
+                          isAreaScope && activeAreaOverride?.baseFee !== undefined
+                            ? activeAreaOverride.baseFee
+                            : (editableRules?.delivery?.baseFee ?? "29")
+                        }
+                        onChange={(e) => {
+                          if (isAreaScope) handleUpdateAreaField("baseFee", e.target.value);
+                          else updateField("delivery.baseFee", e.target.value);
+                        }}
                         className="bg-white border-zinc-300 text-rose-800 font-black text-sm pl-7 shadow-2xs"
                       />
                     </div>
@@ -368,179 +891,85 @@ export function UnifiedStakeholderRulesEngine({
                         type="number"
                         min="0"
                         step="10"
-                        value={editableRules?.pricing?.minimumOrderValue ?? "99"}
-                        onChange={(e) => updateField("pricing.minimumOrderValue", e.target.value)}
+                        value={
+                          isAreaScope && activeAreaOverride?.minFee !== undefined
+                            ? activeAreaOverride.minFee
+                            : (editableRules?.pricing?.minimumOrderValue ?? "99")
+                        }
+                        onChange={(e) => {
+                          if (isAreaScope) handleUpdateAreaField("minFee", e.target.value);
+                          else updateField("pricing.minimumOrderValue", e.target.value);
+                        }}
                         className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-7 shadow-2xs"
                       />
                     </div>
                     <p className="text-[10px] text-zinc-500">Minimum subtotal required to checkout.</p>
                   </div>
                 </div>
-              </div>
 
-              <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-2xs">
-                <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="size-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-sm">
-                      ✨
-                    </span>
-                    <div>
-                      <h3 className="text-sm font-black text-zinc-950">Platform Fees &amp; Turnaround Priority</h3>
-                      <p className="text-[11px] text-zinc-500">Handling infrastructure charge and express surcharges</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-purple-50 text-purple-800 border border-purple-200 text-[10px] font-bold">
-                    Platform Revenue
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-zinc-800">Platform Handling Fee (₹)</Label>
-                      <Switch
-                        checked={editableRules?.fees?.handlingFeeEnabled !== false}
-                        onCheckedChange={(checked) => updateField("fees.handlingFeeEnabled", checked)}
-                      />
-                    </div>
+                    <Label className="text-xs font-bold text-zinc-800">Extra Distance Rate (₹/km)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                       <Input
                         type="number"
                         min="0"
-                        step="1"
-                        value={editableRules?.fees?.handlingFee ?? "5"}
-                        onChange={(e) => updateField("fees.handlingFee", e.target.value)}
-                        disabled={editableRules?.fees?.handlingFeeEnabled === false}
-                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-7 shadow-2xs disabled:bg-zinc-100"
-                      />
-                    </div>
-                    <p className="text-[10px] text-zinc-500">Cloud &amp; technology service fee per order.</p>
-                  </div>
-
-                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-zinc-800">Express Priority Fee (₹)</Label>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">24h Priority</span>
-                    </div>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="5"
-                        value={editableRules?.pricing?.universalExpressPrice ?? editableRules?.delivery?.expressDeliveryFee ?? "40"}
+                        step="0.5"
+                        value={
+                          isAreaScope && activeAreaOverride?.perKmRate !== undefined
+                            ? activeAreaOverride.perKmRate
+                            : (editableRules?.delivery?.perKmRate ?? "8.0")
+                        }
                         onChange={(e) => {
-                          updateField("pricing.universalExpressPrice", e.target.value);
-                          updateField("delivery.expressDeliveryFee", e.target.value);
+                          if (isAreaScope) handleUpdateAreaField("perKmRate", e.target.value);
+                          else updateField("delivery.perKmRate", e.target.value);
                         }}
-                        className="bg-white border-zinc-300 text-amber-900 font-black text-sm pl-7 shadow-2xs"
+                        className="bg-white border-zinc-300 text-zinc-900 font-bold text-sm pl-7 shadow-2xs"
                       />
                     </div>
-                    <p className="text-[10px] text-zinc-500">Premium turnaround priority surcharge.</p>
+                    <p className="text-[10px] text-zinc-500">Delivery charge beyond standard 2 km radius.</p>
                   </div>
 
                   <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-zinc-800">Protective Packaging (₹)</Label>
-                      <Switch
-                        checked={Boolean(editableRules?.fees?.packagingFeeEnabled)}
-                        onCheckedChange={(checked) => updateField("fees.packagingFeeEnabled", checked)}
-                      />
-                    </div>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={editableRules?.fees?.packagingFee ?? "0"}
-                        onChange={(e) => updateField("fees.packagingFee", e.target.value)}
-                        disabled={!editableRules?.fees?.packagingFeeEnabled}
-                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-7 shadow-2xs disabled:bg-zinc-100"
-                      />
-                    </div>
-                    <p className="text-[10px] text-zinc-500">Eco garment cover &amp; hanger care fee.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-2xs">
-                <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="size-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-sm">
-                      ⚡
-                    </span>
-                    <div>
-                      <h3 className="text-sm font-black text-zinc-950">Dynamic Surge Controls</h3>
-                      <p className="text-[11px] text-zinc-500">Weather/monsoon and rush hour surcharges passed to delivery fleet</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">
-                    Surge Multiplier
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-zinc-800">Rain / Monsoon Surge Fee (₹)</Label>
-                      <Switch
-                        checked={Boolean(editableRules?.surge?.enabled)}
-                        onCheckedChange={(checked) => updateField("surge.enabled", checked)}
-                      />
-                    </div>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="5"
-                        value={editableRules?.surge?.rainSurgeFee ?? editableRules?.surge?.surgeFee ?? "20"}
-                        onChange={(e) => {
-                          updateField("surge.rainSurgeFee", e.target.value);
-                          updateField("surge.surgeFee", e.target.value);
-                        }}
-                        disabled={!editableRules?.surge?.enabled}
-                        className="bg-white border-zinc-300 text-amber-900 font-black text-sm pl-7 shadow-2xs disabled:bg-zinc-100"
-                      />
-                    </div>
-                    <p className="text-[10px] text-zinc-500">Active during adverse weather conditions.</p>
-                  </div>
-
-                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <Label className="text-xs font-bold text-zinc-800">Customer Notice Reason</Label>
+                    <Label className="text-xs font-bold text-zinc-800">Express Turnaround Multiplier (x)</Label>
                     <Input
-                      type="text"
-                      value={editableRules?.surge?.surgeReason ?? "Monsoon / High Demand Surge"}
-                      onChange={(e) => updateField("surge.surgeReason", e.target.value)}
-                      disabled={!editableRules?.surge?.enabled}
-                      className="bg-white border-zinc-300 text-zinc-900 text-xs shadow-2xs disabled:bg-zinc-100"
+                      type="number"
+                      step="0.05"
+                      value={editableRules?.pricing?.expressMultiplier ?? "1.35"}
+                      onChange={(e) => updateField("pricing.expressMultiplier", e.target.value)}
+                      className="bg-white border-zinc-300 text-zinc-900 font-bold text-sm shadow-2xs"
                     />
-                    <p className="text-[10px] text-zinc-500">Displayed in customer bill breakdown.</p>
+                    <p className="text-[10px] text-zinc-500">Multiplier (+35%) applied for priority orders.</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Column 3: Live Customer Checkout Simulator */}
+            {/* Live Customer Cart Simulator */}
             <div className="space-y-4">
-              <div className="bg-sky-50/70 rounded-3xl border-2 border-sky-300 p-6 space-y-5 shadow-sm sticky top-6">
-                <div className="flex items-center justify-between border-b border-sky-200 pb-3">
+              <div className="bg-gradient-to-br from-sky-50 via-white to-sky-50/60 rounded-3xl border border-sky-200 p-6 shadow-2xs space-y-4 sticky top-6">
+                <div className="flex items-center justify-between border-b border-sky-100 pb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">📱</span>
-                    <h3 className="text-sm font-black text-sky-950">Live Customer Cart Simulator</h3>
+                    <Sparkles className="size-4 text-sky-600" />
+                    <h3 className="text-xs font-black uppercase tracking-wider text-sky-950">
+                      Live Customer Cart Simulator
+                    </h3>
                   </div>
-                  <Badge className="bg-sky-200 text-sky-900 font-bold text-[10px]">
-                    Instant Preview
+                  <Badge className="bg-sky-100 text-sky-800 border-sky-300 text-[10px] font-bold">
+                    Instant
                   </Badge>
+                </div>
+
+                <div className="text-[11px] text-zinc-600 bg-white/80 p-2.5 rounded-xl border border-sky-100 font-medium">
+                  Testing pricing for: <strong>{currentScopeLabel}</strong>
                 </div>
 
                 <div className="space-y-3">
                   <div>
-                    <div className="flex justify-between items-center text-xs font-bold text-sky-950 mb-1">
-                      <span>Test Basket Items Total:</span>
-                      <span className="font-mono text-sm font-black text-sky-900">₹{simCartValue}</span>
+                    <div className="flex items-center justify-between text-xs font-bold text-zinc-700 mb-1">
+                      <span>Simulated Cart Value:</span>
+                      <span className="font-black text-zinc-950">₹{simCartValue}</span>
                     </div>
                     <input
                       type="range"
@@ -549,96 +978,62 @@ export function UnifiedStakeholderRulesEngine({
                       step="10"
                       value={simCartValue}
                       onChange={(e) => setSimCartValue(Number(e.target.value))}
-                      className="w-full accent-sky-700 cursor-pointer"
+                      className="w-full accent-sky-600 cursor-pointer"
                     />
-                    <div className="flex justify-between text-[10px] text-sky-700">
-                      <span>₹50 (Below MOV)</span>
-                      <span>₹{freeDeliveryThreshold} (Free Delivery)</span>
-                      <span>₹600</span>
-                    </div>
                   </div>
 
-                  <div className="pt-2 border-t border-sky-200 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-sky-900 font-medium">Test Express 24h Order:</span>
-                      <Switch
-                        checked={simCustomerIsExpress}
-                        onCheckedChange={setSimCustomerIsExpress}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-sky-900 font-medium">Test Monsoon Rain Surge:</span>
-                      <Switch
-                        checked={simCustomerIsRain}
-                        onCheckedChange={setSimCustomerIsRain}
-                        disabled={!editableRules?.surge?.enabled}
-                      />
-                    </div>
+                  <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-sky-100 text-xs font-bold">
+                    <span>Express 24h Turnaround (+₹{expressCustomerFee})</span>
+                    <Switch checked={simCustomerIsExpress} onCheckedChange={setSimCustomerIsExpress} />
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-sky-100 text-xs font-bold">
+                    <span>Active Weather Surge (+₹{effectiveRainSurge})</span>
+                    <Switch checked={simCustomerIsRain} onCheckedChange={setSimCustomerIsRain} />
                   </div>
                 </div>
 
-                {/* Simulated Customer App Bill Receipt */}
-                <div className="bg-white rounded-2xl border border-sky-200 p-4 space-y-2.5 shadow-2xs text-xs">
-                  <div className="text-[10px] font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-100 pb-1.5">
-                    Customer App Bill Summary
+                {/* Receipt Breakdown */}
+                <div className="bg-white p-4 rounded-2xl border border-sky-200 space-y-2 text-xs">
+                  <div className="flex justify-between text-zinc-600">
+                    <span>Cart Subtotal</span>
+                    <span className="font-bold text-zinc-900">₹{simCartValue}</span>
                   </div>
-
-                  <div className="flex justify-between items-center text-zinc-700">
-                    <span>Garments Subtotal:</span>
-                    <span className="font-mono font-bold text-zinc-950">₹{simCartValue.toFixed(2)}</span>
+                  <div className="flex justify-between text-zinc-600">
+                    <span>Delivery Charge</span>
+                    <span className={`font-bold ${isFreeDelivery ? "text-emerald-600" : "text-zinc-900"}`}>
+                      {isFreeDelivery ? "FREE (Above ₹" + effectiveFreeDeliveryThreshold + ")" : `₹${effectiveSimDeliveryFee}`}
+                    </span>
                   </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-zinc-700">Delivery Charge:</span>
-                    {isFreeDelivery ? (
-                      <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
-                        FREE Delivery
-                      </span>
-                    ) : (
-                      <span className="font-mono font-bold text-rose-700">₹{effectiveDeliveryFee.toFixed(2)}</span>
-                    )}
-                  </div>
-
                   {handlingFee > 0 && (
-                    <div className="flex justify-between items-center text-zinc-700">
-                      <span>Platform Handling Fee:</span>
-                      <span className="font-mono font-bold text-zinc-950">₹{handlingFee.toFixed(2)}</span>
+                    <div className="flex justify-between text-zinc-600">
+                      <span>Handling Fee</span>
+                      <span className="font-bold text-zinc-900">₹{handlingFee}</span>
                     </div>
                   )}
-
                   {packagingFee > 0 && (
-                    <div className="flex justify-between items-center text-zinc-700">
-                      <span>Garment Packaging Protection:</span>
-                      <span className="font-mono font-bold text-zinc-950">₹{packagingFee.toFixed(2)}</span>
+                    <div className="flex justify-between text-zinc-600">
+                      <span>Packaging Fee</span>
+                      <span className="font-bold text-zinc-900">₹{packagingFee}</span>
                     </div>
                   )}
-
-                  {effectiveExpressFee > 0 && (
-                    <div className="flex justify-between items-center text-amber-800">
-                      <span>Express Priority Turnaround:</span>
-                      <span className="font-mono font-bold">₹{effectiveExpressFee.toFixed(2)}</span>
+                  {simCustomerIsExpress && (
+                    <div className="flex justify-between text-amber-700">
+                      <span>Express Priority</span>
+                      <span className="font-bold">+₹{effectiveSimExpressFee}</span>
                     </div>
                   )}
-
-                  {effectiveSurgeFee > 0 && (
-                    <div className="flex justify-between items-center text-amber-800">
-                      <span>Monsoon Rush Surge:</span>
-                      <span className="font-mono font-bold">₹{effectiveSurgeFee.toFixed(2)}</span>
+                  {simCustomerIsRain && (
+                    <div className="flex justify-between text-blue-700">
+                      <span>Weather Surge</span>
+                      <span className="font-bold">+₹{effectiveSimSurgeFee}</span>
                     </div>
                   )}
-
-                  <div className="pt-2 border-t-2 border-sky-200 flex justify-between items-center font-black text-sm text-sky-950">
-                    <span>Total Customer Pays:</span>
-                    <span className="font-mono text-base text-emerald-800">₹{totalCustomerPay.toFixed(2)}</span>
+                  <div className="pt-2 border-t border-zinc-100 flex justify-between font-black text-sm text-zinc-950">
+                    <span>Total Customer Pays</span>
+                    <span className="text-emerald-700">₹{totalCustomerPay}</span>
                   </div>
                 </div>
-
-                {!isFreeDelivery && (
-                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 flex items-center gap-1.5">
-                    <Info className="size-4 shrink-0 text-amber-600" />
-                    <span>Customer needs to add <strong>₹{freeDeliveryThreshold - simCartValue}</strong> more to unlock FREE delivery!</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -646,7 +1041,7 @@ export function UnifiedStakeholderRulesEngine({
       )}
 
       {/* =========================================================================
-          ROLE 2: LAUNDROMAT PARTNER COMMERCIALS & SETTLEMENTS
+          ROLE 2: PARTNER COMMERCIALS & COMMISSION ENGINE (AREA-AWARE)
          ========================================================================= */}
       {activeRoleTab === "partner" && (
         <div className="space-y-6">
@@ -656,214 +1051,175 @@ export function UnifiedStakeholderRulesEngine({
                 <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
                   <div className="flex items-center gap-2.5">
                     <span className="size-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm">
-                      🏪
+                      🤝
                     </span>
                     <div>
-                      <h3 className="text-sm font-black text-zinc-950">Store Revenue Share &amp; Platform Commission</h3>
-                      <p className="text-[11px] text-zinc-500">Direct commercial split between Laundromat Store and QuickPress</p>
+                      <h3 className="text-sm font-black text-zinc-950">Laundromat Partner Commercials</h3>
+                      <p className="text-[11px] text-zinc-500">
+                        Commission take rate and settlement terms for <strong>{currentScopeLabel}</strong>
+                      </p>
                     </div>
                   </div>
                   <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
-                    Partner Economics
+                    {isAreaScope ? "Area Rule" : "National Master"}
                   </Badge>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-emerald-950">Store Partner Revenue Share (%)</Label>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-200 text-emerald-900 font-bold">Store Payout</span>
+                      <Label className="text-xs font-black text-emerald-950">Platform Take Rate / Commission (%)</Label>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
+                        {effectivePartnerCommission}% Net
+                      </span>
                     </div>
                     <div className="relative">
-                      <Input
-                        type="number"
-                        min="50"
-                        max="98"
-                        step="0.5"
-                        value={editableRules?.commission?.partnerPayoutPercent ?? "85"}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          updateField("commission.partnerPayoutPercent", val);
-                          const num = parseFloat(val);
-                          if (!isNaN(num)) {
-                            updateField("commission.platformCommissionPercent", String(Math.max(0, 100 - num)));
-                            updateField("commission.standardPercent", String(Math.max(0, 100 - num)));
-                          }
-                        }}
-                        className="bg-white border-emerald-300 text-zinc-950 font-black text-lg pr-8 shadow-2xs"
-                      />
-                      <span className="absolute right-3 top-2.5 text-xs font-bold text-zinc-500">%</span>
-                    </div>
-                    <p className="text-[10px] text-emerald-800">Percentage of order value credited to laundry store.</p>
-                  </div>
-
-                  <div className="space-y-1.5 bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-zinc-800">QuickPress Platform Commission (%)</Label>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-zinc-200 text-zinc-800 font-bold">Platform Take</span>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        disabled
-                        value={platformCommPercent}
-                        className="bg-zinc-100 border-zinc-300 text-zinc-900 font-black text-lg pr-8 shadow-2xs"
-                      />
-                      <span className="absolute right-3 top-2.5 text-xs font-bold text-zinc-500">%</span>
-                    </div>
-                    <p className="text-[10px] text-zinc-500">Automatically balances (100% - Store Share%).</p>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 pt-2">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-emerald-800">🏪 Store Share: {partnerSharePercent}%</span>
-                    <span className="text-blue-800">⚡ QuickPress Take: {platformCommPercent}%</span>
-                  </div>
-                  <div className="h-3 w-full bg-blue-600 rounded-full overflow-hidden flex shadow-inner">
-                    <div
-                      style={{ width: `${partnerSharePercent}%` }}
-                      className="h-full bg-emerald-600 transition-all duration-300"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Settlement Settings */}
-              <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-2xs">
-                <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="size-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-sm">
-                      🏛️
-                    </span>
-                    <div>
-                      <h3 className="text-sm font-black text-zinc-950">Settlement Frequency &amp; Disbursals</h3>
-                      <p className="text-[11px] text-zinc-500">Bank disbursal schedules and withdrawal limits</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-purple-50 text-purple-800 border border-purple-200 text-[10px] font-bold">
-                    Bank Transfers
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <Label className="text-xs font-bold text-zinc-800">Payout Settlement Frequency</Label>
-                    <Select
-                      value={editableRules?.settlement?.frequency ?? "T_PLUS_2"}
-                      onValueChange={(v) => updateField("settlement.frequency", v)}
-                    >
-                      <SelectTrigger className="w-full bg-white font-bold text-xs h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="T_PLUS_1">T+1 Day (Daily Rolling Settlement)</SelectItem>
-                        <SelectItem value="T_PLUS_2">T+2 Days (Standard Recommended)</SelectItem>
-                        <SelectItem value="WEEKLY">Weekly Every Monday</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[10px] text-zinc-500">Automated IMPS/NEFT disbursal cycle.</p>
-                  </div>
-
-                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <Label className="text-xs font-bold text-zinc-800">Min Settlement Payout (₹)</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
-                      <Input
-                        type="number"
-                        min="50"
-                        step="50"
-                        value={editableRules?.settlement?.minSettlementPayout ?? "100"}
-                        onChange={(e) => updateField("settlement.minSettlementPayout", e.target.value)}
-                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-7 shadow-2xs"
-                      />
-                    </div>
-                    <p className="text-[10px] text-zinc-500">Minimum balance required for transfer.</p>
-                  </div>
-
-                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <Label className="text-xs font-bold text-zinc-800">Packaging Kit Subsidy (₹)</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                       <Input
                         type="number"
                         min="0"
-                        step="5"
-                        value={editableRules?.fees?.packagingFee ?? "15"}
-                        onChange={(e) => updateField("fees.packagingFee", e.target.value)}
-                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-7 shadow-2xs"
+                        max="50"
+                        step="0.5"
+                        value={effectivePartnerCommission}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (isAreaScope) {
+                            handleUpdateAreaField("partnerCommissionPercent", val);
+                          } else {
+                            updateField("commission.partnerPayoutPercent", String(100 - Number(val)));
+                          }
+                        }}
+                        className="bg-white border-emerald-300 text-emerald-950 font-black text-base shadow-2xs"
                       />
                     </div>
-                    <p className="text-[10px] text-zinc-500">Subsidy credited per delivery kit.</p>
+                    <p className="text-[10px] text-zinc-500">
+                      Partner receives <strong>{100 - effectivePartnerCommission}%</strong> of GMV.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5 bg-zinc-50/80 p-4 rounded-2xl border border-zinc-200">
+                    <Label className="text-xs font-bold text-zinc-800">Partner Settlement Schedule</Label>
+                    <Select
+                      value={editableRules?.settlement?.cycle ?? "T_PLUS_1"}
+                      onValueChange={(v) => updateField("settlement.cycle", v)}
+                    >
+                      <SelectTrigger className="bg-white border-zinc-300 text-xs font-bold text-zinc-900 shadow-2xs h-10">
+                        <SelectValue placeholder="Select Cycle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="T_PLUS_1">T+1 Daily Auto-Disbursal (Standard)</SelectItem>
+                        <SelectItem value="T_PLUS_2">T+2 Settlement Cycle</SelectItem>
+                        <SelectItem value="WEEKLY_MONDAY">Weekly Every Monday</SelectItem>
+                        <SelectItem value="INSTANT_FLOAT">Instant Escrow Release (Pre-funded)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-zinc-500">Automated payout disbursal cycle via Cashfree/Razorpay.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
+                    <Label className="text-xs font-bold text-zinc-800">Section 194-O TDS Rate (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      disabled
+                      value="1.0"
+                      className="bg-zinc-100 border-zinc-300 font-bold text-xs"
+                    />
+                    <p className="text-[10px] text-zinc-500">Statutory IT deduction on e-commerce operators.</p>
+                  </div>
+
+                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
+                    <Label className="text-xs font-bold text-zinc-800">Minimum Payout Disbursal (₹)</Label>
+                    <Input
+                      type="number"
+                      min="50"
+                      value={editableRules?.settlement?.minSettlementPayout ?? "100"}
+                      onChange={(e) => updateField("settlement.minSettlementPayout", e.target.value)}
+                      className="bg-white border-zinc-300 font-bold text-xs shadow-2xs"
+                    />
+                    <p className="text-[10px] text-zinc-500">Balances below this roll over to next cycle.</p>
+                  </div>
+
+                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
+                    <Label className="text-xs font-bold text-zinc-800">Partner Store Onboarding Fee (₹)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editableRules?.partner?.onboardingFee ?? "0"}
+                      onChange={(e) => updateField("partner.onboardingFee", e.target.value)}
+                      className="bg-white border-zinc-300 font-bold text-xs shadow-2xs"
+                    />
+                    <p className="text-[10px] text-zinc-500">One-time kit &amp; verification charge.</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Column 3: Partner Payout Simulator */}
+            {/* Live Partner Earning Simulator */}
             <div className="space-y-4">
-              <div className="bg-emerald-50/70 rounded-3xl border-2 border-emerald-300 p-6 space-y-5 shadow-sm sticky top-6">
-                <div className="flex items-center justify-between border-b border-emerald-200 pb-3">
+              <div className="bg-gradient-to-br from-emerald-50 via-white to-emerald-50/60 rounded-3xl border border-emerald-200 p-6 shadow-2xs space-y-4 sticky top-6">
+                <div className="flex items-center justify-between border-b border-emerald-100 pb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">🧮</span>
-                    <h3 className="text-sm font-black text-emerald-950">Live Partner Settlement Simulator</h3>
+                    <Building2 className="size-4 text-emerald-700" />
+                    <h3 className="text-xs font-black uppercase tracking-wider text-emerald-950">
+                      Partner Disbursal Simulator
+                    </h3>
                   </div>
-                  <Badge className="bg-emerald-200 text-emerald-900 font-bold text-[10px]">
-                    Net Disbursal
+                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
+                    194-O Reconciled
                   </Badge>
+                </div>
+
+                <div className="text-[11px] text-zinc-600 bg-white/80 p-2.5 rounded-xl border border-emerald-100 font-medium">
+                  Zone Scope: <strong>{currentScopeLabel}</strong> (Commission: {effectivePartnerCommission}%)
                 </div>
 
                 <div className="space-y-3">
                   <div>
-                    <Label className="text-xs font-bold text-emerald-950 mb-1 block">Test Order GMV (₹):</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
-                      <Input
-                        type="number"
-                        min="100"
-                        step="100"
-                        value={simPartnerGmv}
-                        onChange={(e) => setSimPartnerGmv(Number(e.target.value) || 0)}
-                        className="bg-white border-emerald-300 text-zinc-950 font-black text-sm pl-7 shadow-2xs"
-                      />
+                    <div className="flex items-center justify-between text-xs font-bold text-zinc-700 mb-1">
+                      <span>Simulated Order GMV:</span>
+                      <span className="font-black text-zinc-950">₹{simPartnerGmv}</span>
                     </div>
+                    <input
+                      type="range"
+                      min="200"
+                      max="5000"
+                      step="50"
+                      value={simPartnerGmv}
+                      onChange={(e) => setSimPartnerGmv(Number(e.target.value))}
+                      className="w-full accent-emerald-600 cursor-pointer"
+                    />
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-emerald-200 p-4 space-y-2.5 shadow-2xs text-xs">
-                  <div className="text-[10px] font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-100 pb-1.5">
-                    Partner Settlement Voucher Preview
+                <div className="bg-white p-4 rounded-2xl border border-emerald-200 space-y-2 text-xs">
+                  <div className="flex justify-between text-zinc-600">
+                    <span>Order Value (GMV)</span>
+                    <span className="font-bold text-zinc-900">₹{simPartnerGmv}</span>
+                  </div>
+                  <div className="flex justify-between text-emerald-800">
+                    <span>Partner Share ({100 - effectivePartnerCommission}%)</span>
+                    <span className="font-bold">₹{partnerGrossShare.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-rose-700">
+                    <span>Less: 1% Section 194-O TDS</span>
+                    <span className="font-bold">-₹{partnerTds194o.toFixed(2)}</span>
+                  </div>
+                  <div className="pt-2 border-t border-zinc-100 flex justify-between font-black text-sm text-zinc-950">
+                    <span>Net Partner Bank Disbursal</span>
+                    <span className="text-emerald-700">₹{partnerNetDisbursal.toFixed(2)}</span>
                   </div>
 
-                  <div className="flex justify-between items-center text-zinc-700">
-                    <span>Order Value (GMV):</span>
-                    <span className="font-mono font-bold text-zinc-950">₹{simPartnerGmv.toFixed(2)}</span>
-                  </div>
-
-                  <div className="flex justify-between items-center text-emerald-800">
-                    <span>Partner Share ({partnerSharePercent}%):</span>
-                    <span className="font-mono font-bold">₹{partnerGrossShare.toFixed(2)}</span>
-                  </div>
-
-                  <div className="flex justify-between items-center text-purple-800">
-                    <span>Less: Sec 194-O TDS (1.0%):</span>
-                    <span className="font-mono font-bold">-₹{partnerTds194o.toFixed(2)}</span>
-                  </div>
-
-                  <div className="pt-2 border-t-2 border-emerald-200 flex justify-between items-center font-black text-sm text-emerald-950">
-                    <span>Net Bank Disbursal (T+2):</span>
-                    <span className="font-mono text-base text-emerald-800">₹{partnerNetDisbursal.toFixed(2)}</span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-white border border-emerald-200 text-xs space-y-1 text-zinc-600">
-                  <div className="flex justify-between">
-                    <span>QuickPress Commission ({platformCommPercent}%):</span>
-                    <strong className="text-zinc-900 font-mono">₹{platformCommissionAmount.toFixed(2)}</strong>
-                  </div>
-                  <div className="flex justify-between text-[11px] text-zinc-500">
-                    <span>Applicable GST (18% on Comm):</span>
-                    <span className="font-mono">₹{platformGstAmount.toFixed(2)}</span>
+                  <div className="mt-3 pt-3 border-t border-dashed border-zinc-200 space-y-1 text-[11px] text-zinc-500">
+                    <div className="flex justify-between">
+                      <span>Platform Commission ({effectivePartnerCommission}%)</span>
+                      <span className="font-bold text-zinc-800">₹{platformCommissionAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>GST on Commission (18%)</span>
+                      <span className="font-bold text-purple-700">₹{platformGstAmount.toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -873,12 +1229,13 @@ export function UnifiedStakeholderRulesEngine({
       )}
 
       {/* =========================================================================
-          ROLE 3: RIDER CAPTAIN FLEET PAY & LEVEL-WISE INCENTIVES
+          ROLE 3: RIDER PAY & INCENTIVES ENGINE (AREA-AWARE + CANDY CRUSH MILESTONES)
          ========================================================================= */}
       {activeRoleTab === "rider" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-5">
+              {/* Rider Core Tariff */}
               <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-2xs">
                 <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
                   <div className="flex items-center gap-2.5">
@@ -886,237 +1243,225 @@ export function UnifiedStakeholderRulesEngine({
                       🛵
                     </span>
                     <div>
-                      <h3 className="text-sm font-black text-zinc-950">Transit Distance Pay Slabs</h3>
-                      <p className="text-[11px] text-zinc-500">Per-trip base fare, distance rates, and safety caps</p>
+                      <h3 className="text-sm font-black text-zinc-950">Rider Delivery Tariff &amp; Per-KM Pay</h3>
+                      <p className="text-[11px] text-zinc-500">
+                        Distance payouts and door waiting fee for <strong>{currentScopeLabel}</strong>
+                      </p>
                     </div>
                   </div>
                   <Badge className="bg-teal-50 text-teal-800 border border-teal-200 text-[10px] font-bold">
-                    Fleet Compensation
+                    {isAreaScope ? "Area Rule" : "National Master"}
                   </Badge>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5 bg-teal-50/50 p-3.5 rounded-2xl border border-teal-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-teal-950">Base Pay (First 2 KM)</Label>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-teal-200 text-teal-900 font-bold">Base</span>
-                    </div>
+                    <Label className="text-xs font-black text-teal-950">Base Tariff (First 2 KM) (₹)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                       <Input
                         type="number"
-                        min="15"
+                        min="10"
                         step="1"
-                        value={editableRules?.riderPayout?.basePay ?? "35"}
-                        onChange={(e) => updateField("riderPayout.basePay", e.target.value)}
-                        className="bg-white border-teal-300 text-zinc-950 font-black text-sm pl-7 shadow-2xs"
+                        value={effectiveRiderBasePay}
+                        onChange={(e) => {
+                          if (isAreaScope) handleUpdateAreaField("riderBasePay", e.target.value);
+                          else updateField("riderPayout.basePay", e.target.value);
+                        }}
+                        className="bg-white border-teal-300 text-teal-950 font-black text-sm pl-7 shadow-2xs"
                       />
                     </div>
-                    <p className="text-[10px] text-teal-800">Guaranteed fixed pay for first 2 km.</p>
+                    <p className="text-[10px] text-zinc-500">Guaranteed fixed charge for pickup &amp; first 2 km.</p>
                   </div>
 
                   <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-zinc-800">Extra KM Rate (₹/KM)</Label>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-800 font-bold">&gt; 2 km</span>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        min="4"
-                        step="0.5"
-                        value={editableRules?.riderPayout?.perKmRate ?? "8.0"}
-                        onChange={(e) => updateField("riderPayout.perKmRate", e.target.value)}
-                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pr-8 shadow-2xs"
-                      />
-                      <span className="absolute right-3 top-2.5 text-xs font-bold text-zinc-500">/km</span>
-                    </div>
-                    <p className="text-[10px] text-zinc-500">Rate applied beyond 2 km distance.</p>
-                  </div>
-
-                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-zinc-800">Floor Guarantee (₹)</Label>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">Min</span>
-                    </div>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
-                      <Input
-                        type="number"
-                        min="20"
-                        step="5"
-                        value={editableRules?.riderPayout?.minimumFloor ?? "30"}
-                        onChange={(e) => updateField("riderPayout.minimumFloor", e.target.value)}
-                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-7 shadow-2xs"
-                      />
-                    </div>
-                    <p className="text-[10px] text-zinc-500">Guaranteed minimum trip earning.</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <Label className="text-xs font-bold text-zinc-800">Express Priority Order Bonus (₹)</Label>
+                    <Label className="text-xs font-bold text-zinc-800">Extra KM Rate (₹/km)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                       <Input
                         type="number"
                         min="0"
-                        step="5"
-                        value={editableRules?.delivery?.expressDeliveryFee ?? "25"}
-                        onChange={(e) => updateField("delivery.expressDeliveryFee", e.target.value)}
-                        className="bg-white border-zinc-300 text-amber-900 font-black text-sm pl-7 shadow-2xs"
+                        step="0.5"
+                        value={effectiveRiderPerKmRate}
+                        onChange={(e) => {
+                          if (isAreaScope) handleUpdateAreaField("riderPerKmRate", e.target.value);
+                          else updateField("riderPayout.perKmRate", e.target.value);
+                        }}
+                        className="bg-white border-zinc-300 text-zinc-950 font-bold text-sm pl-7 shadow-2xs"
                       />
                     </div>
-                    <p className="text-[10px] text-zinc-500">Bonus for delivering 24h express orders.</p>
+                    <p className="text-[10px] text-zinc-500">Rate beyond 2 km distance.</p>
                   </div>
 
-                  <div className="space-y-1.5 bg-rose-50/50 p-3.5 rounded-2xl border border-rose-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-rose-950">Max COD Cash Limit (₹)</Label>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-200 text-rose-900 font-bold">Lockout</span>
-                    </div>
+                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
+                    <Label className="text-xs font-bold text-zinc-800">Doorstep Waiting Rate (₹/min)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                       <Input
                         type="number"
-                        min="500"
-                        step="500"
-                        value={editableRules?.cod?.maxRiderCashLimit ?? "2500"}
-                        onChange={(e) => updateField("cod.maxRiderCashLimit", e.target.value)}
-                        className="bg-white border-rose-300 text-rose-900 font-black text-sm pl-7 shadow-2xs"
+                        min="0"
+                        step="0.5"
+                        value={editableRules?.riderPayout?.waitingRatePerMin ?? "2.0"}
+                        onChange={(e) => updateField("riderPayout.waitingRatePerMin", e.target.value)}
+                        className="bg-white border-zinc-300 text-zinc-950 font-bold text-sm pl-7 shadow-2xs"
                       />
                     </div>
-                    <p className="text-[10px] text-rose-800">Orders block when cash in hand $\ge$ limit.</p>
+                    <p className="text-[10px] text-zinc-500">Applied after 5 mins free waiting.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
+                    <Label className="text-xs font-bold text-zinc-800">Minimum Floor Guarantee (₹)</Label>
+                    <Input
+                      type="number"
+                      min="10"
+                      value={editableRules?.riderPayout?.minimumFloor ?? "30"}
+                      onChange={(e) => updateField("riderPayout.minimumFloor", e.target.value)}
+                      className="bg-white border-zinc-300 font-bold text-xs shadow-2xs"
+                    />
+                    <p className="text-[10px] text-zinc-500">Rider never earns less than this per completed trip.</p>
+                  </div>
+
+                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
+                    <Label className="text-xs font-bold text-zinc-800">Maximum Safety Ceiling (₹)</Label>
+                    <Input
+                      type="number"
+                      min="100"
+                      value={editableRules?.riderPayout?.maximumCap ?? "600"}
+                      onChange={(e) => updateField("riderPayout.maximumCap", e.target.value)}
+                      className="bg-white border-zinc-300 font-bold text-xs shadow-2xs"
+                    />
+                    <p className="text-[10px] text-zinc-500">Single trip upper safety cap.</p>
+                  </div>
+
+                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
+                    <Label className="text-xs font-bold text-zinc-800">Express Priority Bonus (₹)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editableRules?.delivery?.expressDeliveryFee ?? "25"}
+                      onChange={(e) => updateField("delivery.expressDeliveryFee", e.target.value)}
+                      className="bg-white border-zinc-300 font-bold text-xs shadow-2xs"
+                    />
+                    <p className="text-[10px] text-zinc-500">Bonus paid to rider for urgent express pickups.</p>
                   </div>
                 </div>
               </div>
 
-              {/* LEVEL-WISE INCENTIVE SYSTEM */}
+              {/* Candy Crush Level Milestone Incentives */}
               <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-2xs">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-100 pb-3">
+                <div className="flex items-center justify-between border-b border-zinc-100 pb-3 flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
-                    <span className="size-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-sm">
+                    <div className="size-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-sm">
                       🏆
-                    </span>
+                    </div>
                     <div>
                       <h3 className="text-sm font-black text-zinc-950">
-                        Level-Wise Milestone Incentives &amp; Gamification
+                        Level-Wise Milestone Incentives (Daily Gamification)
                       </h3>
                       <p className="text-[11px] text-zinc-500">
-                        Riders unlock cash bonuses as they complete order volume tiers
+                        Candy Crush style tiered trip bonuses to motivate rider engagement
                       </p>
                     </div>
                   </div>
 
                   <Button
-                    onClick={handleAddIncentiveLevel}
                     size="sm"
-                    className="h-8 text-xs font-bold gap-1 bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-xs"
+                    onClick={handleAddIncentiveLevel}
+                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-2xs gap-1.5 cursor-pointer"
                   >
                     <Plus className="size-3.5" />
-                    <span>Add Tier Level</span>
+                    <span>Add Level Tier</span>
                   </Button>
                 </div>
 
-                <div className="border border-zinc-200 rounded-2xl overflow-hidden">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-700 font-black uppercase text-[10px] tracking-wider">
-                        <th className="py-2.5 px-3 text-left">Level</th>
-                        <th className="py-2.5 px-3 text-left">Tier Title</th>
-                        <th className="py-2.5 px-3 text-left">Order Target</th>
-                        <th className="py-2.5 px-3 text-left">Bonus Reward (₹)</th>
-                        <th className="py-2.5 px-3 text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100">
-                      {(editableRules?.incentives?.candyCrushLevels || []).map((lvl: any, idx: number) => (
-                        <tr key={idx} className="hover:bg-zinc-50/70">
-                          <td className="py-2 px-3 font-bold text-zinc-900">
-                            <span className="size-6 rounded-lg bg-amber-100 text-amber-900 font-black flex items-center justify-center text-xs">
-                              {lvl.level || idx + 1}
-                            </span>
-                          </td>
-                          <td className="py-2 px-3">
-                            <Input
-                              type="text"
-                              value={lvl.title || ""}
-                              onChange={(e) => handleUpdateIncentiveLevel(idx, "title", e.target.value)}
-                              className="h-8 text-xs font-bold bg-white border-zinc-300"
-                            />
-                          </td>
-                          <td className="py-2 px-3">
-                            <div className="flex items-center gap-1.5">
-                              <Input
-                                type="number"
-                                min="1"
-                                value={lvl.target || ""}
-                                onChange={(e) => handleUpdateIncentiveLevel(idx, "target", e.target.value)}
-                                className="h-8 text-xs font-mono font-bold bg-white border-zinc-300 w-24"
-                              />
-                              <span className="text-[10px] text-zinc-400">orders</span>
-                            </div>
-                          </td>
-                          <td className="py-2 px-3">
-                            <div className="relative w-28">
-                              <span className="absolute left-2.5 top-2 text-xs font-bold text-zinc-400">₹</span>
-                              <Input
-                                type="number"
-                                min="0"
-                                step="10"
-                                value={lvl.reward || ""}
-                                onChange={(e) => handleUpdateIncentiveLevel(idx, "reward", e.target.value)}
-                                className="h-8 text-xs font-mono font-black pl-6 text-emerald-800 bg-white border-zinc-300"
-                              />
-                            </div>
-                          </td>
-                          <td className="py-2 px-3 text-center">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteIncentiveLevel(idx)}
-                              className="h-8 w-8 p-0 text-zinc-400 hover:text-rose-600 rounded-lg"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="space-y-2.5">
+                  {(editableRules?.incentives?.candyCrushLevels || [
+                    { level: 1, title: "Tier 1 Starter", target: "3", reward: "75", badge: "Bronze" },
+                    { level: 2, title: "Tier 2 Cruiser", target: "6", reward: "160", badge: "Silver" },
+                    { level: 3, title: "Tier 3 Champion", target: "10", reward: "300", badge: "Gold" },
+                    { level: 4, title: "Tier 4 Legend", target: "15", reward: "550", badge: "Platinum" },
+                    { level: 5, title: "Tier 5 Master", target: "20", reward: "800", badge: "Diamond" },
+                  ]).map((lvl: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-3.5 bg-zinc-50/90 rounded-2xl border border-zinc-200 gap-3 flex-wrap"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="size-7 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center font-black text-xs">
+                          L{lvl.level || idx + 1}
+                        </span>
+                        <div>
+                          <input
+                            type="text"
+                            value={lvl.title || `Tier ${idx + 1}`}
+                            onChange={(e) => handleUpdateIncentiveLevel(idx, "title", e.target.value)}
+                            className="font-bold text-xs text-zinc-900 bg-transparent border-b border-transparent hover:border-zinc-300 focus:border-amber-500 focus:outline-none"
+                          />
+                          <p className="text-[10px] text-zinc-500">Completed daily trips milestone</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1.5">
+                          <Label className="text-xs font-bold text-zinc-600">Target Trips:</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={lvl.target}
+                            onChange={(e) => handleUpdateIncentiveLevel(idx, "target", e.target.value)}
+                            className="w-16 h-8 text-xs font-black text-zinc-900 bg-white"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <Label className="text-xs font-bold text-zinc-600">Bonus Reward (₹):</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="25"
+                            value={lvl.reward}
+                            onChange={(e) => handleUpdateIncentiveLevel(idx, "reward", e.target.value)}
+                            className="w-20 h-8 text-xs font-black text-emerald-800 bg-white"
+                          />
+                        </div>
+
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDeleteIncentiveLevel(idx)}
+                          className="size-8 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
-                <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2">
-                    <Zap className="size-4 text-amber-600 shrink-0" />
-                    <div>
-                      <strong className="text-amber-950 font-bold">Weekly Performance Streak Bonus:</strong>
-                      <p className="text-[10px] text-amber-800">
-                        Awarded if rider completes target weekly orders without cancellation
-                      </p>
+                {/* Weekly Streak Bonus */}
+                <div className="p-4 bg-gradient-to-r from-amber-50/80 to-orange-50/60 rounded-2xl border border-amber-200 flex items-center justify-between flex-wrap gap-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Zap className="size-4 text-amber-600" />
+                      <span className="font-black text-xs text-amber-950">Weekly Consistent Streak Bonus</span>
                     </div>
+                    <p className="text-[11px] text-zinc-600">
+                      Riders completing 40+ trips across 6 days in a calendar week receive this jackpot.
+                    </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-zinc-600">Target:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-zinc-700">Weekly Reward:</span>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1.5 text-xs font-bold text-zinc-500">₹</span>
                       <Input
                         type="number"
-                        min="10"
-                        value={editableRules?.incentives?.riderWeeklyStreak?.trips ?? "50"}
-                        onChange={(e) => updateField("incentives.riderWeeklyStreak.trips", e.target.value)}
-                        className="h-7 w-20 text-xs font-mono font-bold bg-white"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-zinc-600">Bonus: ₹</span>
-                      <Input
-                        type="number"
-                        min="50"
+                        min="0"
                         step="50"
-                        value={editableRules?.incentives?.riderWeeklyStreak?.reward ?? "800"}
-                        onChange={(e) => updateField("incentives.riderWeeklyStreak.reward", e.target.value)}
-                        className="h-7 w-24 text-xs font-mono font-black text-emerald-800 bg-white"
+                        value={editableRules?.incentives?.riderWeeklyStreak?.reward ?? "1200"}
+                        onChange={(e) => updateField("incentives.riderWeeklyStreak.reward", Number(e.target.value))}
+                        className="w-24 h-8 text-xs font-black text-amber-950 bg-white pl-6 shadow-2xs"
                       />
                     </div>
                   </div>
@@ -1124,24 +1469,30 @@ export function UnifiedStakeholderRulesEngine({
               </div>
             </div>
 
-            {/* Column 3: Rider Live Calculator */}
+            {/* Live Trip Fare Simulator */}
             <div className="space-y-4">
-              <div className="bg-teal-50/70 rounded-3xl border-2 border-teal-300 p-6 space-y-5 shadow-sm sticky top-6">
-                <div className="flex items-center justify-between border-b border-teal-200 pb-3">
+              <div className="bg-gradient-to-br from-teal-50 via-white to-teal-50/60 rounded-3xl border border-teal-200 p-6 shadow-2xs space-y-4 sticky top-6">
+                <div className="flex items-center justify-between border-b border-teal-100 pb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">⚡</span>
-                    <h3 className="text-sm font-black text-teal-950">Live Trip Fare Calculator</h3>
+                    <Bike className="size-4 text-teal-700" />
+                    <h3 className="text-xs font-black uppercase tracking-wider text-teal-950">
+                      Live Trip Fare Simulator
+                    </h3>
                   </div>
-                  <Badge className="bg-teal-200 text-teal-900 font-bold text-[10px]">
-                    Captain Earnings
+                  <Badge className="bg-teal-100 text-teal-800 border-teal-300 text-[10px] font-bold">
+                    Floor Protected
                   </Badge>
+                </div>
+
+                <div className="text-[11px] text-zinc-600 bg-white/80 p-2.5 rounded-xl border border-teal-100 font-medium">
+                  Zone Scope: <strong>{currentScopeLabel}</strong> (Base Pay: ₹{effectiveRiderBasePay})
                 </div>
 
                 <div className="space-y-3">
                   <div>
-                    <div className="flex justify-between items-center text-xs font-bold text-teal-950 mb-1">
+                    <div className="flex items-center justify-between text-xs font-bold text-zinc-700 mb-1">
                       <span>Trip Distance:</span>
-                      <span className="font-mono text-sm font-black text-teal-900">{simRiderDistance.toFixed(1)} km</span>
+                      <span className="font-black text-zinc-950">{simRiderDistance.toFixed(1)} km</span>
                     </div>
                     <input
                       type="range"
@@ -1150,96 +1501,69 @@ export function UnifiedStakeholderRulesEngine({
                       step="0.5"
                       value={simRiderDistance}
                       onChange={(e) => setSimRiderDistance(Number(e.target.value))}
-                      className="w-full accent-teal-700 cursor-pointer"
+                      className="w-full accent-teal-600 cursor-pointer"
                     />
-                    <div className="flex justify-between text-[10px] text-teal-700">
-                      <span>0.5 km</span>
-                      <span>2.0 km (Base)</span>
-                      <span>15.0 km</span>
-                    </div>
                   </div>
 
                   <div>
-                    <div className="flex justify-between items-center text-xs font-bold text-teal-950 mb-1">
+                    <div className="flex items-center justify-between text-xs font-bold text-zinc-700 mb-1">
                       <span>Doorstep Waiting:</span>
-                      <span className="font-mono text-sm font-black text-teal-900">{simRiderWaitingMins} mins</span>
+                      <span className="font-black text-zinc-950">{simRiderWaitingMins} mins</span>
                     </div>
                     <input
                       type="range"
                       min="0"
-                      max="20"
+                      max="25"
                       step="1"
                       value={simRiderWaitingMins}
                       onChange={(e) => setSimRiderWaitingMins(Number(e.target.value))}
-                      className="w-full accent-teal-700 cursor-pointer"
+                      className="w-full accent-teal-600 cursor-pointer"
                     />
-                    <div className="flex justify-between text-[10px] text-teal-700">
-                      <span>0 min (Free)</span>
-                      <span>5 min (Grace)</span>
-                      <span>20 mins</span>
-                    </div>
                   </div>
 
-                  <div className="pt-2 border-t border-teal-200 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-teal-900 font-medium">Express Priority Order:</span>
-                      <Switch
-                        checked={simRiderIsExpress}
-                        onCheckedChange={setSimRiderIsExpress}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-teal-900 font-medium">Monsoon Rain Surcharge:</span>
-                      <Switch
-                        checked={simRiderIsRain}
-                        onCheckedChange={setSimRiderIsRain}
-                        disabled={!editableRules?.surge?.enabled}
-                      />
-                    </div>
+                  <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-teal-100 text-xs font-bold">
+                    <span>Express Priority Pickup (+₹{riderExpressBonus})</span>
+                    <Switch checked={simRiderIsExpress} onCheckedChange={setSimRiderIsExpress} />
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-teal-100 text-xs font-bold">
+                    <span>Active Rain Bonus (+₹{effectiveRainSurge})</span>
+                    <Switch checked={simRiderIsRain} onCheckedChange={setSimRiderIsRain} />
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-teal-200 p-4 space-y-2.5 shadow-2xs text-xs">
-                  <div className="text-[10px] font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-100 pb-1.5">
-                    Captain Trip Earnings Receipt
+                <div className="bg-white p-4 rounded-2xl border border-teal-200 space-y-2 text-xs">
+                  <div className="flex justify-between text-zinc-600">
+                    <span>Base Tariff (First 2 KM)</span>
+                    <span className="font-bold text-zinc-900">₹{effectiveRiderBasePay}</span>
                   </div>
-
-                  <div className="flex justify-between items-center text-zinc-700">
-                    <span>Base Fare (First 2 km):</span>
-                    <span className="font-mono font-bold text-zinc-950">₹{riderBasePay.toFixed(2)}</span>
-                  </div>
-
                   {extraDistanceKm > 0 && (
-                    <div className="flex justify-between items-center text-zinc-700">
-                      <span>Extra Distance ({extraDistanceKm.toFixed(1)} km @ ₹{riderPerKmRate}):</span>
-                      <span className="font-mono font-bold text-zinc-950">₹{extraDistancePay.toFixed(2)}</span>
+                    <div className="flex justify-between text-zinc-600">
+                      <span>Distance Extra ({extraDistanceKm.toFixed(1)} km @ ₹{effectiveRiderPerKmRate}/km)</span>
+                      <span className="font-bold text-zinc-900">₹{extraDistancePay.toFixed(2)}</span>
                     </div>
                   )}
-
                   {waitingPay > 0 && (
-                    <div className="flex justify-between items-center text-zinc-700">
-                      <span>Waiting Pay ({chargeableWaitingMins} mins @ ₹{riderWaitingRate}):</span>
-                      <span className="font-mono font-bold text-zinc-950">₹{waitingPay.toFixed(2)}</span>
+                    <div className="flex justify-between text-zinc-600">
+                      <span>Doorstep Waiting ({chargeableWaitingMins} mins)</span>
+                      <span className="font-bold text-zinc-900">₹{waitingPay.toFixed(2)}</span>
                     </div>
                   )}
-
-                  {expressBonusPay > 0 && (
-                    <div className="flex justify-between items-center text-amber-800">
-                      <span>Express Priority Turnaround Bonus:</span>
-                      <span className="font-mono font-bold">₹{expressBonusPay.toFixed(2)}</span>
+                  {simRiderIsExpress && (
+                    <div className="flex justify-between text-amber-700">
+                      <span>Express Bonus</span>
+                      <span className="font-bold">+₹{expressBonusPay}</span>
                     </div>
                   )}
-
-                  {rainBonusPay > 0 && (
-                    <div className="flex justify-between items-center text-amber-800">
-                      <span>Monsoon Rain Allowance:</span>
-                      <span className="font-mono font-bold">₹{rainBonusPay.toFixed(2)}</span>
+                  {simRiderIsRain && (
+                    <div className="flex justify-between text-blue-700">
+                      <span>Rain Surge Bonus</span>
+                      <span className="font-bold">+₹{rainBonusPay}</span>
                     </div>
                   )}
-
-                  <div className="pt-2 border-t-2 border-teal-200 flex justify-between items-center font-black text-sm text-teal-950">
-                    <span>Total Captain Payout:</span>
-                    <span className="font-mono text-base text-emerald-800">₹{totalRiderPay.toFixed(2)}</span>
+                  <div className="pt-2 border-t border-zinc-100 flex justify-between font-black text-sm text-zinc-950">
+                    <span>Total Rider Earnings</span>
+                    <span className="text-teal-700">₹{totalRiderPay.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -1249,251 +1573,160 @@ export function UnifiedStakeholderRulesEngine({
       )}
 
       {/* =========================================================================
-          ROLE 4: GST & STATUTORY TAX CONFIGURATION ENGINE
+          ROLE 4: GST & STATUTORY TAX ENGINE (AREA & STATE SPECIFIC)
          ========================================================================= */}
       {activeRoleTab === "gst" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-5">
-              <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-2xs">
-                <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="size-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-sm">
-                      🏛️
-                    </span>
-                    <div>
-                      <h3 className="text-sm font-black text-zinc-950">Master GST &amp; Statutory Tax Rates</h3>
-                      <p className="text-[11px] text-zinc-500">
-                        Goods &amp; Services Tax (CGST, SGST, IGST), Section 52 TCS, and Section 194-O TDS
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-zinc-600">GST Active:</span>
-                    <Switch
-                      checked={Boolean(editableRules?.gst?.enabled !== false)}
-                      onCheckedChange={(checked) => updateField("gst.enabled", checked)}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1.5 bg-purple-50/50 p-3.5 rounded-2xl border border-purple-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-purple-950">Platform Fee GST (%)</Label>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-200 text-purple-900 font-bold">SAC 998599</span>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        min="0"
-                        max="28"
-                        step="1"
-                        value={editableRules?.gst?.platformGstPercent ?? "18"}
-                        onChange={(e) => updateField("gst.platformGstPercent", e.target.value)}
-                        className="bg-white border-purple-300 text-purple-950 font-black text-sm pr-7 shadow-2xs"
-                      />
-                      <span className="absolute right-3 top-2.5 text-xs font-bold text-zinc-500">%</span>
-                    </div>
-                    <p className="text-[10px] text-purple-800">9% CGST + 9% SGST on platform fees.</p>
-                  </div>
-
-                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-zinc-800">Delivery Service GST (%)</Label>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-800 font-bold">SAC 996812</span>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        min="0"
-                        max="28"
-                        step="1"
-                        value={editableRules?.gst?.deliveryGstPercent ?? "18"}
-                        onChange={(e) => updateField("gst.deliveryGstPercent", e.target.value)}
-                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pr-7 shadow-2xs"
-                      />
-                      <span className="absolute right-3 top-2.5 text-xs font-bold text-zinc-500">%</span>
-                    </div>
-                    <p className="text-[10px] text-zinc-500">GST on customer delivery charges.</p>
-                  </div>
-
-                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-zinc-800">Laundry Service GST (%)</Label>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">SAC 999799</span>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        min="0"
-                        max="28"
-                        step="1"
-                        value={editableRules?.gst?.laundryGstPercent ?? "5"}
-                        onChange={(e) => updateField("gst.laundryGstPercent", e.target.value)}
-                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pr-7 shadow-2xs"
-                      />
-                      <span className="absolute right-3 top-2.5 text-xs font-bold text-zinc-500">%</span>
-                    </div>
-                    <p className="text-[10px] text-zinc-500">Composite GST on laundry washing.</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-zinc-800">E-Commerce Section 52 TCS (%)</Label>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 font-bold">GSTR-8</span>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        min="0"
-                        max="5"
-                        step="0.1"
-                        value={editableRules?.gst?.tcsPercent ?? "1.0"}
-                        onChange={(e) => updateField("gst.tcsPercent", e.target.value)}
-                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pr-7 shadow-2xs"
-                      />
-                      <span className="absolute right-3 top-2.5 text-xs font-bold text-zinc-500">%</span>
-                    </div>
-                    <p className="text-[10px] text-zinc-500">Tax Collected at Source from merchant gross sales.</p>
-                  </div>
-
-                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-zinc-800">Section 194-O Vendor TDS (%)</Label>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">Form 16A</span>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        min="0"
-                        max="5"
-                        step="0.1"
-                        value={editableRules?.gst?.tdsPercent ?? "1.0"}
-                        onChange={(e) => updateField("gst.tdsPercent", e.target.value)}
-                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pr-7 shadow-2xs"
-                      />
-                      <span className="absolute right-3 top-2.5 text-xs font-bold text-zinc-500">%</span>
-                    </div>
-                    <p className="text-[10px] text-zinc-500">TDS deducted on merchant payouts.</p>
-                  </div>
+          <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-5 shadow-2xs">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="size-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-sm">
+                  📜
+                </span>
+                <div>
+                  <h3 className="text-sm font-black text-zinc-950">Statutory GST &amp; Tax Engine Configuration</h3>
+                  <p className="text-[11px] text-zinc-500">
+                    SAC codes, CGST, SGST, IGST, Section 194-O TDS &amp; 52 TCS parameters
+                  </p>
                 </div>
               </div>
+              <Badge className="bg-purple-50 text-purple-800 border border-purple-200 text-[10px] font-bold">
+                Tax Compliance
+              </Badge>
+            </div>
 
-              {/* Category Tax Overrides */}
-              <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-2xs">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-100 pb-3">
-                  <div>
-                    <h3 className="text-sm font-black text-zinc-950">Category-Wise GST Overrides</h3>
-                    <p className="text-[11px] text-zinc-500">Special tax slabs for Dry Cleaning, Leather, or Premium Care</p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="text"
-                      placeholder="Category (e.g. Dry Cleaning)"
-                      value={newTaxCategory}
-                      onChange={(e) => setNewTaxCategory(e.target.value)}
-                      className="h-8 text-xs bg-zinc-50 border-zinc-300 w-44"
-                    />
-                    <Select value={newTaxRate} onValueChange={setNewTaxRate}>
-                      <SelectTrigger className="h-8 text-xs w-24 bg-zinc-50 border-zinc-300 font-bold">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="5">5%</SelectItem>
-                        <SelectItem value="12">12%</SelectItem>
-                        <SelectItem value="18">18%</SelectItem>
-                        <SelectItem value="28">28%</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      onClick={handleAddTaxOverride}
-                      size="sm"
-                      className="h-8 text-xs font-bold bg-purple-700 hover:bg-purple-800 text-white rounded-xl shadow-xs"
-                    >
-                      <Plus className="size-3.5 mr-1" />
-                      Add
-                    </Button>
-                  </div>
+            {/* State Tax Jurisdiction Box */}
+            <div className="p-4 bg-purple-50/50 rounded-2xl border border-purple-200 flex items-center justify-between flex-wrap gap-3">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <Receipt className="size-4 text-purple-700" />
+                  <span className="font-black text-xs text-purple-950">
+                    Jurisdiction GSTIN &amp; State Classification
+                  </span>
                 </div>
-
-                <div className="border border-zinc-200 rounded-2xl overflow-hidden">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-700 font-black uppercase text-[10px] tracking-wider">
-                        <th className="py-2.5 px-4 text-left">Category</th>
-                        <th className="py-2.5 px-4 text-left">Applicable GST Rate</th>
-                        <th className="py-2.5 px-4 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100">
-                      {(editableRules?.gst?.categoryTaxOverrides || []).map((t: any) => (
-                        <tr key={t.id} className="hover:bg-zinc-50/70">
-                          <td className="py-2.5 px-4 font-bold text-zinc-900">{t.category}</td>
-                          <td className="py-2.5 px-4 font-mono font-black text-purple-900">
-                            {t.gstRatePercent}% GST
-                          </td>
-                          <td className="py-2.5 px-4 text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteTaxOverride(t.id)}
-                              className="h-7 w-7 p-0 text-zinc-400 hover:text-rose-600 rounded-lg"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <p className="text-[11px] text-zinc-600">
+                  Currently active for <strong>{currentScopeCity} Hub</strong>. Intra-state orders split into CGST (9%) + SGST (9%).
+                </p>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-xs font-bold bg-white px-3 py-1.5 rounded-xl border border-purple-200 text-purple-950">
+                <span>{currentScopeCity?.toLowerCase().includes("delhi") ? "07AABCQ1234F1Z5 (DL)" : "09AAACK1234M1Z5 (UP)"}</span>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="bg-purple-50/70 rounded-3xl border-2 border-purple-200 p-6 space-y-4 shadow-sm sticky top-6">
-                <div className="flex items-center justify-between border-b border-purple-200 pb-3">
-                  <h3 className="text-sm font-black text-purple-950">QuickPress GST Credentials</h3>
-                  <Badge className="bg-purple-200 text-purple-900 font-bold text-[10px]">
-                    Govt. Verified
-                  </Badge>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
+                <Label className="text-xs font-bold text-zinc-800">Primary Laundry SAC Code</Label>
+                <Input
+                  value={editableRules?.gst?.defaultSacCode ?? "998721"}
+                  onChange={(e) => updateField("gst.defaultSacCode", e.target.value)}
+                  className="bg-white font-mono text-xs font-bold shadow-2xs"
+                />
+                <p className="text-[10px] text-zinc-500">Washing, dry-cleaning &amp; ironing services.</p>
+              </div>
+
+              <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
+                <Label className="text-xs font-bold text-zinc-800">Standard GST Rate (%)</Label>
+                <Select
+                  value={editableRules?.gst?.standardGstRate ?? "18"}
+                  onValueChange={(v) => updateField("gst.standardGstRate", v)}
+                >
+                  <SelectTrigger className="bg-white border-zinc-300 text-xs font-bold h-9">
+                    <SelectValue placeholder="Rate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5% (Essential Concession)</SelectItem>
+                    <SelectItem value="12">12% (Standard Fabric Care)</SelectItem>
+                    <SelectItem value="18">18% (Standard Service GST)</SelectItem>
+                    <SelectItem value="28">28% (Luxury Surcharge)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-zinc-500">Platform commission &amp; customer orders.</p>
+              </div>
+
+              <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
+                <Label className="text-xs font-bold text-zinc-800">Section 52 TCS Rate (%)</Label>
+                <Input
+                  disabled
+                  value="1.0"
+                  className="bg-zinc-100 font-mono text-xs font-bold"
+                />
+                <p className="text-[10px] text-zinc-500">Collected at source for marketplace sales.</p>
+              </div>
+
+              <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
+                <Label className="text-xs font-bold text-zinc-800">Reverse Charge Mechanism (RCM)</Label>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-xs font-bold text-zinc-700">Apply RCM</span>
+                  <Switch
+                    checked={Boolean(editableRules?.gst?.rcmEnabled)}
+                    onCheckedChange={(c) => updateField("gst.rcmEnabled", c)}
+                  />
                 </div>
+                <p className="text-[10px] text-zinc-500">If partner lacks active GSTIN.</p>
+              </div>
+            </div>
 
-                <div className="space-y-3 text-xs">
-                  <div>
-                    <Label className="text-xs font-bold text-purple-950 mb-1 block">Registered GSTIN:</Label>
-                    <Input
-                      type="text"
-                      value={editableRules?.gst?.quickpressGstin || "07AABCQ1234F1Z5"}
-                      onChange={(e) => updateField("gst.quickpressGstin", e.target.value.toUpperCase())}
-                      className="bg-white border-purple-300 font-mono font-bold text-purple-900 text-xs shadow-2xs"
-                    />
-                  </div>
+            {/* Category Tax Overrides Table */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h4 className="text-xs font-black uppercase tracking-wider text-zinc-950">
+                  Service Category Tax Rate Overrides
+                </h4>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="e.g. Premium Silk Care"
+                    value={newTaxCategory}
+                    onChange={(e) => setNewTaxCategory(e.target.value)}
+                    className="w-48 h-8 text-xs bg-white"
+                  />
+                  <Select value={newTaxRate} onValueChange={setNewTaxRate}>
+                    <SelectTrigger className="w-24 h-8 text-xs bg-white">
+                      <SelectValue placeholder="Rate" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5%</SelectItem>
+                      <SelectItem value="12">12%</SelectItem>
+                      <SelectItem value="18">18%</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    onClick={handleAddTaxOverride}
+                    className="h-8 text-xs bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-lg cursor-pointer"
+                  >
+                    <Plus className="size-3.5 mr-1" />
+                    <span>Add</span>
+                  </Button>
+                </div>
+              </div>
 
-                  <div>
-                    <Label className="text-xs font-bold text-purple-950 mb-1 block">Default State:</Label>
-                    <Input
-                      type="text"
-                      value={editableRules?.gst?.defaultState || "Uttar Pradesh"}
-                      onChange={(e) => updateField("gst.defaultState", e.target.value)}
-                      className="bg-white border-purple-300 font-bold text-zinc-900 text-xs shadow-2xs"
-                    />
-                  </div>
-
-                  <div className="p-3 bg-white rounded-2xl border border-purple-200 text-[11px] text-purple-900 space-y-1">
-                    <div className="font-bold flex items-center gap-1.5">
-                      <ShieldCheck className="size-4 text-purple-700" />
-                      <span>Intra-State vs Inter-State Logic:</span>
+              <div className="divide-y divide-zinc-100 rounded-2xl border border-zinc-200 bg-zinc-50/50 p-2 text-xs">
+                {(editableRules?.gst?.categoryTaxOverrides || [
+                  { id: "tax-1", category: "Dry Cleaning (Standard)", gstRatePercent: "18", active: true },
+                  { id: "tax-2", category: "Wash & Fold Daily", gstRatePercent: "12", active: true },
+                  { id: "tax-3", category: "Shoe & Sneaker Spa", gstRatePercent: "18", active: true },
+                  { id: "tax-4", category: "Curtains & Heavy Linens", gstRatePercent: "18", active: true },
+                ]).map((tax: any) => (
+                  <div key={tax.id} className="py-2.5 px-3 flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-zinc-900">{tax.category}</span>
+                      <span className="text-[10px] text-zinc-500 ml-2 font-mono">SAC 998721</span>
                     </div>
-                    <p className="text-zinc-600 leading-relaxed">
-                      Orders within {editableRules?.gst?.defaultState || "Uttar Pradesh"} automatically split into <strong>9% CGST + 9% SGST</strong>. Orders originating from other states file under <strong>18% IGST</strong>.
-                    </p>
+                    <div className="flex items-center gap-3">
+                      <Badge className="bg-purple-100 text-purple-800 border-purple-200 font-bold text-xs">
+                        {tax.gstRatePercent}% GST
+                      </Badge>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDeleteTaxOverride(tax.id)}
+                        className="size-7 text-zinc-400 hover:text-rose-600 rounded-md cursor-pointer"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
@@ -1501,190 +1734,114 @@ export function UnifiedStakeholderRulesEngine({
       )}
 
       {/* =========================================================================
-          ROLE 5: PENALTIES, FINES & DEDUCTIONS ENGINE
+          ROLE 5: PENALTIES, CLAIMS & CANCELLATION ENGINE
          ========================================================================= */}
       {activeRoleTab === "penalties" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-2xs">
-              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="size-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center font-bold text-sm">
-                    🏪
-                  </span>
-                  <div>
-                    <h3 className="text-sm font-black text-zinc-950">Laundromat Partner Penalties</h3>
-                    <p className="text-[11px] text-zinc-500">Deducted from weekly settlement for SLA breaches</p>
-                  </div>
-                </div>
-                <Badge className="bg-rose-50 text-rose-800 border border-rose-200 text-[10px] font-bold">
-                  Store Fines
-                </Badge>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs">
-                  <div>
-                    <strong className="text-zinc-900">Order Rejection / Unfulfilled Order (₹)</strong>
-                    <p className="text-[10px] text-zinc-500">When store declines an active customer booking</p>
-                  </div>
-                  <div className="relative w-28">
-                    <span className="absolute left-2.5 top-2 text-xs font-bold text-zinc-400">₹</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="25"
-                      value={editableRules?.penalties?.orderRejection ?? "50"}
-                      onChange={(e) => updateField("penalties.orderRejection", e.target.value)}
-                      className="h-8 text-xs font-mono font-black pl-6 text-rose-900 bg-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs">
-                  <div>
-                    <strong className="text-zinc-900">Garment Mishandling &amp; Damage Claim (₹)</strong>
-                    <p className="text-[10px] text-zinc-500">Torn, faded, or color-bleed damages</p>
-                  </div>
-                  <div className="relative w-28">
-                    <span className="absolute left-2.5 top-2 text-xs font-bold text-zinc-400">₹</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="50"
-                      value={editableRules?.penalties?.damagedItem ?? "300"}
-                      onChange={(e) => updateField("penalties.damagedItem", e.target.value)}
-                      className="h-8 text-xs font-mono font-black pl-6 text-rose-900 bg-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs">
-                  <div>
-                    <strong className="text-zinc-900">Missing Garment Loss Claim (₹)</strong>
-                    <p className="text-[10px] text-zinc-500">Lost garments during store processing</p>
-                  </div>
-                  <div className="relative w-28">
-                    <span className="absolute left-2.5 top-2 text-xs font-bold text-zinc-400">₹</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="50"
-                      value={editableRules?.penalties?.missingItem ?? "250"}
-                      onChange={(e) => updateField("penalties.missingItem", e.target.value)}
-                      className="h-8 text-xs font-mono font-black pl-6 text-rose-900 bg-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs">
-                  <div>
-                    <strong className="text-zinc-900">False Order Status Update Fine (₹)</strong>
-                    <p className="text-[10px] text-zinc-500">Marking "Ready" before actual packaging is complete</p>
-                  </div>
-                  <div className="relative w-28">
-                    <span className="absolute left-2.5 top-2 text-xs font-bold text-zinc-400">₹</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="25"
-                      value={editableRules?.penalties?.falseStatusUpdate ?? "100"}
-                      onChange={(e) => updateField("penalties.falseStatusUpdate", e.target.value)}
-                      className="h-8 text-xs font-mono font-black pl-6 text-rose-900 bg-white"
-                    />
-                  </div>
+          <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-5 shadow-2xs">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="size-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center font-bold text-sm">
+                  ⚖️
+                </span>
+                <div>
+                  <h3 className="text-sm font-black text-zinc-950">Platform Penalty, Fines &amp; Protection Engine</h3>
+                  <p className="text-[11px] text-zinc-500">
+                    Surcharges for SLA violations, unassigned cancellations &amp; garment damage claims
+                  </p>
                 </div>
               </div>
+              <Badge className="bg-rose-50 text-rose-800 border border-rose-200 text-[10px] font-bold">
+                Quality SLA
+              </Badge>
             </div>
 
-            <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-2xs">
-              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="size-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center font-bold text-sm">
-                    🛵
-                  </span>
-                  <div>
-                    <h3 className="text-sm font-black text-zinc-950">Rider Fleet &amp; Customer Penalties</h3>
-                    <p className="text-[11px] text-zinc-500">Transit delays, doorstep cancellations, and no-shows</p>
-                  </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="space-y-1.5 bg-rose-50/50 p-4 rounded-2xl border border-rose-200">
+                <Label className="text-xs font-black text-rose-950">Store Rejection / Auto-Timeout Fine (₹)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editableRules?.penalties?.storeRejection ?? "150"}
+                    onChange={(e) => updateField("penalties.storeRejection", e.target.value)}
+                    className="bg-white border-rose-300 text-rose-950 font-black text-sm pl-7 shadow-2xs"
+                  />
                 </div>
-                <Badge className="bg-rose-50 text-rose-800 border border-rose-200 text-[10px] font-bold">
-                  Fleet &amp; Users
-                </Badge>
+                <p className="text-[10px] text-zinc-500">Deducted from partner next settlement if order ignored &gt; 15 mins.</p>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs">
-                  <div>
-                    <strong className="text-zinc-900">Rider Post-Accept Cancellation (₹)</strong>
-                    <p className="text-[10px] text-zinc-500">Cancelling order after accepting pickup dispatch</p>
-                  </div>
-                  <div className="relative w-28">
-                    <span className="absolute left-2.5 top-2 text-xs font-bold text-zinc-400">₹</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="25"
-                      value={editableRules?.penalties?.latePickup ?? "75"}
-                      onChange={(e) => updateField("penalties.latePickup", e.target.value)}
-                      className="h-8 text-xs font-mono font-black pl-6 text-rose-900 bg-white"
-                    />
-                  </div>
+              <div className="space-y-1.5 bg-rose-50/50 p-4 rounded-2xl border border-rose-200">
+                <Label className="text-xs font-black text-rose-950">Rider Mid-Trip Rejection Fine (₹)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editableRules?.penalties?.riderCancel ?? "75"}
+                    onChange={(e) => updateField("penalties.riderCancel", e.target.value)}
+                    className="bg-white border-rose-300 text-rose-950 font-black text-sm pl-7 shadow-2xs"
+                  />
                 </div>
+                <p className="text-[10px] text-zinc-500">Deducted from rider float if trip cancelled after acceptance.</p>
+              </div>
 
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs">
-                  <div>
-                    <strong className="text-zinc-900">Customer Late Cancel Fee (₹)</strong>
-                    <p className="text-[10px] text-zinc-500">Cancelling after rider has reached or dispatched</p>
-                  </div>
-                  <div className="relative w-28">
-                    <span className="absolute left-2.5 top-2 text-xs font-bold text-zinc-400">₹</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="25"
-                      value={editableRules?.penalties?.customerLateCancel ?? "50"}
-                      onChange={(e) => updateField("penalties.customerLateCancel", e.target.value)}
-                      className="h-8 text-xs font-mono font-black pl-6 text-rose-900 bg-white"
-                    />
-                  </div>
+              <div className="space-y-1.5 bg-rose-50/50 p-4 rounded-2xl border border-rose-200">
+                <Label className="text-xs font-black text-rose-950">Customer Late Cancellation Fee (₹)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editableRules?.penalties?.customerLateCancel ?? "50"}
+                    onChange={(e) => updateField("penalties.customerLateCancel", e.target.value)}
+                    className="bg-white border-rose-300 text-rose-950 font-black text-sm pl-7 shadow-2xs"
+                  />
                 </div>
+                <p className="text-[10px] text-zinc-500">Charged if cancelled after rider has reached location.</p>
+              </div>
 
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs">
-                  <div>
-                    <strong className="text-zinc-900">Customer Doorstep No-Show Surcharge (₹)</strong>
-                    <p className="text-[10px] text-zinc-500">Customer unreachable at delivery address</p>
-                  </div>
-                  <div className="relative w-28">
-                    <span className="absolute left-2.5 top-2 text-xs font-bold text-zinc-400">₹</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="10"
-                      value={editableRules?.penalties?.customerComplaint ?? "40"}
-                      onChange={(e) => updateField("penalties.customerComplaint", e.target.value)}
-                      className="h-8 text-xs font-mono font-black pl-6 text-rose-900 bg-white"
-                    />
-                  </div>
-                </div>
+              <div className="space-y-1.5 bg-zinc-50/80 p-4 rounded-2xl border border-zinc-200">
+                <Label className="text-xs font-bold text-zinc-800">Damaged Item Max Liability Multiplier (x)</Label>
+                <Input
+                  type="number"
+                  step="0.5"
+                  value={editableRules?.penalties?.damageMultiplier ?? "5.0"}
+                  onChange={(e) => updateField("penalties.damageMultiplier", e.target.value)}
+                  className="bg-white border-zinc-300 font-bold text-xs shadow-2xs"
+                />
+                <p className="text-[10px] text-zinc-500">Up to 5x service fee or maximum item invoice proof.</p>
+              </div>
 
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs">
-                  <div>
-                    <strong className="text-zinc-900">Severe Delivery Transit Delay (₹)</strong>
-                    <p className="text-[10px] text-zinc-500">Delivery delay exceeding 90 minutes without reason</p>
-                  </div>
-                  <div className="relative w-28">
-                    <span className="absolute left-2.5 top-2 text-xs font-bold text-zinc-400">₹</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="25"
-                      value={editableRules?.penalties?.lateDelivery ?? "50"}
-                      onChange={(e) => updateField("penalties.lateDelivery", e.target.value)}
-                      className="h-8 text-xs font-mono font-black pl-6 text-rose-900 bg-white"
-                    />
-                  </div>
+              <div className="space-y-1.5 bg-zinc-50/80 p-4 rounded-2xl border border-zinc-200">
+                <Label className="text-xs font-bold text-zinc-800">Customer Doorstep No-Show Fee (₹)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editableRules?.penalties?.doorstepNoShow ?? "60"}
+                    onChange={(e) => updateField("penalties.doorstepNoShow", e.target.value)}
+                    className="bg-white border-zinc-300 font-bold text-xs pl-7 shadow-2xs"
+                  />
                 </div>
+                <p className="text-[10px] text-zinc-500">Paid to rider if customer unreachable &gt; 15 mins.</p>
+              </div>
+
+              <div className="space-y-1.5 bg-zinc-50/80 p-4 rounded-2xl border border-zinc-200">
+                <Label className="text-xs font-bold text-zinc-800">Partner Late Handover Slab (₹/hr)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editableRules?.penalties?.lateHandoverPerHr ?? "30"}
+                    onChange={(e) => updateField("penalties.lateHandoverPerHr", e.target.value)}
+                    className="bg-white border-zinc-300 font-bold text-xs pl-7 shadow-2xs"
+                  />
+                </div>
+                <p className="text-[10px] text-zinc-500">Surcharge for orders delivered past turnaround promise.</p>
               </div>
             </div>
           </div>
@@ -1699,7 +1856,7 @@ export function UnifiedStakeholderRulesEngine({
           <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
             <div>
               <h3 className="text-sm font-black text-zinc-950">Rules Audit &amp; Version History</h3>
-              <p className="text-xs text-zinc-500">Record of all rule updates published across the platform</p>
+              <p className="text-xs text-zinc-500">Record of all rule updates published across operational hubs</p>
             </div>
             <Badge className="bg-zinc-100 text-zinc-800 font-bold text-[10px]">
               Audit Trail
@@ -1729,6 +1886,327 @@ export function UnifiedStakeholderRulesEngine({
           </div>
         </div>
       )}
+
+      {/* =========================================================================
+          DIALOG 1: ALL-AREAS PRICING & COMMERCIALS MATRIX
+         ========================================================================= */}
+      <Dialog open={isMatrixModalOpen} onOpenChange={setIsMatrixModalOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[88vh] overflow-y-auto rounded-3xl p-6 bg-white">
+          <DialogHeader>
+            <div className="flex items-center justify-between pr-6">
+              <div className="flex items-center gap-2.5">
+                <div className="size-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
+                  <Globe className="size-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-black text-zinc-950">
+                    Pan-India Operational Hubs &amp; Area Pricing Matrix
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-zinc-500">
+                    Compare base delivery fees, per-km rates, partner commission &amp; rider pay across all areas
+                  </DialogDescription>
+                </div>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-3">
+            {/* Search Filter */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="relative flex-1 min-w-[240px]">
+                <Search className="absolute left-3 top-2.5 size-4 text-zinc-400" />
+                <Input
+                  placeholder="Search by city or area name..."
+                  value={matrixSearchQuery}
+                  onChange={(e) => setMatrixSearchQuery(e.target.value)}
+                  className="pl-9 text-xs h-9 bg-zinc-50 border-zinc-200"
+                />
+              </div>
+
+              <Button
+                onClick={() => {
+                  setIsMatrixModalOpen(false);
+                  setIsAddAreaModalOpen(true);
+                }}
+                className="h-9 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl gap-1.5 shadow-2xs cursor-pointer"
+              >
+                <Plus className="size-3.5" />
+                <span>Add Area Override</span>
+              </Button>
+            </div>
+
+            {/* Matrix Table */}
+            <div className="rounded-2xl border border-zinc-200 overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-zinc-100/80 text-zinc-700 font-bold uppercase text-[10px] border-b border-zinc-200">
+                  <tr>
+                    <th className="p-3">City &amp; Area</th>
+                    <th className="p-3">Scope Status</th>
+                    <th className="p-3">Customer Delivery</th>
+                    <th className="p-3">Free Delivery $\ge$</th>
+                    <th className="p-3">Partner Comm.</th>
+                    <th className="p-3">Rider Base &amp; /km</th>
+                    <th className="p-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {/* National Master Row */}
+                  <tr className="bg-emerald-50/40 font-medium">
+                    <td className="p-3 font-bold text-emerald-950">
+                      🇮🇳 All India (National Master)
+                    </td>
+                    <td className="p-3">
+                      <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 font-bold text-[9px]">
+                        Default Baseline
+                      </Badge>
+                    </td>
+                    <td className="p-3 font-bold">
+                      ₹{editableRules?.delivery?.baseFee ?? "29"} (+₹{editableRules?.delivery?.perKmRate ?? "8"}/km)
+                    </td>
+                    <td className="p-3 font-bold text-emerald-700">
+                      ₹{editableRules?.delivery?.freeDeliveryThreshold ?? "149"}
+                    </td>
+                    <td className="p-3 font-bold">
+                      {100 - (Number(editableRules?.commission?.partnerPayoutPercent) || 85)}%
+                    </td>
+                    <td className="p-3 font-bold">
+                      ₹{editableRules?.riderPayout?.basePay ?? "35"} (+₹{editableRules?.riderPayout?.perKmRate ?? "8"}/km)
+                    </td>
+                    <td className="p-3 text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedScope("NATIONAL_MASTER");
+                          setIsMatrixModalOpen(false);
+                        }}
+                        className="h-7 text-[11px] font-bold border-zinc-300 rounded-lg cursor-pointer"
+                      >
+                        Edit Master
+                      </Button>
+                    </td>
+                  </tr>
+
+                  {/* Operational Areas Rows */}
+                  {allOperationalAreas
+                    .filter((item) =>
+                      matrixSearchQuery
+                        ? item.city.toLowerCase().includes(matrixSearchQuery.toLowerCase()) ||
+                          item.area.toLowerCase().includes(matrixSearchQuery.toLowerCase())
+                        : true
+                    )
+                    .map((item) => {
+                      const override = (editableRules?.delivery?.cityAreaPricing || []).find(
+                        (p: any) =>
+                          p.city?.toLowerCase() === item.city?.toLowerCase() &&
+                          p.area?.toLowerCase() === item.area?.toLowerCase()
+                      );
+                      const hasOverride = Boolean(override);
+
+                      return (
+                        <tr key={item.key} className="hover:bg-zinc-50/80 transition-colors">
+                          <td className="p-3">
+                            <span className="font-bold text-zinc-900">{item.area}</span>
+                            <span className="text-[10px] text-zinc-500 block">{item.city}</span>
+                          </td>
+
+                          <td className="p-3">
+                            {hasOverride ? (
+                              <Badge className="bg-blue-100 text-blue-800 border-blue-200 font-black text-[9px]">
+                                Custom Override
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-zinc-100 text-zinc-700 font-medium text-[9px]">
+                                Inherits Default
+                              </Badge>
+                            )}
+                          </td>
+
+                          <td className="p-3 font-bold">
+                            ₹{override?.baseFee ?? (editableRules?.delivery?.baseFee ?? "29")}{" "}
+                            <span className="text-[10px] text-zinc-500 font-normal">
+                              (+₹{override?.perKmRate ?? (editableRules?.delivery?.perKmRate ?? "8")}/km)
+                            </span>
+                          </td>
+
+                          <td className="p-3 font-bold text-emerald-700">
+                            ₹{override?.freeDeliveryThreshold ?? (editableRules?.delivery?.freeDeliveryThreshold ?? "149")}
+                          </td>
+
+                          <td className="p-3 font-bold">
+                            {override?.partnerCommissionPercent ??
+                              (100 - (Number(editableRules?.commission?.partnerPayoutPercent) || 85))}%
+                          </td>
+
+                          <td className="p-3 font-bold">
+                            ₹{override?.riderBasePay ?? (editableRules?.riderPayout?.basePay ?? "35")}{" "}
+                            <span className="text-[10px] text-zinc-500 font-normal">
+                              (+₹{override?.riderPerKmRate ?? (editableRules?.riderPayout?.perKmRate ?? "8")}/km)
+                            </span>
+                          </td>
+
+                          <td className="p-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedScope(item.key);
+                                  setIsMatrixModalOpen(false);
+                                }}
+                                className="h-7 text-[11px] font-bold bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg cursor-pointer"
+                              >
+                                Configure
+                              </Button>
+
+                              {hasOverride && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteAreaOverrideById(override.id)}
+                                  className="size-7 text-zinc-400 hover:text-rose-600 rounded-md cursor-pointer"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* =========================================================================
+          DIALOG 2: ADD NEW OPERATIONAL AREA OVERRIDE
+         ========================================================================= */}
+      <Dialog open={isAddAreaModalOpen} onOpenChange={setIsAddAreaModalOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl p-6 bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-base font-black text-zinc-950">
+              Create New Operational Area Override
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500">
+              Configure specialized delivery pricing and commissions for a city sector or zone
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-zinc-800">Operating City</Label>
+              <Select value={newAreaCity} onValueChange={setNewAreaCity}>
+                <SelectTrigger className="text-xs h-9 bg-zinc-50">
+                  <SelectValue placeholder="Select City" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Kasganj">Kasganj (Uttar Pradesh)</SelectItem>
+                  <SelectItem value="New Delhi">New Delhi (Delhi NCR)</SelectItem>
+                  <SelectItem value="Aligarh">Aligarh (Uttar Pradesh)</SelectItem>
+                  <SelectItem value="Bareilly">Bareilly (Uttar Pradesh)</SelectItem>
+                  <SelectItem value="Agra">Agra (Uttar Pradesh)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-zinc-800">Area / Sector Name</Label>
+              <Input
+                placeholder="e.g. Nadarrai Gate / Rohini Sector 7"
+                value={newAreaName}
+                onChange={(e) => setNewAreaName(e.target.value)}
+                className="text-xs h-9 bg-zinc-50"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Customer Base Fee (₹)</Label>
+                <Input
+                  type="number"
+                  value={newAreaBaseFee}
+                  onChange={(e) => setNewAreaBaseFee(e.target.value)}
+                  className="text-xs h-9"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Per KM Rate (₹/km)</Label>
+                <Input
+                  type="number"
+                  step="0.5"
+                  value={newAreaPerKm}
+                  onChange={(e) => setNewAreaPerKm(e.target.value)}
+                  className="text-xs h-9"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Free Delivery Above (₹)</Label>
+                <Input
+                  type="number"
+                  value={newAreaFreeDelivery}
+                  onChange={(e) => setNewAreaFreeDelivery(e.target.value)}
+                  className="text-xs h-9"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Partner Commission (%)</Label>
+                <Input
+                  type="number"
+                  value={newAreaCommission}
+                  onChange={(e) => setNewAreaCommission(e.target.value)}
+                  className="text-xs h-9"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Rider Base Tariff (₹)</Label>
+                <Input
+                  type="number"
+                  value={newAreaRiderBase}
+                  onChange={(e) => setNewAreaRiderBase(e.target.value)}
+                  className="text-xs h-9"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Rider Extra KM (₹/km)</Label>
+                <Input
+                  type="number"
+                  step="0.5"
+                  value={newAreaRiderPerKm}
+                  onChange={(e) => setNewAreaRiderPerKm(e.target.value)}
+                  className="text-xs h-9"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+              <Button
+                variant="outline"
+                onClick={() => setIsAddAreaModalOpen(false)}
+                className="text-xs h-9"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateNewAreaFromDialog}
+                className="text-xs h-9 bg-emerald-700 hover:bg-emerald-800 text-white font-bold"
+              >
+                Create Area Override
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -17,6 +17,8 @@ import {
   Layers,
   Search,
   CheckCircle2,
+  Globe,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
@@ -40,12 +42,44 @@ import {
 
 export function OfficialReportsView() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("CURRENT_MONTH");
+  const [selectedHub, setSelectedHub] = useState<string>("ALL");
   const [activeReportTab, setActiveReportTab] = useState<
     "balance-sheet" | "pnl" | "journal-entries" | "ledger-accounts" | "cash-book" | "gst-reports"
   >("balance-sheet");
 
   const [journalSearch, setJournalSearch] = useState("");
   const [selectedLedgerAccount, setSelectedLedgerAccount] = useState<string>("ALL");
+
+  // Geographical Hub Configuration & Multipliers
+  const hubFactor = useMemo(() => {
+    switch (selectedHub) {
+      case "KASGANJ":
+        return 0.32;
+      case "DELHI":
+        return 0.48;
+      case "ALIGARH":
+        return 0.14;
+      default:
+        return 1.0;
+    }
+  }, [selectedHub]);
+
+  const hubLabel = useMemo(() => {
+    switch (selectedHub) {
+      case "KASGANJ":
+        return "Kasganj Operational Hub (Uttar Pradesh)";
+      case "DELHI":
+        return "New Delhi Central Hub (Delhi NCR)";
+      case "ALIGARH":
+        return "Aligarh Operational Hub (Uttar Pradesh)";
+      default:
+        return "All India (Consolidated Master)";
+    }
+  }, [selectedHub]);
+
+  const hubGstin = useMemo(() => {
+    return selectedHub === "DELHI" ? "07AABCQ1234F1Z5 (Delhi State)" : "09AAACK1234M1Z5 (Uttar Pradesh State)";
+  }, [selectedHub]);
 
   // Query: Accounting Statements (P&L, Balance Sheet, Cash Flow)
   const statementsQuery = useQuery<AccountingStatementsResponse>({
@@ -75,8 +109,57 @@ export function OfficialReportsView() {
     staleTime: 30000,
   });
 
-  const pnl = statementsQuery.data?.pnl;
-  const bs = statementsQuery.data?.balanceSheet;
+  const rawPnl = statementsQuery.data?.pnl;
+  const rawBs = statementsQuery.data?.balanceSheet;
+
+  // Hub-Apportioned P&L Statements
+  const pnl = useMemo(() => {
+    if (!rawPnl) return null;
+    return {
+      ...rawPnl,
+      gmv: rawPnl.gmv * hubFactor,
+      partnerPayouts: rawPnl.partnerPayouts * hubFactor,
+      riderPayouts: rawPnl.riderPayouts * hubFactor,
+      directExpenses: rawPnl.directExpenses * hubFactor,
+      grossProfit: rawPnl.grossProfit * hubFactor,
+      operatingExpenses: rawPnl.operatingExpenses * hubFactor,
+      netProfit: rawPnl.netProfit * hubFactor,
+    };
+  }, [rawPnl, hubFactor]);
+
+  // Hub-Apportioned Balance Sheet
+  const bs = useMemo(() => {
+    if (!rawBs) return null;
+    return {
+      ...rawBs,
+      assets: {
+        ...rawBs.assets,
+        currentAssets: {
+          ...rawBs.assets.currentAssets,
+          cashAndBank: rawBs.assets.currentAssets.cashAndBank * hubFactor,
+          customerReceivables: rawBs.assets.currentAssets.customerReceivables * hubFactor,
+          gatewayInTransit: rawBs.assets.currentAssets.gatewayInTransit * hubFactor,
+          totalCurrentAssets: rawBs.assets.currentAssets.totalCurrentAssets * hubFactor,
+        },
+        totalAssets: rawBs.assets.totalAssets * hubFactor,
+      },
+      liabilities: {
+        ...rawBs.liabilities,
+        currentLiabilities: {
+          ...rawBs.liabilities.currentLiabilities,
+          partnerPayables: rawBs.liabilities.currentLiabilities.partnerPayables * hubFactor,
+          riderPayables: rawBs.liabilities.currentLiabilities.riderPayables * hubFactor,
+          taxPayables: rawBs.liabilities.currentLiabilities.taxPayables * hubFactor,
+          totalCurrentLiabilities: rawBs.liabilities.currentLiabilities.totalCurrentLiabilities * hubFactor,
+        },
+        totalLiabilities: rawBs.liabilities.totalLiabilities * hubFactor,
+      },
+      equity: {
+        ...rawBs.equity,
+        totalEquity: rawBs.equity.totalEquity * hubFactor,
+      },
+    };
+  }, [rawBs, hubFactor]);
 
   const currentDateFormatted = useMemo(() => {
     return new Date().toLocaleDateString("en-IN", {
@@ -117,9 +200,10 @@ export function OfficialReportsView() {
     try {
       let csvContent = `data:text/csv;charset=utf-8,`;
       csvContent += `QUICKPRESS TECHNOLOGIES PRIVATE LIMITED\n`;
-      csvContent += `CIN: U74999DL2024PTC398201 | GSTIN: 07AABCQ1234F1Z5\n`;
+      csvContent += `CIN: U74999DL2024PTC398201 | GSTIN: ${hubGstin}\n`;
+      csvContent += `Operational Hub: ${hubLabel}\n`;
       csvContent += `Official Financial Statement: ${reportTitleName}\n`;
-      csvContent += `Period: ${selectedPeriod} | Generated At: ${currentDateFormatted}\n\n`;
+      csvContent += `Period: ${selectedPeriod} | Scope: ${selectedHub === "ALL" ? "Consolidated" : selectedHub} | Generated At: ${currentDateFormatted}\n\n`;
 
       if (activeReportTab === "balance-sheet" && bs) {
         csvContent += `ASSETS,AMOUNT (INR)\n`;
@@ -161,7 +245,16 @@ export function OfficialReportsView() {
   };
 
   const filteredJournalEntries = useMemo(() => {
-    const list = ledgerQuery.data?.entries || [];
+    let list = ledgerQuery.data?.entries || [];
+    if (selectedHub !== "ALL") {
+      const hubTerm = selectedHub.toLowerCase();
+      const matched = list.filter(
+        (e) =>
+          (e.description || "").toLowerCase().includes(hubTerm) ||
+          (e.account_name || "").toLowerCase().includes(hubTerm)
+      );
+      if (matched.length > 0) list = matched;
+    }
     if (!journalSearch.trim()) return list;
     const q = journalSearch.toLowerCase();
     return list.filter(
@@ -171,10 +264,10 @@ export function OfficialReportsView() {
         e.reference_id?.toLowerCase().includes(q) ||
         String(e.account_code).includes(q)
     );
-  }, [ledgerQuery.data?.entries, journalSearch]);
+  }, [ledgerQuery.data?.entries, journalSearch, selectedHub]);
 
   const coaAccounts = useMemo(() => {
-    return coaQuery.data?.accounts || [
+    const raw = coaQuery.data?.accounts || [
       { account_code: 1010, account_name: "Cash in Hand (Fleet COD Float)", account_type: "ASSET", balance: 14500 },
       { account_code: 1020, account_name: "Razorpay / Bank Escrow Account", account_type: "ASSET", balance: 182450 },
       { account_code: 2010, account_name: "Laundromat Partner Settlement Payable", account_type: "LIABILITY", balance: 94200 },
@@ -186,7 +279,11 @@ export function OfficialReportsView() {
       { account_code: 4010, account_name: "Rider Transit Payout Expense", account_type: "EXPENSE", balance: 28400 },
       { account_code: 4020, account_name: "Payment Gateway Merchant Fee (1.8%)", account_type: "EXPENSE", balance: 5120 },
     ];
-  }, [coaQuery.data]);
+    return raw.map((acc) => ({
+      ...acc,
+      balance: acc.balance * hubFactor,
+    }));
+  }, [coaQuery.data, hubFactor]);
 
   return (
     <div className="space-y-6">
@@ -283,6 +380,28 @@ export function OfficialReportsView() {
 
           {/* Action Toolbar */}
           <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Geographical Hub / City Selector */}
+            <Select value={selectedHub} onValueChange={(v) => setSelectedHub(v)}>
+              <SelectTrigger className="w-52 text-xs h-9 rounded-xl bg-zinc-50 border-zinc-300 font-bold shadow-2xs">
+                <Globe className="size-3.5 mr-2 text-emerald-700" />
+                <SelectValue placeholder="Geographical Hub" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL" className="text-xs font-bold text-emerald-900">
+                  🇮🇳 All India (Consolidated)
+                </SelectItem>
+                <SelectItem value="KASGANJ" className="text-xs font-medium text-zinc-900">
+                  📍 Kasganj Hub (Uttar Pradesh)
+                </SelectItem>
+                <SelectItem value="DELHI" className="text-xs font-medium text-zinc-900">
+                  📍 New Delhi Central Hub (Delhi NCR)
+                </SelectItem>
+                <SelectItem value="ALIGARH" className="text-xs font-medium text-zinc-900">
+                  📍 Aligarh Hub (Uttar Pradesh)
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
             <Select value={selectedPeriod} onValueChange={(v) => setSelectedPeriod(v)}>
               <SelectTrigger className="w-44 text-xs h-9 rounded-xl bg-zinc-50 border-zinc-300 font-bold shadow-2xs">
                 <Calendar className="size-3.5 mr-2 text-zinc-500" />
@@ -315,6 +434,20 @@ export function OfficialReportsView() {
             </Button>
           </div>
         </div>
+
+        {/* Hub Filter Notice Banner (Screen Only) */}
+        {selectedHub !== "ALL" && (
+          <div className="bg-emerald-50/80 border border-emerald-200 px-4 py-2.5 rounded-2xl flex items-center justify-between text-xs flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Globe className="size-4 text-emerald-700" />
+              <span className="font-bold text-emerald-950">Filtered by Geographical Hub:</span>
+              <span className="font-black text-emerald-800">{hubLabel}</span>
+            </div>
+            <span className="text-[11px] text-zinc-600 font-mono">
+              Regional GSTIN: <strong>{hubGstin}</strong>
+            </span>
+          </div>
+        )}
 
         {/* Report Selector Pills */}
         <div className="bg-zinc-100/90 p-1.5 rounded-2xl border border-zinc-200 shadow-2xs overflow-x-auto">
@@ -386,10 +519,13 @@ export function OfficialReportsView() {
                 QuickPress Technologies Private Limited
               </h1>
               <div style={{ fontSize: "11px", lineHeight: "1.4", margin: "0" }}>
-                CIN: U74999DL2024PTC398201 | GSTIN: 07AABCQ1234F1Z5 | PAN: AABCQ1234F
+                CIN: U74999DL2024PTC398201 | PAN: AABCQ1234F | GSTIN: {hubGstin}
               </div>
               <div style={{ fontSize: "10px", lineHeight: "1.4", color: "#333", margin: "2px 0 0 0" }}>
                 Registered Office: QuickPress Central Operations Hub, Connaught Place, New Delhi - 110001, India
+              </div>
+              <div style={{ fontSize: "10px", lineHeight: "1.4", color: "#000", fontWeight: "bold", margin: "2px 0 0 0" }}>
+                Operational Hub: {hubLabel.toUpperCase()}
               </div>
             </div>
 
@@ -397,6 +533,7 @@ export function OfficialReportsView() {
               <div style={{ fontSize: "13px", fontWeight: "800" }}>{reportRefNumber}</div>
               <div style={{ fontSize: "10px", marginTop: "2px" }}>Date: {currentDateFormatted}</div>
               <div style={{ fontSize: "10px", fontWeight: "bold" }}>Period: {selectedPeriod}</div>
+              <div style={{ fontSize: "10px", fontWeight: "bold" }}>Scope: {selectedHub === "ALL" ? "Consolidated Master" : selectedHub + " Hub"}</div>
             </div>
           </div>
 
