@@ -1664,24 +1664,24 @@ export function FinanceEnginePage() {
              ========================================================================= */}
           <TabsContent value="rules" className="mt-6 space-y-6">
             {/* =========================================================================
-                MASTER FINANCE RULES CONTROLLER (CENTRAL COMMAND)
+                MASTER FINANCE RULES CONTROLLER (CENTRAL COMMAND) - CLEAN LIGHT THEME
                ========================================================================= */}
-            <div className="bg-linear-to-br from-emerald-950 via-zinc-900 to-black text-white p-6 rounded-3xl border border-emerald-500/30 shadow-xl space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-emerald-500/20 pb-4">
+            <div className="bg-white text-zinc-950 p-6 rounded-3xl border border-zinc-200/90 shadow-2xs space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-100 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="size-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-inner">
+                  <div className="size-11 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-2xs">
                     <Sliders className="size-6 stroke-[2.5]" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
+                      <h2 className="text-base sm:text-lg font-black tracking-tight text-zinc-950">
                         QuickPress Master Finance Controller
                       </h2>
-                      <Badge className="bg-emerald-500 text-black font-black text-[10px] uppercase tracking-wider">
+                      <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 font-black text-[10px] uppercase tracking-wider">
                         Live System
                       </Badge>
                     </div>
-                    <p className="text-xs text-zinc-400 mt-0.5">
+                    <p className="text-xs text-zinc-500 mt-0.5">
                       Configure partner commission, delivery boy /km fare, order fees, surge, packaging &amp; free delivery rules.
                     </p>
                   </div>
@@ -1690,7 +1690,7 @@ export function FinanceEnginePage() {
                 <div className="flex items-center gap-2.5 shrink-0">
                   <Button
                     onClick={() => setIsSaveModalOpen(true)}
-                    className="bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs px-4 py-2 rounded-xl gap-2 shadow-lg hover:shadow-emerald-500/25 transition-all cursor-pointer"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-4 py-2 rounded-xl gap-2 shadow-xs transition-all cursor-pointer"
                   >
                     <Save className="size-4" />
                     <span>Save Live Rules</span>
@@ -1701,17 +1701,17 @@ export function FinanceEnginePage() {
               {/* 7 Core Controllers Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {/* 1. Partner Payout Rate */}
-                <div className="bg-zinc-900/90 rounded-2xl border border-emerald-500/30 p-4 space-y-3 relative overflow-hidden group hover:border-emerald-500/60 transition-colors">
+                <div className="bg-zinc-50/80 hover:bg-white rounded-2xl border border-emerald-200/80 p-4 space-y-3 relative overflow-hidden group hover:border-emerald-300 transition-all shadow-2xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
                       <Building2 className="size-3.5" /> 1. Partner Payout Rate
                     </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
                       Store Hub
                     </span>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-zinc-300">Partner Revenue Share (%)</Label>
+                    <Label className="text-xs font-bold text-zinc-700">Partner Revenue Share (%)</Label>
                     <div className="relative">
                       <Input
                         type="number"
@@ -1728,32 +1728,32 @@ export function FinanceEnginePage() {
                             updateField("commission.standardPercent", String(Math.max(0, 100 - num)));
                           }
                         }}
-                        className="bg-zinc-950 border-zinc-700 text-white font-black text-sm pr-8 focus:border-emerald-500"
+                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pr-8 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-2xs"
                       />
                       <span className="absolute right-3 top-2.5 text-xs font-bold text-zinc-500">%</span>
                     </div>
                   </div>
-                  <div className="p-2 rounded-xl bg-zinc-950/80 border border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
+                  <div className="p-2.5 rounded-xl bg-white border border-zinc-200 text-[11px] text-zinc-600 flex items-center justify-between font-medium">
                     <span>Platform Commission:</span>
-                    <span className="font-bold text-emerald-400">
+                    <span className="font-bold text-emerald-700">
                       {Math.max(0, 100 - (parseFloat(editableRules?.commission?.partnerPayoutPercent) || 85))}%
                     </span>
                   </div>
                 </div>
 
                 {/* 2. Delivery Boy /KM Wise Payout */}
-                <div className="bg-zinc-900/90 rounded-2xl border border-teal-500/30 p-4 space-y-3 relative overflow-hidden group hover:border-teal-500/60 transition-colors">
+                <div className="bg-zinc-50/80 hover:bg-white rounded-2xl border border-teal-200/80 p-4 space-y-3 relative overflow-hidden group hover:border-teal-300 transition-all shadow-2xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-teal-800 flex items-center gap-1.5">
                       <Bike className="size-3.5" /> 2. Delivery Boy Rate (/KM)
                     </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 font-bold">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 font-bold border border-teal-200">
                       Fleet Fare
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label className="text-[11px] text-zinc-300">Rate / KM (₹)</Label>
+                      <Label className="text-[11px] font-bold text-zinc-700">Rate / KM (₹)</Label>
                       <div className="relative">
                         <Input
                           type="number"
@@ -1761,13 +1761,13 @@ export function FinanceEnginePage() {
                           step="0.5"
                           value={editableRules?.riderPayout?.perKmRate ?? "8.0"}
                           onChange={(e) => updateField("riderPayout.perKmRate", e.target.value)}
-                          className="bg-zinc-950 border-zinc-700 text-white font-black text-sm pr-7 focus:border-teal-500"
+                          className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pr-7 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-2xs"
                         />
                         <span className="absolute right-2 top-2.5 text-[10px] font-bold text-zinc-500">/km</span>
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[11px] text-zinc-300">Base Pay (₹)</Label>
+                      <Label className="text-[11px] font-bold text-zinc-700">Base Pay (₹)</Label>
                       <div className="relative">
                         <Input
                           type="number"
@@ -1775,25 +1775,25 @@ export function FinanceEnginePage() {
                           step="1"
                           value={editableRules?.riderPayout?.basePay ?? "25"}
                           onChange={(e) => updateField("riderPayout.basePay", e.target.value)}
-                          className="bg-zinc-950 border-zinc-700 text-white font-black text-sm pl-6 focus:border-teal-500"
+                          className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-6 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-2xs"
                         />
                         <span className="absolute left-2.5 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                       </div>
                     </div>
                   </div>
-                  <p className="text-[10px] text-zinc-400 leading-tight">
+                  <p className="text-[10px] text-zinc-500 leading-tight">
                     Rider receives base pay for first 2 km + ₹{editableRules?.riderPayout?.perKmRate || 8}/km for additional transit.
                   </p>
                 </div>
 
                 {/* 3. Handling Fee */}
-                <div className="bg-zinc-900/90 rounded-2xl border border-sky-500/30 p-4 space-y-3 relative overflow-hidden group hover:border-sky-500/60 transition-colors">
+                <div className="bg-zinc-50/80 hover:bg-white rounded-2xl border border-sky-200/80 p-4 space-y-3 relative overflow-hidden group hover:border-sky-300 transition-all shadow-2xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-sky-800 flex items-center gap-1.5">
                       <Receipt className="size-3.5" /> 3. Handling Fee
                     </span>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-zinc-400 font-bold">
+                      <span className="text-[10px] text-zinc-500 font-bold">
                         {editableRules?.fees?.handlingFeeEnabled !== false ? "ON" : "OFF"}
                       </span>
                       <Switch
@@ -1803,7 +1803,7 @@ export function FinanceEnginePage() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-zinc-300">Handling Fee Amount (₹)</Label>
+                    <Label className="text-xs font-bold text-zinc-700">Handling Fee Amount (₹)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                       <Input
@@ -1816,23 +1816,23 @@ export function FinanceEnginePage() {
                           updateField("pricing.handlingFee", e.target.value);
                         }}
                         disabled={editableRules?.fees?.handlingFeeEnabled === false}
-                        className="bg-zinc-950 border-zinc-700 text-white font-black text-sm pl-7 focus:border-sky-500 disabled:opacity-40"
+                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-7 focus:border-sky-600 focus:ring-1 focus:ring-sky-600 disabled:opacity-50 disabled:bg-zinc-100 shadow-2xs"
                       />
                     </div>
                   </div>
-                  <p className="text-[10px] text-zinc-400 leading-tight">
+                  <p className="text-[10px] text-zinc-500 leading-tight">
                     Platform handling charge added at checkout. Toggle off to waive handling fee completely.
                   </p>
                 </div>
 
                 {/* 4. Surge Charges */}
-                <div className="bg-zinc-900/90 rounded-2xl border border-amber-500/30 p-4 space-y-3 relative overflow-hidden group hover:border-amber-500/60 transition-colors">
+                <div className="bg-zinc-50/80 hover:bg-white rounded-2xl border border-amber-200/80 p-4 space-y-3 relative overflow-hidden group hover:border-amber-300 transition-all shadow-2xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
                       <Zap className="size-3.5" /> 4. Surge Charges
                     </span>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-zinc-400 font-bold">
+                      <span className="text-[10px] text-zinc-500 font-bold">
                         {editableRules?.surge?.enabled ? "ACTIVE" : "OFF"}
                       </span>
                       <Switch
@@ -1843,7 +1843,7 @@ export function FinanceEnginePage() {
                   </div>
                   <div className="space-y-2">
                     <div>
-                      <Label className="text-[11px] text-zinc-300">Surge Fee Amount (₹)</Label>
+                      <Label className="text-[11px] font-bold text-zinc-700">Surge Fee Amount (₹)</Label>
                       <div className="relative">
                         <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                         <Input
@@ -1856,35 +1856,35 @@ export function FinanceEnginePage() {
                             updateField("surge.surgeFee", e.target.value);
                           }}
                           disabled={!editableRules?.surge?.enabled}
-                          className="bg-zinc-950 border-zinc-700 text-white font-black text-sm pl-7 focus:border-amber-500 disabled:opacity-40"
+                          className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-7 focus:border-amber-600 focus:ring-1 focus:ring-amber-600 disabled:opacity-50 disabled:bg-zinc-100 shadow-2xs"
                         />
                       </div>
                     </div>
                     <div>
-                      <Label className="text-[10px] text-zinc-400">Surge Notice / Reason</Label>
+                      <Label className="text-[10px] font-bold text-zinc-600">Surge Notice / Reason</Label>
                       <Input
                         type="text"
                         value={editableRules?.surge?.surgeReason ?? "Monsoon Rain / Peak Surge"}
                         onChange={(e) => updateField("surge.surgeReason", e.target.value)}
                         disabled={!editableRules?.surge?.enabled}
                         placeholder="e.g. Monsoon Rain & High Demand"
-                        className="bg-zinc-950 border-zinc-700 text-zinc-200 text-xs focus:border-amber-500 disabled:opacity-40"
+                        className="bg-white border-zinc-300 text-zinc-900 text-xs focus:border-amber-600 focus:ring-1 focus:ring-amber-600 disabled:opacity-50 disabled:bg-zinc-100 shadow-2xs"
                       />
                     </div>
                   </div>
-                  <p className="text-[10px] text-zinc-400 leading-tight">
+                  <p className="text-[10px] text-zinc-500 leading-tight">
                     Applied during bad weather or high demand. VIP Club members receive 100% waiver guarantee.
                   </p>
                 </div>
 
                 {/* 5. Packing / Packaging Charge */}
-                <div className="bg-zinc-900/90 rounded-2xl border border-purple-500/30 p-4 space-y-3 relative overflow-hidden group hover:border-purple-500/60 transition-colors">
+                <div className="bg-zinc-50/80 hover:bg-white rounded-2xl border border-purple-200/80 p-4 space-y-3 relative overflow-hidden group hover:border-purple-300 transition-all shadow-2xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-purple-800 flex items-center gap-1.5">
                       <Sparkles className="size-3.5" /> 5. Packing Charges
                     </span>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-zinc-400 font-bold">
+                      <span className="text-[10px] text-zinc-500 font-bold">
                         {editableRules?.fees?.packagingFeeEnabled ? "ACTIVE" : "OFF"}
                       </span>
                       <Switch
@@ -1894,7 +1894,7 @@ export function FinanceEnginePage() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-zinc-300">Packaging Fee (₹)</Label>
+                    <Label className="text-xs font-bold text-zinc-700">Packaging Fee (₹)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                       <Input
@@ -1904,27 +1904,27 @@ export function FinanceEnginePage() {
                         value={editableRules?.fees?.packagingFee ?? "0"}
                         onChange={(e) => updateField("fees.packagingFee", e.target.value)}
                         disabled={!editableRules?.fees?.packagingFeeEnabled}
-                        className="bg-zinc-950 border-zinc-700 text-white font-black text-sm pl-7 focus:border-purple-500 disabled:opacity-40"
+                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-7 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 disabled:opacity-50 disabled:bg-zinc-100 shadow-2xs"
                       />
                     </div>
                   </div>
-                  <p className="text-[10px] text-zinc-400 leading-tight">
+                  <p className="text-[10px] text-zinc-500 leading-tight">
                     Garment protection packaging charge. Enable and set amount (e.g. ₹10) or keep 0 to disable.
                   </p>
                 </div>
 
                 {/* 6. Min Order Value for Free Delivery */}
-                <div className="bg-zinc-900/90 rounded-2xl border border-emerald-500/40 p-4 space-y-3 relative overflow-hidden group hover:border-emerald-500 transition-colors">
+                <div className="bg-zinc-50/80 hover:bg-white rounded-2xl border border-emerald-200/80 p-4 space-y-3 relative overflow-hidden group hover:border-emerald-300 transition-all shadow-2xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
                       <Truck className="size-3.5" /> 6. Free Delivery Min Order
                     </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
                       100% Free
                     </span>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-zinc-300">Free Delivery Threshold (₹)</Label>
+                    <Label className="text-xs font-bold text-zinc-700">Free Delivery Threshold (₹)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                       <Input
@@ -1933,27 +1933,27 @@ export function FinanceEnginePage() {
                         step="10"
                         value={editableRules?.delivery?.freeDeliveryThreshold ?? "149"}
                         onChange={(e) => updateField("delivery.freeDeliveryThreshold", e.target.value)}
-                        className="bg-zinc-950 border-emerald-500/50 text-emerald-400 font-black text-sm pl-7 focus:border-emerald-400"
+                        className="bg-white border-emerald-300 text-emerald-800 font-black text-sm pl-7 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-2xs"
                       />
                     </div>
                   </div>
-                  <p className="text-[10px] text-zinc-400 leading-tight">
+                  <p className="text-[10px] text-zinc-500 leading-tight">
                     Orders with items total &ge; ₹{editableRules?.delivery?.freeDeliveryThreshold || 149} get automatic FREE delivery.
                   </p>
                 </div>
 
                 {/* 7. Extra Delivery Fee Below Min Order */}
-                <div className="bg-zinc-900/90 rounded-2xl border border-rose-500/30 p-4 space-y-3 relative overflow-hidden group hover:border-rose-500/60 transition-colors">
+                <div className="bg-zinc-50/80 hover:bg-white rounded-2xl border border-rose-200/80 p-4 space-y-3 relative overflow-hidden group hover:border-rose-300 transition-all shadow-2xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-rose-800 flex items-center gap-1.5">
                       <Navigation className="size-3.5" /> 7. Below-Threshold Delivery Fee
                     </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold border border-rose-200">
                       Extra Charge
                     </span>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-zinc-300">Delivery Charge Below Min Order (₹)</Label>
+                    <Label className="text-xs font-bold text-zinc-700">Delivery Charge Below Min Order (₹)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                       <Input
@@ -1962,11 +1962,11 @@ export function FinanceEnginePage() {
                         step="5"
                         value={editableRules?.delivery?.baseFee ?? "30"}
                         onChange={(e) => updateField("delivery.baseFee", e.target.value)}
-                        className="bg-zinc-950 border-zinc-700 text-rose-400 font-black text-sm pl-7 focus:border-rose-500"
+                        className="bg-white border-zinc-300 text-rose-800 font-black text-sm pl-7 focus:border-rose-600 focus:ring-1 focus:ring-rose-600 shadow-2xs"
                       />
                     </div>
                   </div>
-                  <p className="text-[10px] text-zinc-400 leading-tight">
+                  <p className="text-[10px] text-zinc-500 leading-tight">
                     Charged to the customer when their order is under ₹{editableRules?.delivery?.freeDeliveryThreshold || 149}.
                   </p>
                 </div>
@@ -4027,7 +4027,7 @@ export function FinanceEnginePage() {
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <div className="size-8 rounded-lg bg-zinc-900 text-white flex items-center justify-center font-bold font-mono text-xs shadow-2xs">
+                                <div className="size-8 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center justify-center font-bold font-mono text-xs shadow-2xs">
                                   L{l.level || idx + 1}
                                 </div>
                                 <div>
@@ -5203,13 +5203,13 @@ export function FinanceEnginePage() {
 
         {/* Floating Unsaved Changes Notification Banner */}
         {isDirty && (
-          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-zinc-900/95 text-white px-4 py-3 rounded-2xl shadow-2xl border border-zinc-700 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-white/95 text-zinc-900 px-4 py-3 rounded-2xl shadow-xl border border-zinc-200 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-3 duration-200">
             <div className="flex items-center gap-2">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
               </span>
-              <span className="text-xs font-bold text-zinc-200">You have unsaved financial changes</span>
+              <span className="text-xs font-bold text-zinc-800">You have unsaved financial changes</span>
             </div>
             <Button
               size="sm"

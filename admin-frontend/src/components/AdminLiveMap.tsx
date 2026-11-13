@@ -437,46 +437,46 @@ export function AdminLiveMap({
   return (
     <div className="space-y-3">
       {/* 1. TELEMETRY HUD & CONTROL BAR */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200/90 bg-gradient-to-r from-zinc-900 via-zinc-900 to-zinc-950 p-3.5 text-white shadow-md">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200/90 bg-white p-3.5 text-zinc-950 shadow-2xs">
         {/* Left Status Badge */}
         <div className="flex items-center gap-2.5">
           <span className="relative flex size-3">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex size-3 rounded-full bg-emerald-500"></span>
+            <span className="relative inline-flex size-3 rounded-full bg-emerald-600"></span>
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-black tracking-wider uppercase text-emerald-400">
+              <span className="font-mono text-xs font-black tracking-wider uppercase text-emerald-700">
                 LIVE GPS TELEMETRY
               </span>
-              <span className="rounded-md bg-emerald-500/20 px-1.5 py-0.2 text-[10px] font-bold text-emerald-300 border border-emerald-500/30">
-                KASGANJ GRID
+              <span className="rounded-md bg-emerald-50 px-1.5 py-0.2 text-[10px] font-bold text-emerald-800 border border-emerald-200">
+                ALL INDIA FLEET GRID
               </span>
             </div>
-            <p className="text-[11px] text-zinc-400">
-              Satellite Sync · 15s Latency · High Precision Two-Wheeler Telemetry
+            <p className="text-[11px] text-zinc-500">
+              Satellite Sync · 15s Latency · High Precision Fleet Telemetry
             </p>
           </div>
         </div>
 
         {/* Live Counters */}
         <div className="flex items-center gap-2 text-xs">
-          <div className="flex items-center gap-1.5 rounded-xl bg-zinc-800/80 px-2.5 py-1.5 border border-zinc-700/50">
-            <Bike className="size-3.5 text-emerald-400" />
-            <span className="text-zinc-300">Fleet:</span>
-            <strong className="text-emerald-400 font-black">{ridersCount} Online</strong>
+          <div className="flex items-center gap-1.5 rounded-xl bg-zinc-50 px-2.5 py-1.5 border border-zinc-200">
+            <Bike className="size-3.5 text-emerald-600" />
+            <span className="text-zinc-600 font-medium">Fleet:</span>
+            <strong className="text-zinc-950 font-black">{ridersCount} Online</strong>
           </div>
 
-          <div className="flex items-center gap-1.5 rounded-xl bg-zinc-800/80 px-2.5 py-1.5 border border-zinc-700/50">
-            <Store className="size-3.5 text-indigo-400" />
-            <span className="text-zinc-300">Hubs:</span>
-            <strong className="text-indigo-300 font-black">{hubsCount} Active</strong>
+          <div className="flex items-center gap-1.5 rounded-xl bg-zinc-50 px-2.5 py-1.5 border border-zinc-200">
+            <Store className="size-3.5 text-indigo-600" />
+            <span className="text-zinc-600 font-medium">Hubs:</span>
+            <strong className="text-zinc-950 font-black">{hubsCount} Active</strong>
           </div>
 
-          <div className="flex items-center gap-1.5 rounded-xl bg-zinc-800/80 px-2.5 py-1.5 border border-zinc-700/50">
-            <Package className="size-3.5 text-amber-400" />
-            <span className="text-zinc-300">Transit:</span>
-            <strong className="text-amber-400 font-black">{ordersCount} In-Flight</strong>
+          <div className="flex items-center gap-1.5 rounded-xl bg-zinc-50 px-2.5 py-1.5 border border-zinc-200">
+            <Package className="size-3.5 text-amber-600" />
+            <span className="text-zinc-600 font-medium">Transit:</span>
+            <strong className="text-zinc-950 font-black">{ordersCount} In-Flight</strong>
           </div>
         </div>
 
@@ -486,10 +486,10 @@ export function AdminLiveMap({
           <Button
             size="sm"
             variant="outline"
-            className="h-8 rounded-xl border-zinc-700 bg-zinc-800 text-xs font-bold text-zinc-200 hover:bg-zinc-700"
+            className="h-8 rounded-xl border-zinc-200 bg-white text-xs font-bold text-zinc-800 hover:bg-zinc-50 shadow-2xs"
             onClick={() => setTileMode((m) => (m === "street" ? "satellite" : "street"))}
           >
-            <Layers className="size-3.5 mr-1 text-sky-400" />
+            <Layers className="size-3.5 mr-1 text-sky-600" />
             {tileMode === "street" ? "Satellite" : "Street"}
           </Button>
 
@@ -497,7 +497,7 @@ export function AdminLiveMap({
           <Button
             size="sm"
             variant="outline"
-            className="h-8 rounded-xl border-zinc-700 bg-zinc-800 text-xs font-bold text-zinc-200 hover:bg-zinc-700"
+            className="h-8 rounded-xl border-zinc-200 bg-white text-xs font-bold text-zinc-800 hover:bg-zinc-50 shadow-2xs"
             onClick={handleRecenter}
           >
             <Navigation className="size-3.5 mr-1 text-emerald-400" />

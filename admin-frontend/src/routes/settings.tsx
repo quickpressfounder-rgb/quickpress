@@ -1230,17 +1230,17 @@ export function SettingsPage() {
         ========================================================================= */}
         {isDirty && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-2xl animate-in fade-in slide-in-from-bottom-5 duration-300">
-            <div className="rounded-2xl bg-zinc-950 text-white p-4 shadow-2xl backdrop-blur-xl border border-zinc-800 flex items-center justify-between gap-4">
+            <div className="rounded-2xl bg-white/95 text-zinc-950 p-4 shadow-2xl backdrop-blur-xl border border-zinc-200 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-600"></span>
                 </span>
                 <div>
-                  <p className="text-xs font-black text-white">
+                  <p className="text-xs font-black text-zinc-950">
                     Unsaved modifications in Corporate Profile
                   </p>
-                  <p className="text-[10px] text-zinc-400">Press ⌘S or click Save to propagate live across all invoices &amp; reports</p>
+                  <p className="text-[10px] text-zinc-500">Press ⌘S or click Save to propagate live across all invoices &amp; reports</p>
                 </div>
               </div>
 
@@ -1252,7 +1252,7 @@ export function SettingsPage() {
                     if (settingsQuery.data) setDraft(structuredClone(settingsQuery.data));
                     toast.info("Changes reverted to previous saved state");
                   }}
-                  className="h-8 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs font-bold cursor-pointer"
+                  className="h-8 rounded-xl text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 text-xs font-bold cursor-pointer"
                 >
                   Discard
                 </Button>
@@ -1263,7 +1263,7 @@ export function SettingsPage() {
                   onClick={() => {
                     if (draft) saveMutation.mutate(draft);
                   }}
-                  className="h-8 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-xs px-4 shadow-md cursor-pointer flex items-center gap-1.5"
+                  className="h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-4 shadow-2xs cursor-pointer flex items-center gap-1.5"
                 >
                   {saveMutation.isPending ? (
                     <>

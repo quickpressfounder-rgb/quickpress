@@ -1084,23 +1084,23 @@ export function CustomersPage() {
       {dossierCustomer && (
         <Dialog open={Boolean(dossierCustomer)} onOpenChange={() => setDossierCustomer(null)}>
           <DialogContent className="max-w-2xl bg-white text-zinc-950 border-zinc-200 p-0 overflow-hidden">
-            <div className="bg-zinc-950 p-6 text-white flex items-center justify-between">
+            <div className="bg-zinc-50 border-b border-zinc-200 p-6 text-zinc-950 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-black">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-600 text-white font-black shadow-2xs">
                   QP
                 </div>
                 <div>
-                  <DialogTitle className="text-base font-black text-white">QuickPress Customer 360° Dossier</DialogTitle>
-                  <DialogDescription className="text-xs text-zinc-400">
+                  <DialogTitle className="text-base font-black text-zinc-950">QuickPress Customer 360° Dossier</DialogTitle>
+                  <DialogDescription className="text-xs text-zinc-500">
                     Official Certified Audit Record · Ref: QP-CUST-{dossierCustomer.id.slice(0, 8).toUpperCase()}
                   </DialogDescription>
                 </div>
               </div>
               <div className="text-right">
-                <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-950 border border-emerald-500 text-emerald-400 font-mono text-[10px] font-bold">
+                <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 font-mono text-[10px] font-bold">
                   VERIFIED RECORD
                 </span>
-                <p className="text-[10px] text-zinc-400 font-mono mt-1">{new Date().toISOString().slice(0, 10)}</p>
+                <p className="text-[10px] text-zinc-500 font-mono mt-1">{new Date().toISOString().slice(0, 10)}</p>
               </div>
             </div>
 

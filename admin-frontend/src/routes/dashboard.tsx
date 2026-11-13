@@ -426,33 +426,33 @@ export function DashboardPage() {
 
         {/* ACTIVE FILTER STATUS BADGE ROW */}
         {isFiltered && (
-          <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-white shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-zinc-200/90 bg-white px-4 py-2.5 text-zinc-950 shadow-2xs">
             <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="font-extrabold text-zinc-400 flex items-center gap-1.5">
-                <SlidersHorizontal className="size-3 text-emerald-400" />
+              <span className="font-extrabold text-zinc-600 flex items-center gap-1.5">
+                <SlidersHorizontal className="size-3 text-emerald-600" />
                 <span>Live Supabase Filters:</span>
               </span>
-              <span className="rounded-lg bg-zinc-800 px-2.5 py-0.5 text-xs font-black text-white border border-zinc-700">
+              <span className="rounded-lg bg-zinc-100 px-2.5 py-0.5 text-xs font-black text-zinc-900 border border-zinc-200">
                 Period: {dateFilter === "all" ? "All Time" : dateFilter.toUpperCase()}
               </span>
               {cityFilter !== "all" && (
-                <span className="rounded-lg bg-purple-900/80 text-purple-200 border border-purple-700 px-2.5 py-0.5 text-xs font-black">
+                <span className="rounded-lg bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-0.5 text-xs font-black">
                   City: {cityFilter}
                 </span>
               )}
               {serviceFilter !== "all" && (
-                <span className="rounded-lg bg-sky-900/80 text-sky-200 border border-sky-700 px-2.5 py-0.5 text-xs font-black">
+                <span className="rounded-lg bg-sky-50 text-sky-700 border border-sky-200 px-2.5 py-0.5 text-xs font-black">
                   Service: {serviceFilter.toUpperCase()}
                 </span>
               )}
-              <span className="text-xs text-emerald-400 font-extrabold ml-1">
+              <span className="text-xs text-emerald-700 font-extrabold ml-1">
                 → {count(periodOrders)} orders found ({currency(periodRevenue)})
               </span>
             </div>
             <button
               type="button"
               onClick={resetFilters}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 px-3 py-1 text-xs font-black text-white transition-all active:scale-95 border border-zinc-700"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 px-3 py-1 text-xs font-black text-zinc-800 transition-all active:scale-95 border border-zinc-200 shadow-2xs"
             >
               <RotateCcw className="size-3" />
               <span>Reset Filters</span>

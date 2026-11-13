@@ -136,20 +136,20 @@ export function CustomerFinance360View({ onInspectOrder, initialIdentifier = "" 
       {data && !isLoading && (
         <div className="space-y-6">
           {/* Customer Header Info */}
-          <div className="bg-gradient-to-r from-zinc-900 to-zinc-800 rounded-2xl p-6 text-white shadow-md">
+          <div className="bg-white rounded-2xl p-6 text-zinc-950 border border-zinc-200/90 shadow-2xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="size-14 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 font-bold text-xl">
+                <div className="size-14 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-xl">
                   {customer?.name ? customer.name.charAt(0).toUpperCase() : "C"}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold text-white">{customer?.name || "QuickPress Customer"}</h3>
-                    <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] px-2 py-0.5 font-bold">
+                    <h3 className="text-lg font-black text-zinc-950">{customer?.name || "QuickPress Customer"}</h3>
+                    <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] px-2 py-0.5 font-bold">
                       VERIFIED ACCOUNT
                     </Badge>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-300 mt-1 font-mono">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-600 mt-1 font-mono">
                     <span>Phone: {customer?.phone || "N/A"}</span>
                     <span>•</span>
                     <span>Email: {customer?.email || "N/A"}</span>
@@ -163,7 +163,7 @@ export function CustomerFinance360View({ onInspectOrder, initialIdentifier = "" 
                 variant="outline"
                 size="sm"
                 onClick={() => refetch()}
-                className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs rounded-xl self-start sm:self-auto"
+                className="bg-white hover:bg-zinc-50 text-zinc-900 border-zinc-200 text-xs rounded-xl self-start sm:self-auto shadow-2xs"
               >
                 <RefreshCw className="size-3.5 mr-1.5" />
                 Refresh Profile

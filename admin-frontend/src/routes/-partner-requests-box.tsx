@@ -1011,7 +1011,7 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
             </DialogTitle>
           </DialogHeader>
 
-          <div className="py-2 flex items-center justify-center bg-zinc-950/90 rounded-2xl p-4 overflow-hidden max-h-[75vh]">
+          <div className="py-2 flex items-center justify-center bg-zinc-100 rounded-2xl p-4 overflow-hidden max-h-[75vh]">
             {previewDoc?.url ? (
               <img
                 src={previewDoc.url}

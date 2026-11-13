@@ -91,42 +91,42 @@ export function ProfitabilityAnalyticsView() {
       {data && !isLoading && (
         <div className="space-y-6">
           {/* Rider Logistics Delivery Economics Cards */}
-          <div className="bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 text-white rounded-2xl p-6 shadow-md">
+          <div className="bg-white text-zinc-950 rounded-2xl p-6 border border-zinc-200/90 shadow-2xs">
             <div className="flex items-center gap-2 mb-4">
-              <Truck className="size-4 text-amber-400" />
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+              <Truck className="size-4 text-amber-600" />
+              <h3 className="text-sm font-black text-zinc-950 uppercase tracking-wider">
                 Rider Logistics & Delivery Economics
               </h3>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white/10 rounded-xl p-4 border border-white/10">
-                <span className="text-xs text-zinc-300">Customer Delivery Fees</span>
-                <div className="text-xl font-bold text-white mt-1">
+              <div className="bg-zinc-50 rounded-xl p-4 border border-zinc-200 shadow-2xs">
+                <span className="text-xs font-bold text-zinc-600">Customer Delivery Fees</span>
+                <div className="text-xl font-black text-zinc-950 mt-1">
                   ₹{((riderCosts?.totalDeliveryFeesCollected ?? 0)).toFixed(2)}
                 </div>
-                <div className="text-[10px] text-zinc-400 mt-0.5">Collected at checkout</div>
+                <div className="text-[10px] text-zinc-500 mt-0.5">Collected at checkout</div>
               </div>
 
-              <div className="bg-white/10 rounded-xl p-4 border border-white/10">
-                <span className="text-xs text-zinc-300">Rider Fleet Payouts</span>
-                <div className="text-xl font-bold text-amber-300 mt-1">
+              <div className="bg-zinc-50 rounded-xl p-4 border border-zinc-200 shadow-2xs">
+                <span className="text-xs font-bold text-zinc-600">Rider Fleet Payouts</span>
+                <div className="text-xl font-black text-amber-700 mt-1">
                   ₹{((riderCosts?.totalRiderPayouts ?? 0)).toFixed(2)}
                 </div>
-                <div className="text-[10px] text-zinc-400 mt-0.5">Direct compensation</div>
+                <div className="text-[10px] text-zinc-500 mt-0.5">Direct compensation</div>
               </div>
 
-              <div className="bg-white/10 rounded-xl p-4 border border-white/10">
-                <span className="text-xs text-zinc-300">Platform Delivery Subsidy Burn</span>
-                <div className="text-xl font-bold text-rose-400 mt-1">
+              <div className="bg-zinc-50 rounded-xl p-4 border border-zinc-200 shadow-2xs">
+                <span className="text-xs font-bold text-zinc-600">Platform Delivery Subsidy Burn</span>
+                <div className="text-xl font-black text-rose-700 mt-1">
                   ₹{((riderCosts?.deliverySubsidyBurn ?? 0)).toFixed(2)}
                 </div>
-                <div className="text-[10px] text-zinc-400 mt-0.5">QuickPress funded logistics</div>
+                <div className="text-[10px] text-zinc-500 mt-0.5">QuickPress funded logistics</div>
               </div>
 
-              <div className="bg-white/10 rounded-xl p-4 border border-white/10">
-                <span className="text-xs text-zinc-300">Avg Cost per Delivery</span>
-                <div className="text-xl font-bold text-emerald-300 mt-1">
+              <div className="bg-zinc-50 rounded-xl p-4 border border-zinc-200 shadow-2xs">
+                <span className="text-xs font-bold text-zinc-600">Avg Cost per Delivery</span>
+                <div className="text-xl font-black text-emerald-700 mt-1">
                   ₹{((riderCosts?.avgCostPerDelivery ?? 0)).toFixed(2)}
                 </div>
                 <div className="text-[10px] text-zinc-400 mt-0.5">Blended per order</div>

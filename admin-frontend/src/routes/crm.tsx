@@ -1151,16 +1151,16 @@ function EnterpriseCrmPage() {
 
               {/* Floating Bottom Bulk Action Toolbar */}
               {selectedIds.length > 0 && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 bg-zinc-950 text-white px-5 py-3 rounded-2xl shadow-2xl border border-zinc-700 animate-in fade-in slide-in-from-bottom-5">
-                  <div className="flex items-center gap-2 pr-3 border-r border-zinc-700 text-xs font-black">
-                    <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 bg-white/95 backdrop-blur-md text-zinc-950 px-5 py-3 rounded-2xl shadow-2xl border border-zinc-200 animate-in fade-in slide-in-from-bottom-5">
+                  <div className="flex items-center gap-2 pr-3 border-r border-zinc-200 text-xs font-black">
+                    <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span>{selectedIds.length} Selected</span>
                   </div>
 
                   <Button
                     size="sm"
                     onClick={() => setIsBulkNotifyOpen(true)}
-                    className="bg-white hover:bg-zinc-100 text-zinc-950 font-black text-xs h-8 px-3 rounded-xl shadow-xs"
+                    className="bg-zinc-950 hover:bg-zinc-800 text-white font-black text-xs h-8 px-3 rounded-xl shadow-xs"
                   >
                     <Send className="size-3.5 mr-1.5" /> Bulk Push
                   </Button>
@@ -2495,35 +2495,35 @@ function FullPageDossierView({
       </div>
 
       {/* CRM Next-Gen Operational Action Suite & Fast Interventions Bar */}
-      <div className="rounded-2xl border border-zinc-200/90 bg-gradient-to-r from-zinc-900 to-zinc-800 p-4 sm:p-5 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 text-zinc-950 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="flex size-6 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
+            <span className="flex size-6 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">
               <Zap className="size-3.5" />
             </span>
-            <span className="text-xs font-black uppercase tracking-wider text-emerald-400">
+            <span className="text-xs font-black uppercase tracking-wider text-emerald-800">
               Live Operational Interventions
             </span>
           </div>
-          <p className="text-xs text-zinc-300">
+          <p className="text-xs text-zinc-500">
             Take instant actions on {pName}&apos;s account directly without switching admin screens.
           </p>
 
           {/* Interactive Tag Pills */}
           <div className="flex flex-wrap items-center gap-1.5 pt-2">
-            <span className="text-[10px] font-bold uppercase text-zinc-400 mr-1 flex items-center gap-1">
-              <Tag className="size-3 text-amber-400" /> Tags:
+            <span className="text-[10px] font-bold uppercase text-zinc-500 mr-1 flex items-center gap-1">
+              <Tag className="size-3 text-amber-600" /> Tags:
             </span>
             {tagsList.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1 rounded-lg bg-white/10 hover:bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-zinc-100 border border-white/10"
+                className="inline-flex items-center gap-1 rounded-lg bg-zinc-100 hover:bg-zinc-200/80 px-2.5 py-0.5 text-xs font-semibold text-zinc-800 border border-zinc-200"
               >
                 {tag}
                 <button
                   type="button"
                   onClick={() => handleRemoveTag(tag)}
-                  className="hover:text-rose-400 transition-colors ml-0.5 cursor-pointer"
+                  className="hover:text-rose-600 transition-colors ml-0.5 cursor-pointer"
                   title="Remove tag"
                 >
                   <X className="size-3" />
@@ -2542,12 +2542,12 @@ function FullPageDossierView({
                     if (e.key === "Enter") handleAddTag();
                     if (e.key === "Escape") setIsAddingTag(false);
                   }}
-                  className="h-6 w-24 text-[11px] bg-zinc-800 border-zinc-600 text-white px-2 py-0"
+                  className="h-6 w-24 text-[11px] bg-white border-zinc-300 text-zinc-900 px-2 py-0 shadow-2xs"
                 />
-                <Button size="sm" onClick={handleAddTag} className="h-6 px-2 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+                <Button size="sm" onClick={handleAddTag} className="h-6 px-2 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs">
                   Add
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => setIsAddingTag(false)} className="h-6 px-1.5 text-[10px] text-zinc-400 hover:text-white">
+                <Button size="sm" variant="ghost" onClick={() => setIsAddingTag(false)} className="h-6 px-1.5 text-[10px] text-zinc-500 hover:text-zinc-900">
                   <X className="size-3" />
                 </Button>
               </div>
@@ -2555,7 +2555,7 @@ function FullPageDossierView({
               <button
                 type="button"
                 onClick={() => setIsAddingTag(true)}
-                className="inline-flex items-center gap-1 rounded-lg bg-zinc-700/80 hover:bg-zinc-700 px-2 py-0.5 text-[11px] font-bold text-zinc-300 transition-colors cursor-pointer border border-zinc-600"
+                className="inline-flex items-center gap-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 px-2 py-0.5 text-[11px] font-bold text-zinc-700 transition-colors cursor-pointer border border-zinc-200 shadow-2xs"
               >
                 <Plus className="size-3" /> Add Tag
               </button>
@@ -2568,7 +2568,7 @@ function FullPageDossierView({
           {/* 1. Wallet Adjustment Button */}
           <Button
             onClick={() => setIsWalletModalOpen(true)}
-            className="bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold text-xs h-9 px-3.5 rounded-xl shadow-xs"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-3.5 rounded-xl shadow-xs cursor-pointer"
           >
             <Wallet className="size-3.5 mr-1.5" /> Adjust Wallet / Goodwill
           </Button>
@@ -2576,7 +2576,7 @@ function FullPageDossierView({
           {/* 2. Direct Outreach / WhatsApp Button */}
           <Button
             onClick={() => setIsCommModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-9 px-3.5 rounded-xl shadow-xs"
+            className="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs h-9 px-3.5 rounded-xl shadow-xs cursor-pointer"
           >
             <MessageSquare className="size-3.5 mr-1.5" /> Direct Outreach
           </Button>
@@ -2585,9 +2585,9 @@ function FullPageDossierView({
           <Button
             variant="outline"
             onClick={() => setIsStatusModalOpen(true)}
-            className="border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700 font-bold text-xs h-9 px-3 rounded-xl"
+            className="border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50 font-bold text-xs h-9 px-3 rounded-xl shadow-2xs cursor-pointer"
           >
-            <Shield className="size-3.5 mr-1.5 text-amber-400" /> Account Status ({liveStatus})
+            <Shield className="size-3.5 mr-1.5 text-amber-600" /> Account Status ({liveStatus})
           </Button>
         </div>
       </div>

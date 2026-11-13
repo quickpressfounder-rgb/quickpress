@@ -64,23 +64,23 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error, errorMsg]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 text-white">
-      <div className="max-w-md text-center p-8 bg-zinc-900 rounded-3xl border border-zinc-800 shadow-2xl">
-        <div className="size-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-4 font-black text-xl">
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 text-zinc-900">
+      <div className="max-w-md text-center p-8 bg-white rounded-3xl border border-zinc-200 shadow-xl">
+        <div className="size-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center mx-auto mb-4 font-black text-xl shadow-2xs">
           QP
         </div>
-        <h1 className="text-xl font-black tracking-tight text-white">
+        <h1 className="text-xl font-black tracking-tight text-zinc-950">
           {errorMsg.includes("chunk") || errorMsg.includes("dynamically")
             ? "Updating QuickPress Admin..."
             : "QuickPress Admin Error"}
         </h1>
-        <p className="mt-2 text-xs text-zinc-400 break-words">
+        <p className="mt-2 text-xs text-zinc-600 break-words">
           {error?.message || "An unexpected error occurred. Click below to reload the latest application state."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button
             onClick={() => reset()}
-            className="inline-flex items-center justify-center rounded-xl bg-zinc-800 border border-zinc-700 px-4 py-2 text-xs font-bold text-zinc-200 hover:bg-zinc-700 transition-all"
+            className="inline-flex items-center justify-center rounded-xl bg-white border border-zinc-200 px-4 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-all cursor-pointer shadow-2xs"
           >
             Try Again
           </button>
@@ -94,7 +94,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
               sessionStorage.clear();
               window.location.href = window.location.pathname;
             }}
-            className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-extrabold text-white transition-all hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-900/30"
+            className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-extrabold text-white transition-all hover:bg-emerald-500 active:scale-95 shadow-md shadow-emerald-600/20 cursor-pointer"
           >
             Reload App
           </button>

@@ -757,30 +757,30 @@ export function RiderRequestsBox({ onSelectRider }: RiderRequestsBoxProps) {
 
       {/* Document Lightbox Preview Modal */}
       <Dialog open={Boolean(previewDoc)} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-        <DialogContent className="max-w-3xl bg-zinc-950 text-white border-zinc-800 p-5 rounded-3xl shadow-2xl">
-          <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-zinc-800">
-            <DialogTitle className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-              <Eye className="size-4 text-emerald-400" />
+        <DialogContent className="max-w-3xl bg-white text-zinc-950 border-zinc-200 p-5 rounded-3xl shadow-xl">
+          <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-zinc-200">
+            <DialogTitle className="text-sm font-bold text-zinc-950 flex items-center gap-2">
+              <Eye className="size-4 text-emerald-600" />
               <span>{previewDoc?.title || "Document Preview"}</span>
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex items-center justify-center p-3 bg-black/50 rounded-xl overflow-hidden min-h-[300px] max-h-[75vh]">
+          <div className="flex items-center justify-center p-3 bg-zinc-100 rounded-xl overflow-hidden min-h-[300px] max-h-[75vh]">
             {previewDoc?.url ? (
               <img
                 src={previewDoc.url}
                 alt={previewDoc.title}
-                className="max-h-[70vh] w-auto max-w-full object-contain rounded-lg shadow-2xl"
+                className="max-h-[70vh] w-auto max-w-full object-contain rounded-lg shadow-sm"
               />
             ) : null}
           </div>
 
-          <DialogFooter className="flex flex-row items-center justify-between pt-3 border-t border-zinc-800">
+          <DialogFooter className="flex flex-row items-center justify-between pt-3 border-t border-zinc-200">
             <a
               href={previewDoc?.url}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-bold"
+              className="inline-flex items-center gap-1.5 text-xs text-emerald-600 hover:text-emerald-700 font-bold"
             >
               <ExternalLink className="size-3.5" />
               <span>Open Full Resolution in New Tab</span>
@@ -789,7 +789,7 @@ export function RiderRequestsBox({ onSelectRider }: RiderRequestsBoxProps) {
               variant="outline"
               size="sm"
               onClick={() => setPreviewDoc(null)}
-              className="rounded-xl border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 text-xs font-bold"
+              className="rounded-xl border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50 text-xs font-bold shadow-2xs"
             >
               Close Preview
             </Button>

@@ -242,10 +242,10 @@ export function AccountingStatementsView() {
                         </td>
                       </tr>
                       {/* Net Profit */}
-                      <tr className="bg-zinc-900 font-bold text-white">
+                      <tr className="bg-emerald-50/70 border-t-2 border-emerald-600 font-black text-zinc-950">
                         <td className="py-3 px-4">IV. NET OPERATING PROFIT / (LOSS)</td>
-                        <td className="py-3 px-4 text-right font-mono text-emerald-400">₹{(pnl?.netProfit ?? 0).toFixed(2)}</td>
-                        <td className="py-3 px-4 text-right font-mono text-zinc-300">{(pnl?.marginPercent ?? 0).toFixed(1)}%</td>
+                        <td className="py-3 px-4 text-right font-mono text-emerald-800">₹{(pnl?.netProfit ?? 0).toFixed(2)}</td>
+                        <td className="py-3 px-4 text-right font-mono text-zinc-700">{(pnl?.marginPercent ?? 0).toFixed(1)}%</td>
                       </tr>
                     </tbody>
                   </table>
@@ -407,9 +407,9 @@ export function AccountingStatementsView() {
                           ₹{(cf?.operatingCashFlow?.netOperatingCash ?? 0).toFixed(2)}
                         </td>
                       </tr>
-                      <tr className="bg-zinc-900 font-bold text-white">
+                      <tr className="bg-emerald-50/70 border-t-2 border-emerald-600 font-black text-zinc-950">
                         <td className="py-3 px-4">NET CASH GENERATED</td>
-                        <td className="py-3 px-4 text-right font-mono text-emerald-400">
+                        <td className="py-3 px-4 text-right font-mono text-emerald-800">
                           ₹{(cf?.netCashGenerated ?? 0).toFixed(2)}
                         </td>
                       </tr>

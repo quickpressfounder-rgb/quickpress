@@ -129,17 +129,17 @@ export const ReconciliationView: React.FC<ReconciliationViewProps> = ({ onInspec
   return (
     <div className="space-y-6">
       {/* 3-Way Reconciliation Header Banner */}
-      <div className="bg-gradient-to-r from-zinc-900 to-zinc-800 text-white p-6 rounded-2xl border border-zinc-700 shadow-md">
+      <div className="bg-white text-zinc-950 p-6 rounded-2xl border border-zinc-200/90 shadow-2xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Scale className="size-6 text-amber-400" />
-              <h2 className="text-xl font-black tracking-tight">3-Way Automated Reconciliation Engine</h2>
-              <span className="px-2 py-0.5 text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/40 rounded-full">
+              <Scale className="size-6 text-amber-600" />
+              <h2 className="text-xl font-black tracking-tight text-zinc-950">3-Way Automated Reconciliation Engine</h2>
+              <span className="px-2 py-0.5 text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 rounded-full">
                 Zero Human Error
               </span>
             </div>
-            <p className="text-sm text-zinc-300">
+            <p className="text-sm text-zinc-600">
               Automated 3-way variance verification: Gateway (Razorpay/Stripe) ↔ Internal Orders ↔ Bank Payout Statements.
             </p>
           </div>
@@ -153,7 +153,7 @@ export const ReconciliationView: React.FC<ReconciliationViewProps> = ({ onInspec
                 queryClient.invalidateQueries({ queryKey: ["treasuryHealth"] });
                 toast.success("Reconciliation & Treasury records refreshed");
               }}
-              className="bg-zinc-800 text-zinc-200 border-zinc-600 hover:bg-zinc-700 font-bold"
+              className="bg-white text-zinc-800 border-zinc-200 hover:bg-zinc-50 font-bold shadow-2xs"
             >
               <RotateCcw className="size-3.5 mr-1.5" /> Refresh
             </Button>
@@ -161,77 +161,77 @@ export const ReconciliationView: React.FC<ReconciliationViewProps> = ({ onInspec
         </div>
 
         {/* 3-Way Process Flow Illustration */}
-        <div className="mt-6 pt-5 border-t border-zinc-700/60 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div className="p-3 bg-zinc-800/80 rounded-xl border border-zinc-700 flex items-center gap-3">
-            <div className="p-2 bg-purple-500/20 text-purple-300 rounded-lg">
+        <div className="mt-6 pt-5 border-t border-zinc-200 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 flex items-center gap-3">
+            <div className="p-2 bg-purple-50 text-purple-700 rounded-lg border border-purple-200">
               <CreditCard className="size-4" />
             </div>
             <div>
-              <div className="font-bold text-zinc-200">1. Gateway Ingestion</div>
-              <div className="text-zinc-400">Webhook settlement files parsed per transaction ID</div>
+              <div className="font-bold text-zinc-900">1. Gateway Ingestion</div>
+              <div className="text-zinc-500">Webhook settlement files parsed per transaction ID</div>
             </div>
           </div>
-          <div className="p-3 bg-zinc-800/80 rounded-xl border border-zinc-700 flex items-center gap-3">
-            <div className="p-2 bg-emerald-500/20 text-emerald-300 rounded-lg">
+          <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 flex items-center gap-3">
+            <div className="p-2 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200">
               <Scale className="size-4" />
             </div>
             <div>
-              <div className="font-bold text-zinc-200">2. Algorithmic Match</div>
-              <div className="text-zinc-400">Tolerance band comparison (±5% gateway fee tolerance)</div>
+              <div className="font-bold text-zinc-900">2. Algorithmic Match</div>
+              <div className="text-zinc-500">Tolerance band comparison (±5% gateway fee tolerance)</div>
             </div>
           </div>
-          <div className="p-3 bg-zinc-800/80 rounded-xl border border-zinc-700 flex items-center gap-3">
-            <div className="p-2 bg-blue-500/20 text-blue-300 rounded-lg">
+          <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 flex items-center gap-3">
+            <div className="p-2 bg-blue-50 text-blue-700 rounded-lg border border-blue-200">
               <Building className="size-4" />
             </div>
             <div>
-              <div className="font-bold text-zinc-200">3. Bank General Ledger</div>
-              <div className="text-zinc-400">Final GL balanced journal posted to Account 1010</div>
+              <div className="font-bold text-zinc-900">3. Bank General Ledger</div>
+              <div className="text-zinc-500">Final GL balanced journal posted to Account 1010</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Live Treasury Double-Entry Zero-Loss Integrity Banner */}
-      <div className="bg-gradient-to-r from-emerald-950/40 via-zinc-900 to-zinc-900 border border-emerald-500/30 rounded-2xl p-5 shadow-xs">
+      <div className="bg-white border border-emerald-200 rounded-2xl p-5 shadow-2xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              <ShieldCheck className="size-6 text-emerald-400" />
+            <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <ShieldCheck className="size-6 text-emerald-700" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-black text-zinc-100">Treasury Double-Entry Balance</span>
+                <span className="text-base font-black text-zinc-950">Treasury Double-Entry Balance</span>
                 <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
                   treasuryData?.status === "HEALTHY" || !treasuryData?.status
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                    : "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    : "bg-rose-50 text-rose-800 border border-rose-200"
                 }`}>
                   {treasuryData?.status === "HEALTHY" || !treasuryData?.status ? "ZERO-LOSS BALANCED" : "VARIANCE FLAGGED"}
                 </span>
               </div>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-zinc-600 mt-0.5">
                 Mathematical Verification: Inflow (Customer + Subsidy) = Disposition (Partner + Rider + Commission + Taxes + Gateway)
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-zinc-900/90 border border-zinc-800 p-3 rounded-xl text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-zinc-50 border border-zinc-200 p-3 rounded-xl text-center">
             <div className="px-2">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Audited Orders</div>
-              <div className="text-sm font-black text-zinc-200 mt-0.5">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Audited Orders</div>
+              <div className="text-sm font-black text-zinc-950 mt-0.5">
                 {treasuryData?.totalOrdersAudited ?? 0}
               </div>
             </div>
-            <div className="px-2 border-l border-zinc-800">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total Inflow</div>
-              <div className="text-sm font-black text-emerald-400 mt-0.5">
+            <div className="px-2 border-l border-zinc-200">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total Inflow</div>
+              <div className="text-sm font-black text-emerald-700 mt-0.5">
                 ₹{(treasuryData?.totalInflow ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </div>
             </div>
-            <div className="px-2 border-l border-zinc-800">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total Disposition</div>
-              <div className="text-sm font-black text-blue-400 mt-0.5">
+            <div className="px-2 border-l border-zinc-200">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total Disposition</div>
+              <div className="text-sm font-black text-blue-700 mt-0.5">
                 ₹{(treasuryData?.totalDisposition ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </div>
             </div>
