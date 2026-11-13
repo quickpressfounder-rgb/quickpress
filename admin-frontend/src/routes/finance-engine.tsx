@@ -109,7 +109,6 @@ import { ApprovalCenterView } from "../components/finance/ApprovalCenterView";
 import { AiFinanceAssistantView } from "../components/finance/AiFinanceAssistantView";
 import { SettlementEngineControlHub } from "../components/finance/SettlementEngineControlHub";
 import { QueueTelemetryPill } from "../components/finance/QueueTelemetryPill";
-import { PanIndiaQuickControlBar } from "../components/finance/PanIndiaQuickControlBar";
 import {
   fetchFinancialRules,
   updateFinancialRules,
@@ -1565,12 +1564,6 @@ export function FinanceEnginePage() {
               setActiveTab("settlements");
             }
           }}
-        />
-
-        {/* Pan-India Dynamic Fare & Surcharge Controls */}
-        <PanIndiaQuickControlBar
-          currentRules={rulesQuery.data}
-          onNavigateToRulesTab={() => handleTabChange("rules")}
         />
 
         {/* Primary Enterprise Navigation Tabs */}
