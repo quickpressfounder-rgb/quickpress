@@ -57,6 +57,9 @@ jobs:
 
             echo "🐳 [6/6] Rebuilding & restarting Python FastAPI Backend Container..."
             cd ~/quickpress
+            if [ ! -f .env ] && [ -f .env.example ]; then
+              cp .env.example .env
+            fi
             sudo docker build -t quickpress-api .
             sudo docker stop quickpress-backend 2>/dev/null || true
             sudo docker rm quickpress-backend 2>/dev/null || true
@@ -71,6 +74,15 @@ jobs:
               $FIREBASE_MOUNT \
               -p 127.0.0.1:8000:8000 \
               quickpress-api
+
+            echo "🔍 Verifying backend container status on port 8000..."
+            sleep 4
+            if sudo docker ps | grep -q "quickpress-backend"; then
+              echo "✅ Backend container running healthy on port 8000."
+            else
+              echo "⚠️ Warning: Backend container exited. Dumping last logs:"
+              sudo docker logs --tail 50 quickpress-backend || true
+            fi
 
             echo "🌐 Syncing Nginx configuration..."
             sudo cp ~/quickpress/scripts/quickpress_nginx.conf /etc/nginx/sites-available/quickpress.conf
