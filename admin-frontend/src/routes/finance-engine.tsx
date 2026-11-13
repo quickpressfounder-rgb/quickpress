@@ -1254,6 +1254,15 @@ export function FinanceEnginePage() {
       curr[parts[parts.length - 1]] = val;
       return next;
     });
+
+    // Keep distance fare simulator in sync with master rider rate inputs
+    if (path === "riderPayout.basePay") {
+      const num = parseFloat(val);
+      if (!isNaN(num)) setFareEngineForm((f) => ({ ...f, baseFare: num }));
+    } else if (path === "riderPayout.perKmRate") {
+      const num = parseFloat(val);
+      if (!isNaN(num)) setFareEngineForm((f) => ({ ...f, extraKmRate: num }));
+    }
   };
 
   // Area Delivery Pricing Handlers
@@ -1691,277 +1700,406 @@ export function FinanceEnginePage() {
                 </div>
               </div>
 
-              {/* 7 Core Controllers Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {/* 1. Partner Payout Rate */}
-                <div className="bg-zinc-50/80 hover:bg-white rounded-2xl border border-emerald-200/80 p-4 space-y-3 relative overflow-hidden group hover:border-emerald-300 transition-all shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
-                      <Building2 className="size-3.5" /> 1. Partner Payout Rate
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
-                      Store Hub
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-zinc-700">Partner Revenue Share (%)</Label>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.5"
-                        value={editableRules?.commission?.partnerPayoutPercent ?? "85"}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          updateField("commission.partnerPayoutPercent", val);
-                          const num = parseFloat(val);
-                          if (!isNaN(num)) {
-                            updateField("commission.platformCommissionPercent", String(Math.max(0, 100 - num)));
-                            updateField("commission.standardPercent", String(Math.max(0, 100 - num)));
-                          }
-                        }}
-                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pr-8 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-2xs"
-                      />
-                      <span className="absolute right-3 top-2.5 text-xs font-bold text-zinc-500">%</span>
+              {/* 3 Unified Functional Pillars (Customer | Partner | Rider) */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                {/* =========================================================================
+                    PILLAR 1: CUSTOMER ORDER & CART CHECKOUT PRICING
+                   ========================================================================= */}
+                <div className="bg-zinc-50/90 rounded-2xl border border-sky-200 p-5 space-y-4 shadow-2xs flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-sky-200/80">
+                      <div className="flex items-center gap-2.5">
+                        <div className="size-9 rounded-xl bg-sky-100 text-sky-800 border border-sky-300 flex items-center justify-center font-black text-sm">
+                          🛒
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-black uppercase tracking-wider text-sky-950">
+                            1. Customer Checkout
+                          </h3>
+                          <p className="text-[10px] text-zinc-500 font-medium">Cart pricing & delivery fees</p>
+                        </div>
+                      </div>
+                      <Badge className="bg-sky-100 text-sky-800 border border-sky-300 font-bold text-[10px]">
+                        Cart Inflow
+                      </Badge>
                     </div>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-white border border-zinc-200 text-[11px] text-zinc-600 flex items-center justify-between font-medium">
-                    <span>Platform Commission:</span>
-                    <span className="font-bold text-emerald-700">
-                      {Math.max(0, 100 - (parseFloat(editableRules?.commission?.partnerPayoutPercent) || 85))}%
-                    </span>
-                  </div>
-                </div>
 
-                {/* 2. Delivery Boy /KM Wise Payout */}
-                <div className="bg-zinc-50/80 hover:bg-white rounded-2xl border border-teal-200/80 p-4 space-y-3 relative overflow-hidden group hover:border-teal-300 transition-all shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-teal-800 flex items-center gap-1.5">
-                      <Bike className="size-3.5" /> 2. Delivery Boy Rate (/KM)
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 font-bold border border-teal-200">
-                      Fleet Fare
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-bold text-zinc-700">Rate / KM (₹)</Label>
+                    {/* Free Delivery Threshold */}
+                    <div className="space-y-1 bg-white p-3 rounded-xl border border-zinc-200 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-zinc-800">Free Delivery Threshold (₹)</Label>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold">
+                          Free Above
+                        </span>
+                      </div>
                       <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                         <Input
                           type="number"
                           min="0"
-                          step="0.5"
-                          value={editableRules?.riderPayout?.perKmRate ?? "8.0"}
-                          onChange={(e) => updateField("riderPayout.perKmRate", e.target.value)}
-                          className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pr-7 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-2xs"
+                          step="10"
+                          value={editableRules?.delivery?.freeDeliveryThreshold ?? "199"}
+                          onChange={(e) => updateField("delivery.freeDeliveryThreshold", e.target.value)}
+                          className="bg-white border-zinc-300 text-emerald-800 font-black text-sm pl-7 shadow-2xs"
                         />
-                        <span className="absolute right-2 top-2.5 text-[10px] font-bold text-zinc-500">/km</span>
                       </div>
+                      <p className="text-[10px] text-zinc-500">Orders $\ge$ ₹{editableRules?.delivery?.freeDeliveryThreshold || 199} get 100% free delivery.</p>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-bold text-zinc-700">Base Pay (₹)</Label>
+
+                    {/* Below-Threshold Delivery Surcharge */}
+                    <div className="space-y-1 bg-white p-3 rounded-xl border border-zinc-200 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-zinc-800">Delivery Charge Below Min (₹)</Label>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 font-bold">
+                          Below Min
+                        </span>
+                      </div>
                       <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                         <Input
                           type="number"
                           min="0"
-                          step="1"
-                          value={editableRules?.riderPayout?.basePay ?? "25"}
-                          onChange={(e) => updateField("riderPayout.basePay", e.target.value)}
-                          className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-6 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-2xs"
+                          step="5"
+                          value={editableRules?.delivery?.baseFee ?? "29"}
+                          onChange={(e) => updateField("delivery.baseFee", e.target.value)}
+                          className="bg-white border-zinc-300 text-rose-800 font-black text-sm pl-7 shadow-2xs"
                         />
-                        <span className="absolute left-2.5 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                       </div>
+                      <p className="text-[10px] text-zinc-500">Charged when basket total is under the free delivery threshold.</p>
                     </div>
-                  </div>
-                  <p className="text-[10px] text-zinc-500 leading-tight">
-                    Rider receives base pay for first 2 km + ₹{editableRules?.riderPayout?.perKmRate || 8}/km for additional transit.
-                  </p>
-                </div>
 
-                {/* 3. Handling Fee */}
-                <div className="bg-zinc-50/80 hover:bg-white rounded-2xl border border-sky-200/80 p-4 space-y-3 relative overflow-hidden group hover:border-sky-300 transition-all shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-sky-800 flex items-center gap-1.5">
-                      <Receipt className="size-3.5" /> 3. Handling Fee
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-zinc-500 font-bold">
-                        {editableRules?.fees?.handlingFeeEnabled !== false ? "ON" : "OFF"}
-                      </span>
-                      <Switch
-                        checked={editableRules?.fees?.handlingFeeEnabled !== false}
-                        onCheckedChange={(checked) => updateField("fees.handlingFeeEnabled", checked)}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-zinc-700">Handling Fee Amount (₹)</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={editableRules?.fees?.handlingFee ?? editableRules?.pricing?.handlingFee ?? "15"}
-                        onChange={(e) => {
-                          updateField("fees.handlingFee", e.target.value);
-                          updateField("pricing.handlingFee", e.target.value);
-                        }}
-                        disabled={editableRules?.fees?.handlingFeeEnabled === false}
-                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-7 focus:border-sky-600 focus:ring-1 focus:ring-sky-600 disabled:opacity-50 disabled:bg-zinc-100 shadow-2xs"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-zinc-500 leading-tight">
-                    Platform handling charge added at checkout. Toggle off to waive handling fee completely.
-                  </p>
-                </div>
-
-                {/* 4. Surge Charges */}
-                <div className="bg-zinc-50/80 hover:bg-white rounded-2xl border border-amber-200/80 p-4 space-y-3 relative overflow-hidden group hover:border-amber-300 transition-all shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
-                      <Zap className="size-3.5" /> 4. Surge Charges
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-zinc-500 font-bold">
-                        {editableRules?.surge?.enabled ? "ACTIVE" : "OFF"}
-                      </span>
-                      <Switch
-                        checked={Boolean(editableRules?.surge?.enabled)}
-                        onCheckedChange={(checked) => updateField("surge.enabled", checked)}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div>
-                      <Label className="text-[11px] font-bold text-zinc-700">Surge Fee Amount (₹)</Label>
+                    {/* Platform / Handling Fee */}
+                    <div className="space-y-1.5 bg-white p-3 rounded-xl border border-zinc-200 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-zinc-800">Platform Handling Fee (₹)</Label>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-zinc-500 font-bold">
+                            {editableRules?.fees?.handlingFeeEnabled !== false ? "ON" : "OFF"}
+                          </span>
+                          <Switch
+                            checked={editableRules?.fees?.handlingFeeEnabled !== false}
+                            onCheckedChange={(checked) => updateField("fees.handlingFeeEnabled", checked)}
+                          />
+                        </div>
+                      </div>
                       <div className="relative">
                         <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                         <Input
                           type="number"
                           min="0"
                           step="1"
-                          value={editableRules?.surge?.rainSurgeFee ?? editableRules?.surge?.surgeFee ?? "20"}
-                          onChange={(e) => {
-                            updateField("surge.rainSurgeFee", e.target.value);
-                            updateField("surge.surgeFee", e.target.value);
-                          }}
-                          disabled={!editableRules?.surge?.enabled}
-                          className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-7 focus:border-amber-600 focus:ring-1 focus:ring-amber-600 disabled:opacity-50 disabled:bg-zinc-100 shadow-2xs"
+                          value={editableRules?.fees?.handlingFee ?? "5"}
+                          onChange={(e) => updateField("fees.handlingFee", e.target.value)}
+                          disabled={editableRules?.fees?.handlingFeeEnabled === false}
+                          className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-7 shadow-2xs disabled:bg-zinc-100"
                         />
                       </div>
+                      <p className="text-[10px] text-zinc-500">Platform infrastructure charge added once per order.</p>
                     </div>
-                    <div>
-                      <Label className="text-[10px] font-bold text-zinc-600">Surge Notice / Reason</Label>
-                      <Input
-                        type="text"
-                        value={editableRules?.surge?.surgeReason ?? "Monsoon Rain / Peak Surge"}
-                        onChange={(e) => updateField("surge.surgeReason", e.target.value)}
-                        disabled={!editableRules?.surge?.enabled}
-                        placeholder="e.g. Monsoon Rain & High Demand"
-                        className="bg-white border-zinc-300 text-zinc-900 text-xs focus:border-amber-600 focus:ring-1 focus:ring-amber-600 disabled:opacity-50 disabled:bg-zinc-100 shadow-2xs"
-                      />
+
+                    {/* Dynamic Weather & Peak Rush Surge */}
+                    <div className="space-y-2 bg-white p-3 rounded-xl border border-zinc-200 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-zinc-800">Dynamic Surge Fee (₹)</Label>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-zinc-500 font-bold">
+                            {editableRules?.surge?.enabled ? "ACTIVE" : "OFF"}
+                          </span>
+                          <Switch
+                            checked={Boolean(editableRules?.surge?.enabled)}
+                            onCheckedChange={(checked) => updateField("surge.enabled", checked)}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="5"
+                            value={editableRules?.surge?.rainSurgeFee ?? editableRules?.surge?.surgeFee ?? "20"}
+                            onChange={(e) => {
+                              updateField("surge.rainSurgeFee", e.target.value);
+                              updateField("surge.surgeFee", e.target.value);
+                            }}
+                            disabled={!editableRules?.surge?.enabled}
+                            className="bg-white border-zinc-300 text-amber-800 font-black text-xs pl-6 shadow-2xs disabled:bg-zinc-100"
+                          />
+                        </div>
+                        <Input
+                          type="text"
+                          value={editableRules?.surge?.surgeReason ?? "Peak Rain / Rush"}
+                          onChange={(e) => updateField("surge.surgeReason", e.target.value)}
+                          disabled={!editableRules?.surge?.enabled}
+                          placeholder="Surge reason"
+                          className="bg-white border-zinc-300 text-zinc-900 text-xs shadow-2xs disabled:bg-zinc-100"
+                        />
+                      </div>
+                      <p className="text-[10px] text-zinc-500">Triggered for adverse weather or extreme volume saturation.</p>
+                    </div>
+
+                    {/* Packaging Fee */}
+                    <div className="space-y-1 bg-white p-3 rounded-xl border border-zinc-200 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-zinc-800">Protective Packaging Fee (₹)</Label>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-zinc-500 font-bold">
+                            {editableRules?.fees?.packagingFeeEnabled ? "ACTIVE" : "OFF"}
+                          </span>
+                          <Switch
+                            checked={Boolean(editableRules?.fees?.packagingFeeEnabled)}
+                            onCheckedChange={(checked) => updateField("fees.packagingFeeEnabled", checked)}
+                          />
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={editableRules?.fees?.packagingFee ?? "0"}
+                          onChange={(e) => updateField("fees.packagingFee", e.target.value)}
+                          disabled={!editableRules?.fees?.packagingFeeEnabled}
+                          className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-7 shadow-2xs disabled:bg-zinc-100"
+                        />
+                      </div>
+                      <p className="text-[10px] text-zinc-500">Eco-friendly garment covers & premium hanger protection.</p>
                     </div>
                   </div>
-                  <p className="text-[10px] text-zinc-500 leading-tight">
-                    Applied during bad weather or high demand. VIP Club members receive 100% waiver guarantee.
-                  </p>
                 </div>
 
-                {/* 5. Packing / Packaging Charge */}
-                <div className="bg-zinc-50/80 hover:bg-white rounded-2xl border border-purple-200/80 p-4 space-y-3 relative overflow-hidden group hover:border-purple-300 transition-all shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-purple-800 flex items-center gap-1.5">
-                      <Sparkles className="size-3.5" /> 5. Packing Charges
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-zinc-500 font-bold">
-                        {editableRules?.fees?.packagingFeeEnabled ? "ACTIVE" : "OFF"}
-                      </span>
-                      <Switch
-                        checked={Boolean(editableRules?.fees?.packagingFeeEnabled)}
-                        onCheckedChange={(checked) => updateField("fees.packagingFeeEnabled", checked)}
-                      />
+                {/* =========================================================================
+                    PILLAR 2: LAUNDROMAT PARTNER COMMERCIALS
+                   ========================================================================= */}
+                <div className="bg-zinc-50/90 rounded-2xl border border-emerald-200 p-5 space-y-4 shadow-2xs flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-emerald-200/80">
+                      <div className="flex items-center gap-2.5">
+                        <div className="size-9 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center justify-center font-black text-sm">
+                          🏪
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-black uppercase tracking-wider text-emerald-950">
+                            2. Laundromat Partner
+                          </h3>
+                          <p className="text-[10px] text-zinc-500 font-medium">Store settlements & commission</p>
+                        </div>
+                      </div>
+                      <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[10px]">
+                        Merchant Share
+                      </Badge>
+                    </div>
+
+                    {/* Partner Revenue Share */}
+                    <div className="space-y-1.5 bg-white p-3.5 rounded-xl border border-zinc-200 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-zinc-800">Partner Revenue Share (%)</Label>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+                          Store Payout
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.5"
+                          value={editableRules?.commission?.partnerPayoutPercent ?? "85"}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            updateField("commission.partnerPayoutPercent", val);
+                            const num = parseFloat(val);
+                            if (!isNaN(num)) {
+                              updateField("commission.platformCommissionPercent", String(Math.max(0, 100 - num)));
+                              updateField("commission.standardPercent", String(Math.max(0, 100 - num)));
+                            }
+                          }}
+                          className="bg-white border-emerald-300 text-zinc-950 font-black text-base pr-8 shadow-2xs"
+                        />
+                        <span className="absolute right-3 top-2.5 text-xs font-bold text-zinc-500">%</span>
+                      </div>
+                      <div className="p-2 rounded-lg bg-emerald-50/70 border border-emerald-200/80 text-[11px] text-zinc-700 flex items-center justify-between">
+                        <span className="font-medium">QuickPress Commission:</span>
+                        <strong className="text-emerald-700 font-black">
+                          {Math.max(0, 100 - (parseFloat(editableRules?.commission?.partnerPayoutPercent) || 85))}%
+                        </strong>
+                      </div>
+                    </div>
+
+                    {/* Statutory Tax Deductions */}
+                    <div className="space-y-2 bg-white p-3.5 rounded-xl border border-zinc-200 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-zinc-800">Statutory Tax Compliance</Label>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 font-bold">
+                          Govt. TDS
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-xs space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-zinc-600 font-medium">Section 194-O TDS:</span>
+                          <strong className="text-purple-700 font-black">1.0% (E-Commerce)</strong>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-zinc-600 font-medium">Applicable GST:</span>
+                          <strong className="text-zinc-900 font-bold">18% (9% CGST + 9% SGST)</strong>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-zinc-500 leading-tight">
+                        TDS is automatically deposited against the partner's GSTIN/PAN and reflected on Form 16A.
+                      </p>
+                    </div>
+
+                    {/* Settlement Frequency */}
+                    <div className="space-y-1.5 bg-white p-3.5 rounded-xl border border-zinc-200 shadow-2xs">
+                      <Label className="text-xs font-bold text-zinc-800">Payout Settlement Frequency</Label>
+                      <Select
+                        value={editableRules?.settlement?.frequency ?? "T_PLUS_2"}
+                        onValueChange={(v) => updateField("settlement.frequency", v)}
+                      >
+                        <SelectTrigger className="w-full bg-white font-bold text-xs h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="T_PLUS_1">T+1 Day (Daily Rolling Settlement)</SelectItem>
+                          <SelectItem value="T_PLUS_2">T+2 Days (Standard Recommended)</SelectItem>
+                          <SelectItem value="WEEKLY">Weekly Every Monday</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-zinc-500">Bank disbursals are automatically batched per this frequency.</p>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-zinc-700">Packaging Fee (₹)</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={editableRules?.fees?.packagingFee ?? "0"}
-                        onChange={(e) => updateField("fees.packagingFee", e.target.value)}
-                        disabled={!editableRules?.fees?.packagingFeeEnabled}
-                        className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-7 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 disabled:opacity-50 disabled:bg-zinc-100 shadow-2xs"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-zinc-500 leading-tight">
-                    Garment protection packaging charge. Enable and set amount (e.g. ₹10) or keep 0 to disable.
-                  </p>
                 </div>
 
-                {/* 6. Min Order Value for Free Delivery */}
-                <div className="bg-zinc-50/80 hover:bg-white rounded-2xl border border-emerald-200/80 p-4 space-y-3 relative overflow-hidden group hover:border-emerald-300 transition-all shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
-                      <Truck className="size-3.5" /> 6. Free Delivery Min Order
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
-                      100% Free
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-zinc-700">Free Delivery Threshold (₹)</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="10"
-                        value={editableRules?.delivery?.freeDeliveryThreshold ?? "149"}
-                        onChange={(e) => updateField("delivery.freeDeliveryThreshold", e.target.value)}
-                        className="bg-white border-emerald-300 text-emerald-800 font-black text-sm pl-7 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-2xs"
-                      />
+                {/* =========================================================================
+                    PILLAR 3: RIDER FLEET COMPENSATION & TRANSIT PAY
+                   ========================================================================= */}
+                <div className="bg-zinc-50/90 rounded-2xl border border-teal-200 p-5 space-y-4 shadow-2xs flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-teal-200/80">
+                      <div className="flex items-center gap-2.5">
+                        <div className="size-9 rounded-xl bg-teal-100 text-teal-800 border border-teal-300 flex items-center justify-center font-black text-sm">
+                          🛵
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-black uppercase tracking-wider text-teal-950">
+                            3. Rider Captain Fleet
+                          </h3>
+                          <p className="text-[10px] text-zinc-500 font-medium">Distance & transit compensation</p>
+                        </div>
+                      </div>
+                      <Badge className="bg-teal-100 text-teal-800 border border-teal-300 font-bold text-[10px]">
+                        Logistics Pay
+                      </Badge>
                     </div>
-                  </div>
-                  <p className="text-[10px] text-zinc-500 leading-tight">
-                    Orders with items total &ge; ₹{editableRules?.delivery?.freeDeliveryThreshold || 149} get automatic FREE delivery.
-                  </p>
-                </div>
 
-                {/* 7. Extra Delivery Fee Below Min Order */}
-                <div className="bg-zinc-50/80 hover:bg-white rounded-2xl border border-rose-200/80 p-4 space-y-3 relative overflow-hidden group hover:border-rose-300 transition-all shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-rose-800 flex items-center gap-1.5">
-                      <Navigation className="size-3.5" /> 7. Below-Threshold Delivery Fee
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold border border-rose-200">
-                      Extra Charge
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-zinc-700">Delivery Charge Below Min Order (₹)</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="5"
-                        value={editableRules?.delivery?.baseFee ?? "30"}
-                        onChange={(e) => updateField("delivery.baseFee", e.target.value)}
-                        className="bg-white border-zinc-300 text-rose-800 font-black text-sm pl-7 focus:border-rose-600 focus:ring-1 focus:ring-rose-600 shadow-2xs"
-                      />
+                    {/* Base Fare & Distance Pay */}
+                    <div className="space-y-2 bg-white p-3.5 rounded-xl border border-zinc-200 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-zinc-800">Transit Pay Slabs</Label>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-teal-100 text-teal-800 font-bold">
+                          Per Trip
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold text-zinc-600">Base Pay (First 2 km)</Label>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={editableRules?.riderPayout?.basePay ?? "25"}
+                              onChange={(e) => updateField("riderPayout.basePay", e.target.value)}
+                              className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pl-6 shadow-2xs"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold text-zinc-600">Extra Rate / KM</Label>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.5"
+                              value={editableRules?.riderPayout?.perKmRate ?? "7.0"}
+                              onChange={(e) => updateField("riderPayout.perKmRate", e.target.value)}
+                              className="bg-white border-zinc-300 text-zinc-950 font-black text-sm pr-7 shadow-2xs"
+                            />
+                            <span className="absolute right-2 top-2.5 text-[10px] font-bold text-zinc-500">/km</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-zinc-500">
+                        Formula: ₹{editableRules?.riderPayout?.basePay || 25} (Base) + ₹{editableRules?.riderPayout?.perKmRate || 7} × (Distance - 2 km).
+                      </p>
+                    </div>
+
+                    {/* Express Turnaround Bonus & Doorstep Waiting */}
+                    <div className="space-y-2 bg-white p-3.5 rounded-xl border border-zinc-200 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-zinc-800">Priority & Waiting Allowances</Label>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold">
+                          Bonuses
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold text-zinc-600">Express Priority (₹)</Label>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="5"
+                              value={editableRules?.delivery?.expressDeliveryFee ?? "20"}
+                              onChange={(e) => updateField("delivery.expressDeliveryFee", e.target.value)}
+                              className="bg-white border-zinc-300 text-amber-800 font-black text-xs pl-6 shadow-2xs"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold text-zinc-600">Wait Pay (/min)</Label>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.5"
+                              value={editableRules?.riderPayout?.waitingRatePerMin ?? "2.0"}
+                              onChange={(e) => updateField("riderPayout.waitingRatePerMin", e.target.value)}
+                              className="bg-white border-zinc-300 text-zinc-950 font-black text-xs pl-6 shadow-2xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-zinc-500">Free 10 mins doorstep waiting, ₹2/min thereafter.</p>
+                    </div>
+
+                    {/* COD Vault & Cash-in-Hand Cap */}
+                    <div className="space-y-1 bg-white p-3.5 rounded-xl border border-zinc-200 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-zinc-800">Max COD Cash Holding (₹)</Label>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 font-bold">
+                          Vault Cap
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                        <Input
+                          type="number"
+                          min="500"
+                          step="500"
+                          value={editableRules?.cod?.maxRiderCashLimit ?? "2500"}
+                          onChange={(e) => updateField("cod.maxRiderCashLimit", e.target.value)}
+                          className="bg-white border-zinc-300 text-rose-800 font-black text-sm pl-7 shadow-2xs"
+                        />
+                      </div>
+                      <p className="text-[10px] text-zinc-500">Orders block automatically when rider collects $\ge$ ₹{editableRules?.cod?.maxRiderCashLimit || 2500} in cash.</p>
                     </div>
                   </div>
-                  <p className="text-[10px] text-zinc-500 leading-tight">
-                    Charged to the customer when their order is under ₹{editableRules?.delivery?.freeDeliveryThreshold || 149}.
-                  </p>
                 </div>
               </div>
             </div>
@@ -2031,15 +2169,15 @@ export function FinanceEnginePage() {
                  ========================================================================= */}
               <TabsContent value="service-pricing" className="mt-4 space-y-4">
                 <SectionCard
-                  title="A. Universal Base Pricing & Core Fees"
-                  description="Centralized base price, express turnaround surcharge, handling fee, and checkout charges applied uniformly across all standard orders."
+                  title="A. Universal Base Pricing & Express Turnaround"
+                  description="Universal minimum garment service price and express turnaround surcharge applied across standard laundry and dry-cleaning services."
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* 1. Universal Base Price */}
                     <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 space-y-2">
                       <div className="flex items-center justify-between">
                         <Label className="text-xs font-black text-emerald-900 uppercase tracking-wide">
-                          Universal Base Price
+                          Universal Base Item Price
                         </Label>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900 font-bold">
                           All Orders
@@ -2058,7 +2196,7 @@ export function FinanceEnginePage() {
                         />
                       </div>
                       <p className="text-[11px] text-emerald-800/80 font-medium">
-                        Standard base service amount applied across all customer orders.
+                        Standard starting base service amount applied across all customer orders.
                       </p>
                     </div>
 
@@ -2066,7 +2204,7 @@ export function FinanceEnginePage() {
                     <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200/80 space-y-2">
                       <div className="flex items-center justify-between">
                         <Label className="text-xs font-black text-amber-900 uppercase tracking-wide">
-                          Universal Express Price
+                          Universal Express Priority Surcharge
                         </Label>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-900 font-bold">
                           24h Priority
@@ -2088,140 +2226,29 @@ export function FinanceEnginePage() {
                         Flat express turnaround priority price for quick 24-hour turnaround orders.
                       </p>
                     </div>
-
-                    {/* 3. Handling & Packaging Fee */}
-                    <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-200/80 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-black text-blue-900 uppercase tracking-wide">
-                          Order Handling Fee
-                        </Label>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-200/80 text-blue-900 font-bold">
-                          Packaging & Care
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="relative flex-1">
-                          <span className="absolute left-3 top-2.5 text-zinc-400 font-bold text-sm">
-                            {editableRules?.fees?.handlingFeeType === "percentage" ? "%" : "₹"}
-                          </span>
-                          <Input
-                            type="number"
-                            value={editableRules?.fees?.handlingFee ?? editableRules?.pricing?.handlingFee ?? "15"}
-                            onChange={(e) => {
-                              updateField("fees.handlingFee", e.target.value);
-                              updateField("pricing.handlingFee", e.target.value);
-                            }}
-                            className="pl-7 text-xl font-black font-mono h-11 bg-white border-blue-300 text-blue-900"
-                            placeholder="15"
-                          />
-                        </div>
-                        <Select
-                          value={editableRules?.fees?.handlingFeeType ?? "fixed"}
-                          onValueChange={(v) => {
-                            updateField("fees.handlingFeeType", v);
-                          }}
-                        >
-                          <SelectTrigger className="w-24 h-11 bg-white font-bold text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="fixed">Fixed ₹</SelectItem>
-                            <SelectItem value="percentage">% Subtotal</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <p className="text-[11px] text-blue-800/80 font-medium">
-                        Sorting, sanitization & packaging fee charged at checkout.
-                      </p>
-                    </div>
-
-                    {/* 4. Platform Convenience Fee */}
-                    <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-200/80 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-black text-purple-900 uppercase tracking-wide">
-                          Platform Convenience Fee
-                        </Label>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-200/80 text-purple-900 font-bold">
-                          Cloud & App
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="relative flex-1">
-                          <span className="absolute left-3 top-2.5 text-zinc-400 font-bold text-sm">
-                            {editableRules?.fees?.platformFeeType === "percentage" ? "%" : "₹"}
-                          </span>
-                          <Input
-                            type="number"
-                            value={editableRules?.fees?.platformFee ?? editableRules?.pricing?.platformFee ?? "10"}
-                            onChange={(e) => {
-                              updateField("fees.platformFee", e.target.value);
-                              updateField("pricing.platformFee", e.target.value);
-                            }}
-                            className="pl-7 text-xl font-black font-mono h-11 bg-white border-purple-300 text-purple-900"
-                            placeholder="10"
-                          />
-                        </div>
-                        <Select
-                          value={editableRules?.fees?.platformFeeType ?? "fixed"}
-                          onValueChange={(v) => {
-                            updateField("fees.platformFeeType", v);
-                          }}
-                        >
-                          <SelectTrigger className="w-24 h-11 bg-white font-bold text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="fixed">Fixed ₹</SelectItem>
-                            <SelectItem value="percentage">% Subtotal</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <p className="text-[11px] text-purple-800/80 font-medium">
-                        Platform technology infrastructure fee.
-                      </p>
-                    </div>
                   </div>
 
-                  {/* Secondary Parameters: Minimum Order Value & Express Turnaround Multiplier */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                    <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 space-y-1">
-                      <Label className="text-xs font-bold text-zinc-800">Minimum Order Value (MOV) (₹)</Label>
-                      <Input
-                        type="number"
-                        value={editableRules?.pricing?.minimumOrderValue ?? "99"}
-                        onChange={(e) => updateField("pricing.minimumOrderValue", e.target.value)}
-                        className="font-bold font-mono h-9 bg-white"
-                        placeholder="99"
-                      />
-                      <span className="text-[10px] text-zinc-500">Minimum order subtotal required to checkout</span>
-                    </div>
-
-                    <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 space-y-1">
-                      <Label className="text-xs font-bold text-zinc-800">Express Multiplier Fallback (x)</Label>
-                      <Input
-                        type="number"
-                        step="0.05"
-                        value={editableRules?.pricing?.expressMultiplier ?? "1.35"}
-                        onChange={(e) => updateField("pricing.expressMultiplier", e.target.value)}
-                        className="font-bold font-mono h-9 bg-white"
-                        placeholder="1.35"
-                      />
-                      <span className="text-[10px] text-zinc-500">Multiplier (+35%) applied if express fee is percentage-based</span>
-                    </div>
-                  </div>
-
-                  {/* Helpful Guidance Notice */}
-                  <div className="p-3.5 bg-zinc-100 rounded-xl border border-zinc-200/80 flex items-start gap-3">
-                    <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg shrink-0 mt-0.5">
-                      <Sparkles className="size-4" />
-                    </div>
-                    <div className="text-xs space-y-0.5">
-                      <div className="font-bold text-zinc-900">Unified Pricing Architecture</div>
-                      <div className="text-zinc-600">
-                        Individual item-level categories and garment items are managed in the <span className="font-bold text-zinc-800">Services Catalog (/services)</span>. 
-                        The single base price, express turnaround rate, and handling fees configured above are universally computed at checkout for all standard orders.
+                  {/* Integrated Services Catalog Direct Access */}
+                  <div className="p-4 bg-white rounded-2xl border border-zinc-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="size-2 rounded-full bg-emerald-600"></span>
+                        <h4 className="text-xs font-black text-zinc-950 uppercase tracking-wide">
+                          Garment Services &amp; Item Catalog (Single Source of Truth)
+                        </h4>
                       </div>
+                      <p className="text-xs text-zinc-600">
+                        Individual garment items (Shirts, Suits, Sarees, Blankets, Shoes) and category pricing are governed in the dedicated Services module. Checkout handling fees and free delivery limits are centrally controlled in the Master Controller above.
+                      </p>
                     </div>
+                    <Link
+                      to="/services"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white text-xs font-bold shrink-0 shadow-xs transition-all"
+                    >
+                      <Sparkles className="size-3.5 text-emerald-400" />
+                      <span>Manage Garment Catalog (/services)</span>
+                      <ArrowRight className="size-3.5" />
+                    </Link>
                   </div>
                 </SectionCard>
               </TabsContent>
@@ -2345,8 +2372,12 @@ export function FinanceEnginePage() {
                           <Input
                             type="number"
                             step="1"
-                            value={fareEngineForm.baseFare ?? 35}
-                            onChange={(e) => setFareEngineForm((prev) => ({ ...prev, baseFare: Number(e.target.value) }))}
+                            value={fareEngineForm.baseFare ?? 25}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setFareEngineForm((prev) => ({ ...prev, baseFare: val }));
+                              updateField("riderPayout.basePay", String(val));
+                            }}
                             className="mt-1 font-bold text-sm"
                           />
                           <p className="text-[10px] text-zinc-400 mt-0.5">Fixed charge for initial ride</p>
@@ -2369,8 +2400,12 @@ export function FinanceEnginePage() {
                           <Input
                             type="number"
                             step="0.5"
-                            value={fareEngineForm.extraKmRate ?? 8.0}
-                            onChange={(e) => setFareEngineForm((prev) => ({ ...prev, extraKmRate: Number(e.target.value) }))}
+                            value={fareEngineForm.extraKmRate ?? 7.0}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setFareEngineForm((prev) => ({ ...prev, extraKmRate: val }));
+                              updateField("riderPayout.perKmRate", String(val));
+                            }}
                             className="mt-1 font-bold text-sm"
                           />
                           <p className="text-[10px] text-zinc-400 mt-0.5">Rate beyond base distance</p>
@@ -2824,103 +2859,34 @@ export function FinanceEnginePage() {
                   MODULE B: DELIVERY & DISTANCE PRICING ENGINE
                  ========================================================================= */}
               <TabsContent value="delivery" className="mt-4 space-y-4">
-                <SectionCard title="B. Delivery & Logistics Pricing Engine">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div>
-                      <Label className="text-xs font-bold">Base Delivery Fee (₹)</Label>
-                      <Input
-                        type="number"
-                        value={editableRules?.delivery?.baseFee ?? ""}
-                        onChange={(e) => updateField("delivery.baseFee", e.target.value)}
-                        className="mt-1 font-bold"
-                      />
+                <SectionCard
+                  title="B. Distance Tier Slabs & Area-Wise Geofence Overrides"
+                  description="Tiered distance pricing slabs, regional geofence overrides, and subsidy allocation policies. Universal base delivery fees and free delivery limits are centrally configured in the Master Controller above."
+                >
+                  {/* Delivery Subsidy Policy Banner */}
+                  <div className="p-4 bg-white rounded-2xl border border-zinc-200 shadow-2xs mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-black text-zinc-900 uppercase tracking-wide">
+                        Free Delivery Subsidy Funding Source
+                      </Label>
+                      <p className="text-xs text-zinc-500">
+                        When orders exceed the free delivery threshold, select which party absorbs the logistics delivery cost.
+                      </p>
                     </div>
-                    <div>
-                      <Label className="text-xs font-bold">Base Distance Included (km)</Label>
-                      <Input
-                        type="number"
-                        step="0.5"
-                        value={editableRules?.delivery?.baseDistanceKm ?? "2.0"}
-                        onChange={(e) => updateField("delivery.baseDistanceKm", e.target.value)}
-                        className="mt-1 font-bold"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">Per-Km Rate after Base (₹)</Label>
-                      <Input
-                        type="number"
-                        step="0.5"
-                        value={editableRules?.delivery?.perKmRate ?? "8.0"}
-                        onChange={(e) => updateField("delivery.perKmRate", e.target.value)}
-                        className="mt-1 font-bold"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">Minimum Delivery Floor (₹)</Label>
-                      <Input
-                        type="number"
-                        value={editableRules?.delivery?.minimumDeliveryFee ?? "25"}
-                        onChange={(e) => updateField("delivery.minimumDeliveryFee", e.target.value)}
-                        className="mt-1 font-bold"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <Label className="text-xs font-bold">Free Delivery Minimum Order (₹)</Label>
-                      <Input
-                        type="number"
-                        value={editableRules?.delivery?.freeDeliveryThreshold ?? ""}
-                        onChange={(e) => updateField("delivery.freeDeliveryThreshold", e.target.value)}
-                        className="mt-1 font-bold"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">Free Delivery Subsidy Funding Source</Label>
+                    <div className="w-full sm:w-80 shrink-0">
                       <Select
                         value={editableRules?.delivery?.subsidyFundingSource ?? "QUICKPRESS_FUNDED"}
                         onValueChange={(v: any) => updateField("delivery.subsidyFundingSource", v)}
                       >
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="w-full bg-zinc-50 font-bold text-xs h-10 border-zinc-300">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="QUICKPRESS_FUNDED">QuickPress Funded (Platform absorbs 100%)</SelectItem>
-                          <SelectItem value="PARTNER_FUNDED">Partner Funded (Store absorbs 100%)</SelectItem>
+                          <SelectItem value="PARTNER_FUNDED">Partner Funded (Store Hub absorbs 100%)</SelectItem>
                           <SelectItem value="SHARED_FUNDED">Shared 50/50 (Platform 50% / Store 50%)</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">Express Delivery Fee (₹)</Label>
-                      <Input
-                        type="number"
-                        value={editableRules?.delivery?.expressDeliveryFee ?? "40"}
-                        onChange={(e) => updateField("delivery.expressDeliveryFee", e.target.value)}
-                        className="mt-1 font-bold text-amber-600"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <Label className="text-xs font-bold">Rain Weather Surge (₹)</Label>
-                      <Input
-                        type="number"
-                        value={editableRules?.delivery?.rainSurge ?? ""}
-                        onChange={(e) => updateField("delivery.rainSurge", e.target.value)}
-                        className="mt-1 font-bold text-sky-600"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">Night Late Surge (₹)</Label>
-                      <Input
-                        type="number"
-                        value={editableRules?.delivery?.nightSurge ?? ""}
-                        onChange={(e) => updateField("delivery.nightSurge", e.target.value)}
-                        className="mt-1 font-bold text-indigo-600"
-                      />
                     </div>
                   </div>
 

@@ -1,5 +1,37 @@
 # QuickPress — Engineering Work History
 
+## Session: November 13, 2026 (Part 4)
+
+### Elimination of Duplicate Fare Panels & Unified 3-Pillar Master Architecture Implementation
+
+1. **Context & User Request:**
+   - User identified redundant and contradictory pricing inputs across 5 different components in the Finance Engine:
+     *"iamge 1 hatao, full finace me duplicate kiya jaise ki me kuch dikhta hu, ab ek road map banao jisme finanace ke ander ka kiya kiya hoga or or usse kiya kiya hoga ek hi banana hai duplicate nahi or real working or advance lealv par bannan hai"*
+   - User approved the architecture roadmap artifact: `quickpress_unified_finance_engine_architecture_roadmap.md`.
+
+2. **Root Cause Analysis (Duplication & Conflicting Overwrites):**
+   - Universal base fees, delivery distance fees, surge rates, and free delivery thresholds were duplicated in 4 separate places:
+     1. `PanIndiaQuickControlBar` (Image 1) at the top of the route.
+     2. `QuickPress Master Finance Controller` (Image 5) with 7 separate unorganized cards.
+     3. `service-pricing` (Module A, Image 2) repeating handling fees and adding conflicting platform fees.
+     4. `distance-fare` (Image 3) and `delivery` (Module B, Image 4) repeating base delivery fees, per-km rates, free delivery thresholds, and weather surges with conflicting state.
+
+3. **Engineering Solutions Delivered:**
+   - **Deleted Redundant Top Bar:** Permanently removed `PanIndiaQuickControlBar` from `admin-frontend/src/routes/finance-engine.tsx`.
+   - **Unified 3-Pillar Master Controller:** Reorganized the Master Controller into 3 non-overlapping, crystal-clear functional columns:
+     - **Pillar 1: 🛒 Customer Order & Cart Checkout Pricing** (Free Delivery Threshold, Below-Min Surcharge, Platform Handling Fee, Weather/Rush Surge, Protective Packaging Fee).
+     - **Pillar 2: 🏪 Laundromat Partner Commercials** (Partner Revenue Share 85%, Platform Commission 15%, Statutory Section 194-O TDS 1%, Settlement Frequency T+2).
+     - **Pillar 3: 🛵 Rider Captain Fleet Compensation** (Base Transit Pay for first 2 km, Extra KM Rate, Express Priority Turnaround Bonus, Doorstep Waiting Compensation, Max COD Float Limit).
+   - **De-duplicated Sub-Tabs:**
+     - `service-pricing`: Removed duplicate handling fee and platform convenience fee inputs; added clean direct link to `/services` Garment Catalog.
+     - `delivery`: Removed duplicate base fee, distance, per-km, free delivery threshold, and surge inputs; retained only Distance Tier Slabs, Area-Wise Pricing, and Subsidy Funding Source.
+     - `distance-fare`: Synchronized the Live Trip Fare Simulator directly with Master Controller rider payout state (`riderPayout.basePay` and `riderPayout.perKmRate`).
+
+4. **Verification & Testing Results:**
+   - Production bundle built cleanly with `npm --prefix admin-frontend run build` passing in 2.17s (0 errors).
+
+---
+
 ## Session: November 13, 2026 (Part 3)
 
 ### Enterprise Light Theme Enforcement & Dark Background Container Elimination Across Admin Console
