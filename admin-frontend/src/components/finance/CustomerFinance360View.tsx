@@ -272,7 +272,7 @@ export function CustomerFinance360View({ onInspectOrder, initialIdentifier = "" 
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100">
-                        {data.orders.map((o) => (
+                        {(data.orders || []).map((o) => (
                           <tr key={o.id} className="hover:bg-zinc-50/70">
                             <td className="py-3 font-mono font-bold text-zinc-900">{o.orderNumber || o.id}</td>
                             <td className="py-3 text-zinc-500">{o.createdAt ? new Date(o.createdAt).toLocaleDateString("en-IN") : "N/A"}</td>
@@ -335,7 +335,7 @@ export function CustomerFinance360View({ onInspectOrder, initialIdentifier = "" 
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100">
-                        {data.payments.map((p) => (
+                        {(data.payments || []).map((p) => (
                           <tr key={p.id} className="hover:bg-zinc-50/70">
                             <td className="py-3 font-mono text-zinc-900">{p.transactionId || p.id}</td>
                             <td className="py-3 font-semibold text-zinc-700">{p.gateway || "Razorpay"}</td>
@@ -372,7 +372,7 @@ export function CustomerFinance360View({ onInspectOrder, initialIdentifier = "" 
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100">
-                        {data.walletTransactions.map((w) => (
+                        {(data.walletTransactions || []).map((w) => (
                           <tr key={w.id} className="hover:bg-zinc-50/70">
                             <td className="py-3">
                               <span className={`inline-flex items-center gap-1 font-bold ${w.type === "CREDIT" ? "text-emerald-600" : "text-rose-600"}`}>
@@ -398,7 +398,7 @@ export function CustomerFinance360View({ onInspectOrder, initialIdentifier = "" 
                   <p className="text-xs text-zinc-400 py-6 text-center">No timeline events recorded.</p>
                 ) : (
                   <div className="space-y-4 pl-4 border-l-2 border-indigo-200">
-                    {data.timeline.map((t, idx) => (
+                    {(data.timeline || []).map((t, idx) => (
                       <div key={idx} className="relative pl-6">
                         <div className="absolute -left-[29px] top-1 size-3.5 rounded-full bg-indigo-600 border-2 border-white ring-2 ring-indigo-100" />
                         <div className="flex items-center justify-between">

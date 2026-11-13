@@ -1,5 +1,38 @@
 # QuickPress — Engineering Work History
 
+## Session: November 13, 2026 (Part 2)
+
+### Finance Engine Error Boundary Elimination — Safe Array Mapping & Resilient Fallbacks
+
+1. **Context & User Request:**
+   - User encountered a runtime error boundary crash on navigating to `https://ops.withquickpress.com/finance-engine`:
+     - Error: *"QuickPress Admin Error — Cannot read properties of undefined (reading 'map')"*
+     - Options: *"Try Again"*, *"Reload App"*.
+
+2. **Root Cause Analysis:**
+   - In `admin-frontend/src/routes/finance-engine.tsx`:
+     - When `rulesQuery.data` was received from `/api/admin/financial-rules`, `useEffect` triggered `setEditableRules(mapServerRulesToForm(rulesQuery.data))`.
+     - In `mapServerRulesToForm`:
+       `categoryOverrides: (data.commission?.categoryOverrides || DEFAULT_FINANCIAL_RULES.commission.categoryOverrides).map(...)`
+       `cityAreaOverrides: (data.commission?.cityAreaOverrides || DEFAULT_FINANCIAL_RULES.commission.cityAreaOverrides).map(...)`
+     - When `data.commission?.categoryOverrides` was missing or null from the live API, it fell back to `DEFAULT_FINANCIAL_RULES.commission.categoryOverrides`, which was undefined (since `DEFAULT_FINANCIAL_RULES.commission` did not define these override arrays).
+     - Calling `.map(...)` on `undefined` threw `TypeError: Cannot read properties of undefined (reading 'map')`, causing React to catch the error in the Admin Error Boundary.
+
+3. **Engineering Solutions Delivered:**
+   - `admin-frontend/src/routes/finance-engine.tsx`:
+     - Added default empty arrays `categoryOverrides: []` and `cityAreaOverrides: []` in `DEFAULT_FINANCIAL_RULES.commission`.
+     - Completely fortified `mapServerRulesToForm`: Every single array mapping (`servicePricing`, `categoryTaxOverrides`, `categoryOverrides`, `cityAreaOverrides`, `slabs`, `cityAreaPricing`, `coupons`, `dailyTargets`, `candyCrushLevels`, `riderDaily`, `partnerVolume`, `lateFee.slabs`, `penalties`) now has guaranteed `|| []` array fallbacks.
+     - Secured inspected order ledger rendering with `(inspectedOrder.ledger || []).map(...)`.
+   - `admin-frontend/src/components/finance/CustomerFinance360View.tsx`:
+     - Guarded `data.orders`, `data.payments`, `data.walletTransactions`, and `data.timeline` with `|| []`.
+   - `admin-frontend/src/components/finance/AnomalyAlertBanner.tsx`:
+     - Guarded `data.anomalies` with `(data.anomalies || []).map(...)`.
+
+4. **Verification & Testing Results:**
+   - Built production bundle: `npm --prefix admin-frontend run build` completed in 2.83s with 0 errors.
+
+---
+
 ## Session: November 13, 2026 (Part 1)
 
 ### Cloudflare Zero Trust SSO Perimeter Hardening, EC2 Origin Auto-Recovery & D&B Registration

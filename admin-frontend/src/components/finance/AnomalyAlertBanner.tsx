@@ -82,7 +82,7 @@ export function AnomalyAlertBanner({ onSelectAnomaly }: AnomalyAlertBannerProps)
 
       {/* Grid of Exception Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
-        {data.anomalies.map((anom) => {
+        {(data.anomalies || []).map((anom) => {
           const isCritical = anom.severity === "CRITICAL_RED";
           return (
             <div

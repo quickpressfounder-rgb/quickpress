@@ -277,6 +277,8 @@ export const DEFAULT_FINANCIAL_RULES: any = {
     standardPercent: "15",
     fixedAmountPerOrder: "0",
     captainCommissionRate: 0.0,
+    categoryOverrides: [],
+    cityAreaOverrides: [],
   },
   delivery: {
     baseFee: "30",
@@ -456,7 +458,7 @@ function mapServerRulesToForm(data: FinancialRules): any {
       effectiveUntil: String(data.versioning?.effectiveUntil ?? "2099-12-31T23:59:59Z"),
       scheduledAt: String(data.versioning?.scheduledAt ?? ""),
     },
-    servicePricing: (data.servicePricing || DEFAULT_FINANCIAL_RULES.servicePricing).map((s: any) => ({
+    servicePricing: (data.servicePricing || DEFAULT_FINANCIAL_RULES.servicePricing || []).map((s: any) => ({
       id: String(s.id ?? `svc-${Date.now()}`),
       serviceName: String(s.serviceName ?? ""),
       category: String(s.category ?? "Laundry"),
@@ -514,7 +516,7 @@ function mapServerRulesToForm(data: FinancialRules): any {
       tdsPercent: String(Math.round((data.gst?.tdsRate ?? 0.01) * 10000) / 100),
       quickpressGstin: String(data.gst?.quickpressGstin ?? ""),
       defaultState: String(data.gst?.defaultState ?? "Uttar Pradesh"),
-      categoryTaxOverrides: (data.gst?.categoryTaxOverrides || DEFAULT_FINANCIAL_RULES.gst.categoryTaxOverrides).map((t: any) => ({
+      categoryTaxOverrides: (data.gst?.categoryTaxOverrides || DEFAULT_FINANCIAL_RULES.gst?.categoryTaxOverrides || []).map((t: any) => ({
         id: String(t.id ?? ""),
         category: String(t.category ?? ""),
         gstRatePercent: String(Math.round((t.gstRate ?? 0.12) * 10000) / 100),
@@ -532,13 +534,13 @@ function mapServerRulesToForm(data: FinancialRules): any {
       goldThreshold: String(data.commission?.goldThreshold ?? 300),
       fixedAmountPerOrder: String(data.commission?.fixedAmountPerOrder ?? 0),
       captainCommissionRate: data.commission?.captainCommissionRate ?? 0.0,
-      categoryOverrides: (data.commission?.categoryOverrides || DEFAULT_FINANCIAL_RULES.commission.categoryOverrides).map((c: any) => ({
+      categoryOverrides: (data.commission?.categoryOverrides || DEFAULT_FINANCIAL_RULES.commission?.categoryOverrides || []).map((c: any) => ({
         id: String(c.id ?? ""),
         category: String(c.category ?? ""),
         ratePercent: String(Math.round((c.rate ?? 0.18) * 10000) / 100),
         active: Boolean(c.active !== false),
       })),
-      cityAreaOverrides: (data.commission?.cityAreaOverrides || DEFAULT_FINANCIAL_RULES.commission.cityAreaOverrides).map((c: any) => ({
+      cityAreaOverrides: (data.commission?.cityAreaOverrides || DEFAULT_FINANCIAL_RULES.commission?.cityAreaOverrides || []).map((c: any) => ({
         id: String(c.id ?? ""),
         city: String(c.city ?? "Kasganj"),
         area: String(c.area ?? "All Areas"),
@@ -552,7 +554,7 @@ function mapServerRulesToForm(data: FinancialRules): any {
       perKmRate: String(data.delivery?.perKmRate ?? 8.0),
       minimumDeliveryFee: String(data.delivery?.minimumDeliveryFee ?? 25),
       expressDeliveryFee: String(data.delivery?.expressDeliveryFee ?? 40),
-      slabs: (data.delivery?.slabs || DEFAULT_FINANCIAL_RULES.delivery.slabs).map((s: any) => ({
+      slabs: (data.delivery?.slabs || DEFAULT_FINANCIAL_RULES.delivery?.slabs || []).map((s: any) => ({
         minKm: s.minKm,
         maxKm: s.maxKm,
         fee: String(s.fee ?? 30),
@@ -561,7 +563,7 @@ function mapServerRulesToForm(data: FinancialRules): any {
       subsidyFundingSource: data.delivery?.subsidyFundingSource ?? "QUICKPRESS_FUNDED",
       nightSurge: String(data.delivery?.nightSurge ?? 25),
       rainSurge: String(data.delivery?.rainSurge ?? 20),
-      cityAreaPricing: (data.delivery?.cityAreaPricing || DEFAULT_FINANCIAL_RULES.delivery.cityAreaPricing).map((c: any) => ({
+      cityAreaPricing: (data.delivery?.cityAreaPricing || DEFAULT_FINANCIAL_RULES.delivery?.cityAreaPricing || []).map((c: any) => ({
         id: String(c.id ?? ""),
         city: String(c.city ?? ""),
         area: String(c.area ?? ""),
@@ -575,7 +577,7 @@ function mapServerRulesToForm(data: FinancialRules): any {
       minOrderValue: String(data.discount?.minOrderValue ?? 99),
       firstOrderDiscountPercent: String(data.discount?.firstOrderDiscountPercent ?? 20),
       firstOrderMaxDiscount: String(data.discount?.firstOrderMaxDiscount ?? 100),
-      coupons: (data.discount?.coupons || DEFAULT_FINANCIAL_RULES.discount.coupons).map((c: any) => ({
+      coupons: (data.discount?.coupons || DEFAULT_FINANCIAL_RULES.discount?.coupons || []).map((c: any) => ({
         id: String(c.id ?? `cpn-${Date.now()}`),
         code: String(c.code ?? ""),
         title: String(c.title ?? ""),
@@ -593,13 +595,13 @@ function mapServerRulesToForm(data: FinancialRules): any {
       })),
     },
     cancellation: Object.fromEntries(
-      Object.entries(data.cancellation || DEFAULT_FINANCIAL_RULES.cancellation).map(([stage, val]: [string, any]) => [
+      Object.entries(data.cancellation || DEFAULT_FINANCIAL_RULES.cancellation || {}).map(([stage, val]: [string, any]) => [
         stage,
         {
-          cancellationFee: String(val.cancellationFee ?? 0),
-          refundPct: String(val.refundPct ?? 100),
-          allowCancel: Boolean(val.allowCancel),
-          notes: String(val.notes ?? ""),
+          cancellationFee: String(val?.cancellationFee ?? 0),
+          refundPct: String(val?.refundPct ?? 100),
+          allowCancel: Boolean(val?.allowCancel),
+          notes: String(val?.notes ?? ""),
         },
       ])
     ),
@@ -614,16 +616,16 @@ function mapServerRulesToForm(data: FinancialRules): any {
       nightSurge: String(data.riderPayout?.nightSurge ?? 25),
       rainSurge: String(data.riderPayout?.rainSurge ?? 20),
       captainCommissionRate: data.riderPayout?.captainCommissionRate ?? 0.0,
-      dailyTargets: (data.riderPayout?.dailyTargets || DEFAULT_FINANCIAL_RULES.riderPayout.dailyTargets).map((t: any) => ({
+      dailyTargets: (data.riderPayout?.dailyTargets || DEFAULT_FINANCIAL_RULES.riderPayout?.dailyTargets || []).map((t: any) => ({
         targetTrips: String(t.targetTrips ?? 10),
         bonus: String(t.bonus ?? 300),
       })),
-      bonusRules: String(data.riderPayout?.bonusRules ?? DEFAULT_FINANCIAL_RULES.riderPayout.bonusRules),
+      bonusRules: String(data.riderPayout?.bonusRules ?? DEFAULT_FINANCIAL_RULES.riderPayout?.bonusRules ?? ""),
     },
     incentives: {
       candyCrushLevels: (data.incentives?.candyCrushLevels && data.incentives.candyCrushLevels.length > 0
         ? data.incentives.candyCrushLevels
-        : DEFAULT_FINANCIAL_RULES.incentives.candyCrushLevels
+        : DEFAULT_FINANCIAL_RULES.incentives?.candyCrushLevels || []
       ).map((l: any, idx: number) => ({
         level: Number(l.level ?? idx + 1),
         title: String(l.title ?? `Level ${idx + 1}`),
@@ -633,7 +635,7 @@ function mapServerRulesToForm(data: FinancialRules): any {
         flavor: String(l.flavor ?? ""),
         description: String(l.description ?? ""),
       })),
-      riderDaily: (data.incentives?.riderDaily || DEFAULT_FINANCIAL_RULES.incentives.riderDaily).map((t: any) => ({
+      riderDaily: (data.incentives?.riderDaily || DEFAULT_FINANCIAL_RULES.incentives?.riderDaily || []).map((t: any) => ({
         trips: String(t.trips ?? 5),
         reward: String(t.reward ?? 100),
       })),
@@ -641,14 +643,14 @@ function mapServerRulesToForm(data: FinancialRules): any {
         trips: String(data.incentives?.riderWeeklyStreak?.trips ?? 50),
         reward: String(data.incentives?.riderWeeklyStreak?.reward ?? 800),
       },
-      partnerVolume: (data.incentives?.partnerVolume || DEFAULT_FINANCIAL_RULES.incentives.partnerVolume).map((t: any) => ({
+      partnerVolume: (data.incentives?.partnerVolume || DEFAULT_FINANCIAL_RULES.incentives?.partnerVolume || []).map((t: any) => ({
         orders: String(t.orders ?? 20),
         reward: String(t.reward ?? 300),
       })),
     },
     lateFee: {
       gracePeriodMinutes: String(data.lateFee?.gracePeriodMinutes ?? 15),
-      slabs: (data.lateFee?.slabs || DEFAULT_FINANCIAL_RULES.lateFee.slabs).map((s: any) => ({
+      slabs: (data.lateFee?.slabs || DEFAULT_FINANCIAL_RULES.lateFee?.slabs || []).map((s: any) => ({
         minDelayMin: s.minDelayMin,
         maxDelayMin: s.maxDelayMin,
         fee: String(s.fee ?? 20),
@@ -656,7 +658,7 @@ function mapServerRulesToForm(data: FinancialRules): any {
       classification: data.lateFee?.classification ?? "CUSTOMER_COMPENSATION",
     },
     penalties: Object.fromEntries(
-      Object.entries(data.penalties || DEFAULT_FINANCIAL_RULES.penalties).map(([type, amount]) => [
+      Object.entries(data.penalties || DEFAULT_FINANCIAL_RULES.penalties || {}).map(([type, amount]) => [
         type,
         String(amount ?? 0),
       ])
@@ -4672,7 +4674,7 @@ export function FinanceEnginePage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-200">
-                          {inspectedOrder.ledger.map((tx) => (
+                          {(inspectedOrder.ledger || []).map((tx) => (
                             <tr key={tx._id} className="hover:bg-zinc-50 font-mono">
                               <td className="p-2.5 font-bold text-zinc-900">{tx.transactionId}</td>
                               <td className="p-2.5">
