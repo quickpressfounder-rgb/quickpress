@@ -23,7 +23,7 @@
      - **Pillar 2: 🏪 Laundromat Partner Commercials** (Partner Revenue Share 85%, Platform Commission 15%, Statutory Section 194-O TDS 1%, Settlement Frequency T+2).
      - **Pillar 3: 🛵 Rider Captain Fleet Compensation** (Base Transit Pay for first 2 km, Extra KM Rate, Express Priority Turnaround Bonus, Doorstep Waiting Compensation, Max COD Float Limit).
    - **De-duplicated Sub-Tabs:**
-     - `service-pricing`: Removed duplicate handling fee and platform convenience fee inputs; added clean direct link to `/services` Garment Catalog.
+     - `service-pricing`: Removed duplicate handling fee and platform convenience fee inputs; added clean direct link to `/services` Garment Catalog. Fixed missing `Link` import from `@tanstack/react-router` to eliminate runtime `ReferenceError: Link is not defined`.
      - `delivery`: Removed duplicate base fee, distance, per-km, free delivery threshold, and surge inputs; retained only Distance Tier Slabs, Area-Wise Pricing, and Subsidy Funding Source.
      - `distance-fare`: Synchronized the Live Trip Fare Simulator directly with Master Controller rider payout state (`riderPayout.basePay` and `riderPayout.perKmRate`).
 
