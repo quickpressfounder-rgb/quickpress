@@ -28,6 +28,10 @@ class OrderAddress(BaseModel):
     line: str = ""
     city: str = ""
     phone: str = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
 
 
 class OrderTotals(BaseModel):
@@ -79,6 +83,10 @@ class OrderParty(BaseModel):
 class OrderPartnerParty(OrderParty):
     image: str = ""
     city: str = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
 
 
 class OrderRiderParty(OrderParty):

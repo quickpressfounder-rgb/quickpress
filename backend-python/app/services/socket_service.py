@@ -665,9 +665,22 @@ async def broadcast_rider_location(
         # Broadcast to specific order room so customer live map receives it
         if order_id:
             await sio.emit(EVENT_RIDER_LOCATION, payload, room=f"order:{order_id}")
+            await sio.emit("captain_location_update", payload, room=f"order:{order_id}")
+            await sio.emit(EVENT_LOCATION_UPDATED, payload, room=f"order:{order_id}")
+        # Broadcast to rider's own room
+        await sio.emit(EVENT_RIDER_LOCATION, payload, room=f"rider:{rider_id}")
         # Broadcast to admins and fleet monitor
         await sio.emit(EVENT_RIDER_LOCATION, payload, room="admins")
         await sio.emit(EVENT_LOCATION_UPDATED, payload, room="admins")
+
+        try:
+            from app.core.realtime_bus import realtime_bus
+            bus_rooms = ["admins"]
+            if order_id:
+                bus_rooms.append(f"order:{order_id}")
+            await realtime_bus.broadcast(EVENT_RIDER_LOCATION, payload, bus_rooms)
+        except Exception:
+            pass
     except Exception as exc:
         logger.warning("Failed to broadcast rider location: %s", exc)
 

@@ -397,19 +397,62 @@ async def push_rider_location(
     from app.db.rider_repositories import rider_profile_repository
 
     rider_id = body.riderId or await rider_profile_repository.resolve_rider_id(user)
+    effective_order_id = body.orderId
+    if not effective_order_id:
+        active_order = await database.find_one(
+            "customer_orders",
+            {
+                "riderId": str(rider_id),
+                "status": {
+                    "$in": [
+                        "pickup_rider_assigned",
+                        "rider_assigned",
+                        "pickup_rider_accepted",
+                        "rider_accepted",
+                        "picked_up",
+                        "in_transit_store",
+                        "delivery_rider_assigned",
+                        "delivery_rider_accepted",
+                        "out_for_delivery",
+                    ]
+                },
+            },
+        )
+        if active_order:
+            effective_order_id = str(active_order.get("_id") or active_order.get("id"))
+
     document = {
         "_id": f"rider:{rider_id}",
         "kind": "rider",
         "label": rider_id,
         "latitude": body.latitude,
         "longitude": body.longitude,
-        "orderId": body.orderId,
+        "orderId": effective_order_id,
         "heading": body.heading,
         "speedKmph": body.speedKmph,
-        "status": "on-trip" if body.orderId else "online",
+        "status": "on-trip" if effective_order_id else "online",
         "updatedAt": _now(),
     }
     await database.update(LIVE_LOCATIONS, {"_id": document["_id"]}, document, upsert=True)
+
+    # Sync into rider_profiles
+    try:
+        await database.update(
+            "rider_profiles",
+            {"$or": [{"_id": rider_id}, {"riderId": rider_id}]},
+            {
+                "lat": body.latitude,
+                "lng": body.longitude,
+                "latitude": body.latitude,
+                "longitude": body.longitude,
+                "heading": body.heading,
+                "speedKmph": body.speedKmph,
+                "lastLocationAt": _now(),
+            },
+        )
+    except Exception:
+        pass
+
     try:
         from app.services.socket_service import broadcast_rider_location
         await broadcast_rider_location(
@@ -418,24 +461,62 @@ async def push_rider_location(
             longitude=body.longitude,
             heading=body.heading,
             speed_kmph=body.speedKmph,
-            order_id=body.orderId,
+            order_id=effective_order_id,
         )
     except Exception:
         pass
-    return LiveLocation(id=str(rider_id), **{k: v for k, v in document.items() if k in {"kind", "label", "latitude", "longitude", "orderId", "status", "updatedAt"}})
+    return LiveLocation(
+        id=str(rider_id),
+        kind="rider",
+        label=str(document.get("label") or rider_id),
+        latitude=body.latitude,
+        longitude=body.longitude,
+        heading=body.heading,
+        speedKmph=body.speedKmph,
+        orderId=effective_order_id,
+        status=document.get("status"),
+        updatedAt=document.get("updatedAt"),
+    )
 
 
 @router.get("/live/rider/{rider_id}", response_model=Optional[LiveLocation])
 async def read_rider_location(rider_id: str):
-    document = await database.find_one(LIVE_LOCATIONS, {"_id": f"rider:{rider_id}"})
+    clean_id = str(rider_id).strip()
+    document = (
+        await database.find_one(LIVE_LOCATIONS, {"_id": f"rider:{clean_id}"})
+        or await database.find_one(LIVE_LOCATIONS, {"_id": clean_id})
+    )
     if not document:
+        # Fallback to rider_profiles
+        prof = (
+            await database.find_one("rider_profiles", {"_id": clean_id})
+            or await database.find_one("rider_profiles", {"riderId": clean_id})
+            or await database.find_one("riders", {"_id": clean_id})
+        )
+        if prof and (prof.get("lat") is not None or prof.get("latitude") is not None):
+            p_lat = prof.get("lat") if prof.get("lat") is not None else prof.get("latitude")
+            p_lng = prof.get("lng") if prof.get("lng") is not None else prof.get("longitude")
+            return LiveLocation(
+                id=clean_id,
+                kind="rider",
+                label=str(prof.get("fullName") or prof.get("name") or clean_id),
+                latitude=float(p_lat),
+                longitude=float(p_lng),
+                heading=float(prof.get("heading")) if prof.get("heading") is not None else None,
+                speedKmph=float(prof.get("speedKmph")) if prof.get("speedKmph") is not None else None,
+                status="online" if prof.get("isOnline") else "offline",
+                updatedAt=prof.get("lastLocationAt") or prof.get("updatedAt"),
+            )
         return None
+
     return LiveLocation(
-        id=rider_id,
+        id=clean_id,
         kind="rider",
-        label=str(document.get("label") or rider_id),
+        label=str(document.get("label") or clean_id),
         latitude=float(document.get("latitude", 0.0)),
         longitude=float(document.get("longitude", 0.0)),
+        heading=float(document["heading"]) if document.get("heading") is not None else None,
+        speedKmph=float(document["speedKmph"]) if document.get("speedKmph") is not None else None,
         orderId=document.get("orderId"),
         status=document.get("status"),
         updatedAt=document.get("updatedAt"),

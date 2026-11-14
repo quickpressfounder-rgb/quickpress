@@ -139,6 +139,10 @@ export type Address = {
   pincode?: string;
   state?: string;
   phone: string;
+  latitude?: number;
+  longitude?: number;
+  lat?: number;
+  lng?: number;
 };
 
 export type PaymentMethod = {

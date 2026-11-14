@@ -27,7 +27,7 @@ export type OrderTimelineEntry = {
   message?: string | undefined;
 };
 
-export type RiderLocation = { lat: number; lng: number; heading?: number; at: string };
+export type RiderLocation = { lat: number; lng: number; heading?: number; speed?: number; at: string };
 
 export type CustomerOrderRealtime = {
   status: string | null;
@@ -103,6 +103,7 @@ export function useCustomerOrderRealtime(
         lat,
         lng,
         ...(location.heading === undefined ? {} : { heading: Number(location.heading) }),
+        ...(location.speedKmph !== undefined ? { speed: Number(location.speedKmph) } : (location.speed !== undefined ? { speed: Number(location.speed) } : {})),
         at: location.at ?? location.updatedAt ?? new Date().toISOString(),
       });
     }

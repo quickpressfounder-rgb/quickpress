@@ -72,11 +72,21 @@ export type OrderRiderParty = OrderParty & {
   plate: string;
   rating: number;
   trips: string;
+  latitude?: number;
+  longitude?: number;
+  lat?: number;
+  lng?: number;
+  heading?: number;
+  speed?: number;
 };
 
 export type OrderPartnerParty = OrderParty & {
   image: string;
   city: string;
+  latitude?: number;
+  longitude?: number;
+  lat?: number;
+  lng?: number;
 };
 
 export type OrderLine = {
@@ -91,6 +101,10 @@ export type OrderAddress = {
   line: string;
   city: string;
   phone: string;
+  latitude?: number;
+  longitude?: number;
+  lat?: number;
+  lng?: number;
 };
 
 export type OrderTotals = {
@@ -134,6 +148,15 @@ export type Order = {
   otp: { pickup: string; delivery: string };
   events: OrderEvent[];
   cancelledReason: string | null;
+  riderLocation?: {
+    lat: number;
+    lng: number;
+    latitude?: number;
+    longitude?: number;
+    heading?: number;
+    speed?: number;
+    updatedAt?: string;
+  } | null;
 };
 
 export type PlaceOrderPayload = {

@@ -47,6 +47,7 @@ export function LiveDeliveryMap({
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<{ rider?: any; dest?: any; store?: any }>({});
   const polylineRef = useRef<any>(null);
+  const hasInitialFitRef = useRef(false);
 
   const [mapReady, setMapReady] = useState(false);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
@@ -247,20 +248,39 @@ export function LiveDeliveryMap({
         }
       }
 
-      // Auto-Fit Bounds
-      if (bounds.length > 1) {
-        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
-      } else if (bounds.length === 1) {
-        map.setView(bounds[0], 15);
+      // Auto-Fit Bounds on initial load or first valid coordinates only
+      if (!hasInitialFitRef.current && bounds.length > 0) {
+        if (bounds.length > 1) {
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+        } else if (bounds.length === 1) {
+          map.setView(bounds[0], 15);
+        }
+        hasInitialFitRef.current = true;
       }
     })();
   }, [mapReady, riderLocation, destinationLocation, storeLocation]);
 
-  // Recenter on Rider / Destination
+  // Recenter on Full Journey / Rider / Destination
   const handleRecenter = () => {
     if (!mapInstanceRef.current) return;
-    const focus = riderLocation || destinationLocation || storeLocation || defaultCenter;
-    mapInstanceRef.current.flyTo([focus.lat, focus.lng], 16, { animate: true, duration: 1 });
+    const map = mapInstanceRef.current;
+    const bounds: [number, number][] = [];
+    if (riderLocation && riderLocation.lat && riderLocation.lng) {
+      bounds.push([riderLocation.lat, riderLocation.lng]);
+    }
+    if (destinationLocation && destinationLocation.lat && destinationLocation.lng) {
+      bounds.push([destinationLocation.lat, destinationLocation.lng]);
+    }
+    if (storeLocation && storeLocation.lat && storeLocation.lng) {
+      bounds.push([storeLocation.lat, storeLocation.lng]);
+    }
+    if (bounds.length > 1) {
+      map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 16, duration: 0.8 });
+    } else if (bounds.length === 1) {
+      map.flyTo(bounds[0], 16, { animate: true, duration: 0.8 });
+    } else {
+      map.flyTo([defaultCenter.lat, defaultCenter.lng], 15, { animate: true, duration: 0.8 });
+    }
   };
 
   const handleZoomIn = () => mapInstanceRef.current?.zoomIn();

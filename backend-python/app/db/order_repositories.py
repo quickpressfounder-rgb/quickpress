@@ -201,6 +201,30 @@ class OrderRepository:
                 "updatedAt": (rider_loc or {}).get("updatedAt") or data.get("updatedAt"),
             }
 
+        # Ensure address latitude and longitude are preserved
+        addr = data.get("address")
+        if isinstance(addr, dict):
+            if addr.get("latitude") is None and addr.get("lat") is not None:
+                addr["latitude"] = float(addr["lat"])
+            if addr.get("longitude") is None and addr.get("lng") is not None:
+                addr["longitude"] = float(addr["lng"])
+            if addr.get("lat") is None and addr.get("latitude") is not None:
+                addr["lat"] = float(addr["latitude"])
+            if addr.get("lng") is None and addr.get("longitude") is not None:
+                addr["lng"] = float(addr["longitude"])
+
+        # Ensure partner latitude and longitude are preserved
+        partner_d = data.get("partner")
+        if isinstance(partner_d, dict):
+            if partner_d.get("latitude") is None and partner_d.get("lat") is not None:
+                partner_d["latitude"] = float(partner_d["lat"])
+            if partner_d.get("longitude") is None and partner_d.get("lng") is not None:
+                partner_d["longitude"] = float(partner_d["lng"])
+            if partner_d.get("lat") is None and partner_d.get("latitude") is not None:
+                partner_d["lat"] = float(partner_d["latitude"])
+            if partner_d.get("lng") is None and partner_d.get("longitude") is not None:
+                partner_d["lng"] = float(partner_d["longitude"])
+
         # Enrich SLA deadlines and remaining seconds
         deadlines = lifecycle.compute_order_deadlines(data)
         data.update(deadlines)
@@ -271,21 +295,50 @@ class OrderRepository:
         if not has_access:
             return None
 
-        # Enrich latest live partner image if available
+        # Enrich latest live partner image & coordinates if available
         partner_obj = document.get("partner")
         partner_id = (partner_obj.get("id") if isinstance(partner_obj, dict) else None) or document.get("partnerId")
         if partner_id:
             try:
-                p_doc = await database.find_one("partner_profiles", {"_id": partner_id}) or await database.find_one("partner_profiles", {"partnerId": partner_id}) or await database.find_one("partners", {"_id": partner_id})
+                p_doc = (
+                    await database.find_one("partner_profiles", {"_id": partner_id})
+                    or await database.find_one("partner_profiles", {"partnerId": partner_id})
+                    or await database.find_one("partners", {"_id": partner_id})
+                )
                 if p_doc:
                     latest_img = p_doc.get("logoUrl") or p_doc.get("logo") or p_doc.get("image") or p_doc.get("storeImage") or p_doc.get("bannerUrl")
+                    p_lat = p_doc.get("latitude") or p_doc.get("lat") or (p_doc.get("location") or {}).get("latitude")
+                    p_lng = p_doc.get("longitude") or p_doc.get("lng") or (p_doc.get("location") or {}).get("longitude")
+                    if not isinstance(partner_obj, dict):
+                        partner_obj = {"id": partner_id, "name": p_doc.get("businessName") or "QuickPress Partner"}
                     if latest_img:
-                        if not isinstance(partner_obj, dict):
-                            partner_obj = {"id": partner_id, "name": p_doc.get("businessName") or "QuickPress Partner"}
                         partner_obj["image"] = latest_img
-                        document["partner"] = partner_obj
+                    if p_lat is not None and p_lng is not None:
+                        partner_obj["latitude"] = float(p_lat)
+                        partner_obj["longitude"] = float(p_lng)
+                        partner_obj["lat"] = float(p_lat)
+                        partner_obj["lng"] = float(p_lng)
+                    document["partner"] = partner_obj
             except Exception:
                 pass
+
+        # Enrich address coordinates from address repository if missing
+        addr_obj = document.get("address")
+        if isinstance(addr_obj, dict) and (addr_obj.get("latitude") is None or addr_obj.get("longitude") is None):
+            addr_id = document.get("addressId") or document.get("address_id")
+            user_owner = str(document.get("userId") or document.get("user_id") or "")
+            if addr_id and user_owner:
+                try:
+                    from app.db.address_repositories import address_repository
+                    saved_addr = await address_repository.get(user_owner, addr_id)
+                    if saved_addr and saved_addr.latitude is not None and saved_addr.longitude is not None:
+                        addr_obj["latitude"] = float(saved_addr.latitude)
+                        addr_obj["longitude"] = float(saved_addr.longitude)
+                        addr_obj["lat"] = float(saved_addr.latitude)
+                        addr_obj["lng"] = float(saved_addr.longitude)
+                        document["address"] = addr_obj
+                except Exception:
+                    pass
 
         # Enrich real rider profile data (name, phone, vehicle, plate, avatar, rating, trips, live gps)
         await self._enrich_rider(document)
@@ -328,6 +381,36 @@ class OrderRepository:
                             "latitude": lat_f,
                             "longitude": lng_f,
                         }
+
+            # Check live_locations collection for real-time telemetry if available
+            effective_id = str((resolved.get("id") if resolved else None) or rider_id or "")
+            if effective_id:
+                try:
+                    live_loc = (
+                        await database.find_one("live_locations", {"_id": f"rider:{effective_id}"})
+                        or await database.find_one("live_locations", {"_id": effective_id})
+                    )
+                    if live_loc and live_loc.get("latitude") is not None and live_loc.get("longitude") is not None:
+                        live_lat = float(live_loc["latitude"])
+                        live_lng = float(live_loc["longitude"])
+                        heading_val = float(live_loc["heading"]) if live_loc.get("heading") is not None else None
+                        speed_val = float(live_loc["speedKmph"]) if live_loc.get("speedKmph") is not None else (float(live_loc["speed"]) if live_loc.get("speed") is not None else None)
+                        if not isinstance(document.get("rider"), dict):
+                            document["rider"] = {}
+                        document["rider"]["latitude"] = live_lat
+                        document["rider"]["longitude"] = live_lng
+                        document["rider"]["location"] = {"latitude": live_lat, "longitude": live_lng}
+                        document["riderLocation"] = {
+                            "lat": live_lat,
+                            "lng": live_lng,
+                            "latitude": live_lat,
+                            "longitude": live_lng,
+                            "heading": heading_val,
+                            "speed": speed_val,
+                            "updatedAt": live_loc.get("updatedAt"),
+                        }
+                except Exception:
+                    pass
         except Exception as e:
             logger.debug("Failed to enrich rider profile: %s", e)
 
@@ -1120,12 +1203,20 @@ class OrderRepository:
             return OrderPartnerParty(id=partner_id or "", name="QuickPress Partner", phone="", image="", city="")
         image = document.get("bannerUrl") or document.get("cover") or document.get("logoUrl") or document.get("logo") or ""
         city_area = f"{document.get('address') or document.get('area', '')}, {document.get('city', '')}".strip(", ")
+        p_lat = document.get("latitude") or document.get("lat") or (document.get("location") or {}).get("latitude")
+        p_lng = document.get("longitude") or document.get("lng") or (document.get("location") or {}).get("longitude")
+        lat_f = float(p_lat) if p_lat is not None else None
+        lng_f = float(p_lng) if p_lng is not None else None
         return OrderPartnerParty(
             id=str(document.get("_id") or document.get("partnerId") or partner_id),
             name=document.get("businessName") or document.get("name") or "QuickPress Partner",
             phone=document.get("phone", ""),
             image=image,
             city=city_area or "Kasganj",
+            latitude=lat_f,
+            longitude=lng_f,
+            lat=lat_f,
+            lng=lng_f,
         )
 
 

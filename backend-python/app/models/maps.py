@@ -147,6 +147,8 @@ class LiveLocation(BaseModel):
     label: str = ""
     latitude: float = 0.0
     longitude: float = 0.0
+    heading: Optional[float] = None
+    speedKmph: Optional[float] = None
     orderId: Optional[str] = None
     status: Optional[str] = None
     updatedAt: Optional[str] = None

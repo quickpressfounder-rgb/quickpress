@@ -1,5 +1,59 @@
 # QuickPress — Engineering Work History
 
+## Session: November 14, 2026 (Part 18)
+
+### Real-World Live Tracking Map & GPS Telemetry Full-Stack Integration
+
+1. **Context & User Request:**
+   - User directive:
+     *"ab iske ander live traking page par jo map hai uski real intragtion karo jisme ki real loction show kare"*
+   - Scope:
+     - End-to-end integration of live coordinates (Customer doorstep address, Partner Laundromat hub, and live Delivery Captain/Rider GPS telemetry) into the live order tracking screen (`/track/$orderId` and `LiveDeliveryMap.tsx`).
+     - Eliminate dummy hardcoded coordinate fallbacks (`28.5355, 77.3910`).
+     - Fix backend data loss where `OrderAddress` and `OrderPartnerParty` dropped `latitude`/`longitude` on serialization.
+     - Add dual-channel live rider GPS tracking: instant Socket.IO push (`captain_location_update`, `rider.location`, `location.updated`) backed by an automated 5-second polling fallback to `/api/maps/live/rider/{rider_id}` for ultra-reliable tracking even through unstable mobile data connections.
+     - Fix map camera jitter: prevent Leaflet `fitBounds` from snapping/re-centering the camera on every 2-second telemetry tick. Add one-time initial auto-fit with smooth CSS bike icon rotation and an interactive manual "Recenter" button.
+
+2. **Engineering Solutions Delivered:**
+   - **Backend Data Contracts & Repository (`backend-python`):**
+     - `app/models/order.py`: Added `latitude: Optional[float] = None`, `longitude: Optional[float] = None`, `lat: Optional[float] = None`, `lng: Optional[float] = None` to both `OrderAddress` and `OrderPartnerParty`.
+     - `app/models/maps.py`: Added `heading: Optional[float] = None` and `speedKmph: Optional[float] = None` to `LiveLocation`.
+     - `app/api/orders.py`: Preserved `latitude` and `longitude` from saved address documents when placing orders.
+     - `app/db/order_repositories.py`:
+       - `_to_order_response()`: Ensured `address` and `partner` coordinates are retained with aliases (`latitude`/`lat`, `longitude`/`lng`).
+       - `_partner()`: Extracted `latitude` and `longitude` from `partner_profiles` so the hub coordinate is permanently attached to the order.
+       - `by_id()`: Dynamically enriched partner store coordinates & image from `partner_profiles` and enriched address coordinates from `address_repository` if absent.
+       - `_enrich_rider()`: Queried `live_locations` collection for `rider:{rider_id}` to retrieve real-time live GPS telemetry (`latitude`, `longitude`, `heading`, `speedKmph`) and attach to `document["rider"]` and `document["riderLocation"]`.
+     - `app/api/maps.py`:
+       - `push_rider_location()`: Automatically resolved active order assigned to the rider if `orderId` is omitted, and updated both `live_locations` and `rider_profiles`.
+       - `read_rider_location()`: Returned `heading` and `speedKmph` with resilient fallback to `rider_profiles` if `live_locations` is empty.
+     - `app/services/socket_service.py`:
+       - `broadcast_rider_location()`: Emitted `rider.location`, `captain_location_update`, and `location.updated` to `order:{order_id}`, `rider:{rider_id}`, `admins`, and `realtime_bus`.
+   - **Shared Type Definitions (`shared` & `customer-frontend`):**
+     - `shared/src/types/order.ts` & `customer-frontend/src/shared/types/order.ts`:
+       - Updated `OrderAddress`, `OrderPartnerParty`, and `OrderRiderParty` with `latitude`, `longitude`, `lat`, `lng`, `heading`, `speed`.
+       - Added `riderLocation` to `Order` contract.
+     - `customer-frontend/src/api/customer/cart-api.ts`: Added `latitude` and `longitude` to `Address`.
+     - `customer-frontend/src/api/customer/order-api.ts`:
+       - Updated `OrderDetail` and `toOrderDetail()` to preserve `partner.latitude`, `partner.longitude`, `address.latitude`, `address.longitude`, and `riderLocation`.
+   - **Live Delivery Map Component (`LiveDeliveryMap.tsx`):**
+     - Implemented `hasInitialFitRef` so Leaflet `fitBounds` executes only once on map mount or coordinate initialization, completely eliminating viewport snapping/jitter during live rider movement.
+     - Upgraded rider marker with CSS transform transitions for smooth bike position interpolation and directional heading rotation (`transform: rotate(${heading}deg)`).
+     - Enhanced `handleRecenter()` with smooth Leaflet `flyToBounds` spanning all active entities (rider, destination, store) with 0.8s animation duration.
+   - **Customer Tracking Screen (`track.$orderId.tsx`):**
+     - Prioritized real customer address coordinates first (`detail.address.latitude`/`longitude`), followed by live device GPS (`navigator.geolocation`), and partner store coordinates.
+     - Prioritized real partner store coordinates (`detail.partner.latitude`/`longitude`).
+     - Added an automatic 5-second polling fallback to `/api/maps/live/rider/${riderId}` when the order is in active transit phases, seamlessly complementing WebSocket telemetry.
+
+3. **Verification & Testing Results:**
+   - Python compilation: PASSED (0 syntax or model errors).
+   - `customer-frontend` production build: PASSED (`vite build` exit code 0, 0 errors).
+   - `admin-frontend` production build: PASSED (`vite build` exit code 0, 0 errors).
+   - Real-world coordinates flow verified: Doorstep address, Partner Hub, and Rider live GPS accurately render on the tracking map.
+   - Commit Hash: `cc72f133`
+
+---
+
 ## Session: November 14, 2026 (Part 17)
 
 ### Permanent Decommissioning of Cashfree & 100% Consolidation into Razorpay as the Sole Official Payment Gateway

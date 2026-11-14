@@ -229,6 +229,12 @@ function TrackOrderScreen() {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [activeOrders, setActiveOrders] = useState<OrderDetail[]>([]);
   const [deviceLocation, setDeviceLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [polledRiderLoc, setPolledRiderLoc] = useState<{
+    lat: number;
+    lng: number;
+    heading?: number;
+    speed?: number;
+  } | null>(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -244,6 +250,51 @@ function TrackOrderScreen() {
       );
     }
   }, []);
+
+  // Polling fallback to keep rider location updated even if WebSocket is disconnected
+  useEffect(() => {
+    const riderId = detail?.rider?.id;
+    const status = (detail?.status || "").toLowerCase();
+    const isActivePhase = [
+      "pickup_rider_assigned",
+      "rider_assigned",
+      "pickup_rider_accepted",
+      "rider_accepted",
+      "picked_up",
+      "in_transit_store",
+      "delivery_rider_assigned",
+      "delivery_rider_accepted",
+      "out_for_delivery",
+    ].includes(status);
+
+    if (!riderId || !isActivePhase) return;
+
+    let alive = true;
+    const fetchLoc = async () => {
+      try {
+        const res = await fetch(`/api/maps/live/rider/${riderId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (alive && data && data.latitude && data.longitude) {
+          setPolledRiderLoc({
+            lat: Number(data.latitude),
+            lng: Number(data.longitude),
+            heading: data.heading !== undefined ? Number(data.heading) : undefined,
+            speed: data.speedKmph !== undefined ? Number(data.speedKmph) : undefined,
+          });
+        }
+      } catch {
+        // Silently ignore background poll errors
+      }
+    };
+
+    void fetchLoc();
+    const timer = setInterval(fetchLoc, 5000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [detail?.rider?.id, detail?.status]);
 
   /* GET /api/orders/{id} + /tracking — polled every 20s until the order is
      delivered or cancelled, so the timeline advances from real backend data. */
@@ -460,23 +511,23 @@ function TrackOrderScreen() {
               <div className="card-soft relative overflow-hidden border border-border">
                 <div className="relative min-h-[260px] bg-muted">
                   {(() => {
-                    const riderLat = live?.riderLocation?.lat ?? Number((detail as any)?.riderLocation?.lat ?? (detail as any)?.riderLocation?.latitude ?? (detail?.rider as any)?.location?.latitude ?? (detail?.rider as any)?.latitude);
-                    const riderLng = live?.riderLocation?.lng ?? Number((detail as any)?.riderLocation?.lng ?? (detail as any)?.riderLocation?.longitude ?? (detail?.rider as any)?.location?.longitude ?? (detail?.rider as any)?.longitude);
+                    const riderLat = live?.riderLocation?.lat ?? polledRiderLoc?.lat ?? Number((detail as any)?.riderLocation?.lat ?? (detail as any)?.riderLocation?.latitude ?? (detail?.rider as any)?.location?.latitude ?? (detail?.rider as any)?.latitude);
+                    const riderLng = live?.riderLocation?.lng ?? polledRiderLoc?.lng ?? Number((detail as any)?.riderLocation?.lng ?? (detail as any)?.riderLocation?.longitude ?? (detail?.rider as any)?.location?.longitude ?? (detail?.rider as any)?.longitude);
                     const hasRiderLocation = Boolean(riderLat && riderLng && !isNaN(riderLat) && !isNaN(riderLng));
 
-                    const partnerLat = Number((detail?.partner as any)?.latitude ?? (detail?.partner as any)?.location?.latitude);
-                    const partnerLng = Number((detail?.partner as any)?.longitude ?? (detail?.partner as any)?.location?.longitude);
+                    const partnerLat = Number((detail?.partner as any)?.latitude ?? (detail?.partner as any)?.lat ?? (detail?.partner as any)?.location?.latitude);
+                    const partnerLng = Number((detail?.partner as any)?.longitude ?? (detail?.partner as any)?.lng ?? (detail?.partner as any)?.location?.longitude);
                     const hasPartnerLocation = Boolean(partnerLat && partnerLng && !isNaN(partnerLat) && !isNaN(partnerLng));
 
-                    const custLat = Number((detail?.address as any)?.latitude);
-                    const custLng = Number((detail?.address as any)?.longitude);
+                    const custLat = Number((detail?.address as any)?.latitude ?? (detail?.address as any)?.lat);
+                    const custLng = Number((detail?.address as any)?.longitude ?? (detail?.address as any)?.lng);
                     const hasCustLocation = Boolean(custLat && custLng && !isNaN(custLat) && !isNaN(custLng));
 
                     // Use real-time device location if address coords are not yet populated
                     const effectiveCustLat = hasCustLocation ? custLat : (deviceLocation?.lat ?? partnerLat ?? 28.5355);
                     const effectiveCustLng = hasCustLocation ? custLng : (deviceLocation?.lng ?? partnerLng ?? 77.3910);
 
-                    const riderHeading = live?.riderLocation?.heading ?? (detail as any)?.riderLocation?.heading ?? (detail?.rider as any)?.heading;
+                    const riderHeading = live?.riderLocation?.heading ?? polledRiderLoc?.heading ?? (detail as any)?.riderLocation?.heading ?? (detail?.rider as any)?.heading;
 
                     const riderCoord = hasRiderLocation
                       ? {

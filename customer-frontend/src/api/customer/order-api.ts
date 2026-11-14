@@ -477,12 +477,31 @@ export type OrderDetail = {
   status: OrderLifecycleStatus;
   statusLabel: string;
   placedAt: string;
-  partner: { id: string; name: string; image: string; phone: string; city: string };
+  partner: {
+    id: string;
+    name: string;
+    image: string;
+    phone: string;
+    city: string;
+    latitude?: number;
+    longitude?: number;
+    lat?: number;
+    lng?: number;
+  };
   rider: OrderRider;
   pickup: { date: string; slot: string; express: boolean };
   delivery: { date: string; slot: string };
   deliveryEstimate: string;
-  address: { label: string; line: string; city: string; phone: string };
+  address: {
+    label: string;
+    line: string;
+    city: string;
+    phone: string;
+    latitude?: number;
+    longitude?: number;
+    lat?: number;
+    lng?: number;
+  };
   items: OrderItemLine[];
   totals: OrderSummary["totals"];
   payment: { label: string; note: string; paid: boolean; mode: string };
@@ -499,6 +518,15 @@ export type OrderDetail = {
   };
   garmentDefects?: GarmentDefect[];
   hasDefectsReported?: boolean;
+  riderLocation?: {
+    lat: number;
+    lng: number;
+    latitude?: number;
+    longitude?: number;
+    heading?: number;
+    speed?: number;
+    updatedAt?: string;
+  } | null;
 };
 
 export function toOrderDetail(order: Order): OrderDetail {
@@ -527,6 +555,10 @@ export function toOrderDetail(order: Order): OrderDetail {
           : store1,
       phone: partner.phone ?? "",
       city: partner.city ?? "",
+      latitude: (partner as any)?.latitude !== undefined ? Number((partner as any).latitude) : ((partner as any)?.lat !== undefined ? Number((partner as any).lat) : undefined),
+      longitude: (partner as any)?.longitude !== undefined ? Number((partner as any).longitude) : ((partner as any)?.lng !== undefined ? Number((partner as any).lng) : undefined),
+      lat: (partner as any)?.latitude !== undefined ? Number((partner as any).latitude) : ((partner as any)?.lat !== undefined ? Number((partner as any).lat) : undefined),
+      lng: (partner as any)?.longitude !== undefined ? Number((partner as any).longitude) : ((partner as any)?.lng !== undefined ? Number((partner as any).lng) : undefined),
     },
     rider: {
       assigned: Boolean(rider && (rider.id || rider.name || (rider as any).phone)),
@@ -538,12 +570,23 @@ export function toOrderDetail(order: Order): OrderDetail {
       avatar: (rider as any)?.avatar || (rider as any)?.photo || (rider as any)?.image || "",
       rating: Number(rider?.rating || 0),
       trips: rider?.trips ?? "—",
-      location: (rider as any)?.location ?? ((rider as any)?.latitude && (rider as any)?.longitude ? { latitude: (rider as any).latitude, longitude: (rider as any).longitude } : null),
+      latitude: (rider as any)?.latitude !== undefined ? Number((rider as any).latitude) : ((rider as any)?.lat !== undefined ? Number((rider as any).lat) : undefined),
+      longitude: (rider as any)?.longitude !== undefined ? Number((rider as any).longitude) : ((rider as any)?.lng !== undefined ? Number((rider as any).lng) : undefined),
+      location: (rider as any)?.location ?? ((rider as any)?.latitude && (rider as any)?.longitude ? { latitude: Number((rider as any).latitude), longitude: Number((rider as any).longitude) } : null),
     },
     pickup,
     delivery,
     deliveryEstimate: delivery?.date ? `${delivery.date} · ${delivery.slot || ""}` : "Scheduled",
-    address,
+    address: {
+      label: address.label || "Home",
+      line: address.line || "Doorstep Delivery",
+      city: address.city || "",
+      phone: address.phone || "",
+      latitude: (address as any)?.latitude !== undefined ? Number((address as any).latitude) : ((address as any)?.lat !== undefined ? Number((address as any).lat) : undefined),
+      longitude: (address as any)?.longitude !== undefined ? Number((address as any).longitude) : ((address as any)?.lng !== undefined ? Number((address as any).lng) : undefined),
+      lat: (address as any)?.latitude !== undefined ? Number((address as any).latitude) : ((address as any)?.lat !== undefined ? Number((address as any).lat) : undefined),
+      lng: (address as any)?.longitude !== undefined ? Number((address as any).longitude) : ((address as any)?.lng !== undefined ? Number((address as any).lng) : undefined),
+    },
     items: Array.isArray(order?.items) ? order.items : [],
     totals,
     payment: {
@@ -558,6 +601,19 @@ export function toOrderDetail(order: Order): OrderDetail {
     cancelledReason: order?.cancelledReason ?? null,
     invoice: { available: false, label: "Invoice will be available after delivery" },
     otp: (order as any)?.otp ?? (order as any)?.verificationOtp ?? undefined,
+    riderLocation: (order as any)?.riderLocation ?? (
+      (rider as any)?.latitude && (rider as any)?.longitude
+        ? {
+            lat: Number((rider as any).latitude),
+            lng: Number((rider as any).longitude),
+            latitude: Number((rider as any).latitude),
+            longitude: Number((rider as any).longitude),
+            heading: (rider as any)?.heading,
+            speed: (rider as any)?.speed,
+            updatedAt: (rider as any)?.updatedAt,
+          }
+        : null
+    ),
     garmentDefects: Array.isArray((order as any)?.garmentDefects)
       ? (order as any).garmentDefects
       : Array.isArray((order as any)?.garment_defects)

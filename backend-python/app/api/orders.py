@@ -98,6 +98,10 @@ async def place_order(
             line=saved.line,
             city=saved.cityLine,
             phone=saved.phone,
+            latitude=saved.latitude,
+            longitude=saved.longitude,
+            lat=saved.latitude,
+            lng=saved.longitude,
         )
 
     if payload.delivery is None:
