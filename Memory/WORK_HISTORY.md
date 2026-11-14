@@ -1,5 +1,41 @@
 # QuickPress — Engineering Work History
 
+## Session: November 14, 2026 (Part 12)
+
+### Universal Brand Social Media Harmonization (Facebook & Instagram) Across All Digital Touchpoints
+
+1. **Context & User Request:**
+   - User directive:
+     *"ye raha face book har jagha ye update kar do https://www.facebook.com/with.quickpress ye instagram ye hai https://www.instagram.com/with.quickpress upadate karo"*
+   - Scope: Standardize QuickPress official brand social handles across all web properties, CMS database seed repositories, JSON-LD Schema.org graphs, rider promotional cards, LLM knowledge files, and contact hubs:
+     - **Official Facebook:** `https://www.facebook.com/with.quickpress`
+     - **Official Instagram:** `https://www.instagram.com/with.quickpress`
+
+2. **Engineering Solutions Delivered:**
+   - **Main Website Footer (`website/src/components/Footer.tsx`):**
+     - Updated Facebook link from legacy `https://facebook.com/quickpress` to `https://www.facebook.com/with.quickpress`.
+     - Standardized Instagram link from trailing-slash variant to `https://www.instagram.com/with.quickpress`.
+   - **Schema.org Structured Data (`website/index.html`):**
+     - Updated `DryCleaningOrLaundry` organization `sameAs` array with both official URLs (`https://www.facebook.com/with.quickpress` and `https://www.instagram.com/with.quickpress`).
+   - **Contact Hub & Official Channels (`website/src/pages/ContactPage.tsx`):**
+     - Added dedicated `IconFacebook` SVG component.
+     - Added styled "Official Social" brand row linking to QuickPress Facebook & Instagram with brand color hover states, distinct from the personal Founder Desk handles.
+   - **Backend CMS Seed Settings (`backend-python/app/db/cms_repositories.py`):**
+     - Updated `WEBSITE_SETTINGS_SEED["socialLinks"]["instagram"]` to `https://www.instagram.com/with.quickpress`.
+     - Updated `WEBSITE_SETTINGS_SEED["socialLinks"]["facebook"]` to `https://www.facebook.com/with.quickpress`.
+   - **Rider Community Promotion Cards (`backend-python/app/api/promotions.py` & `rider-frontend/src/api/rider/promotions-api.ts`):**
+     - Updated Rider Community story cards' `ctaAction` from generic root to `https://www.instagram.com/with.quickpress`.
+   - **Customer Web App Person & Org Schema (`customer-frontend/src/routes/about.tsx`):**
+     - Added official QuickPress `sameAs` array (`https://www.facebook.com/with.quickpress`, `https://www.instagram.com/with.quickpress`) to the Organization schema under `worksFor`.
+   - **AI Engine Grounding (`llms.txt` & `llms-full.txt` across website & customer app):**
+     - Added official Facebook and Instagram links to LLM context files for automated search and AI assistant indexing.
+
+3. **Verification & Testing Results:**
+   - Git grep audit verified 100% brand consistency: every brand Facebook is `https://www.facebook.com/with.quickpress` and every brand Instagram is `https://www.instagram.com/with.quickpress` (founder personal accounts maintained on Founder Desk).
+   - Production bundle builds for `website`, `customer-frontend`, `rider-frontend`, `partner-frontend`, and `admin-frontend` all compiled with exit code 0.
+
+---
+
 ## Session: November 14, 2026 (Part 11)
 
 ### Permanent Elimination of Nitro H3 500 Unhandled JSON Error on ops.withquickpress.com & Zero-Throw Client Redirection

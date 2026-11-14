@@ -44,3 +44,4 @@ export default function errorHandler(error: unknown, event: H3Event) {
     }
   );
 }
+

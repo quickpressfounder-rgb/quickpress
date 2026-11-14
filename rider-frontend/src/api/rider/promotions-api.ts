@@ -48,7 +48,7 @@ export const FALLBACK_RIDER_STORIES: RiderStoryItem[] = [
       "Watch daily tips & earnings hacks by top riders",
     ],
     ctaText: "Follow on Instagram →",
-    ctaAction: "https://instagram.com",
+    ctaAction: "https://www.instagram.com/with.quickpress",
     actionType: "external_link",
   },
   {

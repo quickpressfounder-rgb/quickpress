@@ -56,7 +56,11 @@ export const Route = createFileRoute("/about")({
             "worksFor": {
               "@type": "Organization",
               "name": "QuickPress",
-              "url": "https://withquickpress.com"
+              "url": "https://withquickpress.com",
+              "sameAs": [
+                "https://www.facebook.com/with.quickpress",
+                "https://www.instagram.com/with.quickpress"
+              ]
             },
             "alumniOf": "Suraj Prasad Daga Saraswati Vidya Mandir, Kasganj",
             "birthPlace": {

@@ -664,9 +664,9 @@ WEBSITE_SETTINGS_SEED: Dict[str, Any] = {
     "appStoreAvailable": False,
     "playStoreAvailable": True,
     "socialLinks": {
-        "instagram": "https://instagram.com/quickpress",
+        "instagram": "https://www.instagram.com/with.quickpress",
         "twitter": "https://twitter.com/quickpress",
-        "facebook": "https://facebook.com/quickpress",
+        "facebook": "https://www.facebook.com/with.quickpress",
         "linkedin": "https://linkedin.com/company/quickpress"
     },
     "seo": {

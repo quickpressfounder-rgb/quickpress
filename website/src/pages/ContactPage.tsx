@@ -123,6 +123,12 @@ const IconInstagram = ({ className = "w-4 h-4" }: { className?: string }) => (
   </svg>
 );
 
+const IconFacebook = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+
 const IconLinkedIn = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
@@ -775,6 +781,34 @@ export function ContactPage({
                 <p className="text-xs text-zinc-700 leading-relaxed font-sans font-medium">
                   0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India
                 </p>
+              </div>
+
+              {/* Official QuickPress Social Channels */}
+              <div className="pt-2 border-t border-zinc-100 flex items-center justify-between text-xs font-mono">
+                <span className="text-zinc-500">Official Social:</span>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://www.facebook.com/with.quickpress"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-black font-bold hover:text-[#1877f2] transition-colors flex items-center gap-1"
+                    title="QuickPress on Facebook"
+                  >
+                    <IconFacebook className="w-3.5 h-3.5 text-[#1877f2]" />
+                    <span>Facebook</span>
+                  </a>
+                  <span className="text-zinc-300">•</span>
+                  <a
+                    href="https://www.instagram.com/with.quickpress"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-black font-bold hover:text-[#e1306c] transition-colors flex items-center gap-1"
+                    title="QuickPress on Instagram"
+                  >
+                    <IconInstagram className="w-3.5 h-3.5 text-[#e1306c]" />
+                    <span>Instagram</span>
+                  </a>
+                </div>
               </div>
 
               {/* Direct Founder Desk Handles */}

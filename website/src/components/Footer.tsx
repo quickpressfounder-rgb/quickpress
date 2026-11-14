@@ -208,7 +208,7 @@ export function Footer({
                 },
                 {
                   name: "Instagram",
-                  href: "https://www.instagram.com/with.quickpress/",
+                  href: "https://www.instagram.com/with.quickpress",
                   icon: <IconInstagram className="w-3.5 h-3.5 text-black" />,
                 },
                 {
@@ -218,7 +218,7 @@ export function Footer({
                 },
                 {
                   name: "Facebook",
-                  href: "https://facebook.com/quickpress",
+                  href: "https://www.facebook.com/with.quickpress",
                   icon: <IconFacebook className="w-3.5 h-3.5 text-black" />,
                 },
                 {

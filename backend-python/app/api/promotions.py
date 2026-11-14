@@ -51,7 +51,7 @@ DEFAULT_STORIES: List[Dict[str, Any]] = [
             "Watch daily tips & earnings hacks by top riders",
         ],
         "ctaText": "Follow on Instagram ➔",
-        "ctaAction": "https://instagram.com",
+        "ctaAction": "https://www.instagram.com/with.quickpress",
         "actionType": "external_link",
         "audience": "riders",
         "priority": 1,
