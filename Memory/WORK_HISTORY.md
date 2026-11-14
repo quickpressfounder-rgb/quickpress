@@ -35,6 +35,7 @@
 3. **Verification & Testing Results:**
    - Client & server production bundle verified: `npm run build` completed with code 0 (2,725 modules transformed into Nitro production server artifacts).
    - Pushed commit: `88c173da` (`feat(staff): eliminate intermediate auth card and add granular view edit delete rbac permissions`).
+   - Pushed commit: `a47cc113` (`fix(ssr): disable ssr on client routes to eliminate 500 error on ops root ingress`).
 
 ---
 
