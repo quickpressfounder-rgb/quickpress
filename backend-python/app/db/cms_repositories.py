@@ -533,6 +533,135 @@ QuickPress strictly prohibits unfair trade practices, misleading advertisements,
                 "content": "..."
             }
         ]
+    },
+    "garment-care-policy": {
+        "_id": "garment-care-policy",
+        "title": "Garment Care, Fabric Risk & Loss Policy",
+        "slug": "garment-care-policy",
+        "currentVersion": "1.0",
+        "effectiveDate": "2026-08-25",
+        "status": "published",
+        "publishedAt": "2026-08-25T00:00:00Z",
+        "publishedBy": "QuickPress Legal Desk",
+        "summary": "Governs fabric preservation protocols, customer pocket clearing duties, color fastness disclaimers, statutory 10x compensation caps, and 30-day unclaimed garment rules under the Indian Contract Act, 1872.",
+        "content": """# QuickPress Garment Care, Fabric Risk & Loss Liability Policy
+
+**Effective Date:** 25 August 2026  
+**Last Updated:** 25 August 2026  
+**Version:** 1.0  
+**Statutory Authority:** Indian Contract Act, 1872 (Sections 148, 151, 152 — Law of Bailment)
+
+QuickPress ("Company", "we", "us") and our certified laundromat store partners provide professional doorstep garment care services. This Garment Care and Fabric Risk Policy defines the standard of care, customer duties, and statutory liability boundaries for all laundry, steam ironing, and dry cleaning orders.
+
+---
+
+## 1. European Eco-Solvent & Water Standards
+- **RO Water Purification:** Wash cycles are executed using softened reverse-osmosis (RO) water with TDS < 50 ppm to prevent fabric encrustation and fiber brittleness.
+- **Hypoallergenic Formulations:** Detergents are eco-certified, pH-neutral, and free of hazardous phosphates.
+- **Hydrocarbon Solvents:** Premium dry cleaning utilizes closed-loop KWL hydrocarbon eco-solvents that safeguard delicate natural silks, zari embroidery, and woolens without chlorinated perchloroethylene hazards.
+
+---
+
+## 2. Customer Duty to Clear Pockets & Valuables
+Customers bear a strict, non-delegable duty to check and empty all pockets, concealed linings, and cuffs prior to handing garments over to the delivery captain.
+- QuickPress, its logistics contractors, and processing facilities assume **zero financial or legal liability** for cash, currency notes, coins, debit/credit cards, jewelry, watches, keys, pens, electronics, or foreign objects left inside clothes.
+- Any damage caused to other garments by sharp foreign objects or ink pens left in a customer's own pockets remains the customer's sole responsibility.
+
+---
+
+## 3. Pre-Existing Defects & Natural Wear
+While captains and stores perform visual intake inspection, QuickPress is not liable for:
+1. Normal wear-and-tear, fabric thinning, microscopic tears, or moth holes accelerated during machine cycles.
+2. Sun fading, perspiration yellowing, or chemical burn resulting from home bleach, deodorants, or perfumes.
+3. Loosening or loss of buttons, decorative pearls, sequins, or appliques affixed with non-permanent, heat-labile adhesives.
+
+---
+
+## 4. Color Fastness & Bleed Disclaimer
+Fabrics with unstable, fugitive, or natural vegetable dyes (such as certain bandhani, sanganeri block prints, handlooms, and un-fixed raw silks) may bleed in water.
+- Customers must declare color-bleeding tendencies during order placement or handover.
+- While our store partners wash color-sensitive items separately, QuickPress cannot guarantee zero color release if the garment manufacturer failed to fix the dye industrially.
+
+---
+
+## 5. Statutory Liability Limitation (10x Cap / Maximum ₹3,000)
+In the verified event of physical damage or loss directly attributable to our proven operational negligence:
+- Maximum compensation is statutory and strictly capped at **up to 10 times the individual cleaning fee charged for that specific garment** or **₹3,000 per piece**, whichever is lower.
+- For couture, designer, or heirloom items valued in excess of ₹10,000, customers must declare the item value prior to pickup and purchase **Premium Care Transit Insurance**.
+- All claims must be reported within **24 hours of delivery** through the QuickPress app or email with clear photographic evidence.
+
+---
+
+## 6. Unclaimed Garments (30-Day Rule)
+Cleaned garments held in our warehouses that remain unclaimed due to customer unavailability, non-response, or refusal to accept delivery after **3 formal written notices (SMS, WhatsApp, Email) over 30 calendar days**, will be responsibly donated to registered charitable institutions or disposed of to recover warehouse storage costs.
+""",
+        "versions": [
+            {
+                "version": "1.0",
+                "status": "published",
+                "publishedAt": "2026-08-25T00:00:00Z",
+                "publishedBy": "QuickPress Legal Desk",
+                "changeLog": "Initial statutory garment care policy.",
+                "content": "..."
+            }
+        ]
+    },
+    "cookie-policy": {
+        "_id": "cookie-policy",
+        "title": "Cookie & Tracking Technologies Policy",
+        "slug": "cookie-policy",
+        "currentVersion": "1.0",
+        "effectiveDate": "2026-08-25",
+        "status": "published",
+        "publishedAt": "2026-08-25T00:00:00Z",
+        "publishedBy": "QuickPress Legal Desk",
+        "summary": "Explains how QuickPress uses essential cookies, local storage, analytics telemetry, and user opt-out controls in compliance with the DPDP Act, 2023.",
+        "content": """# QuickPress Cookie & Tracking Technologies Policy
+
+**Effective Date:** 25 August 2026  
+**Last Updated:** 25 August 2026  
+**Version:** 1.0  
+**Statutory Alignment:** Digital Personal Data Protection Act, 2023 (DPDP Act)
+
+QuickPress Technologies Private Limited ("QuickPress", "we", "us") utilizes cookies, pixel tags, web beacons, and browser LocalStorage across our website ([https://withquickpress.com](https://withquickpress.com)) and progressive web applications.
+
+---
+
+## 1. What Are Cookies?
+Cookies are compact text files stored on your computer or mobile device when you access our digital properties. They enable session authentication, remember user preferences, maintain active checkout carts, and analyze platform performance.
+
+---
+
+## 2. Categories of Cookies Used
+1. **Strictly Necessary Cookies:** Essential for session login, CSRF attack defense, JWT validation, and cart persistence. The platform cannot function securely without these cookies.
+2. **Functional & Preference Storage:** Retains selected display language (English/Hindi), delivery addresses, and UI theme options.
+3. **Performance & Analytics Telemetry:** Privacy-friendly, cookieless metrics (Plausible Analytics) to detect slow page loads, route crashes, and API latencies without tracking users across third-party websites.
+4. **Attribution & Marketing:** Validates promotional discount codes, referral coupons, and app install campaign attribution. QuickPress **never sells** user data to third-party data brokers or advertising networks.
+
+---
+
+## 3. LocalStorage & Offline Tokens
+To provide high-speed mobile web responsiveness, QuickPress caches encrypted keys in your device's browser LocalStorage:
+- `quickpress_token`: Encrypted session authentication credential.
+- `quickpress_cart`: Offline laundry cart items and services.
+- `quickpress_lang`: Selected language preference (`en` or `hi`).
+- `cookie_consent_choice`: User cookie acknowledgment timestamp.
+
+---
+
+## 4. User Cookie Controls & Opt-Out
+You can alter or disable cookies at any time via your browser settings (Chrome, Safari, Edge, Firefox). Please note that disabling strictly necessary session cookies will prevent login and checkout functionalities.
+""",
+        "versions": [
+            {
+                "version": "1.0",
+                "status": "published",
+                "publishedAt": "2026-08-25T00:00:00Z",
+                "publishedBy": "QuickPress Legal Desk",
+                "changeLog": "Initial DPDP-compliant cookie policy.",
+                "content": "..."
+            }
+        ]
     }
 }
 

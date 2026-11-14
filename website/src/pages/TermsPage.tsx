@@ -15,7 +15,14 @@ import {
 
 const GREEN = "#004724";
 
-type LegalTab = "terms" | "refund" | "pickup" | "grievance" | "partner";
+type LegalTab =
+  | "terms"
+  | "refund"
+  | "garment-care"
+  | "pickup"
+  | "cookie"
+  | "grievance"
+  | "partner";
 
 interface TabConfig {
   id: LegalTab;
@@ -38,10 +45,22 @@ const TABS: TabConfig[] = [
     subtitle: "Refund Timelines, Cancellation Windows & Fees",
   },
   {
+    id: "garment-care",
+    label: "Garment Care & Liability",
+    badge: "Fabric Standards",
+    subtitle: "Stain Removal, Pre-Existing Defects & 10x Compensation Cap",
+  },
+  {
     id: "pickup",
     label: "Pickup & Delivery",
     badge: "Logistics Policy",
     subtitle: "OTP Verification, Safe Custody & Transit Standards",
+  },
+  {
+    id: "cookie",
+    label: "Cookie & Tracking",
+    badge: "Data Telemetry",
+    subtitle: "Session Storage, Cookies & User Tracking Safeguards",
   },
   {
     id: "grievance",
@@ -60,12 +79,47 @@ const TABS: TabConfig[] = [
 export function TermsPage({
   onNavigate,
   onOpenModal,
+  initialTab,
 }: {
   onNavigate: (page: PageType) => void;
   onOpenModal: (type: ModalType) => void;
+  initialTab?: LegalTab;
 }) {
-  const [activeTab, setActiveTab] = useState<LegalTab>("terms");
+  const getInitialTab = (): LegalTab => {
+    if (initialTab) return initialTab;
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash.replace(/^#/, "").toLowerCase();
+      const path = window.location.pathname.replace(/^\//, "").toLowerCase();
+      const target = hash || path;
+      if (target === "refund" || target === "cancellation-refund-policy" || target === "refund-policy") return "refund";
+      if (target === "garment-care" || target === "garment-care-policy" || target === "fabric-care" || target === "garment") return "garment-care";
+      if (target === "pickup" || target === "delivery" || target === "logistics") return "pickup";
+      if (target === "cookie" || target === "cookie-policy" || target === "cookies") return "cookie";
+      if (target === "grievance" || target === "grievance-redressal" || target === "nodal") return "grievance";
+      if (target === "partner" || target === "partner-standards" || target === "merchant-code") return "partner";
+      if (target === "terms" || target === "terms-of-service") return "terms";
+    }
+    return "terms";
+  };
+
+  const [activeTab, setActiveTab] = useState<LegalTab>(getInitialTab);
+  const [lang, setLang] = useState<"en" | "hi">("en");
   const [searchFilter, setSearchFilter] = useState("");
+
+  React.useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash.replace(/^#/, "").toLowerCase();
+      if (hash === "refund" || hash === "cancellation-refund-policy") setActiveTab("refund");
+      else if (hash === "garment-care" || hash === "garment-care-policy" || hash === "fabric-care") setActiveTab("garment-care");
+      else if (hash === "pickup" || hash === "delivery") setActiveTab("pickup");
+      else if (hash === "cookie" || hash === "cookie-policy") setActiveTab("cookie");
+      else if (hash === "grievance" || hash === "grievance-redressal") setActiveTab("grievance");
+      else if (hash === "partner" || hash === "partner-standards") setActiveTab("partner");
+      else if (hash === "terms" || hash === "terms-of-service") setActiveTab("terms");
+    };
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
+  }, []);
 
   const handlePrint = () => {
     if (typeof window !== "undefined") {
@@ -100,6 +154,29 @@ export function TermsPage({
           <span><strong>Email:</strong> official.quickpress@gmail.com</span>
           <span className="text-gray-300">•</span>
           <span><strong>Registered Office:</strong> 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India</span>
+        </div>
+
+        {/* Bilingual Language Switch */}
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <span className="text-xs text-gray-500 font-medium">Notice Language / भाषा:</span>
+          <div className="inline-flex rounded-xl bg-gray-100 p-1 border border-gray-200">
+            <button
+              onClick={() => setLang("en")}
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                lang === "en" ? "bg-white text-emerald-950 shadow-xs" : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              English
+            </button>
+            <button
+              onClick={() => setLang("hi")}
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                lang === "hi" ? "bg-emerald-600 text-white shadow-xs" : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              हिन्दी (Hindi)
+            </button>
+          </div>
         </div>
       </section>
 
@@ -166,6 +243,19 @@ export function TermsPage({
               <p>Jurisdiction: <strong>Uttar Pradesh, India</strong></p>
             </div>
           </div>
+
+          {/* Statutory Hindi Overview Card when Hindi is selected */}
+          {lang === "hi" && (
+            <div className="p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-300 text-xs text-emerald-950 space-y-2">
+              <div className="flex items-center gap-2 font-bold text-emerald-900 text-sm">
+                <IconShield className="w-4 h-4 text-emerald-700" />
+                <span>वैधानिक हिंदी सारांश — QuickPress कानूनी नियम</span>
+              </div>
+              <p className="leading-relaxed">
+                यह दस्तावेज़ भारतीय अनुबंध अधिनियम, 1872, सूचना प्रौद्योगिकी अधिनियम, 2000 और उपभोक्ता संरक्षण (ई-कॉमर्स) नियम, 2020 के तहत कानूनी रूप से बाध्यकारी है। क्विकप्रेस आपके कपड़ों की सुरक्षित धुलाई, पारदर्शिता और त्वरित शिकायत निवारण के लिए वचनबद्ध है।
+              </p>
+            </div>
+          )}
 
           {/* ═════════════════════════════════════════════════════════════════════ */}
           {/* TAB 1: TERMS OF SERVICE                                              */}
@@ -376,6 +466,96 @@ export function TermsPage({
           )}
 
           {/* ═════════════════════════════════════════════════════════════════════ */}
+          {/* TAB: GARMENT CARE, FABRIC RISK & LOSS LIABILITY POLICY                */}
+          {/* ═════════════════════════════════════════════════════════════════════ */}
+          {activeTab === "garment-care" && (
+            <div className="space-y-8 text-sm text-gray-700 leading-relaxed">
+              {lang === "hi" && (
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-950 space-y-1">
+                  <p className="font-bold">⚠️ महत्वपूर्ण वस्त्र सुरक्षा व क्षतिपूर्ति नियम:</p>
+                  <p>कपड़ों की जेबें पहले ही खाली कर लें। रंग छूटने वाले कपड़ों की जानकारी बुकिंग के समय दें। किसी भी नुकसान की स्थिति में अधिकतम भरपाई सर्विस चार्ज का 10 गुना या ₹3,000 (जो भी कम हो) देय होगी। 30 दिन तक न लिए गए लावारिस कपड़ों का दान या निस्तारण कर दिया जाएगा।</p>
+                </div>
+              )}
+
+              <section className="space-y-3">
+                <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">1</span>
+                  <span>Fabric Care Standards & European Hydrocarbon Protocols</span>
+                </h3>
+                <p>
+                  QuickPress and its authorized partner laundromats operate under certified European textile processing protocols. We utilize <strong>purified soft RO water</strong> (TDS &lt; 50 ppm), pH-neutral eco-friendly detergents, and specialized KWL hydrocarbon dry cleaning solvents engineered to preserve delicate textile fibers, woolens, zari embroidery, and natural silks.
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">2</span>
+                  <span>Customer Mandatory Duty — Pockets & Personal Valuables</span>
+                </h3>
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-950 space-y-2">
+                  <p className="font-bold">⚠️ Strict Pocket Evacuation Mandate:</p>
+                  <p>
+                    Customers are strictly required to inspect and empty all pockets, linings, and concealed compartments before handing garments over to the delivery captain. QuickPress, our logistics partners, and merchant facilities accept <strong>zero legal or financial liability</strong> for currency, coins, jewelry, precious metals, watches, pens, credit/debit cards, identification documents, or keys left inside garments.
+                  </p>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">3</span>
+                  <span>Pre-Existing Wear, Tears & Manufacturer Defects</span>
+                </h3>
+                <p>
+                  QuickPress performs visual intake checks, but cannot be held liable for:
+                </p>
+                <ul className="list-disc pl-5 space-y-1.5 text-xs sm:text-sm">
+                  <li>Pre-existing fabric thinning, moth holes, microscopic tears, or dry rot accelerated by normal water or solvent movement.</li>
+                  <li>Sun fading, age-related discoloration, or chemical burn from domestic bleach, perfume, or deodorant sprays.</li>
+                  <li>Loose buttons, failing zippers, decorative beads, sequins, or sequins applied with heat-sensitive adhesives.</li>
+                </ul>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">4</span>
+                  <span>Color Fastness & Bleed Disclaimer</span>
+                </h3>
+                <p>
+                  Certain natural handlooms, block-printed cottons, raw silks, bandhani, and artisanal garments possess unstable or vegetable dyes that may release color in water. Customers are obligated to declare non-colorfast garments during booking. While our experts segregate color-sensitive garments, we cannot guarantee zero color bleed if fabrics are manufactured without standard industrial fixation.
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">5</span>
+                  <span>Statutory Liability Limitation (10x Cap / Max ₹3,000)</span>
+                </h3>
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 space-y-2">
+                  <p className="font-bold">Indian Contract Act, 1872 (Section 151 & 152 Bailment Compliance):</p>
+                  <p>
+                    In the extraordinary and verified event of physical damage or loss directly attributable to our operational negligence:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Maximum compensation is capped at <strong>10 times the individual cleaning fee</strong> charged for that specific garment or <strong>₹3,000 per piece</strong>, whichever is lower.</li>
+                    <li>For luxury, designer, or couture garments with a market valuation exceeding ₹10,000, customers must declare the item and opt for <strong>Premium Care Transit Insurance</strong> prior to pickup.</li>
+                    <li>All claims must be submitted with photographic evidence within <strong>24 hours of delivery</strong>.</li>
+                  </ul>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">6</span>
+                  <span>Unclaimed Garments Disposal (30-Day Statutory Rule)</span>
+                </h3>
+                <p>
+                  Cleaned garments held in our fulfillment warehouses that remain unclaimed due to customer unavailability, non-response, or refusal to take delivery after <strong>3 formal written notices (SMS, WhatsApp, Email) across a period of 30 calendar days</strong>, will be responsibly donated to registered charitable institutions or disposed of to recover warehouse custody costs.
+                </p>
+              </section>
+            </div>
+          )}
+
+          {/* ═════════════════════════════════════════════════════════════════════ */}
           {/* TAB 3: PICKUP & DELIVERY POLICY                                      */}
           {/* ═════════════════════════════════════════════════════════════════════ */}
           {activeTab === "pickup" && (
@@ -427,6 +607,96 @@ export function TermsPage({
                 </h3>
                 <p>
                   If a customer is unreachable during a scheduled delivery window, our team makes up to <strong>2 complimentary re-attempt deliveries</strong>. If delivery cannot be completed after 2 attempts, garments are transferred to our secure Central Master Logistics Hub (Bilram Gate Kasganj / Noida Hub) where they are held in sealed safe custody for up to <strong>14 calendar days</strong>.
+                </p>
+              </section>
+            </div>
+          )}
+
+          {/* ═════════════════════════════════════════════════════════════════════ */}
+          {/* TAB: COOKIE, TRACKING & DATA TELEMETRY POLICY                        */}
+          {/* ═════════════════════════════════════════════════════════════════════ */}
+          {activeTab === "cookie" && (
+            <div className="space-y-8 text-sm text-gray-700 leading-relaxed">
+              {lang === "hi" && (
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 space-y-1">
+                  <p className="font-bold">🍪 कुकी एवं डेटा ट्रैकिंग नीति:</p>
+                  <p>हम आपकी लॉगिन सुरक्षा, शॉपिंग कार्ट और ऐप की स्पीड बनाए रखने के लिए आवश्यक कुकीज़ का उपयोग करते हैं। हम आपका व्यक्तिगत डेटा किसी भी तीसरे पक्ष के एड नेटवर्क को नहीं बेचते हैं। आप ब्राउज़र सेटिंग्स से कुकीज़ नियंत्रित कर सकते हैं।</p>
+                </div>
+              )}
+
+              <section className="space-y-3">
+                <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">1</span>
+                  <span>Scope & Technologies Employed</span>
+                </h3>
+                <p>
+                  This Cookie Policy explains how <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> utilizes cookies, web beacons, pixel tags, LocalStorage, and IndexedDB across our website (<a href="https://withquickpress.com" className="text-emerald-700 underline font-mono">withquickpress.com</a>) and progressive web applications, in alignment with India's <strong>Digital Personal Data Protection Act, 2023 (DPDP Act)</strong>.
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">2</span>
+                  <span>Categorization of Cookies & Client Storage</span>
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-1.5">
+                    <span className="text-[10px] font-black uppercase text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">Always Active</span>
+                    <h4 className="font-bold text-xs uppercase text-gray-950">1. Strictly Necessary Cookies</h4>
+                    <p className="text-xs text-gray-600">
+                      Essential for authentication, CSRF attack defense, JWT bearer validation, and preserving active cart items during checkout. These cannot be disabled.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-1.5">
+                    <span className="text-[10px] font-black uppercase text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full">Preferences</span>
+                    <h4 className="font-bold text-xs uppercase text-gray-950">2. Functional Storage</h4>
+                    <p className="text-xs text-gray-600">
+                      Stores language preference (English/Hindi), chosen pickup addresses, and UI theme options to ensure a frictionless return visit.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-1.5">
+                    <span className="text-[10px] font-black uppercase text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full">Performance</span>
+                    <h4 className="font-bold text-xs uppercase text-gray-950">3. Analytics & Speed Telemetry</h4>
+                    <p className="text-xs text-gray-600">
+                      Cookieless, privacy-preserving event telemetry (Plausible Analytics) to detect slow page loads, route errors, and API latencies without tracking across websites.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-1.5">
+                    <span className="text-[10px] font-black uppercase text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">Marketing</span>
+                    <h4 className="font-bold text-xs uppercase text-gray-950">4. Attribution & Referrals</h4>
+                    <p className="text-xs text-gray-600">
+                      Validates promotional discount codes, referral links, and app install attribution. We do not sell tracking profiles to third-party ad brokers.
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">3</span>
+                  <span>LocalStorage & Device Token Usage</span>
+                </h3>
+                <p>
+                  For enhanced performance on progressive web applications (PWAs), QuickPress saves the following in your device's browser LocalStorage:
+                </p>
+                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs font-mono text-gray-700 space-y-1">
+                  <p>• <strong>quickpress_token:</strong> Secure encrypted authentication session token.</p>
+                  <p>• <strong>quickpress_cart:</strong> Offline-capable cached garment laundry cart.</p>
+                  <p>• <strong>quickpress_lang:</strong> Selected statutory display language (`en` or `hi`).</p>
+                  <p>• <strong>cookie_consent_choice:</strong> Timestamped record of user cookie banner acknowledgment.</p>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">4</span>
+                  <span>User Rights & How to Control Cookies</span>
+                </h3>
+                <p>
+                  You may alter your cookie preferences at any time through your web browser settings (Chrome, Safari, Edge, Firefox). You can delete all cached data or configure your browser to reject third-party cookies. Please note that disabling strictly necessary cookies may restrict access to checkout and order tracking features.
                 </p>
               </section>
             </div>

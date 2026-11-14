@@ -140,6 +140,26 @@ export default function App() {
         return;
       }
 
+      // 4. Statutory Legal Page Direct Routing
+      if (
+        target === "refund" ||
+        target === "cancellation-refund-policy" ||
+        target === "refund-policy" ||
+        target === "garment-care" ||
+        target === "garment-care-policy" ||
+        target === "fabric-care" ||
+        target === "pickup" ||
+        target === "cookie" ||
+        target === "cookie-policy" ||
+        target === "grievance" ||
+        target === "grievance-redressal" ||
+        target === "nodal" ||
+        target === "partner-standards"
+      ) {
+        setCurrentPage("terms");
+        return;
+      }
+
       const validPages: PageType[] = [
         "home",
         "about",

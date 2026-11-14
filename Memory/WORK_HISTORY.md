@@ -1,5 +1,49 @@
 # QuickPress — Engineering Work History
 
+## Session: November 14, 2026 (Part 15)
+
+### Complete Legal Pages Suite Architecture Integration & Verification Across Website, Customer App, Backend API, and Admin Console
+
+1. **Context & User Request:**
+   - User directive:
+     *"AB ISKE ANDER KON KON SE LEGAL PAGE LAGANE HAI LIST BANAO /plan"*
+   - Scope: Formulate the exhaustive statutory legal pages inventory required under Indian Law (DPDP Act 2023, Consumer Protection E-Commerce Rules 2020, IT Act 2000, and Indian Contract Act 1872). Implement missing policies (Garment Care & Fabric Risk Policy, Cookie & Tracking Policy, bilingual Hindi accessibility, native Customer App navigation, Backend CMS seeds, and Admin Policy URL management).
+
+2. **Engineering Solutions Delivered:**
+   - **Public Website (`website/src/pages/TermsPage.tsx`, `Footer.tsx`, `App.tsx`):**
+     - Expanded `LegalTab` union to include `garment-care` and `cookie`.
+     - Integrated bilingual `[English | हिन्दी]` language switch with statutory Hindi summary badges.
+     - Added comprehensive **Garment Care, Fabric Risk & Loss Liability Policy**:
+       - European KWL hydrocarbon and RO soft water standards.
+       - Mandatory pocket clearing duty (zero liability for cash, jewellery, keys).
+       - Pre-existing defects and natural wear disclaimer.
+       - Color fastness and vegetable dye bleed disclaimer.
+       - Indian Contract Act 1872 bailment liability cap: Maximum 10x cleaning fee or ₹3,000 per piece.
+       - 30-day disposal/donation rule for unclaimed garments.
+     - Added comprehensive **Cookie, Tracking Technologies & Data Telemetry Policy**:
+       - Strictly necessary session cookies, functional localStorage keys (`quickpress_token`, `quickpress_cart`, `quickpress_lang`), privacy-preserving telemetry, and browser opt-out controls.
+     - Updated Footer to directly route to tabs via hash (`#terms`, `#refund`, `#garment-care`, `#pickup`, `#cookie`, `#grievance`).
+     - Added clean URL mapping in `App.tsx` for `/refund`, `/garment-care`, `/cookie`, `/grievance`.
+   - **Customer Web & Mobile App (`customer-frontend/src/routes/legal.$docSlug.tsx`, `AboutPage.tsx`):**
+     - Added titles and website anchor mapping for `garment-care-policy` and `cookie-policy`.
+     - Updated `AboutPage` to feature native in-app navigation routes for Privacy Policy (DPDP 2023), Terms of Service, Cancellation & Refunds, Garment Care & Fabric Risk Policy, Cookie & Tracking Policy, and Grievance Redressal Desk.
+   - **Backend API & CMS Seeds (`backend-python`):**
+     - Added full legal document seeds for `garment-care-policy` and `cookie-policy` in `LEGAL_DOCS_SEED` in `cms_repositories.py`.
+     - Added aliases for `garment-care-policy`, `garment-care`, `fabric-care`, `cookie-policy`, `cookie`, `cookies` in `app/api/public.py`.
+     - Added `get_collection` compatibility method on `Database` class in `app/db/client.py`.
+     - Added and passed automated Pytest assertions in `tests/test_public_website_cms.py`.
+   - **Admin Console (`admin-frontend/src/routes/settings.tsx`):**
+     - Added Garment Care & Fabric Risk Policy URL and Cookie & Tracking Policy URL inspection cards in Legal Policies & SLAs tab with direct live verification links.
+
+3. **Verification & Testing Results:**
+   - `website` production build: PASSED in 1.15s (exit code 0).
+   - `customer-frontend` production build: PASSED (exit code 0).
+   - `admin-frontend` production build: PASSED (exit code 0).
+   - `backend-python` pytest (`test_public_website_cms.py`): 5/5 tests PASSED.
+   - All 10 modified files verified clean and error-free.
+
+---
+
 ## Session: November 14, 2026 (Part 14)
 
 ### End-to-End Implementation of DPDP Act, 2023 (Digital Personal Data Protection Act) Suite Across Platform & Admin CRM

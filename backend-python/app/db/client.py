@@ -324,6 +324,9 @@ class Database:
             return self._db[name]
         return self._memory.setdefault(name, InMemoryCollection())
 
+    def get_collection(self, name: str) -> Any:
+        return self.collection(name)
+
 
     async def find_many(
         self,

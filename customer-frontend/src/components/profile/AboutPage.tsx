@@ -53,77 +53,107 @@ export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
               Statutory & Legal Documents
             </h3>
             <div className="card-soft overflow-hidden border border-border divide-y divide-border rounded-2xl bg-card">
-              <a
-                href="https://withquickpress.com/#privacy"
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors cursor-pointer"
+              <Link
+                to="/legal/$docSlug"
+                params={{ docSlug: "privacy-policy" }}
+                className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                    <ShieldCheck className="size-5" />
+                  <div className="flex size-8 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <ShieldCheck className="size-4.5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-foreground">Privacy Policy</p>
-                    <p className="text-[11px] text-muted-foreground">How your personal & location data is protected</p>
+                    <p className="text-xs font-bold text-foreground">Privacy Policy (DPDP 2023)</p>
+                    <p className="text-[10.5px] text-muted-foreground">Data rights, consent & DPO notice</p>
                   </div>
                 </div>
-                <ExternalLink className="size-4 text-muted-foreground" />
-              </a>
+                <ChevronRight className="size-4 text-muted-foreground" />
+              </Link>
 
-              <a
-                href="https://withquickpress.com/#terms"
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors cursor-pointer"
+              <Link
+                to="/legal/$docSlug"
+                params={{ docSlug: "terms-of-service" }}
+                className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                    <FileText className="size-5" />
+                  <div className="flex size-8 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                    <FileText className="size-4.5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-foreground">Terms & Conditions</p>
-                    <p className="text-[11px] text-muted-foreground">Garment care, service SLAs & terms</p>
+                    <p className="text-xs font-bold text-foreground">Terms of Service</p>
+                    <p className="text-[10.5px] text-muted-foreground">Platform agreement & terms of use</p>
                   </div>
                 </div>
-                <ExternalLink className="size-4 text-muted-foreground" />
-              </a>
+                <ChevronRight className="size-4 text-muted-foreground" />
+              </Link>
 
-              <a
-                href="https://withquickpress.com/#terms"
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors cursor-pointer"
+              <Link
+                to="/legal/$docSlug"
+                params={{ docSlug: "cancellation-refund-policy" }}
+                className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                    <RefreshCw className="size-5" />
+                  <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <RefreshCw className="size-4.5" />
                   </div>
                   <div>
                     <p className="text-xs font-bold text-foreground">Cancellation & Refunds</p>
-                    <p className="text-[11px] text-muted-foreground">Instant UPI / Bank refund timelines</p>
+                    <p className="text-[10.5px] text-muted-foreground">Free re-wash & instant refund policy</p>
                   </div>
                 </div>
-                <ExternalLink className="size-4 text-muted-foreground" />
-              </a>
+                <ChevronRight className="size-4 text-muted-foreground" />
+              </Link>
 
-              <a
-                href="https://withquickpress.com/#contact"
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors cursor-pointer"
+              <Link
+                to="/legal/$docSlug"
+                params={{ docSlug: "garment-care-policy" }}
+                className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                    <Scale className="size-5" />
+                  <div className="flex size-8 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                    <ShieldCheck className="size-4.5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Garment Care & Fabric Risk Policy</p>
+                    <p className="text-[10.5px] text-muted-foreground">Stain removal, color bleed & 10x liability cap</p>
+                  </div>
+                </div>
+                <ChevronRight className="size-4 text-muted-foreground" />
+              </Link>
+
+              <Link
+                to="/legal/$docSlug"
+                params={{ docSlug: "cookie-policy" }}
+                className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex size-8 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
+                    <FileText className="size-4.5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Cookie & Tracking Policy</p>
+                    <p className="text-[10.5px] text-muted-foreground">Session storage & telemetry safeguards</p>
+                  </div>
+                </div>
+                <ChevronRight className="size-4 text-muted-foreground" />
+              </Link>
+
+              <Link
+                to="/legal/$docSlug"
+                params={{ docSlug: "grievance-redressal" }}
+                className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex size-8 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                    <Scale className="size-4.5" />
                   </div>
                   <div>
                     <p className="text-xs font-bold text-foreground">Grievance Redressal & Nodal Officer</p>
-                    <p className="text-[11px] text-muted-foreground">Statutory consumer dispute escalation desk</p>
+                    <p className="text-[10.5px] text-muted-foreground">Statutory consumer dispute desk</p>
                   </div>
                 </div>
-                <ExternalLink className="size-4 text-muted-foreground" />
-              </a>
+                <ChevronRight className="size-4 text-muted-foreground" />
+              </Link>
             </div>
           </div>
 

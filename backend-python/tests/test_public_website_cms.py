@@ -71,6 +71,18 @@ async def test_all_app_legal_docs_and_aliases():
         assert resp.status_code == 200
         assert "Terms" in resp.json()["title"]
 
+        # 6. Garment Care & Fabric Risk Policy
+        resp = await client.get("/api/public/legal/garment-care-policy")
+        assert resp.status_code == 200
+        assert "Garment Care" in resp.json()["title"]
+        assert "10 times" in resp.json()["content"]
+
+        # 7. Cookie Policy
+        resp = await client.get("/api/public/legal/cookie-policy")
+        assert resp.status_code == 200
+        assert "Cookie" in resp.json()["title"]
+        assert "DPDP" in resp.json()["content"]
+
 
 @pytest.mark.asyncio
 async def test_public_services_list_and_detail():

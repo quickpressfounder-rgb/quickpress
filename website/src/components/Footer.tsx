@@ -132,7 +132,7 @@ export function Footer({
           {/* Column 3: Learn More & Legal Policies */}
           <div className="space-y-3">
             <h5 className="text-xs sm:text-sm font-black tracking-wider uppercase text-white mb-4">
-              Learn More
+              Legal & Compliance
             </h5>
             <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-400">
               <li>
@@ -141,22 +141,28 @@ export function Footer({
                   onClick={() => onNavigate("privacy")}
                   className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
-                  Privacy Policy
+                  Privacy Policy (DPDP)
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={() => onNavigate("terms")}
+                  onClick={() => {
+                    if (typeof window !== "undefined") window.location.hash = "#terms";
+                    onNavigate("terms");
+                  }}
                   className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
-                  Terms & Conditions
+                  Terms of Service
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={() => onNavigate("terms")}
+                  onClick={() => {
+                    if (typeof window !== "undefined") window.location.hash = "#refund";
+                    onNavigate("terms");
+                  }}
                   className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
                   Cancellation & Refund
@@ -165,7 +171,22 @@ export function Footer({
               <li>
                 <button
                   type="button"
-                  onClick={() => onNavigate("terms")}
+                  onClick={() => {
+                    if (typeof window !== "undefined") window.location.hash = "#garment-care";
+                    onNavigate("terms");
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
+                >
+                  Garment Care & Liability
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== "undefined") window.location.hash = "#pickup";
+                    onNavigate("terms");
+                  }}
                   className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
                   Pickup & Delivery Policy
@@ -174,10 +195,25 @@ export function Footer({
               <li>
                 <button
                   type="button"
-                  onClick={() => onNavigate("privacy")}
+                  onClick={() => {
+                    if (typeof window !== "undefined") window.location.hash = "#cookie";
+                    onNavigate("terms");
+                  }}
                   className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
-                  Cookie Policy
+                  Cookie & Tracking Policy
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== "undefined") window.location.hash = "#grievance";
+                    onNavigate("terms");
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium text-emerald-400 font-semibold"
+                >
+                  Grievance & Nodal Desk
                 </button>
               </li>
               <li>

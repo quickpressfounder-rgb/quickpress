@@ -23,7 +23,10 @@ export const Route = createFileRoute("/legal/$docSlug")({
     const slugTitles: Record<string, string> = {
       "privacy-policy": "Privacy Policy — QuickPress",
       "terms-of-service": "Terms & Conditions — QuickPress",
+      "terms": "Terms & Conditions — QuickPress",
       "cancellation-refund-policy": "Cancellation & Refund Policy — QuickPress",
+      "garment-care-policy": "Garment Care, Fabric Risk & Loss Policy — QuickPress",
+      "cookie-policy": "Cookie & Tracking Policy — QuickPress",
       "partner-agreement": "Partner Merchant Agreement & SLA — QuickPress",
       "rider-agreement": "Captain Delivery Agreement — QuickPress",
       "grievance-redressal": "Grievance Redressal & Nodal Officer — QuickPress",
@@ -68,10 +71,12 @@ function LegalDocScreen() {
       "privacy-policy": "#privacy",
       "terms-of-service": "#terms",
       "terms": "#terms",
-      "cancellation-refund-policy": "#terms",
-      "partner-agreement": "#terms",
+      "cancellation-refund-policy": "#refund",
+      "garment-care-policy": "#garment-care",
+      "cookie-policy": "#cookie",
+      "partner-agreement": "#partner",
       "rider-agreement": "#terms",
-      "grievance-redressal": "#contact",
+      "grievance-redressal": "#grievance",
     };
     const targetHash = targetMap[slug] || "#terms";
     return `https://withquickpress.com/${targetHash}`;

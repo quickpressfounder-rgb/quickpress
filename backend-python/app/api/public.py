@@ -83,6 +83,12 @@ async def get_public_legal_doc(doc_slug: str) -> Dict[str, Any]:
         "grievance-redressal": "grievance-redressal",
         "grievance": "grievance-redressal",
         "compliance": "grievance-redressal",
+        "garment-care-policy": "garment-care-policy",
+        "garment-care": "garment-care-policy",
+        "fabric-care": "garment-care-policy",
+        "cookie-policy": "cookie-policy",
+        "cookie": "cookie-policy",
+        "cookies": "cookie-policy",
     }
     normalized_slug = doc_slug.lower().strip()
     target_slug = alias_map.get(normalized_slug, normalized_slug)

@@ -1064,7 +1064,7 @@ export function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-bold text-zinc-800">Return &amp; Refund Policy URL</Label>
                   <a
-                    href={company.refundPolicyUrl}
+                    href={company.refundPolicyUrl || "https://withquickpress.com/#refund"}
                     target="_blank"
                     rel="noreferrer"
                     className="text-[10px] text-zinc-500 hover:text-zinc-900 flex items-center gap-1"
@@ -1080,6 +1080,48 @@ export function SettingsPage() {
                   className="h-10 text-xs font-mono font-bold bg-white"
                 />
                 <p className="text-[10px] text-zinc-400">Governs damaged garments, re-washes, and wallet refunds.</p>
+              </div>
+
+              <div className="space-y-1.5 p-4 rounded-xl bg-zinc-50/70 border border-zinc-200/80">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-zinc-800">Garment Care &amp; Fabric Risk Policy URL</Label>
+                  <a
+                    href="https://withquickpress.com/#garment-care"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] text-zinc-500 hover:text-zinc-900 flex items-center gap-1"
+                  >
+                    <ExternalLink className="size-3" />
+                    <span>Open Live</span>
+                  </a>
+                </div>
+                <Input
+                  readOnly
+                  value="https://withquickpress.com/#garment-care"
+                  className="h-10 text-xs font-mono font-bold bg-white/70 text-zinc-700"
+                />
+                <p className="text-[10px] text-zinc-400">Color bleed, pre-existing defect disclaimer &amp; 10x statutory compensation cap.</p>
+              </div>
+
+              <div className="space-y-1.5 p-4 rounded-xl bg-zinc-50/70 border border-zinc-200/80">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-zinc-800">Cookie &amp; Tracking Policy URL</Label>
+                  <a
+                    href="https://withquickpress.com/#cookie"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] text-zinc-500 hover:text-zinc-900 flex items-center gap-1"
+                  >
+                    <ExternalLink className="size-3" />
+                    <span>Open Live</span>
+                  </a>
+                </div>
+                <Input
+                  readOnly
+                  value="https://withquickpress.com/#cookie"
+                  className="h-10 text-xs font-mono font-bold bg-white/70 text-zinc-700"
+                />
+                <p className="text-[10px] text-zinc-400">DPDP Act 2023 compliant session cookies, telemetry &amp; client storage.</p>
               </div>
             </div>
 
