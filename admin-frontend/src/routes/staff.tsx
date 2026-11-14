@@ -1582,7 +1582,7 @@ function AddStaffDialog() {
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-zinc-800">Initial Password *</Label>
+                  <Label className="text-xs font-bold text-zinc-800">System Backup Password</Label>
                   <button
                     type="button"
                     onClick={generateRandomPassword}
@@ -1608,6 +1608,9 @@ function AddStaffDialog() {
                     {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
+                <p className="text-[10px] text-zinc-400 font-medium">
+                  Login is passwordless via Cloudflare Zero Trust OTP. This acts as an internal system fallback.
+                </p>
               </div>
             </div>
           </div>
