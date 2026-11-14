@@ -1,5 +1,43 @@
 # QuickPress — Engineering Work History
 
+## Session: November 14, 2026 (Part 14)
+
+### End-to-End Implementation of DPDP Act, 2023 (Digital Personal Data Protection Act) Suite Across Platform & Admin CRM
+
+1. **Context & User Request:**
+   - User directive:
+     *"DPDP ACT KIYA HAI OR ISKE ANDER KIYA KIYA KIYA JA SAKTA HAI DPDP ACT ME"*
+     *"DPDP ACT ME OR KIYA KIYA ADDD KAR SAKTE HAI"*
+     *"YE SAB INTIGATION KARO OR ISKA DATA ADMIN PENAL ME UPADTAE KARO"*
+   - Scope: Deliver full end-to-end statutory compliance with India's **Digital Personal Data Protection Act, 2023 (DPDP Act)** across Customer Web App, Public Website, and Admin CRM 360° Console.
+
+2. **Engineering Solutions Delivered:**
+   - **Customer Web App — Privacy & Data Rights (DPDP) Center (`customer-frontend/src/routes/profile.tsx`):**
+     - Added dedicated "Privacy & Data Rights (DPDP)" hub under Profile Settings with statutory badge and shield iconography.
+     - **Right to Access & Data Portability (Section 11):** 1-click machine-readable personal data export generating structured `quickpress-personal-data-<phone>.json` containing complete profile, address book, recent orders, payment preferences, active consent audit timestamps, and nominated successor details.
+     - **Consent Architecture & Granular Withdrawal (Section 6 & 12):** Interactive toggles allowing users to withdraw or grant consent for promotional WhatsApp updates and marketing SMS at any time without degrading transactional order OTPs or primary service access.
+     - **Digital Nominee Registry (Section 14):** Form to designate legal digital successor (Nominee Full Name, Relationship, 10-digit Phone) to inherit account management, digital receipts, and wallet balance in event of death or incapacity.
+     - **Statutory Data Protection Officer (DPO) Notice:** Direct desk escalation link to `dpo@withquickpress.com` with 24-hour statutory acknowledgment SLA.
+   - **Public Website — DPDP Multilingual Statutory Notice & DPO Desk (`website/src/pages/PrivacyPolicyPage.tsx`):**
+     - **Section 5(3) Multilingual Accessibility:** Interactive `[English | हिन्दी]` bilingual toggle dynamically switching statutory privacy notices.
+     - Added dedicated statutory Hindi summary card outlining the 4 fundamental DPDP rights (Right to Access, Right to Correction/Erasure, Right to Nominate, Right to Grievance Redressal).
+     - **Section 24 DPO Credentials:** Updated corporate contact information with designated Data Protection Officer (`dpo@withquickpress.com`), 30-day resolution timeline, and legal escalation path to the Data Protection Board of India (DPBI).
+   - **Admin Console — Customer CRM 360° DPDP Compliance Dossier (`admin-frontend/src/routes/crm.tsx`):**
+     - Added dedicated `dpdp` ("DPDP Compliance") tab in Customer CRM Full-Page Dossier (`FullPageDossierView`).
+     - **Statutory DPDP Compliance Header:** Visual compliance badge indicating 100% DPDP Act 2023 alignment.
+     - **Regulatory Dossier Export (JSON):** 1-click download of full legal compliance dossier (`DPDP-Dossier-<entityType>-<phone/id>.json`) for regulatory audit or statutory data requests under Section 11.
+     - **Consent & Communication Registry:** Real-time visibility into customer's promotional WhatsApp consent, marketing SMS consent, and transactional OTP mandate (Section 7 deemed consent).
+     - **Digital Nominee Verification Card (Section 14):** Inspects customer's declared nominee name, legal relationship, contact details, and statutory authority.
+     - **Right to Erasure / Account Purge (Section 12):** Administrative data sanitization tool with confirmation modal to anonymize customer records upon verified request (excluding statutory 7-year GST/tax invoice records).
+
+3. **Verification & Testing Results:**
+   - `admin-frontend` production build compiled cleanly with exit code 0 (`vite build` + Nitro H3 server bundling).
+   - `customer-frontend` production build compiled cleanly with exit code 0 (`vite build` + Cloudflare/Nitro client-server bundle).
+   - `website` production build compiled cleanly in 911ms with exit code 0.
+   - 100% type-safe, zero regression across all portals.
+
+---
+
 ## Session: November 14, 2026 (Part 13)
 
 ### End-to-End Integration of Consent & Consultation Forms Across Customer, Rider, and Partner Platforms

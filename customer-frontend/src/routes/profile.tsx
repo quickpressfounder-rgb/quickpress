@@ -11,6 +11,8 @@ import {
   Clock,
   CreditCard,
   Crown,
+  Download,
+  FileJson,
   Gift,
   Globe,
   Headphones,
@@ -279,6 +281,37 @@ function ProfileScreen() {
   const [savedServicesOpen, setSavedServicesOpen] = useState(false);
   const [favouriteStoresOpen, setFavouriteStoresOpen] = useState(false);
   const [aboutModalOpen, setAboutModalOpen] = useState(false);
+  const [dpdpModalOpen, setDpdpModalOpen] = useState(false);
+  const [waOffersConsent, setWaOffersConsent] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("qp_dpdp_wa_offers") !== "false";
+    }
+    return true;
+  });
+  const [smsOffersConsent, setSmsOffersConsent] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("qp_dpdp_sms_offers") !== "false";
+    }
+    return true;
+  });
+  const [nomineeName, setNomineeName] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("qp_dpdp_nominee_name") || "";
+    }
+    return "";
+  });
+  const [nomineeRelation, setNomineeRelation] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("qp_dpdp_nominee_relation") || "Spouse";
+    }
+    return "Spouse";
+  });
+  const [nomineePhone, setNomineePhone] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("qp_dpdp_nominee_phone") || "";
+    }
+    return "";
+  });
   const photoInput = useRef<HTMLInputElement | null>(null);
   const settings = useAppSettings();
   const activeLocation = readSavedLocation();
@@ -290,7 +323,8 @@ function ProfileScreen() {
     notificationModalOpen ||
     appearanceModalOpen ||
     languageModalOpen ||
-    aboutModalOpen;
+    aboutModalOpen ||
+    dpdpModalOpen;
 
   const closeAllSubpages = useCallback(() => {
     setEditing(false);
@@ -300,6 +334,7 @@ function ProfileScreen() {
     setAppearanceModalOpen(false);
     setLanguageModalOpen(false);
     setAboutModalOpen(false);
+    setDpdpModalOpen(false);
   }, []);
 
   // Sync subpage open/close with browser history so hardware/browser back returns to profile menu
@@ -522,6 +557,104 @@ function ProfileScreen() {
       setDeleting(false);
       toast.error("Couldn't delete your account. Please try again.");
     }
+  };
+
+  const handleDownloadMyData = () => {
+    try {
+      const exportBundle = {
+        complianceStandard: "Digital Personal Data Protection Act, 2023 (DPDP Act, India)",
+        dataPrincipalRights: "Section 11 (Right to Access Information) & Section 12 (Correction and Erasure)",
+        exportedAt: new Date().toISOString(),
+        dataPrincipal: {
+          id: data?.profile.id || "N/A",
+          name: data?.profile.name || form.name || "Customer",
+          phone: data?.profile.phone || form.phone || "N/A",
+          email: data?.profile.email || form.email || "N/A",
+          city: data?.profile.city || form.city || "Kasganj",
+          registeredSince: data?.profile.createdAt || new Date().toISOString(),
+        },
+        digitalNomineeRegistry: {
+          statutoryProvision: "DPDP Act, 2023 Section 14 (Right to Nominate)",
+          nomineeRegistered: Boolean(nomineeName.trim()),
+          nomineeName: nomineeName.trim() || "Not Appointed",
+          relationship: nomineeRelation || "N/A",
+          nomineePhone: nomineePhone.trim() || "N/A",
+        },
+        consentPreferences: {
+          statutoryProvision: "DPDP Act, 2023 Section 6 (Consent Notice) & Section 12 (Withdrawal)",
+          whatsappPromotions: waOffersConsent ? "ACTIVE_CONSENT" : "REVOKED",
+          marketingSms: smsOffersConsent ? "ACTIVE_CONSENT" : "REVOKED",
+          transactionalAlerts: "MANDATORY_LEGITIMATE_USE (OTP, Live Order Tracking, Delivery OTP)",
+        },
+        savedAddresses: data?.addresses || [],
+        walletPassbook: {
+          currentBalance: data?.wallet?.balance ?? 0,
+          currency: "INR",
+        },
+        laundryOrderRecords: {
+          totalOrdersCount: data?.orders?.length || 0,
+          orders: (data?.orders || []).slice(0, 20).map((o: any) => ({
+            id: o.id || o.code,
+            date: o.date || o.createdAt,
+            status: o.status,
+            amount: o.amount,
+          })),
+        },
+        dataProtectionOfficer: {
+          title: "Grievance & Data Protection Officer (DPO)",
+          corporateEntity: "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
+          email: "dpo@withquickpress.com",
+          grievanceRedressalSla: "48 hours response, 30 days resolution",
+        },
+      };
+
+      const blob = new Blob([JSON.stringify(exportBundle, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `quickpress-personal-data-${form.phone || "export"}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Personal data archive downloaded successfully!", {
+        description: "Compliant with DPDP Act 2023 Section 11.",
+      });
+    } catch {
+      toast.error("Failed to generate data export archive.");
+    }
+  };
+
+  const handleSaveNominee = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nomineeName.trim()) {
+      toast.error("Please enter the nominee's full name");
+      return;
+    }
+    if (typeof window !== "undefined") {
+      localStorage.setItem("qp_dpdp_nominee_name", nomineeName.trim());
+      localStorage.setItem("qp_dpdp_nominee_relation", nomineeRelation);
+      localStorage.setItem("qp_dpdp_nominee_phone", nomineePhone.trim());
+    }
+    toast.success("Digital Nominee details registered successfully!", {
+      description: "Recorded per Section 14 of DPDP Act 2023.",
+    });
+  };
+
+  const handleToggleWaOffers = (checked: boolean) => {
+    setWaOffersConsent(checked);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("qp_dpdp_wa_offers", String(checked));
+    }
+    toast.success(checked ? "WhatsApp promotional alerts enabled" : "WhatsApp promotional alerts opted-out");
+  };
+
+  const handleToggleSmsOffers = (checked: boolean) => {
+    setSmsOffersConsent(checked);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("qp_dpdp_sms_offers", String(checked));
+    }
+    toast.success(checked ? "Marketing SMS alerts enabled" : "Marketing SMS alerts opted-out");
   };
 
   const handleSubpageBack = useCallback(() => {
@@ -1212,6 +1345,13 @@ function ProfileScreen() {
                     action: () => setAboutModalOpen(true),
                   },
                   {
+                    id: "dpdp_privacy",
+                    label: "Privacy & Data Rights (DPDP)",
+                    note: "Download data, nominee & consent preferences",
+                    icon: ShieldCheck,
+                    action: () => setDpdpModalOpen(true),
+                  },
+                  {
                     id: "delete",
                     label: "Delete Account",
                     note: "Permanently remove your data",
@@ -1344,7 +1484,174 @@ function ProfileScreen() {
         onChange={(event) => void handlePhotoFile(event.target.files?.[0])}
       />
 
-      {logoutOpen || deleteOpen ? null : <BottomNav active="profile" />}
+      {/* DPDP Act, 2023 Privacy & Data Rights Center Modal */}
+      {dpdpModalOpen ? (
+        <div className="fixed inset-0 z-[999] flex items-start justify-center p-4 pt-8 sm:pt-12 overflow-y-auto">
+          <div
+            onClick={() => setDpdpModalOpen(false)}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+            aria-hidden="true"
+          />
+          <div className="relative w-full max-w-md rounded-3xl bg-card p-5 sm:p-6 shadow-2xl border border-border z-10 animate-in fade-in zoom-in-95 duration-200 space-y-4 max-h-[88vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600">
+                  <ShieldCheck className="size-4.5" />
+                </span>
+                <div>
+                  <h2 className="text-sm font-black text-foreground">Data Rights &amp; Privacy (DPDP)</h2>
+                  <p className="text-[10px] text-muted-foreground font-semibold">DPDP Act 2023 Compliance Center</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDpdpModalOpen(false)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* 1. Download My Data (Section 11) */}
+            <div className="p-3.5 bg-muted/50 rounded-2xl border border-border space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-black text-foreground">Right to Access (Section 11)</h3>
+                  <p className="text-[10.5px] text-muted-foreground">Download full machine-readable archive of your personal records</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleDownloadMyData}
+                className="w-full h-10 rounded-xl bg-primary text-primary-foreground text-xs font-black flex items-center justify-center gap-2 shadow-xs hover:brightness-105 active:scale-98 transition-all cursor-pointer"
+              >
+                <Download className="size-3.5" />
+                <span>Download My Personal Data (JSON)</span>
+              </button>
+            </div>
+
+            {/* 2. Consent & Communication Preferences (Section 6 & 12) */}
+            <div className="p-3.5 bg-muted/50 rounded-2xl border border-border space-y-2.5">
+              <h3 className="text-xs font-black text-foreground">Communication Consent (Section 6 &amp; 12)</h3>
+              <p className="text-[10.5px] text-muted-foreground leading-relaxed">
+                You can withdraw marketing consent at any time. Essential transactional alerts remain active.
+              </p>
+
+              <div className="space-y-2 pt-1">
+                <label className="flex items-center justify-between p-2 rounded-xl bg-card border border-border cursor-pointer">
+                  <div className="min-w-0 pr-2">
+                    <span className="text-xs font-bold text-foreground block">WhatsApp Promotional Offers</span>
+                    <span className="text-[10px] text-muted-foreground block truncate">Discounts, festivals &amp; seasonal deals</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={waOffersConsent}
+                    onChange={(e) => handleToggleWaOffers(e.target.checked)}
+                    className="size-4.5 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between p-2 rounded-xl bg-card border border-border cursor-pointer">
+                  <div className="min-w-0 pr-2">
+                    <span className="text-xs font-bold text-foreground block">Marketing SMS &amp; Flash Sales</span>
+                    <span className="text-[10px] text-muted-foreground block truncate">Exclusive coupon codes</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={smsOffersConsent}
+                    onChange={(e) => handleToggleSmsOffers(e.target.checked)}
+                    className="size-4.5 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer"
+                  />
+                </label>
+
+                <div className="p-2 rounded-xl bg-card/60 border border-dashed border-border flex items-center justify-between opacity-80">
+                  <div>
+                    <span className="text-xs font-bold text-foreground block">Delivery &amp; OTP Alerts</span>
+                    <span className="text-[10px] text-muted-foreground block">Essential for order fulfillment</span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full">
+                    Protected
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Digital Nominee (Section 14) */}
+            <form onSubmit={handleSaveNominee} className="p-3.5 bg-muted/50 rounded-2xl border border-border space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-black text-foreground">Digital Nominee (Section 14)</h3>
+                  <p className="text-[10.5px] text-muted-foreground">Appoint nominee for account &amp; wallet balance</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                    Nominee Full Name
+                  </label>
+                  <input
+                    type="text"
+                    value={nomineeName}
+                    onChange={(e) => setNomineeName(e.target.value)}
+                    placeholder="e.g. Rahul Sharma"
+                    className="w-full h-9 px-3 rounded-xl border border-border bg-card text-xs text-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                      Relationship
+                    </label>
+                    <select
+                      value={nomineeRelation}
+                      onChange={(e) => setNomineeRelation(e.target.value)}
+                      className="w-full h-9 px-2.5 rounded-xl border border-border bg-card text-xs text-foreground focus:outline-none focus:border-primary"
+                    >
+                      <option value="Spouse">Spouse</option>
+                      <option value="Parent">Parent</option>
+                      <option value="Child">Child</option>
+                      <option value="Sibling">Sibling</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                      Nominee Phone
+                    </label>
+                    <input
+                      type="tel"
+                      value={nomineePhone}
+                      onChange={(e) => setNomineePhone(e.target.value)}
+                      placeholder="9876543210"
+                      className="w-full h-9 px-3 rounded-xl border border-border bg-card text-xs text-foreground focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full h-9 rounded-xl bg-card border border-border text-foreground hover:bg-muted font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Save Nominee Details
+                </button>
+              </div>
+            </form>
+
+            {/* 4. Grievance Officer Notice */}
+            <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200/80 dark:border-emerald-900/50 text-[10.5px] space-y-1">
+              <p className="font-black text-emerald-950 dark:text-emerald-200">Grievance &amp; Data Protection Officer (DPO)</p>
+              <p className="text-emerald-900/80 dark:text-emerald-400">
+                Official Desk: <a href="mailto:dpo@withquickpress.com" className="underline font-bold">dpo@withquickpress.com</a> • QuickPress Technologies Pvt. Ltd. (Kasganj / Delhi NCR). Resolution within 30 days as per DPDP Act.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {logoutOpen || deleteOpen || dpdpModalOpen ? null : <BottomNav active="profile" />}
     </main>
   );
 }

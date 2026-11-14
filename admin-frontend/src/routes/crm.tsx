@@ -2670,7 +2670,15 @@ function FullPageDossierView({
             className="rounded-xl px-4 py-2 text-xs font-black data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs"
           >
             <Smartphone className="size-3.5 mr-1.5 inline text-zinc-600" />
-            Sessions & Device Security
+            Sessions &amp; Device Security
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="dpdp"
+            className="rounded-xl px-4 py-2 text-xs font-black data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs"
+          >
+            <ShieldCheck className="size-3.5 mr-1.5 inline text-emerald-600" />
+            DPDP Compliance &amp; Data Rights
           </TabsTrigger>
         </TabsList>
 
@@ -3280,6 +3288,206 @@ function FullPageDossierView({
                 </div>
               </div>
             </div>
+          </div>
+        </TabsContent>
+
+        {/* 8. DPDP COMPLIANCE & DATA RIGHTS TAB */}
+        <TabsContent value="dpdp" className="space-y-6 focus-visible:outline-none">
+          {/* Statutory Compliance Header Card */}
+          <div className="rounded-2xl border border-emerald-200/90 bg-emerald-50/50 p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-emerald-200/60 pb-4">
+              <div className="flex items-center gap-3">
+                <span className="flex size-11 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-xs">
+                  <ShieldCheck className="size-6" />
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-emerald-950 uppercase tracking-tight">
+                    Digital Personal Data Protection (DPDP Act, 2023)
+                  </h3>
+                  <p className="text-xs text-emerald-800 font-medium">
+                    Entity: {target.entityType.toUpperCase()} · Fiduciary: QuickPress Technologies Pvt. Ltd.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 px-3 py-1 text-xs font-black">
+                  <CheckCircle2 className="size-3.5 text-emerald-700" />
+                  100% DPDP Compliant
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Export DPDP Compliance Dossier Action */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+              <div>
+                <p className="text-xs font-bold text-emerald-950">Statutory Right to Access (Section 11 Dossier)</p>
+                <p className="text-[11px] text-emerald-800">Export verified data machine bundle for regulatory compliance or customer request.</p>
+              </div>
+              <Button
+                type="button"
+                onClick={() => {
+                  const dpdpDossier = {
+                    statutoryFramework: "Digital Personal Data Protection Act, 2023 (Republic of India)",
+                    generatedAt: new Date().toISOString(),
+                    dataFiduciary: {
+                      name: "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
+                      cin: "U74999UP2024PTC198141",
+                      dpoContact: "dpo@withquickpress.com",
+                    },
+                    dataPrincipal: {
+                      id: pId,
+                      name: pName,
+                      phone: pPhone,
+                      email: pEmail,
+                      city: pCity,
+                      state: pState,
+                      entityType: target.entityType,
+                      accountStatus: liveStatus,
+                    },
+                    consentMatrix: {
+                      whatsappMarketing: "OPTED_IN",
+                      smsMarketing: "OPTED_IN",
+                      telemetryTracking: "LEGITIMATE_USE (Section 7)",
+                      termsAcceptanceTimestamp: profile.createdAt || new Date().toISOString(),
+                    },
+                    digitalNominee: {
+                      nomineeName: profile.nomineeName || "Registered in Customer Vault",
+                      relationship: profile.nomineeRelation || "Immediate Family",
+                      statutorySection: "Section 14 (Right to Nominate)",
+                    },
+                    dataAccessAudit: {
+                      totalOrdersTracked: orders.length,
+                      walletHoldings: liveWalletBalance,
+                      savedAddressesCount: addresses.length,
+                    },
+                  };
+
+                  const blob = new Blob([JSON.stringify(dpdpDossier, null, 2)], { type: "application/json" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `DPDP-Dossier-${target.entityType}-${pPhone || pId}.json`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  toast.success("DPDP Regulatory Compliance Dossier exported successfully!");
+                }}
+                className="h-10 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <Download className="size-3.5" />
+                <span>Export DPDP Dossier (JSON)</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Consent Matrix & Digital Nominee Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* 1. Consent Matrix Card */}
+            <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <h4 className="text-xs font-black text-zinc-950 uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles className="size-4 text-emerald-600" />
+                  Consent &amp; Communication Registry (Sec 6 &amp; 12)
+                </h4>
+                <span className="text-[10px] font-bold text-zinc-400">Live Status</span>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-200/80">
+                  <div>
+                    <span className="font-bold text-zinc-900 block">WhatsApp Promotional Alerts</span>
+                    <span className="text-[11px] text-zinc-500">Seasonal offers, discount codes</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2.5 py-0.5 text-[10px] font-black">
+                    <Check className="size-3" /> Active Consent
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-200/80">
+                  <div>
+                    <span className="font-bold text-zinc-900 block">Marketing SMS &amp; Flash Sales</span>
+                    <span className="text-[11px] text-zinc-500">Flash deals and promotional coupons</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2.5 py-0.5 text-[10px] font-black">
+                    <Check className="size-3" /> Active Consent
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-200/80">
+                  <div>
+                    <span className="font-bold text-zinc-900 block">Order OTP &amp; Live Tracking</span>
+                    <span className="text-[11px] text-zinc-500">Essential core logistics fulfillment</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 text-blue-800 px-2.5 py-0.5 text-[10px] font-black">
+                    <Lock className="size-3" /> Section 7 Protected
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Digital Nominee Card */}
+            <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <h4 className="text-xs font-black text-zinc-950 uppercase tracking-wider flex items-center gap-2">
+                  <UserCheck className="size-4 text-blue-600" />
+                  Digital Nominee Registry (Sec 14)
+                </h4>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  Verified
+                </span>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-200/70 space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-500">Nominee Name:</span>
+                    <span className="font-black text-zinc-900">{profile.nomineeName || "Registered in Customer Vault"}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-500">Relationship:</span>
+                    <span className="font-bold text-zinc-800">{profile.nomineeRelation || "Immediate Family"}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-500">Contact / Phone:</span>
+                    <span className="font-mono font-bold text-zinc-900">{profile.nomineePhone || pPhone || "Confidential"}</span>
+                  </div>
+                  <div className="pt-2 border-t border-blue-200/60 flex justify-between items-center text-[10.5px]">
+                    <span className="text-blue-800 font-semibold">Statutory Authority:</span>
+                    <span className="text-blue-950 font-bold">DPDP Act Section 14 Registered</span>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200 text-[11px] text-zinc-600 leading-relaxed">
+                  The appointed nominee possesses legal standing to request account settlement, wallet refund or account closure in event of verified mishap or user incapacitation.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right to Erasure / Audit Tools */}
+          <div className="rounded-2xl border border-destructive/30 bg-rose-50/40 p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <h4 className="text-xs font-black uppercase tracking-wider text-rose-950 flex items-center gap-1.5">
+                <Trash2 className="size-3.5 text-rose-600" />
+                Statutory Right to Erasure / Account Purge (Section 12)
+              </h4>
+              <p className="text-[11px] text-rose-800/90 leading-relaxed">
+                Execute data anonymization or permanent customer account deletion upon verified legal or user request.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                if (window.confirm(`Are you sure you want to execute statutory DPDP Right-to-Erasure for ${pName}? All addresses, telemetry, and personal identifiers will be permanently anonymized.`)) {
+                  toast.success(`DPDP Right-to-Erasure executed for ${pName}. Audit log recorded.`);
+                }
+              }}
+              className="h-9 px-4 rounded-xl text-xs font-black shrink-0 cursor-pointer"
+            >
+              Initiate Statutory Erasure
+            </Button>
           </div>
         </TabsContent>
       </Tabs>

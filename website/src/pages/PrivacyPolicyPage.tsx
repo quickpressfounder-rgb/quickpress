@@ -20,6 +20,7 @@ export function PrivacyPolicyPage({
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSection, setActiveSection] = useState("s1");
   const [isMobileTocOpen, setIsMobileTocOpen] = useState(false);
+  const [lang, setLang] = useState<"en" | "hi">("en");
 
   const sections: PolicySection[] = useMemo(
     () => [
@@ -430,21 +431,24 @@ export function PrivacyPolicyPage({
       {
         id: "s24",
         num: 24,
-        title: "Grievance Redressal",
-        keywords: ["grievance", "officer", "complaint", "redressal"],
+        title: "Grievance Redressal & Data Protection Officer (DPDP Act, 2023)",
+        keywords: ["grievance", "officer", "complaint", "redressal", "dpdp", "dpo", "rights"],
         content: (
           <div className="space-y-3">
             <p>
-              In accordance with the Information Technology Act, 2000 and rules made thereunder, our designated Grievance Officer details are published below:
+              In accordance with the <strong>Digital Personal Data Protection Act, 2023 (DPDP Act)</strong> and the Information Technology Act, 2000, our designated Data Protection Officer (DPO) and Grievance Redressal Officer details are published below:
             </p>
-            <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200 text-xs sm:text-sm space-y-1 text-emerald-950">
-              <p className="font-bold text-emerald-900">Grievance Redressal Officer</p>
-              <p><strong>Legal Entity:</strong> QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</p>
+            <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200 text-xs sm:text-sm space-y-1.5 text-emerald-950">
+              <p className="font-bold text-emerald-900 text-sm">Grievance &amp; Data Protection Officer (DPO)</p>
+              <p><strong>Designation:</strong> Data Protection Officer, QuickPress</p>
+              <p><strong>Legal Entity:</strong> QUICKPRESS TECHNOLOGIES PRIVATE LIMITED (Data Fiduciary)</p>
               <p><strong>CIN:</strong> U74999UP2024PTC198141</p>
               <p><strong>Registered Office:</strong> 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India</p>
-              <p className="font-bold">Email: <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline">official.quickpress@gmail.com</a></p>
-              <p><strong>Phone / Helpline:</strong> <a href="tel:18000123456" className="text-emerald-700 underline font-bold">1800 012 3456</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
-              <p className="text-emerald-800/80 text-xs">Acknowledgment Time: Within 24 hours | Resolution Time: Within 15 business days</p>
+              <p><strong>DPO Official Email:</strong> <a href="mailto:dpo@withquickpress.com" className="text-emerald-700 underline font-bold">dpo@withquickpress.com</a> / <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline font-bold">official.quickpress@gmail.com</a></p>
+              <p><strong>Customer Helpline:</strong> <a href="tel:18000123456" className="text-emerald-700 underline font-bold">1800 012 3456</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
+              <p className="text-emerald-800/90 text-xs font-semibold pt-1">
+                Statutory SLA: Acknowledgment within 24 hours | Final Resolution within 15–30 days. If your grievance is not resolved satisfactorily, you hold the statutory right to escalate to the <strong>Data Protection Board of India (DPBI)</strong> under Section 13(3) of the DPDP Act, 2023.
+              </p>
             </div>
           </div>
         ),
@@ -530,6 +534,65 @@ export function PrivacyPolicyPage({
           <p className="text-gray-600 text-sm sm:text-base leading-relaxed max-w-3xl">
             Official privacy, personal data protection, location access, and statutory disclosures for the QuickPress Customer App, Partner Store App, Delivery Partner (Captain) App, and website.
           </p>
+
+          {/* DPDP Act Bilingual Language Toggle (Section 5(3)) */}
+          <div className="flex flex-wrap items-center gap-3 mt-5">
+            <span className="text-xs font-bold text-gray-700">Language / भाषा:</span>
+            <div className="inline-flex rounded-xl p-1 bg-white border border-emerald-200 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setLang("en")}
+                className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
+                  lang === "en" ? "bg-emerald-600 text-white shadow-xs" : "text-gray-700 hover:text-gray-900"
+                }`}
+              >
+                English
+              </button>
+              <button
+                type="button"
+                onClick={() => setLang("hi")}
+                className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
+                  lang === "hi" ? "bg-emerald-600 text-white shadow-xs" : "text-gray-700 hover:text-gray-900"
+                }`}
+              >
+                हिन्दी (Hindi)
+              </button>
+            </div>
+            <span className="text-[11px] text-emerald-900 font-semibold bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-200">
+              DPDP Act 2023 Sec 5(3) Bilingual Notice
+            </span>
+          </div>
+
+          {/* Hindi Summary Card (Rendered when Hindi is selected) */}
+          {lang === "hi" && (
+            <div className="mt-5 p-4 bg-white rounded-2xl border-2 border-emerald-500 shadow-md text-xs sm:text-sm text-gray-800 space-y-2 animate-in fade-in duration-200">
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-emerald-600" />
+                <h3 className="font-black text-gray-950 text-sm">डिजिटल व्यक्तिगत डेटा संरक्षण अधिनियम, 2023 (DPDP Act) — मुख्य अधिकार</h3>
+              </div>
+              <p className="leading-relaxed">
+                QuickPress (क्विकप्रेस) आपके व्यक्तिगत डेटा की पूर्ण सुरक्षा के लिए प्रतिबद्ध है। DPDP अधिनियम, 2023 के तहत आपको निम्नलिखित कानूनी अधिकार प्राप्त हैं:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs">
+                <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
+                  <p className="font-bold text-emerald-950">1. डेटा की जानकारी पाने का अधिकार (धारा 11)</p>
+                  <p className="text-gray-600 mt-0.5">आप अपने ऐप प्रोफाइल से 1-क्लिक में अपना सारा व्यक्तिगत डेटा डाउनलोड कर सकते हैं।</p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
+                  <p className="font-bold text-emerald-950">2. डेटा हटाने/डिलीट करने का अधिकार (धारा 12)</p>
+                  <p className="text-gray-600 mt-0.5">आप कभी भी 'Delete Account' विकल्प चुनकर अपना डेटा हमेशा के लिए मिटा सकते हैं।</p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
+                  <p className="font-bold text-emerald-950">3. सहमति वापस लेने का अधिकार (धारा 6)</p>
+                  <p className="text-gray-600 mt-0.5">आप प्रोमोशनल व्हाट्सएप और मार्केटिंग मैसेज कभी भी प्रोफाइल सेटिंग से बंद कर सकते हैं।</p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
+                  <p className="font-bold text-emerald-950">4. नॉमिनी नियुक्त करने का अधिकार (धारा 14)</p>
+                  <p className="text-gray-600 mt-0.5">आप अपने डिजिटल वॉलेट और खाते के लिए किसी भी पारिवारिक सदस्य को नॉमिनी बना सकते हैं।</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Search Box */}
           <div className="mt-8 max-w-xl">
