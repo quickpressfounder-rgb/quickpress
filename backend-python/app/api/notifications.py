@@ -216,36 +216,122 @@ async def send_test_push(
     payload: Optional[dict] = None,
     user: User = Depends(current_user),
 ) -> dict:
-    """Send a test push notification to the calling user via OneSignal and WebPush."""
+    """Send a real test push notification via Firebase FCM, OneSignal and Native WebPush."""
     _assert_test_allowed(user)
+    from app.core.fcm import send_fcm_push
     from app.core.onesignal import send_onesignal_notification
     from app.core.webpush import send_native_webpush
+    from app.db.client import database
 
     body_data = payload or {}
-    title = str(body_data.get("title") or "🔔 QuickPress Test Alert")
-    body = str(body_data.get("body") or "OneSignal & WebPush notification pipeline is active!")
-    deep_link = str(body_data.get("url") or "/notifications")
+    title = str(body_data.get("title") or "🔔 QuickPress Live Alert")
+    body = str(body_data.get("body") or "Firebase FCM & WebPush pipeline is live and verified!")
+    deep_link = str(body_data.get("url") or body_data.get("deepLink") or "/notifications")
+    is_urgent = bool(body_data.get("isUrgent") or body_data.get("urgent") or "urgent" in title.lower())
 
-    os_res = await send_onesignal_notification(
-        user.id,
-        title=title,
-        body=body,
-        data={"url": deep_link, "type": "test_push", "userId": user.id},
-        url=deep_link,
-    )
-    wp_count = await send_native_webpush(
-        user.id,
-        title=title,
-        body=body,
-        data={"url": deep_link, "type": "test_push", "userId": user.id},
-    )
+    # Target resolution: raw fcmToken, phone, userId, or self
+    raw_token = body_data.get("fcmToken") or body_data.get("token")
+    target_phone = str(body_data.get("phone") or body_data.get("toPhone") or "").strip()
+    target_uid = str(body_data.get("userId") or "").strip()
 
+    target_uids = [user.id]
+    direct_token_sent = 0
+
+    if raw_token:
+        # Send directly to the specified FCM device token
+        try:
+            from app.core.firebase import _firebase_app
+            from firebase_admin import messaging
+            app = _firebase_app()
+            if app:
+                msg = messaging.Message(
+                    token=str(raw_token).strip(),
+                    notification=messaging.Notification(title=title, body=body, image="/favicon.png"),
+                    data={
+                        "url": deep_link,
+                        "type": "test_fcm",
+                        "title": title,
+                        "body": body,
+                        "sound": "order_alarm" if is_urgent else "default",
+                        "channel_id": "quickpress_urgent_dispatch" if is_urgent else "quickpress_orders",
+                    },
+                    webpush=messaging.WebpushConfig(
+                        notification=messaging.WebpushNotification(
+                            title=title,
+                            body=body,
+                            icon="/favicon.png",
+                            badge="/favicon.png",
+                            require_interaction=is_urgent,
+                        ),
+                        fcm_options=messaging.WebpushFCMOptions(link=deep_link),
+                    ),
+                )
+                messaging.send(msg)
+                direct_token_sent = 1
+        except Exception as direct_err:
+            logger.warning("Direct FCM token dispatch failed: %s", direct_err)
+
+    if target_phone:
+        clean_phone = target_phone.replace(" ", "").replace("-", "")
+        last10 = clean_phone[-10:] if len(clean_phone) >= 10 else clean_phone
+        matched = await database.find_many("users", {"phone": {"$regex": last10}})
+        if matched:
+            target_uids = [str(m["_id"]) for m in matched]
+        else:
+            pp = await database.find_many("partner_profiles", {"phone": {"$regex": last10}})
+            if pp:
+                target_uids = [str(p.get("userId") or p["_id"]) for p in pp]
+            rp = await database.find_many("rider_profiles", {"phone": {"$regex": last10}})
+            if rp:
+                target_uids = [str(r.get("userId") or r.get("riderId") or r["_id"]) for r in rp]
+    elif target_uid:
+        target_uids = [target_uid]
+
+    fcm_count = 0
+    try:
+        fcm_count = await send_fcm_push(
+            target_uids,
+            title=title,
+            body=body,
+            data={
+                "url": deep_link,
+                "type": "test_fcm_alert",
+                "urgent": "true" if is_urgent else "false",
+                "category": "order_alert" if is_urgent else "promotional",
+            },
+            role="rider" if is_urgent else "customer",
+        )
+    except Exception as fcm_err:
+        logger.warning("FCM test push failed: %s", fcm_err)
+
+    wp_count = 0
+    os_res = None
+    for uid in target_uids[:5]:
+        try:
+            wp_count += await send_native_webpush(
+                uid,
+                title=title,
+                body=body,
+                data={"url": deep_link, "type": "test_push", "userId": uid},
+            )
+            os_res = await send_onesignal_notification(
+                uid,
+                title=title,
+                body=body,
+                data={"url": deep_link, "type": "test_push", "userId": uid},
+                url=deep_link,
+            )
+        except Exception:
+            pass
+
+    total_fcm = fcm_count + direct_token_sent
     return {
         "ok": True,
-        "sentCount": wp_count,
-        "onesignal": os_res,
+        "fcmSentCount": total_fcm,
         "webpushSentCount": wp_count,
-        "user": user.id,
+        "onesignal": os_res,
+        "targetedUids": target_uids,
+        "message": f"Push dispatched to {total_fcm} FCM device(s) and {wp_count} WebPush subscriber(s)",
     }
 
 

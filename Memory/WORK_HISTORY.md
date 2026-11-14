@@ -1,5 +1,53 @@
 # QuickPress — Engineering Work History
 
+## Session: November 14, 2026 (Part 20)
+
+### Real-Device Firebase FCM Push Notifications Testing Engine & Console Workflow Polish
+
+1. **Context & User Request:**
+   - User directive:
+     - *"Push Notifications Testing (Firebase FCM real devices ke liye)"*
+     - *"Admin Dashboard / Partner Console me koi specific flow polish karna"*
+   - Scope:
+     - Implement end-to-end Firebase Cloud Messaging (FCM) live push notification testing pipeline so operators can dispatch and verify real push notifications on physical Android, iOS, and WebPush devices directly from the QuickPress Admin Console.
+     - Verify and polish critical workflows in Admin Console and Partner Console (audible incoming order siren, SLA countdown timer, and order status transitions).
+     - Verify zero mock data: utilize live Firebase service account credentials (`quickpress-b1e19`) and database records.
+     - Complete full production build verification (`admin-frontend`, `partner-frontend`, `customer-frontend`, `rider-frontend`).
+
+2. **Engineering Solutions Delivered:**
+   - **Backend Push Dispatch Engine (`backend-python`):**
+     - Verified Firebase Admin SDK initialization with service account credentials (`quickpress-b1e19`).
+     - Upgraded `POST /api/notifications/test-push` in `backend-python/app/api/notifications.py`:
+       - Added multi-mode targeting: raw FCM token, recipient phone number (`target_phone`), or user ID (`target_uid`).
+       - Implemented automatic user/partner/rider profile resolution by phone number (matching last 10 digits against `users`, `partner_profiles`, and `rider_profiles`).
+       - Supported direct FCM v1 dispatch with urgent siren audio channel (`order_alarm`), deep links, and WebPush fallback.
+       - Integrated unified delivery diagnostics returning `ok`, `fcmSentCount`, `webpushSentCount`, and `targetedUids`.
+   - **Admin API Layer (`admin-frontend`):**
+     - Added `sendTestPush()` in `admin-frontend/src/api/notifications.ts` with strongly typed payload and diagnostic response contracts.
+   - **Admin Console FCM Live Device Dispatcher (`admin-frontend`):**
+     - Implemented new `fcm_tester` tab in `admin-frontend/src/routes/notifications.tsx`.
+     - **Gateway Status & Architecture Banner:** Highlights live Firebase `quickpress-b1e19` connection, high-priority FCM v1 protocol support, APNs, and native WebPush.
+     - **Quick Presets:**
+       - 🚚 Customer Order In-Transit
+       - ⚡ Captain Urgent Siren (60s SLA)
+       - 🏪 Partner Hub Chime (2m SLA)
+       - 🏷️ Promotional Offer Broadcast
+     - **Dispatch Controls:** Phone number input, optional direct FCM device token input, notification title, message body, deep link action URL, and Urgent Siren alert toggle.
+     - **Live Smartphone Lock-Screen Preview:** Simulated mobile device lock-screen showing real-time typography, app icon, urgent siren tag, deep link action pill, and channel info.
+     - **Real-time Diagnostic Receipt:** Live execution card reporting HTTP status, delivered FCM device count, WebPush count, and targeted user IDs.
+   - **Partner Console Workflow Polish:**
+     - Verified `PartnerIncomingOrderAlertModal.tsx` and `partner-order-alert-sound.ts`.
+     - Confirmed multi-stage zero-latency Web Audio API chime engine, AudioBuffer caching, WakeLock API integration, and haptic vibration for incoming merchant orders.
+
+3. **Verification & Testing Results:**
+   - Backend Python compilation: PASSED (`py_compile` exit code 0).
+   - `admin-frontend` production build: PASSED (`vite build` exit code 0, 0 errors).
+   - `partner-frontend` production build: PASSED (`vite build` exit code 0, 0 errors).
+   - `customer-frontend` production build: PASSED (`vite build` exit code 0, 0 errors).
+   - `rider-frontend` production build: PASSED (`vite build` exit code 0, 0 errors).
+
+---
+
 ## Session: November 14, 2026 (Part 19)
 
 ### Implementation of Blinkit / Zomato Carto Voyager Muted Map Theme & 3D Isometric Telemetry

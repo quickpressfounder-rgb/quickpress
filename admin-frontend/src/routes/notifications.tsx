@@ -57,6 +57,7 @@ import {
   fetchNotificationCampaigns,
   fetchAreaNotificationStats,
   sendBroadcast,
+  sendTestPush,
   fetchWhatsAppLogs,
   sendAdminWhatsApp,
   fetchSmsLogs,
@@ -231,8 +232,35 @@ export function NotificationsPage() {
 
   // Main navigation tab
   const [activeTab, setActiveTab] = useState<
-    "campaigns" | "area_stats" | "whatsapp" | "sms" | "templates" | "gateway"
+    "campaigns" | "area_stats" | "fcm_tester" | "whatsapp" | "sms" | "templates" | "gateway"
   >("campaigns");
+
+  // FCM Live Push Tester State
+  const [fcmForm, setFcmForm] = useState({
+    phone: "",
+    fcmToken: "",
+    title: "⚡ QuickPress Order In Transit",
+    body: "Captain Sunil has picked up your laundry order #QP-1041. Delivery scheduled for 4:00 PM.",
+    url: "/track/QP-1041",
+    isUrgent: false,
+    alertTone: "standard",
+  });
+  const [fcmResult, setFcmResult] = useState<any>(null);
+
+  const testPushMutation = useMutation({
+    mutationFn: sendTestPush,
+    onSuccess: (data: any) => {
+      setFcmResult(data);
+      if (data?.fcmSentCount > 0 || data?.webpushSentCount > 0) {
+        toast.success(data.message || `FCM Push delivered to ${data.fcmSentCount} device(s)!`);
+      } else {
+        toast.info(data?.message || "Push processed. Target device token may need active registration.");
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to dispatch test push notification");
+    },
+  });
 
   // Broadcast Composer State
   const [form, setForm] = useState({
@@ -844,6 +872,13 @@ export function NotificationsPage() {
                   <span>Area-Wise Analytics ({allAreaStats.length})</span>
                 </TabsTrigger>
                 <TabsTrigger
+                  value="fcm_tester"
+                  className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow-xs flex items-center gap-1.5"
+                >
+                  <Bell className="size-3.5 text-blue-600" />
+                  <span>FCM Push Tester</span>
+                </TabsTrigger>
+                <TabsTrigger
                   value="whatsapp"
                   className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow-xs flex items-center gap-1.5"
                 >
@@ -1187,7 +1222,350 @@ export function NotificationsPage() {
             </div>
           )}
 
-          {/* TAB 3: WHATSAPP BUSINESS CLOUD API ENGINE & SURVEILLANCE */}
+          {/* TAB: FIREBASE FCM & WEBPUSH LIVE TESTER */}
+          {activeTab === "fcm_tester" && (
+            <div className="mt-4 space-y-6">
+              {/* Status & Architecture Header Banner */}
+              <div className="p-5 rounded-2xl bg-linear-to-r from-blue-900 via-indigo-900 to-zinc-950 text-white shadow-md flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-12 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center font-black text-blue-300">
+                    <Radio className="size-6 text-blue-300 animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-black text-white">
+                        Firebase Cloud Messaging (FCM) Live Device Dispatcher
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Project: quickpress-b1e19
+                      </span>
+                    </div>
+                    <p className="text-xs text-blue-200/80 mt-0.5">
+                      Target real physical Android phones, iOS devices, Mobile Web PWA, and desktop browsers directly.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="text-right hidden sm:block">
+                    <div className="text-xs font-bold text-blue-200">Protocol Support</div>
+                    <div className="text-[11px] text-blue-300/70">FCM v1 HTTP • WebPush • APNs • Priority High</div>
+                  </div>
+                  <div className="size-9 rounded-xl bg-white/10 flex items-center justify-center">
+                    <ShieldCheck className="size-5 text-emerald-400" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-zinc-500 mr-1 flex items-center gap-1">
+                  <Zap className="size-3.5 text-amber-500" /> Quick Presets:
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs font-semibold rounded-xl bg-white hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
+                  onClick={() =>
+                    setFcmForm({
+                      phone: fcmForm.phone,
+                      fcmToken: fcmForm.fcmToken,
+                      title: "⚡ QuickPress Order In Transit",
+                      body: "Captain Sunil has picked up your laundry order #QP-1041. Delivery scheduled for 4:00 PM.",
+                      url: "/track/QP-1041",
+                      isUrgent: false,
+                      alertTone: "standard",
+                    })
+                  }
+                >
+                  🚚 Customer Order In-Transit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs font-semibold rounded-xl bg-white hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200"
+                  onClick={() =>
+                    setFcmForm({
+                      phone: fcmForm.phone,
+                      fcmToken: fcmForm.fcmToken,
+                      title: "🚨 Urgent: New Pickup Assignment Near You!",
+                      body: "Order #QP-9821 available at Swaroop Nagar Hub. ₹85 payout. Tap to accept within 60s.",
+                      url: "/orders",
+                      isUrgent: true,
+                      alertTone: "alarm",
+                    })
+                  }
+                >
+                  ⚡ Captain Urgent Siren (60s SLA)
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs font-semibold rounded-xl bg-white hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
+                  onClick={() =>
+                    setFcmForm({
+                      phone: fcmForm.phone,
+                      fcmToken: fcmForm.fcmToken,
+                      title: "🔔 New Order Received #QP-3012",
+                      body: "3 Wash & Fold bags placed by Priya Sharma. Acceptance required within 2 minutes.",
+                      url: "/orders",
+                      isUrgent: true,
+                      alertTone: "alarm",
+                    })
+                  }
+                >
+                  🏪 Partner Hub Chime (2m SLA)
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs font-semibold rounded-xl bg-white hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
+                  onClick={() =>
+                    setFcmForm({
+                      phone: fcmForm.phone,
+                      fcmToken: fcmForm.fcmToken,
+                      title: "✨ 40% OFF Steam Ironing Today!",
+                      body: "Get pristine wrinkle-free garments this weekend. Use code FRESH40 on checkout.",
+                      url: "/offers",
+                      isUrgent: false,
+                      alertTone: "standard",
+                    })
+                  }
+                >
+                  🏷️ Promotional Offer Broadcast
+                </Button>
+              </div>
+
+              {/* Main 2-Column Grid: Form Controls vs Mobile Device Preview & Receipt */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Left 7 Columns: Form Input */}
+                <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-4">
+                  <h4 className="text-sm font-black text-zinc-950 flex items-center gap-2">
+                    <Smartphone className="size-4 text-zinc-700" />
+                    Target Recipient &amp; Message Payload
+                  </h4>
+
+                  {/* Recipient Targeting */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs font-bold text-zinc-700 flex items-center justify-between">
+                        <span>Target Phone Number</span>
+                        <span className="text-[10px] text-zinc-400 font-normal">Customer, Rider, or Partner</span>
+                      </Label>
+                      <Input
+                        placeholder="e.g. 9876543210 or +91..."
+                        value={fcmForm.phone}
+                        onChange={(e) => setFcmForm((p) => ({ ...p, phone: e.target.value }))}
+                        className="mt-1 font-mono text-sm rounded-xl"
+                      />
+                      <p className="text-[10px] text-zinc-500 mt-1">
+                        System matches active user and fetches their registered device FCM tokens.
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-bold text-zinc-700 flex items-center justify-between">
+                        <span>Or Direct FCM Token</span>
+                        <span className="text-[10px] text-zinc-400 font-normal">Optional override</span>
+                      </Label>
+                      <Input
+                        placeholder="Paste raw device token..."
+                        value={fcmForm.fcmToken}
+                        onChange={(e) => setFcmForm((p) => ({ ...p, fcmToken: e.target.value }))}
+                        className="mt-1 font-mono text-xs rounded-xl"
+                      />
+                      <p className="text-[10px] text-zinc-500 mt-1">
+                        Send directly to a test device console/logcat token.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Title & Body */}
+                  <div className="space-y-3 pt-2">
+                    <div>
+                      <Label className="text-xs font-bold text-zinc-700">Notification Title</Label>
+                      <Input
+                        value={fcmForm.title}
+                        onChange={(e) => setFcmForm((p) => ({ ...p, title: e.target.value }))}
+                        placeholder="Notification Title"
+                        className="mt-1 text-sm font-semibold rounded-xl"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-bold text-zinc-700">Notification Body Message</Label>
+                      <Textarea
+                        rows={3}
+                        value={fcmForm.body}
+                        onChange={(e) => setFcmForm((p) => ({ ...p, body: e.target.value }))}
+                        placeholder="Notification Body..."
+                        className="mt-1 text-sm rounded-xl resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Link & Urgency Toggle */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                    <div>
+                      <Label className="text-xs font-bold text-zinc-700">Deep Link Action URL</Label>
+                      <Input
+                        value={fcmForm.url}
+                        onChange={(e) => setFcmForm((p) => ({ ...p, url: e.target.value }))}
+                        placeholder="/track/QP-1041"
+                        className="mt-1 text-xs font-mono rounded-xl"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-xl border border-zinc-200 bg-zinc-50">
+                      <div>
+                        <div className="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
+                          <Volume2 className={`size-3.5 ${fcmForm.isUrgent ? "text-rose-600 animate-bounce" : "text-zinc-500"}`} />
+                          <span>Urgent Siren Alert</span>
+                        </div>
+                        <p className="text-[10px] text-zinc-500">Continuous sound channel &amp; priority high</p>
+                      </div>
+                      <Switch
+                        checked={fcmForm.isUrgent}
+                        onCheckedChange={(checked) => setFcmForm((p) => ({ ...p, isUrgent: checked }))}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Dispatch Button */}
+                  <div className="pt-3">
+                    <Button
+                      disabled={testPushMutation.isPending || (!fcmForm.phone && !fcmForm.fcmToken)}
+                      onClick={() =>
+                        testPushMutation.mutate({
+                          phone: fcmForm.phone || undefined,
+                          fcmToken: fcmForm.fcmToken || undefined,
+                          title: fcmForm.title,
+                          body: fcmForm.body,
+                          url: fcmForm.url,
+                          isUrgent: fcmForm.isUrgent,
+                        })
+                      }
+                      className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
+                    >
+                      {testPushMutation.isPending ? (
+                        <>
+                          <RefreshCw className="size-4 animate-spin" />
+                          <span>Dispatching via Firebase FCM Engine...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="size-4" />
+                          <span>Dispatch Live Push Notification to Real Device</span>
+                        </>
+                      )}
+                    </Button>
+                    {!fcmForm.phone && !fcmForm.fcmToken && (
+                      <p className="text-center text-[11px] text-amber-600 mt-2 font-medium">
+                        * Enter a recipient phone number or raw FCM token above to dispatch.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right 5 Columns: Smartphone Lock-Screen Preview & Live Diagnostic Receipt */}
+                <div className="lg:col-span-5 space-y-4">
+                  {/* Smartphone Lockscreen Preview Card */}
+                  <div className="bg-zinc-900 text-white p-5 rounded-3xl border border-zinc-800 shadow-lg relative overflow-hidden">
+                    <div className="text-center text-[10px] text-zinc-400 font-mono tracking-widest uppercase mb-3 flex items-center justify-center gap-1.5">
+                      <Smartphone className="size-3 text-zinc-400" /> Device Lock Screen Preview
+                    </div>
+
+                    {/* Simulated Mobile Notification Card */}
+                    <div className="bg-zinc-800/90 backdrop-blur-md border border-zinc-700/60 p-3.5 rounded-2xl shadow-xl transition-all">
+                      <div className="flex items-center justify-between pb-2 border-b border-zinc-700/40">
+                        <div className="flex items-center gap-2">
+                          <div className="size-5 rounded-md bg-blue-600 flex items-center justify-center text-[10px] font-black text-white">
+                            QP
+                          </div>
+                          <span className="text-xs font-bold text-zinc-200">QuickPress</span>
+                        </div>
+                        <span className="text-[10px] text-zinc-400 font-mono">now</span>
+                      </div>
+
+                      <div className="pt-2">
+                        <div className="text-xs font-black text-white flex items-center gap-1.5">
+                          {fcmForm.isUrgent && <span className="text-rose-400">🚨</span>}
+                          {fcmForm.title || "Notification Title"}
+                        </div>
+                        <p className="text-[11px] text-zinc-300 mt-1 leading-relaxed">
+                          {fcmForm.body || "Notification body text will appear right here on recipient's display."}
+                        </p>
+                        {fcmForm.url && (
+                          <div className="mt-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-700/70 text-[10px] font-mono text-blue-300 border border-zinc-600/50">
+                            <span>Deep Link: {fcmForm.url}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <span className="size-2 rounded-full bg-emerald-500 animate-ping inline-block mr-1" />
+                        <span>FCM Channel: {fcmForm.isUrgent ? "Urgent Siren (Alarm)" : "Standard Orders"}</span>
+                      </div>
+                      <span className="text-zinc-500">Android / iOS</span>
+                    </div>
+                  </div>
+
+                  {/* Real-time Diagnostics Receipt */}
+                  <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-xs space-y-3">
+                    <h5 className="text-xs font-black text-zinc-950 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Activity className="size-3.5 text-blue-600" />
+                        FCM Gateway Execution Diagnostic
+                      </span>
+                      {fcmResult && (
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            fcmResult.fcmSentCount > 0 || fcmResult.webpushSentCount > 0
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-amber-100 text-amber-800"
+                          }`}
+                        >
+                          {fcmResult.fcmSentCount > 0 || fcmResult.webpushSentCount > 0 ? "DELIVERED" : "NO ACTIVE TOKEN"}
+                        </span>
+                      )}
+                    </h5>
+
+                    {fcmResult ? (
+                      <div className="space-y-2 text-xs font-mono bg-zinc-50 p-3 rounded-xl border border-zinc-200">
+                        <div className="flex justify-between text-zinc-600">
+                          <span>Gateway Response:</span>
+                          <span className="font-bold text-zinc-900">{fcmResult.ok ? "HTTP 200 OK" : "ERROR"}</span>
+                        </div>
+                        <div className="flex justify-between text-zinc-600">
+                          <span>FCM Direct Devices:</span>
+                          <span className="font-bold text-blue-600">{fcmResult.fcmSentCount ?? 0} device(s)</span>
+                        </div>
+                        <div className="flex justify-between text-zinc-600">
+                          <span>WebPush Subscribers:</span>
+                          <span className="font-bold text-indigo-600">{fcmResult.webpushSentCount ?? 0}</span>
+                        </div>
+                        {fcmResult.targetedUids && fcmResult.targetedUids.length > 0 && (
+                          <div className="pt-1 border-t border-zinc-200 text-[11px] text-zinc-500 truncate">
+                            Target UIDs: {fcmResult.targetedUids.join(", ")}
+                          </div>
+                        )}
+                        <p className="text-[11px] font-sans text-zinc-600 pt-1 border-t border-zinc-200">
+                          {fcmResult.message}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-zinc-400 text-xs">
+                        <Radio className="size-6 mx-auto mb-2 text-zinc-300 opacity-60" />
+                        <span>Ready to transmit. Dispatch a push notification to inspect live transmission logs.</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           {activeTab === "whatsapp" && (
             <div className="mt-4 space-y-6">
               {/* Top Governance Control Bar */}

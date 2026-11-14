@@ -178,6 +178,25 @@ export async function sendBroadcast(payload: {
   });
 }
 
+/** Direct FCM & WebPush device tester */
+export async function sendTestPush(payload: {
+  title?: string;
+  body?: string;
+  phone?: string;
+  fcmToken?: string;
+  userId?: string;
+  url?: string;
+  isUrgent?: boolean;
+}) {
+  return await apiPostJson<{
+    ok: boolean;
+    fcmSentCount: number;
+    webpushSentCount: number;
+    message: string;
+    targetedUids?: string[];
+  }>("/api/notifications/test-push", payload);
+}
+
 // -----------------------------------------------------------------------------
 // OMNI-CHANNEL: WHATSAPP CLOUD API & INDIAN SMS GATEWAY
 // -----------------------------------------------------------------------------
