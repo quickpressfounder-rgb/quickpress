@@ -1,5 +1,41 @@
 # QuickPress — Engineering Work History
 
+## Session: November 14, 2026 (Part 19)
+
+### Implementation of Blinkit / Zomato Carto Voyager Muted Map Theme & 3D Isometric Telemetry
+
+1. **Context & User Request:**
+   - User directive:
+     *"Blinkit/Zomato Carto Voyager Muted Map Theme"*
+   - Scope:
+     - Upgrade `LiveDeliveryMap.tsx` from default generic Google Maps tiles to the signature Blinkit / Zomato CartoDB Voyager pastel muted cartography.
+     - Implement custom 3D isometric delivery scooter marker with expanding dual radar pulse waves and live captain name/speed pill.
+     - Integrate turn-by-turn road-snapped polyline routing using `computeRoute()` and `decodePolyline()`.
+     - Implement smart teardrop doorstep pin with base concentric target rings and custom laundry hub badge.
+     - Add interactive glassmorphic HUD controls with theme switcher (Voyager Muted, Dark Matter Night Mode, Google Roadmap).
+
+2. **Engineering Solutions Delivered:**
+   - **Muted CartoDB Voyager Basemap Integration:**
+     - Configured `TILE_CONFIGS` with CartoDB Voyager (`https://{s}.basemaps.cartocdn.com/rastertiles/voyager/...`) and Dark Matter (`https://{s}.basemaps.cartocdn.com/dark_all/...`) with retina support (`{r}`).
+     - Eliminated commercial POI clutter and harsh highway colors for ultra-focused delivery tracking.
+   - **Turn-by-Turn Road-Snapped Polyline:**
+     - Dynamic route computation calling `computeRoute()` and decoding with `decodePolyline()`.
+     - Dual-layer glowing emerald route line (8px translucent glow casing + 4.5px vibrant `#059669` core).
+   - **Blinkit/Zomato Signature Marker Archetypes:**
+     - **Delivery Captain:** 3D electric scooter SVG, dual radar ping waves (`#10b981`), directional rotation (`transform: rotate(${heading}deg)`), and floating glassmorphic tag pill (`Sunil · 32 km/h`).
+     - **Doorstep Destination:** Amber/Emerald teardrop pin with house glyph and concentric target pulse circle at the base.
+     - **Store Hub:** Indigo laundry hub badge.
+   - **Floating Glassmorphic HUD & Controls:**
+     - Live telemetry pill (`⚡ In Transit · 1.4 km away · ~8 mins`).
+     - Glassmorphic action buttons for Recenter, Map Theme Toggle (Voyager/Dark/Google), and Zoom.
+
+3. **Verification & Testing Results:**
+   - `customer-frontend` production build: PASSED (`vite build` exit code 0, 0 errors).
+   - All cartography assets, SVGs, and responsive styles verified.
+   - Commit Hash: `af60e59f`
+
+---
+
 ## Session: November 14, 2026 (Part 18)
 
 ### Real-World Live Tracking Map & GPS Telemetry Full-Stack Integration
