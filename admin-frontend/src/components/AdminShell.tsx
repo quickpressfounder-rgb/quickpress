@@ -456,9 +456,17 @@ export function AdminShell({
     try {
       await adminLogout();
       toast.success("Signed out successfully.");
-      navigate({ to: adminRoutes.auth });
     } catch {
-      navigate({ to: adminRoutes.auth });
+      /* ignore */
+    } finally {
+      // Clear local storage and redirect to Cloudflare Access logout endpoint to clear perimeter cookie
+      try {
+        localStorage.removeItem("admin_session");
+        sessionStorage.clear();
+      } catch {
+        /* ignore */
+      }
+      window.location.href = "/cdn-cgi/access/logout";
     }
   };
 

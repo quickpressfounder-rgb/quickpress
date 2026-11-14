@@ -25,6 +25,7 @@ import {
 /** Central route map for the QuickPress Admin console. */
 export const adminRoutes = {
   auth: "/auth",
+  unauthorized: "/unauthorized",
   forgotPassword: "/forgot-password",
   dashboard: "/dashboard",
   crm: "/crm",

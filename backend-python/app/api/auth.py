@@ -653,10 +653,10 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
             except Exception:
                 pass
 
-    # In development mode, allow query parameter override for local verification
+    # In development mode, allow query parameter override or default to configured owner
     settings = get_settings()
     if not cf_email and settings.app_env != "production":
-        cf_email = request.query_params.get("cf_email")
+        cf_email = request.query_params.get("cf_email") or "official.quickpress@gmail.com"
 
     if not cf_email or not cf_email.strip():
         raise HTTPException(

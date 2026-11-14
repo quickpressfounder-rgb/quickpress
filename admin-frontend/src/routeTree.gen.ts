@@ -33,6 +33,7 @@ import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as SupportRouteImport } from './routes/support'
+import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
 import { Route as WalletRouteImport } from './routes/wallet'
 
 const IndexRoute = IndexRouteImport.update({
@@ -155,6 +156,11 @@ const SupportRoute = SupportRouteImport.update({
   path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UnauthorizedRoute = UnauthorizedRouteImport.update({
+  id: '/unauthorized',
+  path: '/unauthorized',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/staff': typeof StaffRoute
   '/support': typeof SupportRoute
+  '/unauthorized': typeof UnauthorizedRoute
   '/wallet': typeof WalletRoute
 }
 export interface FileRoutesByTo {
@@ -213,6 +220,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/staff': typeof StaffRoute
   '/support': typeof SupportRoute
+  '/unauthorized': typeof UnauthorizedRoute
   '/wallet': typeof WalletRoute
 }
 export interface FileRoutesById {
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/staff': typeof StaffRoute
   '/support': typeof SupportRoute
+  '/unauthorized': typeof UnauthorizedRoute
   '/wallet': typeof WalletRoute
 }
 export interface FileRouteTypes {
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/staff'
     | '/support'
+    | '/unauthorized'
     | '/wallet'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/staff'
     | '/support'
+    | '/unauthorized'
     | '/wallet'
   id:
     | '__root__'
@@ -324,6 +335,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/staff'
     | '/support'
+    | '/unauthorized'
     | '/wallet'
   fileRoutesById: FileRoutesById
 }
@@ -352,6 +364,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   StaffRoute: typeof StaffRoute
   SupportRoute: typeof SupportRoute
+  UnauthorizedRoute: typeof UnauthorizedRoute
   WalletRoute: typeof WalletRoute
 }
 
@@ -525,6 +538,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/unauthorized': {
+      id: '/unauthorized'
+      path: '/unauthorized'
+      fullPath: '/unauthorized'
+      preLoaderRoute: typeof UnauthorizedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/wallet': {
       id: '/wallet'
       path: '/wallet'
@@ -560,6 +580,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   StaffRoute: StaffRoute,
   SupportRoute: SupportRoute,
+  UnauthorizedRoute: UnauthorizedRoute,
   WalletRoute: WalletRoute,
 }
 export const routeTree = rootRouteImport

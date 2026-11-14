@@ -1,104 +1,49 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, MailCheck, Shield } from "lucide-react";
-import { toast } from "sonner";
-
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { Shield, ShieldCheck, ArrowRight } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-import { requestPasswordReset } from "../api/auth";
-import { adminRoutes } from "../navigation/admin-routes";
 import { adminHead } from "../lib/head";
 
 export const Route = createFileRoute("/forgot-password")({
-  head: () => adminHead("Reset password", "Request a password reset link for your QuickPress admin account."),
+  beforeLoad: () => {
+    // Under Cloudflare Zero Trust, password login is decommissioned
+    throw redirect({ to: "/" });
+  },
+  head: () => adminHead("Passwordless Authentication", "QuickPress Zero Trust Security Perimeter"),
   component: ForgotPasswordPage,
 });
 
 function ForgotPasswordPage() {
-  const [email, setEmail] = useState("");
-  const reset = useMutation({
-    mutationFn: requestPasswordReset,
-    onSuccess: () => toast.success("Reset link sent"),
-    onError: (error: unknown) =>
-      toast.error(error instanceof Error ? error.message : "Password reset is not available yet."),
-  });
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!email) {
-      toast.error("Enter your work email");
-      return;
-    }
-    reset.mutate(email);
-  }
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-cta">
-            <Shield className="h-5 w-5" />
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-lg">
+            <ShieldCheck className="h-6 w-6" />
           </span>
           <div>
-            <p className="text-base font-semibold text-foreground">QuickPress Admin</p>
-            <p className="text-sm text-muted-foreground">Account recovery</p>
+            <p className="text-base font-bold text-slate-900">QuickPress Operations</p>
+            <p className="text-xs text-slate-500">Cloudflare Zero Trust SSO</p>
           </div>
         </div>
 
-        <Card className="shadow-soft">
+        <Card className="rounded-2xl border-slate-200 shadow-lg">
           <CardHeader>
-            <CardTitle>Forgot password</CardTitle>
-            <CardDescription>We'll email a secure reset link to your staff address.</CardDescription>
+            <CardTitle className="text-lg font-black text-slate-900">Passwordless Staff Access</CardTitle>
+            <CardDescription className="text-xs text-slate-500">
+              Passwords have been decommissioned in favor of high-security Cloudflare Zero Trust email OTP.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            {reset.isError ? (
-              <div className="space-y-4 text-center">
-                <p className="text-sm text-muted-foreground">
-                  {reset.error instanceof Error ? reset.error.message : "Password reset is not available yet."}
-                </p>
-                <Button asChild variant="outline" className="w-full">
-                  <Link to={adminRoutes.auth}>
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to sign in
-                  </Link>
-                </Button>
-              </div>
-            ) : reset.isSuccess ? (
-              <div className="space-y-4 text-center">
-                <MailCheck className="mx-auto h-10 w-10 text-secondary" />
-                <p className="text-sm text-muted-foreground">
-                  If <span className="font-medium text-foreground">{reset.data.email}</span> belongs to a
-                  QuickPress admin, a reset link is on its way.
-                </p>
-                <Button asChild variant="outline" className="w-full">
-                  <Link to={adminRoutes.auth}>
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to sign in
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <form className="space-y-4" onSubmit={submit}>
-                <div className="space-y-2">
-                  <Label htmlFor="reset-email">Work email</Label>
-                  <Input
-                    id="reset-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@quickpress.in"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={reset.isPending}>
-                  {reset.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Send reset link
-                </Button>
-                <Button asChild variant="ghost" className="w-full">
-                  <Link to={adminRoutes.auth}>Back to sign in</Link>
-                </Button>
-              </form>
-            )}
+          <CardContent className="space-y-4">
+            <p className="text-xs text-slate-600 leading-relaxed">
+              To sign in, simply access the portal and complete the Cloudflare Access verification with your authorized corporate email.
+            </p>
+            <Button asChild className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl gap-2">
+              <Link to="/">
+                <span>Return to Operations Console</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
