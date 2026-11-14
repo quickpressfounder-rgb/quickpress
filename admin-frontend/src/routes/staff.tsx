@@ -131,33 +131,65 @@ export const ALL_PERMISSIONS: PermissionDef[] = [
 export const ROLE_PRESETS: Record<string, { role: string; desc: string; permissions: string[] }> = {
   "Super Admin": {
     role: "Super Admin",
-    desc: "Unrestricted platform master access across all 14 modules, financial ledgers, and staff governance.",
-    permissions: ALL_PERMISSIONS.map((p) => p.key),
+    desc: "Unrestricted platform master access across all 14 modules, financial ledgers, and staff governance with full View, Edit & Delete capabilities.",
+    permissions: [
+      "all",
+      "*",
+      ...ALL_PERMISSIONS.flatMap((p) => [`${p.key}:view`, `${p.key}:edit`, `${p.key}:delete`]),
+    ],
   },
   "Operations Admin": {
     role: "Operations Admin",
     desc: "Operational authority over orders, store partners, rider fleet, master catalog, cities, and support.",
-    permissions: ["orders", "customers", "partners", "riders", "services", "cities", "support"],
+    permissions: [
+      "orders:view", "orders:edit",
+      "customers:view", "customers:edit",
+      "partners:view", "partners:edit",
+      "riders:view", "riders:edit",
+      "services:view", "services:edit",
+      "cities:view", "cities:edit",
+      "support:view", "support:edit",
+    ],
   },
   "Fleet Dispatch Manager": {
     role: "Fleet Dispatch Manager",
     desc: "Dedicated rider fleet supervision, live order dispatch routing, territory zones, and rider escalations.",
-    permissions: ["orders", "riders", "cities", "support"],
+    permissions: [
+      "orders:view", "orders:edit",
+      "riders:view", "riders:edit", "riders:delete",
+      "cities:view",
+      "support:view", "support:edit",
+    ],
   },
   "Support Lead": {
     role: "Support Lead",
     desc: "Frontline customer and partner escalation resolution, ticket management, and coupon issuance.",
-    permissions: ["customers", "orders", "support", "coupons"],
+    permissions: [
+      "customers:view",
+      "orders:view",
+      "support:view", "support:edit", "support:delete",
+      "coupons:view", "coupons:edit",
+    ],
   },
   "Finance & Settlements Lead": {
     role: "Finance & Settlements Lead",
     desc: "Accounting audits, payout ledger settlements, VIP subscriptions, and revenue analytics.",
-    permissions: ["finance", "orders", "memberships", "analytics"],
+    permissions: [
+      "finance:view", "finance:edit", "finance:delete",
+      "orders:view",
+      "memberships:view", "memberships:edit",
+      "analytics:view",
+    ],
   },
   "Store Partner Lead": {
     role: "Store Partner Lead",
     desc: "Laundromat onboarding, quality audits, service rates, and partner support tickets.",
-    permissions: ["partners", "orders", "services", "support"],
+    permissions: [
+      "partners:view", "partners:edit", "partners:delete",
+      "orders:view",
+      "services:view", "services:edit",
+      "support:view",
+    ],
   },
 };
 
@@ -631,39 +663,66 @@ export function StaffPage() {
                               <StatusPill value={m.status} />
                             </td>
 
-                            {/* Permissions Summary */}
+                            {/* Permissions Summary with Granular View/Edit/Delete Badges */}
                             <td className="py-3.5 px-4">
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-1.5">
-                                  <Badge
-                                    variant="outline"
-                                    className={`text-[10px] font-bold ${
-                                      grantedCount >= 10
-                                        ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                                        : grantedCount >= 5
-                                        ? "bg-sky-50 text-sky-800 border-sky-200"
-                                        : "bg-zinc-100 text-zinc-700 border-zinc-200"
-                                    }`}
-                                  >
-                                    {isSuperAdmin ? "14 / 14 All Modules" : `${grantedCount} / 14 Modules`}
-                                  </Badge>
-                                </div>
-                                <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                  {(m.permissions || []).slice(0, 3).map((p) => (
-                                    <span
-                                      key={p}
-                                      className="rounded bg-zinc-100 px-1 py-0.2 text-[9px] font-bold text-zinc-600 uppercase"
-                                    >
-                                      {p}
-                                    </span>
-                                  ))}
-                                  {(m.permissions || []).length > 3 && (
-                                    <span className="text-[9px] font-bold text-zinc-400">
-                                      +{(m.permissions || []).length - 3} more
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+                              {(() => {
+                                const mPerms = m.permissions || [];
+                                const isMaster = isSuperAdmin || mPerms.includes("all") || mPerms.includes("*");
+                                const viewCount = isMaster
+                                  ? 14
+                                  : ALL_PERMISSIONS.filter((p) =>
+                                      mPerms.includes(p.key) ||
+                                      mPerms.includes(`${p.key}:view`) ||
+                                      mPerms.includes(`${p.key}:edit`) ||
+                                      mPerms.includes(`${p.key}:delete`)
+                                    ).length;
+                                const editCount = isMaster
+                                  ? 14
+                                  : ALL_PERMISSIONS.filter((p) => mPerms.includes(p.key) || mPerms.includes(`${p.key}:edit`)).length;
+                                const deleteCount = isMaster
+                                  ? 14
+                                  : ALL_PERMISSIONS.filter((p) => mPerms.includes(`${p.key}:delete`)).length;
+
+                                return (
+                                  <div className="space-y-1.5">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span
+                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                          viewCount > 0
+                                            ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                            : "bg-zinc-100 text-zinc-400 border border-zinc-200"
+                                        }`}
+                                        title="View / Read Permissions"
+                                      >
+                                        <span>👁️</span> <span>{viewCount} View</span>
+                                      </span>
+                                      <span
+                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                          editCount > 0
+                                            ? "bg-sky-50 text-sky-800 border border-sky-200"
+                                            : "bg-zinc-100 text-zinc-400 border border-zinc-200"
+                                        }`}
+                                        title="Edit / Modify Permissions"
+                                      >
+                                        <span>✏️</span> <span>{editCount} Edit</span>
+                                      </span>
+                                      <span
+                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                          deleteCount > 0
+                                            ? "bg-rose-50 text-rose-800 border border-rose-200"
+                                            : "bg-zinc-100 text-zinc-400 border border-zinc-200"
+                                        }`}
+                                        title="Delete / Revoke Permissions"
+                                      >
+                                        <span>🗑️</span> <span>{deleteCount} Delete</span>
+                                      </span>
+                                    </div>
+                                    <p className="text-[10px] text-zinc-400 font-medium">
+                                      {isMaster ? "Full Platform Master (14/14 Modules CRUD)" : `${viewCount} Active Modules`}
+                                    </p>
+                                  </div>
+                                );
+                              })()}
                             </td>
 
                             {/* Last Activity */}
@@ -1409,6 +1468,177 @@ export function StaffPage() {
 }
 
 /* -------------------------------------------------------------------------
+   GRANULAR ACTION PERMISSION HELPERS & CARD COMPONENT (View, Edit & Delete)
+------------------------------------------------------------------------- */
+function hasActionPerm(perms: string[], moduleKey: string, action: "view" | "edit" | "delete"): boolean {
+  if (perms.includes("all") || perms.includes("*")) return true;
+  if (action === "view") {
+    return (
+      perms.includes(moduleKey) ||
+      perms.includes(`${moduleKey}:view`) ||
+      perms.includes(`${moduleKey}:edit`) ||
+      perms.includes(`${moduleKey}:delete`)
+    );
+  }
+  if (action === "edit") {
+    return perms.includes(`${moduleKey}:edit`) || perms.includes(moduleKey);
+  }
+  if (action === "delete") {
+    return perms.includes(`${moduleKey}:delete`);
+  }
+  return false;
+}
+
+function toggleActionPerm(
+  currentPerms: string[],
+  moduleKey: string,
+  action: "view" | "edit" | "delete"
+): string[] {
+  const isView = hasActionPerm(currentPerms, moduleKey, "view");
+  const isEdit = hasActionPerm(currentPerms, moduleKey, "edit");
+  const isDelete = hasActionPerm(currentPerms, moduleKey, "delete");
+
+  let updated = currentPerms.filter(
+    (p) => p !== moduleKey && p !== `${moduleKey}:view` && p !== `${moduleKey}:edit` && p !== `${moduleKey}:delete`
+  );
+
+  let nextView = isView;
+  let nextEdit = isEdit;
+  let nextDelete = isDelete;
+
+  if (action === "view") {
+    nextView = !isView;
+    if (!nextView) {
+      nextEdit = false;
+      nextDelete = false;
+    }
+  } else if (action === "edit") {
+    nextEdit = !isEdit;
+    if (nextEdit) {
+      nextView = true;
+    }
+  } else if (action === "delete") {
+    nextDelete = !isDelete;
+    if (nextDelete) {
+      nextView = true;
+    }
+  }
+
+  if (nextView) updated.push(`${moduleKey}:view`);
+  if (nextEdit) updated.push(`${moduleKey}:edit`);
+  if (nextDelete) updated.push(`${moduleKey}:delete`);
+
+  return updated;
+}
+
+function ModuleAccessControlCard({
+  item,
+  perms,
+  onToggleAction,
+}: {
+  item: PermissionDef;
+  perms: string[];
+  onToggleAction: (key: string, action: "view" | "edit" | "delete") => void;
+}) {
+  const isAll = perms.includes("all") || perms.includes("*");
+  const hasView = isAll || hasActionPerm(perms, item.key, "view");
+  const hasEdit = isAll || hasActionPerm(perms, item.key, "edit");
+  const hasDelete = isAll || hasActionPerm(perms, item.key, "delete");
+
+  let currentLevel: "none" | "view" | "edit" | "full" = "none";
+  if (hasView && hasEdit && hasDelete) currentLevel = "full";
+  else if (hasView && hasEdit) currentLevel = "edit";
+  else if (hasView) currentLevel = "view";
+
+  return (
+    <div
+      className={`rounded-2xl border p-3 transition-all ${
+        currentLevel !== "none"
+          ? "border-zinc-300 bg-white shadow-xs"
+          : "border-zinc-200/80 bg-zinc-50/50 opacity-80"
+      }`}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="min-w-0 pr-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-xs text-zinc-900">{item.label}</span>
+            {currentLevel === "full" && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
+                Full CRUD (View + Edit + Delete)
+              </span>
+            )}
+            {currentLevel === "edit" && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-200">
+                View & Edit Access
+              </span>
+            )}
+            {currentLevel === "view" && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                Read-Only (View)
+              </span>
+            )}
+            {currentLevel === "none" && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold text-zinc-400">
+                No Access (Restricted)
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] text-zinc-500 mt-0.5 leading-snug">{item.description}</p>
+        </div>
+
+        {/* 3 Explicit Action Buttons: View, Edit, Delete */}
+        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+          {/* View toggle */}
+          <button
+            type="button"
+            onClick={() => onToggleAction(item.key, "view")}
+            className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all border flex items-center gap-1 ${
+              hasView
+                ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs"
+                : "bg-white text-zinc-400 border-zinc-200 hover:text-zinc-700 hover:border-zinc-300"
+            }`}
+            title={hasView ? "Revoke View Access" : "Grant View Access"}
+          >
+            <span>👁️</span>
+            <span>View</span>
+          </button>
+
+          {/* Edit toggle */}
+          <button
+            type="button"
+            onClick={() => onToggleAction(item.key, "edit")}
+            className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all border flex items-center gap-1 ${
+              hasEdit
+                ? "bg-sky-600 text-white border-sky-600 shadow-2xs"
+                : "bg-white text-zinc-400 border-zinc-200 hover:text-zinc-700 hover:border-zinc-300"
+            }`}
+            title={hasEdit ? "Revoke Edit Access" : "Grant Edit Access (Can modify records)"}
+          >
+            <span>✏️</span>
+            <span>Edit</span>
+          </button>
+
+          {/* Delete toggle */}
+          <button
+            type="button"
+            onClick={() => onToggleAction(item.key, "delete")}
+            className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all border flex items-center gap-1 ${
+              hasDelete
+                ? "bg-rose-600 text-white border-rose-600 shadow-2xs"
+                : "bg-white text-zinc-400 border-zinc-200 hover:text-zinc-700 hover:border-zinc-300"
+            }`}
+            title={hasDelete ? "Revoke Delete Access" : "Grant Delete Access (Can delete/purge records)"}
+          >
+            <span>🗑️</span>
+            <span>Delete</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------
    ADD STAFF DIALOG COMPONENT ("staff add kar sake")
 ------------------------------------------------------------------------- */
 function AddStaffDialog() {
@@ -1421,15 +1651,9 @@ function AddStaffDialog() {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("Operations Admin");
   const [scope, setScope] = useState("Kasganj Market Hub");
-  const [selectedPerms, setSelectedPerms] = useState<string[]>([
-    "orders",
-    "customers",
-    "partners",
-    "riders",
-    "services",
-    "cities",
-    "support",
-  ]);
+  const [selectedPerms, setSelectedPerms] = useState<string[]>(
+    ROLE_PRESETS["Operations Admin"].permissions
+  );
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -1466,20 +1690,43 @@ function AddStaffDialog() {
     }
   };
 
-  const togglePermission = (key: string) => {
+  const toggleAction = (key: string, action: "view" | "edit" | "delete") => {
+    setSelectedPerms((prev) => toggleActionPerm(prev, key, action));
+  };
+
+  const grantCategoryAction = (cat: string, action: "view" | "edit" | "delete") => {
+    const catItems = ALL_PERMISSIONS.filter((p) => p.category === cat);
+    setSelectedPerms((prev) => {
+      let next = [...prev];
+      for (const item of catItems) {
+        if (!hasActionPerm(next, item.key, action)) {
+          next = toggleActionPerm(next, item.key, action);
+        }
+      }
+      return next;
+    });
+  };
+
+  const clearCategory = (cat: string) => {
+    const catKeys = new Set(ALL_PERMISSIONS.filter((p) => p.category === cat).map((p) => p.key));
     setSelectedPerms((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+      prev.filter((p) => {
+        const base = p.split(":")[0];
+        return !catKeys.has(base);
+      })
     );
   };
 
-  const toggleCategory = (category: string) => {
-    const catPerms = ALL_PERMISSIONS.filter((p) => p.category === category).map((p) => p.key);
-    const allCatSelected = catPerms.every((k) => selectedPerms.includes(k));
-    if (allCatSelected) {
-      setSelectedPerms((prev) => prev.filter((k) => !catPerms.includes(k)));
-    } else {
-      setSelectedPerms((prev) => Array.from(new Set([...prev, ...catPerms])));
-    }
+  const grantAllAction = (action: "view" | "edit" | "delete") => {
+    setSelectedPerms((prev) => {
+      let next = [...prev];
+      for (const item of ALL_PERMISSIONS) {
+        if (!hasActionPerm(next, item.key, action)) {
+          next = toggleActionPerm(next, item.key, action);
+        }
+      }
+      return next;
+    });
   };
 
   const generateRandomPassword = () => {
@@ -1668,104 +1915,113 @@ function AddStaffDialog() {
             </div>
           </div>
 
-          {/* Section 3: Granular RBAC Modules Checklist ("acces wise") */}
+          {/* Section 3: Granular Access Modules (View, Edit & Delete) */}
           <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 space-y-4 shadow-xs">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3">
               <div>
                 <h4 className="text-xs font-black text-zinc-950 uppercase tracking-wider flex items-center gap-2">
                   <SlidersHorizontal className="size-4 text-emerald-600" />
-                  <span>3. Granular Access Modules</span>
+                  <span>3. Granular Access Modules (View, Edit & Delete)</span>
                 </h4>
                 <p className="text-[11px] text-zinc-500 mt-0.5">
-                  Selectively permit or restrict individual platform modules for this operator.
+                  Set specific View (Read-Only), Edit (Modify), or Delete (Revoke) permissions per module.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className={`text-[11px] font-bold px-2.5 py-1 rounded-xl ${
-                    selectedPerms.length === ALL_PERMISSIONS.length
-                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                      : selectedPerms.length >= 7
-                      ? "bg-sky-50 text-sky-800 border-sky-200"
-                      : "bg-zinc-100 text-zinc-700 border-zinc-200"
-                  }`}
-                >
-                  {selectedPerms.length} / {ALL_PERMISSIONS.length} Modules Granted
-                </Badge>
-
+              <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setSelectedPerms(ALL_PERMISSIONS.map((p) => p.key))}
-                  className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl hover:bg-emerald-100 transition-colors"
+                  onClick={() => grantAllAction("view")}
+                  className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl hover:bg-emerald-100 transition-colors flex items-center gap-1"
                 >
-                  Select All
+                  <span>👁️</span> <span>All View</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => grantAllAction("edit")}
+                  className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-xl hover:bg-sky-100 transition-colors flex items-center gap-1"
+                >
+                  <span>✏️</span> <span>All Edit</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => grantAllAction("delete")}
+                  className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-xl hover:bg-rose-100 transition-colors flex items-center gap-1"
+                >
+                  <span>🗑️</span> <span>All Delete</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPerms(ROLE_PRESETS[role]?.permissions || [])}
+                  className="text-[10px] font-bold text-zinc-700 bg-zinc-100 border border-zinc-200 px-2.5 py-1 rounded-xl hover:bg-zinc-200 transition-colors"
+                >
+                  Role Defaults
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedPerms([])}
-                  className="text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-xl hover:bg-rose-100 transition-colors"
+                  className="text-[10px] font-bold text-zinc-500 bg-white border border-zinc-200 px-2 py-1 rounded-xl hover:bg-zinc-50 transition-colors"
                 >
                   Clear All
                 </button>
               </div>
             </div>
 
-            {/* Grouped Category Checkboxes */}
+            {/* Category Groups with Explicit Action Controls */}
             <div className="space-y-4">
               {CATEGORIES.map((cat) => {
                 const catItems = ALL_PERMISSIONS.filter((p) => p.category === cat);
-                const allCatChecked = catItems.every((p) => selectedPerms.includes(p.key));
-                const someCatChecked = catItems.some((p) => selectedPerms.includes(p.key));
 
                 return (
-                  <div key={cat} className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-3 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase text-zinc-500 tracking-wider">
+                  <div key={cat} className="rounded-2xl border border-zinc-200/80 bg-zinc-50/40 p-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2">
+                      <span className="text-[11px] font-black uppercase text-zinc-700 tracking-wider">
                         {cat}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => toggleCategory(cat)}
-                        className="text-[10px] font-bold text-zinc-600 hover:text-zinc-950 underline"
-                      >
-                        {allCatChecked ? "Deselect Group" : "Select Group"}
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => grantCategoryAction(cat, "view")}
+                          className="text-[10px] font-bold text-emerald-700 hover:underline"
+                        >
+                          + View
+                        </button>
+                        <span className="text-zinc-300">•</span>
+                        <button
+                          type="button"
+                          onClick={() => grantCategoryAction(cat, "edit")}
+                          className="text-[10px] font-bold text-sky-700 hover:underline"
+                        >
+                          + Edit
+                        </button>
+                        <span className="text-zinc-300">•</span>
+                        <button
+                          type="button"
+                          onClick={() => grantCategoryAction(cat, "delete")}
+                          className="text-[10px] font-bold text-rose-700 hover:underline"
+                        >
+                          + Delete
+                        </button>
+                        <span className="text-zinc-300">•</span>
+                        <button
+                          type="button"
+                          onClick={() => clearCategory(cat)}
+                          className="text-[10px] font-bold text-zinc-400 hover:text-zinc-700"
+                        >
+                          Clear
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {catItems.map((p) => {
-                        const checked = selectedPerms.includes(p.key);
-                        return (
-                          <button
-                            key={p.key}
-                            type="button"
-                            onClick={() => togglePermission(p.key)}
-                            className={`flex items-start justify-between p-3 rounded-xl border text-left transition-all ${
-                              checked
-                                ? "border-emerald-600 bg-emerald-50/70 text-emerald-950 shadow-xs ring-1 ring-emerald-600/20"
-                                : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
-                            }`}
-                          >
-                            <div className="pr-2 min-w-0">
-                              <p className={`font-bold text-xs ${checked ? "text-emerald-950" : "text-zinc-900"}`}>
-                                {p.label}
-                              </p>
-                              <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">
-                                {p.description}
-                              </p>
-                            </div>
-                            <div className="pt-0.5 shrink-0">
-                              {checked ? (
-                                <CheckSquare className="size-4 text-emerald-600" />
-                              ) : (
-                                <Square className="size-4 text-zinc-300" />
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
+                    <div className="grid grid-cols-1 gap-2">
+                      {catItems.map((item) => (
+                        <ModuleAccessControlCard
+                          key={item.key}
+                          item={item}
+                          perms={selectedPerms}
+                          onToggleAction={toggleAction}
+                        />
+                      ))}
                     </div>
                   </div>
                 );
@@ -1867,18 +2123,43 @@ function EditStaffDialog({ staff, onClose }: { staff: StaffMember; onClose: () =
     }
   };
 
-  const togglePermission = (key: string) => {
-    setPerms((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  const toggleAction = (key: string, action: "view" | "edit" | "delete") => {
+    setPerms((prev) => toggleActionPerm(prev, key, action));
   };
 
-  const toggleCategory = (category: string) => {
-    const catPerms = ALL_PERMISSIONS.filter((p) => p.category === category).map((p) => p.key);
-    const allCatSelected = catPerms.every((k) => perms.includes(k));
-    if (allCatSelected) {
-      setPerms((prev) => prev.filter((k) => !catPerms.includes(k)));
-    } else {
-      setPerms((prev) => Array.from(new Set([...prev, ...catPerms])));
-    }
+  const grantCategoryAction = (cat: string, action: "view" | "edit" | "delete") => {
+    const catItems = ALL_PERMISSIONS.filter((p) => p.category === cat);
+    setPerms((prev) => {
+      let next = [...prev];
+      for (const item of catItems) {
+        if (!hasActionPerm(next, item.key, action)) {
+          next = toggleActionPerm(next, item.key, action);
+        }
+      }
+      return next;
+    });
+  };
+
+  const clearCategory = (cat: string) => {
+    const catKeys = new Set(ALL_PERMISSIONS.filter((p) => p.category === cat).map((p) => p.key));
+    setPerms((prev) =>
+      prev.filter((p) => {
+        const base = p.split(":")[0];
+        return !catKeys.has(base);
+      })
+    );
+  };
+
+  const grantAllAction = (action: "view" | "edit" | "delete") => {
+    setPerms((prev) => {
+      let next = [...prev];
+      for (const item of ALL_PERMISSIONS) {
+        if (!hasActionPerm(next, item.key, action)) {
+          next = toggleActionPerm(next, item.key, action);
+        }
+      }
+      return next;
+    });
   };
 
   const generateRandomPassword = () => {
@@ -2091,84 +2372,100 @@ function EditStaffDialog({ staff, onClose }: { staff: StaffMember; onClose: () =
                 Granted Modules: <strong className="text-emerald-700">{perms.length} of {ALL_PERMISSIONS.length}</strong>
               </span>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setPerms(ALL_PERMISSIONS.map((p) => p.key))}
-                  className="text-[11px] font-bold text-emerald-700 bg-white border border-emerald-200 px-2.5 py-1 rounded-lg hover:bg-emerald-50 transition-colors"
+                  onClick={() => grantAllAction("view")}
+                  className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl hover:bg-emerald-100 transition-colors flex items-center gap-1"
                 >
-                  Select All (14)
+                  <span>👁️</span> <span>All View</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => grantAllAction("edit")}
+                  className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-xl hover:bg-sky-100 transition-colors flex items-center gap-1"
+                >
+                  <span>✏️</span> <span>All Edit</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => grantAllAction("delete")}
+                  className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-xl hover:bg-rose-100 transition-colors flex items-center gap-1"
+                >
+                  <span>🗑️</span> <span>All Delete</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => applyRolePreset(role)}
-                  className="text-[11px] font-bold text-zinc-700 bg-white border border-zinc-200 px-2.5 py-1 rounded-lg hover:bg-zinc-100 transition-colors"
+                  className="text-[10px] font-bold text-zinc-700 bg-zinc-100 border border-zinc-200 px-2.5 py-1 rounded-xl hover:bg-zinc-200 transition-colors"
                 >
-                  Reset to Role Defaults
+                  Role Defaults
                 </button>
                 <button
                   type="button"
                   onClick={() => setPerms([])}
-                  className="text-[11px] font-bold text-rose-700 bg-white border border-rose-200 px-2.5 py-1 rounded-lg hover:bg-rose-50 transition-colors"
+                  className="text-[10px] font-bold text-zinc-500 bg-white border border-zinc-200 px-2 py-1 rounded-xl hover:bg-zinc-50 transition-colors"
                 >
                   Clear All
                 </button>
               </div>
             </div>
 
-            {/* Interactive Module Checklist By Category */}
+            {/* Category Groups with Explicit Action Controls */}
             <div className="space-y-4 pt-1">
               {CATEGORIES.map((cat) => {
                 const catItems = ALL_PERMISSIONS.filter((p) => p.category === cat);
-                const allCatChecked = catItems.every((p) => perms.includes(p.key));
 
                 return (
-                  <div key={cat} className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-3 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase text-zinc-500 tracking-wider">
+                  <div key={cat} className="rounded-2xl border border-zinc-200/80 bg-zinc-50/40 p-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2">
+                      <span className="text-[11px] font-black uppercase text-zinc-700 tracking-wider">
                         {cat}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => toggleCategory(cat)}
-                        className="text-[10px] font-bold text-zinc-600 hover:text-zinc-950 underline"
-                      >
-                        {allCatChecked ? "Deselect Group" : "Select Group"}
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => grantCategoryAction(cat, "view")}
+                          className="text-[10px] font-bold text-emerald-700 hover:underline"
+                        >
+                          + View
+                        </button>
+                        <span className="text-zinc-300">•</span>
+                        <button
+                          type="button"
+                          onClick={() => grantCategoryAction(cat, "edit")}
+                          className="text-[10px] font-bold text-sky-700 hover:underline"
+                        >
+                          + Edit
+                        </button>
+                        <span className="text-zinc-300">•</span>
+                        <button
+                          type="button"
+                          onClick={() => grantCategoryAction(cat, "delete")}
+                          className="text-[10px] font-bold text-rose-700 hover:underline"
+                        >
+                          + Delete
+                        </button>
+                        <span className="text-zinc-300">•</span>
+                        <button
+                          type="button"
+                          onClick={() => clearCategory(cat)}
+                          className="text-[10px] font-bold text-zinc-400 hover:text-zinc-700"
+                        >
+                          Clear
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {catItems.map((p) => {
-                        const isChecked = perms.includes(p.key);
-                        return (
-                          <button
-                            key={p.key}
-                            type="button"
-                            onClick={() => togglePermission(p.key)}
-                            className={`flex items-start justify-between p-3 rounded-xl border text-left transition-all ${
-                              isChecked
-                                ? "border-emerald-600 bg-emerald-50/70 text-emerald-950 shadow-xs ring-1 ring-emerald-600/20"
-                                : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
-                            }`}
-                          >
-                            <div className="pr-2 min-w-0">
-                              <p className={`font-bold text-xs ${isChecked ? "text-emerald-950" : "text-zinc-900"}`}>
-                                {p.label}
-                              </p>
-                              <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">
-                                {p.description}
-                              </p>
-                            </div>
-                            <div className="pt-0.5 shrink-0">
-                              {isChecked ? (
-                                <CheckSquare className="size-4 text-emerald-600" />
-                              ) : (
-                                <Square className="size-4 text-zinc-300" />
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
+                    <div className="grid grid-cols-1 gap-2">
+                      {catItems.map((item) => (
+                        <ModuleAccessControlCard
+                          key={item.key}
+                          item={item}
+                          perms={perms}
+                          onToggleAction={toggleAction}
+                        />
+                      ))}
                     </div>
                   </div>
                 );

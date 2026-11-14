@@ -93,8 +93,9 @@ async function httpRequest<T>(
         if (typeof window !== "undefined") {
           clearSession(activeSessionRole());
           clearSession("admin");
-          if (!window.location.pathname.startsWith("/auth")) {
-            window.location.href = "/auth";
+          // Re-trigger seamless Cloudflare perimeter verification
+          if (window.location.pathname !== "/" && window.location.pathname !== "/unauthorized") {
+            window.location.href = "/";
           }
         }
         throw new ApiError("unauthorized", errorDetail || "Session expired", 401);

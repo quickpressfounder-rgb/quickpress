@@ -631,11 +631,12 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
     client_ip = request.client.host if request.client else "127.0.0.1"
     user_agent = request.headers.get("user-agent", "")
 
-    # 1. Read Cloudflare Access Authenticated Email
+    # 1. Read Cloudflare Access Authenticated Email from perimeter headers
     cf_email = (
         request.headers.get("cf-access-authenticated-user-email")
         or request.headers.get("x-cf-access-authenticated-user-email")
         or request.headers.get("x-authenticated-user-email")
+        or request.headers.get("cf_access_authenticated_user_email")
     )
 
     # If header not forwarded directly, decode JWT assertion or CF_Authorization cookie
@@ -645,11 +646,29 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
             or request.headers.get("x-cf-access-jwt-assertion")
             or request.cookies.get("CF_Authorization")
         )
+        if not cf_jwt and "cookie" in request.headers:
+            for item in request.headers["cookie"].split(";"):
+                item = item.strip()
+                if item.startswith("CF_Authorization="):
+                    cf_jwt = item.split("=", 1)[1].strip()
+                    break
+
         if cf_jwt:
             try:
-                import jwt as pyjwt
-                claims = pyjwt.decode(cf_jwt, options={"verify_signature": False})
-                cf_email = claims.get("email") or claims.get("sub") or (claims.get("identity") or {}).get("email")
+                import base64
+                import json
+                parts = cf_jwt.strip().split(".")
+                if len(parts) >= 2:
+                    payload_b64 = parts[1]
+                    payload_b64 += "=" * ((4 - len(payload_b64) % 4) % 4)
+                    payload_bytes = base64.urlsafe_b64decode(payload_b64.encode("utf-8"))
+                    claims = json.loads(payload_bytes.decode("utf-8"))
+                    cf_email = (
+                        claims.get("email")
+                        or claims.get("sub")
+                        or (claims.get("identity") or {}).get("email")
+                        or claims.get("preferred_username")
+                    )
             except Exception:
                 pass
 
@@ -669,11 +688,13 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
     # 2. Check live admin_staff database directory (Dynamic Ground Truth)
     staff_doc = await database.find_one("admin_staff", {"email": email})
 
-    # Optional initial bootstrapping from environment configuration and owner emails
+    # Bootstrapping from configured owner & super admin emails
     admin_env_raw = os.getenv("ADMIN_EMAILS", os.getenv("ADMIN_EMAIL", "")).strip().lower()
     configured_owner_emails = {e.strip() for e in re.split(r"[,\s;]+", admin_env_raw) if e.strip()}
     for fallback in [
         "official.quickpress@gmail.com",
+        "quickpressfounder@gmail.com",
+        "prempalsingh9358@gmail.com",
         "admin@quickpress.online",
         "admin@quickpress.in",
         os.getenv("NOTIFICATION_EMAIL", "").strip().lower(),
