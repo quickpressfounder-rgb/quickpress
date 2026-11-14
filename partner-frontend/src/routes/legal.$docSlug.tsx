@@ -37,6 +37,8 @@ export const Route = createFileRoute("/legal/$docSlug")({
       "terms-of-service": "Terms of Service — QuickPress",
       "terms": "Terms of Service — QuickPress",
       "cancellation-refund-policy": "Cancellation & Quality SLA Policy — QuickPress",
+      "garment-care-policy": "Garment Care & Defect Inspection Policy — QuickPress",
+      "cookie-policy": "Cookie & Tracking Policy — QuickPress",
       "grievance-redressal": "Grievance Officer & Statutory Compliance — QuickPress",
     };
     const title = slugTitles[params.docSlug] || "Legal Documentation — QuickPress Partner";
@@ -93,11 +95,13 @@ function PartnerLegalDocScreen() {
   const handleOpenWebsite = () => {
     const targetMap: Record<string, string> = {
       "privacy-policy": "#privacy",
-      "partner-agreement": "#terms",
+      "partner-agreement": "#partner",
       "terms-of-service": "#terms",
       "terms": "#terms",
-      "cancellation-refund-policy": "#terms",
-      "grievance-redressal": "#contact",
+      "cancellation-refund-policy": "#refund",
+      "garment-care-policy": "#garment-care",
+      "cookie-policy": "#cookie",
+      "grievance-redressal": "#grievance",
     };
     const targetHash = targetMap[docSlug] || "#terms";
     const webUrl = `https://withquickpress.com/${targetHash}`;
@@ -109,6 +113,7 @@ function PartnerLegalDocScreen() {
     { slug: "privacy-policy", label: "Privacy Policy" },
     { slug: "terms-of-service", label: "Terms of Service" },
     { slug: "cancellation-refund-policy", label: "Cancellation & SLA" },
+    { slug: "garment-care-policy", label: "Garment Care & Defects" },
     { slug: "grievance-redressal", label: "Grievance Officer" },
   ];
 

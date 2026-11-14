@@ -529,23 +529,21 @@ function PhoneStep({
 
       <p className="mt-6 text-center text-[11.5px] leading-relaxed text-muted-foreground">
         By creating an account, you acknowledge our{" "}
-        <a
-          href="https://withquickpress.com/#privacy"
-          target="_blank"
-          rel="noreferrer"
+        <Link
+          to="/legal/$docSlug"
+          params={{ docSlug: "privacy-policy" }}
           className="font-bold text-foreground underline hover:text-primary transition-colors cursor-pointer"
         >
           Privacy Policy
-        </a>{" "}
+        </Link>{" "}
         and agree to the{" "}
-        <a
-          href="https://withquickpress.com/#terms"
-          target="_blank"
-          rel="noreferrer"
+        <Link
+          to="/legal/$docSlug"
+          params={{ docSlug: "terms-of-service" }}
           className="font-bold text-foreground underline hover:text-primary transition-colors cursor-pointer"
         >
-          Terms & Conditions
-        </a>.
+          Terms &amp; Conditions
+        </Link>.
       </p>
     </div>
   );

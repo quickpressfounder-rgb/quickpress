@@ -34,6 +34,8 @@ export const Route = createFileRoute("/legal/$docSlug")({
       "terms": "Terms & Conditions — QuickPress",
       "rider-agreement": "Captain Delivery Agreement & SLA — QuickPress",
       "cancellation-refund-policy": "Cancellation & Order Dispute SOP — QuickPress",
+      "garment-care-policy": "Garment Care & Defect Inspection Policy — QuickPress",
+      "cookie-policy": "Cookie & Telemetry Policy — QuickPress",
       "grievance-redressal": "Grievance Officer & Statutory Desk — QuickPress",
     };
     const title = slugTitles[params.docSlug] || "Legal Documentation — QuickPress Captain";
@@ -95,8 +97,10 @@ function CaptainLegalDocScreen() {
       "terms-of-service": "#terms",
       "terms": "#terms",
       "rider-agreement": "#terms",
-      "cancellation-refund-policy": "#terms",
-      "grievance-redressal": "#contact",
+      "cancellation-refund-policy": "#refund",
+      "garment-care-policy": "#garment-care",
+      "cookie-policy": "#cookie",
+      "grievance-redressal": "#grievance",
     };
     const targetHash = targetMap[docSlug] || "#terms";
     const webUrl = `https://withquickpress.com/${targetHash}`;
@@ -110,8 +114,10 @@ function CaptainLegalDocScreen() {
       "terms-of-service": "#terms",
       "terms": "#terms",
       "rider-agreement": "#terms",
-      "cancellation-refund-policy": "#terms",
-      "grievance-redressal": "#contact",
+      "cancellation-refund-policy": "#refund",
+      "garment-care-policy": "#garment-care",
+      "cookie-policy": "#cookie",
+      "grievance-redressal": "#grievance",
     };
     const targetHash = targetMap[docSlug] || "#terms";
     const webUrl = `https://withquickpress.com/${targetHash}`;
@@ -134,6 +140,7 @@ function CaptainLegalDocScreen() {
     { slug: "rider-agreement", label: "Captain Agreement" },
     { slug: "terms-of-service", label: "Terms & Conditions" },
     { slug: "cancellation-refund-policy", label: "Cancellation SOP" },
+    { slug: "garment-care-policy", label: "Garment Care & Defects" },
     { slug: "grievance-redressal", label: "Grievance Officer" },
   ];
 

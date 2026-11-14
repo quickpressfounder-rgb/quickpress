@@ -1,5 +1,42 @@
 # QuickPress — Engineering Work History
 
+## Session: November 14, 2026 (Part 16)
+
+### Complete In-App Cross-Linking of All Statutory Legal Policies Across Customer App, Partner App, and Rider/Captain App
+
+1. **Context & User Request:**
+   - User directive:
+     *"LEAGAL DOCUMANT LINK KARO JISSE USER APP SE ISKE UPAR AAYE"*
+   - Scope:
+     - Connect and deep-link every statutory legal document directly within active user workflows across Customer Web & Mobile App, Partner Console App, and Rider/Captain App.
+     - Eliminate external browser bounce on mobile/Capacitor shells by leveraging native TanStack `<Link>` routing.
+     - Provide easy access points across Help/Support, Checkout (pre-order implied consent), Login/Auth screens, Profile (DPDP modal and settings menu), and mobile carousel tab bars.
+
+2. **Engineering Solutions Delivered:**
+   - **Customer Web & Mobile App (`customer-frontend`):**
+     - `src/routes/help.tsx`: Added dedicated "Legal Policies & Consumer Rights" section with 4 interactive statutory cards:
+       - Cancellation & Refunds (`/legal/cancellation-refund-policy`)
+       - Garment Care & Loss Liability (`/legal/garment-care-policy`)
+       - Privacy Policy (DPDP Act) (`/legal/privacy-policy`)
+       - Terms of Service (`/legal/terms-of-service`)
+       - Direct Nodal Grievance Redressal desk link (`/legal/grievance-redressal`).
+     - `src/routes/checkout.tsx`: Replaced external `<a>` tags with in-app TanStack `<Link>` routing for Terms of Service and DPDP Privacy Policy under order summary. Added direct inline link to read the full Garment Care & Loss Liability Policy inside the Fabric Care Policy Modal.
+     - `src/routes/login.tsx`: Replaced external web anchors with native TanStack `<Link to="/legal/$docSlug">` for Privacy Policy and Terms of Service consent text.
+     - `src/routes/profile.tsx`: Added direct native links to DPDP Privacy Policy and Terms of Service inside the DPDP Data Privacy Modal. Added persistent "Statutory Policies & Legal Documents" menu row with badge inside Account Settings.
+     - `src/routes/legal.$docSlug.tsx`: Added horizontal swipeable pill carousel on mobile screens, enabling one-tap switching between all 6 statutory policies without needing the desktop sidebar.
+   - **Partner Console App (`partner-frontend`):**
+     - `src/routes/legal.$docSlug.tsx`: Added `garment-care-policy` and `cookie-policy` to slugTitles, target hash maps (`#refund`, `#garment-care`, `#cookie`, `#grievance`), and horizontal tab navigation list.
+   - **Rider / Captain App (`rider-frontend`):**
+     - `src/routes/legal.$docSlug.tsx`: Added `garment-care-policy` and `cookie-policy` to slugTitles, target hash maps, and navigation tabs.
+
+3. **Verification & Testing Results:**
+   - `customer-frontend` production build: PASSED (exit code 0).
+   - `partner-frontend` production build: PASSED (exit code 0).
+   - `rider-frontend` production build: PASSED (exit code 0).
+   - All router paths, parameters (`docSlug`), and styling verified responsive on desktop and mobile viewports.
+
+---
+
 ## Session: November 14, 2026 (Part 15)
 
 ### Complete Legal Pages Suite Architecture Integration & Verification Across Website, Customer App, Backend API, and Admin Console

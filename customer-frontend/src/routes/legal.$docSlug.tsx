@@ -180,6 +180,31 @@ function LegalDocScreen() {
 
       {/* Main Document Content */}
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        {/* Mobile Horizontal Policy Switcher */}
+        <div className="lg:hidden mb-6 overflow-x-auto pb-2 -mx-4 px-4 flex items-center gap-2 no-scrollbar">
+          {[
+            { slug: "privacy-policy", label: "Privacy" },
+            { slug: "terms-of-service", label: "Terms" },
+            { slug: "cancellation-refund-policy", label: "Refunds" },
+            { slug: "garment-care-policy", label: "Garment Care" },
+            { slug: "cookie-policy", label: "Cookies" },
+            { slug: "grievance-redressal", label: "Grievance Desk" },
+          ].map((item) => (
+            <Link
+              key={item.slug}
+              to="/legal/$docSlug"
+              params={{ docSlug: item.slug }}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition border ${
+                docSlug === item.slug
+                  ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           {/* Quick Legal Policy Switcher */}
           <aside className="lg:col-span-4 space-y-4">
@@ -198,7 +223,7 @@ function LegalDocScreen() {
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
-                  <span>Privacy Policy</span>
+                  <span>Privacy Policy (DPDP)</span>
                   <ChevronRight className="size-3 text-slate-400" />
                 </Link>
                 <Link
@@ -222,7 +247,31 @@ function LegalDocScreen() {
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
-                  <span>Cancellation & Refunds</span>
+                  <span>Cancellation &amp; Refunds</span>
+                  <ChevronRight className="size-3 text-slate-400" />
+                </Link>
+                <Link
+                  to="/legal/$docSlug"
+                  params={{ docSlug: "garment-care-policy" }}
+                  className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${
+                    docSlug === "garment-care-policy"
+                      ? "bg-emerald-50 text-emerald-800 font-bold border border-emerald-200"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  <span>Garment Care &amp; Liability</span>
+                  <ChevronRight className="size-3 text-slate-400" />
+                </Link>
+                <Link
+                  to="/legal/$docSlug"
+                  params={{ docSlug: "cookie-policy" }}
+                  className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${
+                    docSlug === "cookie-policy"
+                      ? "bg-emerald-50 text-emerald-800 font-bold border border-emerald-200"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  <span>Cookie &amp; Tracking Policy</span>
                   <ChevronRight className="size-3 text-slate-400" />
                 </Link>
                 <Link
@@ -234,7 +283,7 @@ function LegalDocScreen() {
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
-                  <span>Grievance & Nodal Desk</span>
+                  <span>Grievance &amp; Nodal Desk</span>
                   <ChevronRight className="size-3 text-slate-400" />
                 </Link>
                 <Link
@@ -246,7 +295,7 @@ function LegalDocScreen() {
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
-                  <span>Partner Agreement & SLA</span>
+                  <span>Partner Agreement &amp; SLA</span>
                   <ChevronRight className="size-3 text-slate-400" />
                 </Link>
                 <Link

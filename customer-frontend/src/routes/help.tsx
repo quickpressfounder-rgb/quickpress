@@ -25,6 +25,7 @@ import {
   Send,
   Settings,
   Shield,
+  ShieldCheck,
   Sparkles,
   Trash2,
   Truck,
@@ -1034,6 +1035,84 @@ function HelpScreen() {
                     </div>
                   );
                 })}
+              </div>
+            </section>
+
+            {/* QuickPress Statutory Legal Policies & Consumer Rights */}
+            <section className="rounded-3xl border border-border bg-card p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
+                    <Shield className="size-4" />
+                  </span>
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-foreground">
+                      Legal Policies &amp; Consumer Rights
+                    </h3>
+                    <p className="text-[10px] text-muted-foreground">Officially published policies &amp; SLAs</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <Link
+                  to="/legal/$docSlug"
+                  params={{ docSlug: "cancellation-refund-policy" }}
+                  className="p-3 rounded-2xl border border-border bg-muted/30 hover:bg-muted/60 transition-colors flex flex-col justify-between"
+                >
+                  <RefreshCcw className="size-4 text-emerald-600 mb-1" />
+                  <p className="text-xs font-bold text-foreground">Cancellation &amp; Refunds</p>
+                  <p className="text-[10px] text-muted-foreground">Free re-wash SLA &amp; refund times</p>
+                </Link>
+
+                <Link
+                  to="/legal/$docSlug"
+                  params={{ docSlug: "garment-care-policy" }}
+                  className="p-3 rounded-2xl border border-border bg-muted/30 hover:bg-muted/60 transition-colors flex flex-col justify-between"
+                >
+                  <ShieldCheck className="size-4 text-amber-600 mb-1" />
+                  <p className="text-xs font-bold text-foreground">Garment Care &amp; Loss</p>
+                  <p className="text-[10px] text-muted-foreground">10x liability cap &amp; fabric risk</p>
+                </Link>
+
+                <Link
+                  to="/legal/$docSlug"
+                  params={{ docSlug: "privacy-policy" }}
+                  className="p-3 rounded-2xl border border-border bg-muted/30 hover:bg-muted/60 transition-colors flex flex-col justify-between"
+                >
+                  <Shield className="size-4 text-blue-600 mb-1" />
+                  <p className="text-xs font-bold text-foreground">Privacy Policy</p>
+                  <p className="text-[10px] text-muted-foreground">DPDP 2023 data rights &amp; consent</p>
+                </Link>
+
+                <Link
+                  to="/legal/$docSlug"
+                  params={{ docSlug: "terms-of-service" }}
+                  className="p-3 rounded-2xl border border-border bg-muted/30 hover:bg-muted/60 transition-colors flex flex-col justify-between"
+                >
+                  <FileText className="size-4 text-purple-600 mb-1" />
+                  <p className="text-xs font-bold text-foreground">Terms of Service</p>
+                  <p className="text-[10px] text-muted-foreground">General platform agreement</p>
+                </Link>
+              </div>
+
+              <div className="pt-2 border-t border-border flex items-center justify-between text-xs">
+                <Link
+                  to="/legal/$docSlug"
+                  params={{ docSlug: "grievance-redressal" }}
+                  className="font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 text-[11px]"
+                >
+                  <span>Grievance &amp; Nodal Officer Escalation Desk</span>
+                  <ExternalLink className="size-3" />
+                </Link>
+                <a
+                  href="https://withquickpress.com/#terms"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                >
+                  withquickpress.com
+                </a>
               </div>
             </section>
           </div>

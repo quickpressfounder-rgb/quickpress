@@ -35,6 +35,7 @@ import {
   Phone,
   Plus,
   Receipt,
+  Scale,
   Settings,
   ShieldAlert,
   ShieldCheck,
@@ -1339,9 +1340,9 @@ function ProfileScreen() {
                   },
                   {
                     id: "about_legal",
-                    label: "About & Legal",
-                    note: "App info, privacy policy & terms",
-                    icon: Info,
+                    label: "Statutory Policies & Legal Documents",
+                    note: "Terms, refunds, garment care, cookies & grievance",
+                    icon: Scale,
                     action: () => setAboutModalOpen(true),
                   },
                   {
@@ -1646,6 +1647,24 @@ function ProfileScreen() {
               <p className="text-emerald-900/80 dark:text-emerald-400">
                 Official Desk: <a href="mailto:dpo@withquickpress.com" className="underline font-bold">dpo@withquickpress.com</a> • QuickPress Technologies Pvt. Ltd. (Kasganj / Delhi NCR). Resolution within 30 days as per DPDP Act.
               </p>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-border text-[11px]">
+              <Link
+                to="/legal/$docSlug"
+                params={{ docSlug: "privacy-policy" }}
+                className="font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>Read Full DPDP Policy</span>
+                <ChevronRight className="size-3" />
+              </Link>
+              <Link
+                to="/legal/$docSlug"
+                params={{ docSlug: "terms-of-service" }}
+                className="text-muted-foreground hover:text-foreground underline cursor-pointer"
+              >
+                Terms of Service
+              </Link>
             </div>
           </div>
         </div>

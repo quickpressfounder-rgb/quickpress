@@ -1212,14 +1212,13 @@ export function CheckoutPage() {
         {/* Pre-order Legal Disclosure (Implied Tap Consent) */}
         <p className="pb-2 text-center text-[10.5px] leading-relaxed text-zinc-500">
           By placing this order, you agree to QuickPress{" "}
-          <a
-            href="https://withquickpress.com/#terms"
-            target="_blank"
-            rel="noreferrer"
+          <Link
+            to="/legal/$docSlug"
+            params={{ docSlug: "terms-of-service" }}
             className="font-bold text-zinc-800 underline hover:text-[#0c831f] cursor-pointer"
           >
             Terms
-          </a>
+          </Link>
           ,{" "}
           <button
             type="button"
@@ -1229,14 +1228,13 @@ export function CheckoutPage() {
             Fabric Care Policy
           </button>
           {" "}and{" "}
-          <a
-            href="https://withquickpress.com/#privacy"
-            target="_blank"
-            rel="noreferrer"
+          <Link
+            to="/legal/$docSlug"
+            params={{ docSlug: "privacy-policy" }}
             className="font-bold text-zinc-800 underline hover:text-[#0c831f] cursor-pointer"
           >
             Privacy Policy
-          </a>.
+          </Link>.
         </p>
 
         <div className="mx-auto max-w-md flex items-center justify-between gap-4">
@@ -1361,6 +1359,16 @@ export function CheckoutPage() {
                   In the rare event of verified physical loss or terminal damage caused solely during processing, reimbursement is capped up to 10x the processing charge or actual garment depreciated value as per platform terms.
                 </p>
               </div>
+            </div>
+
+            <div className="pt-1 pb-1 text-center">
+              <Link
+                to="/legal/$docSlug"
+                params={{ docSlug: "garment-care-policy" }}
+                className="text-[11px] font-bold text-[#0c831f] hover:underline inline-block"
+              >
+                Read Official Garment Care &amp; Loss Liability Policy &rarr;
+              </Link>
             </div>
 
             <button
