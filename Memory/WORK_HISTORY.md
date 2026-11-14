@@ -27,11 +27,10 @@
      - Created `ModuleAccessControlCard` with interactive `[👁️ View]`, `[✏️ Edit]`, `[🗑️ Delete]` toggle buttons for all 14 modules.
      - Integrated whole-form bulk actions: `All View`, `All Edit`, `All Delete (Full CRUD)`, and `Role Defaults`.
      - Integrated category-level bulk actions: `+ View`, `+ Edit`, `+ Delete`, and `Clear`.
-   - **Staff Management Table & Grid Enhancements:**
-     - Replaced basic permission pill count with distinct live count badges for each action: `👁️ X View`, `✏️ Y Edit`, `🗑️ Z Delete`.
-     - Integrated instant `Edit` (`<Edit3 />`) modal for profile and granular access updates.
-     - Integrated instant `Delete` (`<Trash2 />`) modal for permanently revoking staff access.
-     - Enabled real-time activation/suspension toggles.
+   - **SSR 500 Unhandled Resolution & Client SPA Harmonization (`routes/index.tsx`, `routes/auth.tsx`, `server.ts`):**
+     - Resolved Nitro H3 SSR 500 response on `ops.withquickpress.com` by setting `ssr: false` across client route entries (`/`, `/auth`, `/unauthorized`, `/staff`, `/finance-engine`).
+     - Standardized `/` and `/auth` routes to synchronously issue client-side redirect to `/dashboard` so the authenticated dashboard session loads immediately.
+     - Enhanced `server.ts` `isH3SwallowedErrorBody` to catch unhandled status 500 JSON bodies and serve graceful fallback.
 
 3. **Verification & Testing Results:**
    - Client & server production bundle verified: `npm run build` completed with code 0 (2,725 modules transformed into Nitro production server artifacts).

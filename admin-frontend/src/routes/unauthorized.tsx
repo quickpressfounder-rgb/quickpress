@@ -4,6 +4,7 @@ import { Button } from "@/shared/ui/button";
 import { adminHead } from "../lib/head";
 
 export const Route = createFileRoute("/unauthorized")({
+  ssr: false,
   head: () => adminHead("Perimeter Access Denied", "QuickPress Staff Security Perimeter"),
   component: UnauthorizedPage,
 });

@@ -959,6 +959,7 @@ type FinanceSearchParams = {
 
 export const Route = createFileRoute("/finance-engine")({
   beforeLoad: requireAdminSession,
+  ssr: false,
   validateSearch: (search: Record<string, unknown>): FinanceSearchParams => ({
     tab: typeof search.tab === "string" ? search.tab : undefined,
   }),

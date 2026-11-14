@@ -93,6 +93,7 @@ import { readSession } from "@/api/core/session-store";
 
 export const Route = createFileRoute("/staff")({
   beforeLoad: requireAdminSession,
+  ssr: false,
   head: () =>
     adminHead(
       "Staff & RBAC Governance Engine",
