@@ -15,7 +15,10 @@ const resolvePath = (relative: string) =>
 const nitroPreset = process.env["NITRO_PRESET"] || (process.env["VERCEL"] ? undefined : "node-server");
 
 export default defineConfig({
-  ...(nitroPreset ? { nitro: { preset: nitroPreset } } : {}),
+  nitro: {
+    ...(nitroPreset ? { preset: nitroPreset } : {}),
+    errorHandler: resolvePath("src/server/error.ts"),
+  },
   tanstackStart: {
     srcDirectory: "src",
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).

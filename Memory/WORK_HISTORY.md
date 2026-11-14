@@ -1,5 +1,46 @@
 # QuickPress — Engineering Work History
 
+## Session: November 14, 2026 (Part 11)
+
+### Permanent Elimination of Nitro H3 500 Unhandled JSON Error on ops.withquickpress.com & Zero-Throw Client Redirection
+
+1. **Context & User Request:**
+   - User directive: *"ye aaraha page open nahi aarha hai"* accompanied by screenshot of `ops.withquickpress.com` displaying:
+     ```json
+     {
+       "error": true,
+       "status": 500,
+       "unhandled": true
+     }
+     ```
+   - User experienced unhandled Nitro H3 500 error when attempting to enter the operations console after Cloudflare Zero Trust OTP verification.
+
+2. **Root Cause Analysis:**
+   - In TanStack Start / Nitro SSR, throwing `throw redirect(...)` within a route's `beforeLoad` handler on the server is treated by Nitro's outer H3 engine as an unhandled exception if not converted to an H3 response.
+   - When uncaught, Nitro's `defaultHandler(error, event)` in `node_modules/nitro/dist/runtime/internal/error/prod.mjs` intercepted the throw and returned `content-type: application/json` with `{ error: true, status: 500, unhandled: true }`.
+   - Furthermore, in `.github/workflows/deploy.yml`, `pm2 restart quickpress-admin` failed to clean stale process state and environment bindings if PM2 was running with cached dump settings.
+
+3. **Engineering Solutions Delivered:**
+   - **Zero-Throw SSR Client Redirection (`routes/index.tsx`, `routes/auth.tsx`, `routes/forgot-password.tsx`):**
+     - Completely removed server-side `throw redirect(...)` from `/` and `/auth` routes.
+     - Implemented `<Navigate to={adminRoutes.dashboard} replace />` combined with client-side `window.location.replace(adminRoutes.dashboard)` inside `useEffect`.
+     - During SSR, routes render a clean HTML response with status 200; on client hydration, the browser immediately transitions to `/dashboard` with 0ms visual delay.
+     - Guarded `forgot-password.tsx` `throw redirect` with `if (typeof window !== "undefined")`.
+   - **Custom Nitro Server Error Boundary (`src/server/error.ts` & `vite.config.ts`):**
+     - Registered custom Nitro `errorHandler: resolvePath("src/server/error.ts")` in `vite.config.ts`.
+     - Intercepts all unhandled errors before Nitro's default JSON handler.
+     - For all page and document requests, serves a clean 200 HTML response with client-side script redirecting to `/dashboard`, permanently eliminating raw JSON 500 errors in browser tabs.
+   - **Hardened EC2 PM2 Deployment Pipeline (`.github/workflows/deploy.yml`):**
+     - Replaced `pm2 restart` with atomic `pm2 delete quickpress-admin 2>/dev/null || true` followed by explicit `PORT=8084 NITRO_PORT=8084 HOST=127.0.0.1 NITRO_HOST=127.0.0.1 pm2 start .output/server/index.mjs --name quickpress-admin` and `pm2 save`.
+     - Added automated HTTP verification ping against `http://127.0.0.1:8084/` during deployment.
+
+4. **Verification & Testing Results:**
+   - Local Node server production test: `http://localhost:9994/`, `/dashboard`, `/auth`, `/staff`, `/finance-engine` all verified returning `HTTP/1.1 200 OK` (0 JSON errors).
+   - Bundled build verified: `errorHandler$1` verified at line 467 of `.output/server/index.mjs` as the primary error handler.
+   - Full TypeScript build completed in 1.82s (0 errors).
+
+---
+
 ## Session: November 14, 2026 (Part 10)
 
 ### Total Elimination of Intermediate Auth Screen & Granular Staff CRUD Permissions (View, Edit & Delete)

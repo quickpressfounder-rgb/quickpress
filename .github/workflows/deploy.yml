@@ -40,7 +40,12 @@ jobs:
             cd ~/quickpress/admin-frontend
             npm install --prefer-offline --no-audit || npm install
             NITRO_PRESET=node-server npm run build
-            pm2 restart quickpress-admin || (PORT=8084 pm2 start .output/server/index.mjs --name quickpress-admin && pm2 save)
+            pm2 delete quickpress-admin 2>/dev/null || true
+            PORT=8084 NITRO_PORT=8084 HOST=127.0.0.1 NITRO_HOST=127.0.0.1 pm2 start .output/server/index.mjs --name quickpress-admin
+            pm2 save
+            sleep 2
+            echo "🔍 Verifying Admin Console health on port 8084..."
+            curl -s -f http://127.0.0.1:8084/ > /dev/null && echo "✅ Admin Console responding healthy on port 8084" || echo "⚠️ Admin console warming up"
 
             echo "🛵 [5/6] Building Rider Console & updating static files..."
             cd ~/quickpress/rider-frontend

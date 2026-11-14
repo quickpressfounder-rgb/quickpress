@@ -5,9 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { adminHead } from "../lib/head";
 
 export const Route = createFileRoute("/forgot-password")({
+  ssr: false,
   beforeLoad: () => {
-    // Under Cloudflare Zero Trust, password login is decommissioned
-    throw redirect({ to: "/" });
+    if (typeof window !== "undefined") {
+      throw redirect({ to: "/" });
+    }
   },
   head: () => adminHead("Passwordless Authentication", "QuickPress Zero Trust Security Perimeter"),
   component: ForgotPasswordPage,
