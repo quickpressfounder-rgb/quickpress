@@ -31,7 +31,7 @@ export const PAYMENTS_API_ENDPOINTS = {
   refunds: "/api/refunds",
 } as const;
 
-export type PaymentKind = "cod" | "wallet" | "cashfree" | "razorpay" | "upi" | "credit-card" | "debit-card" | "netbanking";
+export type PaymentKind = "cod" | "wallet" | "razorpay" | "upi" | "credit-card" | "debit-card" | "netbanking";
 
 export type PaymentStatus =
   | "created"
@@ -47,7 +47,6 @@ export type RefundStatus = "requested" | "processing" | "completed" | "rejected"
 export const PAYMENT_KIND_LABEL: Record<PaymentKind, string> = {
   cod: "Cash on Delivery",
   wallet: "Wallet",
-  cashfree: "Cashfree",
   razorpay: "Razorpay",
   upi: "UPI",
   "credit-card": "Credit Card",
@@ -112,7 +111,7 @@ export type RefundsResult = { items: RefundRecord[]; total: number; fromCache: b
 
 /* -------------------------------- mapping -------------------------------- */
 
-const KINDS: PaymentKind[] = ["cod", "wallet", "cashfree", "razorpay", "upi", "credit-card", "debit-card", "netbanking"];
+const KINDS: PaymentKind[] = ["cod", "wallet", "razorpay", "upi", "credit-card", "debit-card", "netbanking"];
 
 function toKind(value: unknown): PaymentKind {
   return KINDS.includes(value as PaymentKind) ? (value as PaymentKind) : "wallet";

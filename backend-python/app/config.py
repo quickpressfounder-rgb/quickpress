@@ -70,14 +70,7 @@ class Settings(BaseSettings):
     twilio_verify_service_sid: str = ""
     fast2sms_api_key: str = ""
 
-    # --- Cashfree Payment Gateway (v2023-08-01) ------------------------
-    cashfree_app_id: str = ""
-    cashfree_secret_key: str = ""
-    cashfree_api_version: str = "2023-08-01"
-    cashfree_env: str = "PROD"
-    cashfree_webhook_secret: str = ""
-
-    # --- Razorpay Payment Gateway (Legacy / Dual Gateway Support) --------
+    # --- Razorpay Payment Gateway (Sole Official Gateway) ----------------
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""
     razorpay_webhook_secret: str = ""
@@ -165,23 +158,6 @@ class Settings(BaseSettings):
     @property
     def google_maps_configured(self) -> bool:
         return bool(self.maps_server_key)
-
-    @property
-    def cashfree_configured(self) -> bool:
-        return bool(self.cashfree_app_id.strip() and self.cashfree_secret_key.strip())
-
-    @property
-    def cashfree_is_production(self) -> bool:
-        secret = (self.cashfree_secret_key or "").strip()
-        if secret.startswith("cfsk_ma_prod_"):
-            return True
-        if secret.startswith("cfsk_ma_test_"):
-            return False
-        return self.cashfree_env.strip().upper() in ("PROD", "PRODUCTION", "LIVE")
-
-    @property
-    def cashfree_pg_base_url(self) -> str:
-        return "https://api.cashfree.com/pg" if self.cashfree_is_production else "https://sandbox.cashfree.com/pg"
 
     @property
     def razorpay_configured(self) -> bool:

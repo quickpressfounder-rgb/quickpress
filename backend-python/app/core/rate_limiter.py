@@ -192,7 +192,6 @@ class GlobalRateLimiterMiddleware(BaseHTTPMiddleware):
         elif (
             path.startswith("/api/payments")
             or path.startswith("/api/razorpay")
-            or path.startswith("/api/cashfree")
             or path.startswith("/api/checkout")
         ):
             tier_name = "payment"

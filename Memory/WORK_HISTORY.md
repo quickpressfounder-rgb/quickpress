@@ -1,5 +1,47 @@
 # QuickPress — Engineering Work History
 
+## Session: November 14, 2026 (Part 17)
+
+### Permanent Decommissioning of Cashfree & 100% Consolidation into Razorpay as the Sole Official Payment Gateway
+
+1. **Context & User Request:**
+   - User directive:
+     *"AB ISKE ANDER CASHFREE KO PARMNENT HATA DO ONLY RAZORPAY INTRAGTION KAOR MENE ROZARPAY KE SECREST ENV ME DALDIYE HAI"*
+   - Scope:
+     - Permanently remove Cashfree payment gateway, webhooks, configurations, and models across the entire platform.
+     - Establish Razorpay as the sole, authoritative payment gateway (`rzp_live_TjoBvXbaXHYmxE`) across Customer Checkout, Wallet Add-Funds, Membership Upgrades, Rider Delivery Kits, and Double-Entry Ledgers.
+     - Refactor Government Document Verification (PAN, DL, RC, UIDAI Aadhaar OTP) from Cashfree-dependent code into a standalone, pure `identity_verification.py` service.
+     - Clean all customer payment sheets (`ZomatoPaymentSheet`, `BlinkitPaymentDrawer`, `AboutPage`) and admin finance management consoles.
+
+2. **Engineering Solutions Delivered:**
+   - **Backend API & Architecture (`backend-python`):**
+     - `app/main.py`: Removed `cashfree_payments_router` import and route mount. Set Razorpay as the sole official gateway router.
+     - `app/config.py`: Deleted Cashfree properties (`cashfree_app_id`, `cashfree_secret_key`, `cashfree_webhook_secret`, `cashfree_configured`, `cashfree_is_production`, `cashfree_pg_base_url`). Razorpay configured as sole gateway with active live credentials.
+     - `app/api/webhooks.py`: Removed Cashfree webhook handling; kept `/public/webhooks/razorpay` with strict HMAC-SHA256 signature verification.
+     - `app/core/rate_limiter.py`: Removed `/api/cashfree` rate-limiting exemptions.
+     - `app/models/payment.py`: Set `PaymentGateway = Literal["razorpay", "wallet", "cod", "mixed"]` and purged Cashfree schemas.
+     - `app/db/general_ledger_repository.py` & `reconciliation_repository.py`: Cleaned clearing account names to "Payment Gateway Clearing (Razorpay)".
+     - Deleted obsolete Cashfree files: `app/api/cashfree_payments.py`, `app/services/cashfree_client.py`, `app/services/cashfree_payments_service.py`, `app/services/cashfree_verification.py`.
+     - Created `app/services/identity_verification.py`: Modern standalone UIDAI, NSDL, and MoRTH Sarathi verification service.
+     - `app/api/rider.py`: Migrated all onboarding and verification endpoints to `identity_verification.py`.
+     - Tests: Updated `test_concurrency_and_edge_cases.py` and `test_production_security_hardening.py` to enforce Razorpay double-refund protection and webhook signature checks.
+   - **Customer Web & Mobile App (`customer-frontend`):**
+     - `src/api/customer/payments-api.ts`: Removed `cashfree` from `PaymentKind`, `PAYMENT_KIND_LABEL`, and `KINDS`.
+     - `src/shared/types/payment.ts`: Updated `PaymentGateway = "razorpay" | "wallet" | "cod" | "mixed"` and removed Cashfree types.
+     - `src/components/payment/ZomatoPaymentSheet.tsx`: Replaced all `handleCashfreePayment` calls with `handleRazorpayPayment`.
+     - `src/components/profile/AboutPage.tsx`: Updated payment compliance badge to "Razorpay · PCI-DSS Level 1 Compliant".
+     - `src/api/payments/razorpay-api.ts`: Cleaned up legacy alias export.
+   - **Admin Console (`admin-frontend`):**
+     - Updated `FinanceOverviewCommandCenter.tsx`, `OfficialReportsView.tsx`, `PayoutsCommandCenter.tsx`, and `UnifiedStakeholderRulesEngine.tsx` to reference Razorpay and RazorpayX Escrow.
+
+3. **Verification & Testing Results:**
+   - Full code search across all source directories: Exactly 0 occurrences of Cashfree remaining.
+   - `customer-frontend` production build: PASSED (exit code 0).
+   - `admin-frontend` production build: PASSED (exit code 0).
+   - Razorpay Live credentials verified: `rzp_live_TjoBvXbaXHYmxE` active in `.env` and production frontend bundles.
+
+---
+
 ## Session: November 14, 2026 (Part 16)
 
 ### Complete In-App Cross-Linking of All Statutory Legal Policies Across Customer App, Partner App, and Rider/Captain App

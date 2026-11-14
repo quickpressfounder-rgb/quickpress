@@ -1112,7 +1112,7 @@ export function UnifiedStakeholderRulesEngine({
                         <SelectItem value="INSTANT_FLOAT">Instant Escrow Release (Pre-funded)</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-[10px] text-zinc-500">Automated payout disbursal cycle via Cashfree/Razorpay.</p>
+                    <p className="text-[10px] text-zinc-500">Automated payout disbursal cycle via RazorpayX Escrow.</p>
                   </div>
                 </div>
 

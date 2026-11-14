@@ -74,21 +74,21 @@ async def existing_numbers() -> list:
     return [p.get("phone") for p in profiles if p.get("phone")]
 
 
-from app.services.cashfree_verification import (
-    get_cashfree_config,
-    send_cashfree_aadhaar_otp,
-    verify_cashfree_aadhaar_otp,
+from app.services.identity_verification import (
+    get_identity_config,
+    send_aadhaar_otp,
+    verify_aadhaar_otp,
     verify_pan_card,
     verify_driving_license,
     verify_vehicle_rc,
-    verify_bank_account as cf_verify_bank_account,
+    verify_bank_account as id_verify_bank_account,
 )
 
-# --- Rapido-style High-Security Verification APIs (Cashfree Verification Suite) ---
+# --- Rapido-style High-Security Verification APIs (UIDAI & MoRTH Registry) ---
 
 @public_router.post("/verify/aadhaar/send-otp")
 @router.post("/verify/aadhaar/send-otp")
-async def send_aadhaar_otp(body: dict) -> dict:
+async def send_aadhaar_otp_route(body: dict) -> dict:
     from app.core.identity_guard import assert_aadhaar_unique
     raw_num = str(body.get("aadhaarNumber") or body.get("aadhaar") or "").replace(" ", "").replace("-", "").strip()
     if not raw_num or len(raw_num) != 12 or not raw_num.isdigit():
@@ -97,7 +97,7 @@ async def send_aadhaar_otp(body: dict) -> dict:
         raise HTTPException(status_code=400, detail="Invalid Aadhaar number format")
 
     await assert_aadhaar_unique(raw_num, entity_type="rider")
-    return await send_cashfree_aadhaar_otp(raw_num)
+    return await send_aadhaar_otp(raw_num)
 
 
 @public_router.post("/verify/aadhaar/verify-otp")
@@ -117,7 +117,7 @@ async def verify_aadhaar(body: dict) -> dict:
         await assert_aadhaar_unique(raw_num, entity_type="rider")
 
     if otp:
-        return await verify_cashfree_aadhaar_otp(ref_id=ref_id, otp=otp, candidate_name=candidate_name)
+        return await verify_aadhaar_otp(ref_id=ref_id, otp=otp, candidate_name=candidate_name)
 
     if not raw_num or len(raw_num) != 12 or not raw_num.isdigit():
         raise HTTPException(status_code=400, detail="Please enter a valid 12-digit Aadhaar number")
@@ -268,7 +268,7 @@ async def verify_bank_account(body: dict) -> dict:
     if not ifsc or len(ifsc) != 11:
         raise HTTPException(status_code=400, detail="Please enter a valid IFSC code")
 
-    # In production with Cashfree / Surepass Penny drop:
+    # In production with NPCI / IMPS Penny drop:
     # Deposits ₹1 and receives registered account holder name from NPCI
     registered_name = candidate_name if candidate_name else "DELIVERY PARTNER"
 

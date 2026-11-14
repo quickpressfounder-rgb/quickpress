@@ -3,7 +3,6 @@
 Validates:
 1. Hardcoded OTP 000000 bypass is strictly blocked in production.
 2. Razorpay webhook signature is strictly enforced in production.
-3. Cashfree webhook signature is strictly enforced in production.
 """
 
 from __future__ import annotations
@@ -73,35 +72,3 @@ def test_razorpay_webhook_signature_enforced_in_production(monkeypatch):
     )
     assert resp_tampered.status_code == 401
     assert "invalid webhook signature" in resp_tampered.json()["detail"].lower()
-
-
-@pytest.mark.asyncio
-async def test_cashfree_webhook_signature_enforced_in_production(monkeypatch):
-    """Ensure unauthenticated/spoofed Cashfree webhooks are blocked in production."""
-    from app.services.cashfree_payments_service import handle_cashfree_webhook, CashfreePaymentServiceError
-
-    monkeypatch.setenv("APP_ENV", "production")
-
-    # Case A: Missing webhook secret in production raises 500
-    monkeypatch.setenv("CASHFREE_WEBHOOK_SECRET", "")
-    with pytest.raises(CashfreePaymentServiceError) as exc_info:
-        await handle_cashfree_webhook(
-            event_payload={"type": "PAYMENT_SUCCESS_WEBHOOK"},
-            raw_body=b'{"type":"PAYMENT_SUCCESS_WEBHOOK"}',
-            signature="fake_cf_signature",
-            timestamp="1700000000",
-        )
-    assert exc_info.value.status_code == 500
-    assert "unconfigured" in str(exc_info.value.message).lower()
-
-    # Case B: Secret configured, but invalid signature raises 400
-    monkeypatch.setenv("CASHFREE_WEBHOOK_SECRET", "cf_secret_sample_test")
-    with pytest.raises(CashfreePaymentServiceError) as exc_info2:
-        await handle_cashfree_webhook(
-            event_payload={"type": "PAYMENT_SUCCESS_WEBHOOK"},
-            raw_body=b'{"type":"PAYMENT_SUCCESS_WEBHOOK"}',
-            signature="tampered_cf_signature",
-            timestamp="1700000000",
-        )
-    assert exc_info2.value.status_code == 400
-    assert "invalid webhook signature" in str(exc_info2.value.message).lower()

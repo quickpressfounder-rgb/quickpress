@@ -244,6 +244,3 @@ export async function payWithRazorpay(input: PayWithRazorpayInput): Promise<PayR
     };
   }
 }
-
-// Backward-compatibility export so any existing caller functions smoothly
-export const payWithCashfree = payWithRazorpay;

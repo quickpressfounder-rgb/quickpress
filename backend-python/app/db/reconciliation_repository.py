@@ -31,7 +31,7 @@ class ReconciliationRepository:
         self,
         *,
         recon_type: str,           # 'GATEWAY_VS_BANK', 'COD_VS_BANK', 'SETTLEMENT_VS_BANK'
-        external_source: str,      # 'RAZORPAY', 'CASHFREE', 'HDFC_STATEMENT', 'RIDER_CDM'
+        external_source: str,      # 'RAZORPAY', 'HDFC_STATEMENT', 'RIDER_CDM'
         external_reference: str,   # Gateway UTR, bank ref, deposit slip UTR
         internal_reference: str,   # Order ID, Settlement ID, COD ID
         external_amount: float,

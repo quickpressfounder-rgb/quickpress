@@ -162,11 +162,11 @@ export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-foreground">Payment & Security Standard</span>
               <span className="text-[10px] font-black text-brand-green bg-brand-green/10 px-2.5 py-0.5 rounded-full border border-brand-green/20">
-                Cashfree PG · PCI-DSS
+                Razorpay · PCI-DSS Level 1
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              All transactions are encrypted with 256-bit TLS and processed securely via Cashfree Payments. Your payment credentials and UPI MPIN are never accessed or stored on our servers.
+              All transactions are encrypted with 256-bit TLS and processed securely via Razorpay. Your payment credentials and UPI MPIN are never accessed or stored on our servers.
             </p>
           </div>
 

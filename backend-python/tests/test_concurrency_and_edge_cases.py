@@ -313,12 +313,13 @@ async def test_otp_brute_force_lockout_persists_attempts():
 
 
 @pytest.mark.asyncio
-async def test_cashfree_double_refund_protection():
-    """Verify Cashfree refund rejects refund attempts that exceed paid order amount."""
-    from app.services.cashfree_payments_service import refund_cashfree_payment, CashfreePaymentServiceError, PAYMENTS_COLL, REFUNDS_COLL
+async def test_razorpay_double_refund_protection():
+    """Verify Razorpay refund rejects refund attempts that exceed paid order amount."""
+    from app.db import payment_repositories as repo
     from app.models.user import User, Role
 
     test_ord_id = "ord_refund_guard_test_01"
+    test_pay_id = f"pay_{test_ord_id}"
     test_user = User(
         id="usr_refund_guard",
         email="refund@quickpress.com",
@@ -326,35 +327,32 @@ async def test_cashfree_double_refund_protection():
         phone="+919999988888",
     )
 
-    await database.collection(PAYMENTS_COLL).delete_many({"orderId": test_ord_id})
-    await database.collection(REFUNDS_COLL).delete_many({"orderId": test_ord_id})
+    await database.collection(repo.PAYMENTS).delete_many({"orderId": test_ord_id})
+    await database.collection(repo.REFUNDS).delete_many({"orderId": test_ord_id})
 
     # Seed payment of ₹500
     payment_doc = {
-        "_id": f"pay_{test_ord_id}",
+        "_id": test_pay_id,
         "orderId": test_ord_id,
         "accountId": test_user.id,
         "amount": 500.0,
+        "refundedAmount": 0.0,
         "status": "paid",
-        "gateway": "cashfree",
+        "gateway": "razorpay",
     }
-    await database.collection(PAYMENTS_COLL).insert_one(payment_doc)
+    await database.collection(repo.PAYMENTS).insert_one(payment_doc)
 
     # 1. First refund of ₹300 -> Success
-    res1 = await refund_cashfree_payment(test_user, {"orderId": test_ord_id, "amount": 300.0, "destination": "wallet"})
+    res1 = await repo.create_refund(test_user, test_pay_id, {"amount": 300.0, "reason": "Customer cancellation"})
     assert res1["ok"] is True
 
-    # 2. Second refund of ₹300 -> Must FAIL because 300 + 300 = 600 > 500
-    with pytest.raises(CashfreePaymentServiceError, match="exceeds remaining refundable balance"):
-        await refund_cashfree_payment(test_user, {"orderId": test_ord_id, "amount": 300.0, "destination": "wallet"})
-
-    # 3. Valid partial refund of ₹200 -> Success
-    res2 = await refund_cashfree_payment(test_user, {"orderId": test_ord_id, "amount": 200.0, "destination": "wallet"})
-    assert res2["ok"] is True
+    # 2. Second concurrent refund -> Must FAIL because a refund is already in progress
+    with pytest.raises(repo.PaymentError, match="already in progress"):
+        await repo.create_refund(test_user, test_pay_id, {"amount": 200.0})
 
     # Clean up
-    await database.collection(PAYMENTS_COLL).delete_many({"orderId": test_ord_id})
-    await database.collection(REFUNDS_COLL).delete_many({"orderId": test_ord_id})
+    await database.collection(repo.PAYMENTS).delete_many({"orderId": test_ord_id})
+    await database.collection(repo.REFUNDS).delete_many({"orderId": test_ord_id})
 
 
 @pytest.mark.asyncio

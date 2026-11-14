@@ -37,7 +37,7 @@ def _current_period(dt: Optional[datetime] = None) -> str:
 CHART_OF_ACCOUNTS: Dict[int, Dict[str, str]] = {
     # 1000-1999: ASSETS
     1010: {"name": "Bank Operating Current Account", "type": "ASSET"},
-    1020: {"name": "Payment Gateway Clearing (Razorpay / Cashfree)", "type": "ASSET"},
+    1020: {"name": "Payment Gateway Clearing (Razorpay)", "type": "ASSET"},
     1030: {"name": "Rider Cash-in-Hand (COD Custody)", "type": "ASSET"},
     1040: {"name": "Accounts Receivable", "type": "ASSET"},
 

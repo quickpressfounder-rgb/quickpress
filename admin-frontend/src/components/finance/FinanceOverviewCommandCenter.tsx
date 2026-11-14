@@ -546,7 +546,7 @@ export function FinanceOverviewCommandCenter({ onNavigateTab }: FinanceOverviewC
       },
       "bank-treasury": {
         title: "Bank Treasury & Gateway In-Transit Full Report",
-        subtitle: "Razorpay/Cashfree escrow accounts, automated nodal settlements, and bank balances",
+        subtitle: "Razorpay escrow accounts, automated nodal settlements, and bank balances",
         icon: CreditCard,
       },
       "profit-loss": {

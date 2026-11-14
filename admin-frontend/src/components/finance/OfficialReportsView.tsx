@@ -791,7 +791,7 @@ export function OfficialReportsView() {
                   </tr>
 
                   <tr>
-                    <td className="py-2.5 px-4 pl-8 font-sans text-zinc-700">Less: Payment Gateway Charges (Razorpay/Cashfree @ 1.8%)</td>
+                    <td className="py-2.5 px-4 pl-8 font-sans text-zinc-700">Less: Payment Gateway Charges (Razorpay @ 1.8%)</td>
                     <td className="py-2.5 px-4 text-right text-zinc-400">EXP-GATEWAY</td>
                     <td className="py-2.5 px-4 text-right text-zinc-800">
                       ₹{(pnl?.directExpenses ?? 5121).toLocaleString("en-IN", { minimumFractionDigits: 2 })}

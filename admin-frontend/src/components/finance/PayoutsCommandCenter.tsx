@@ -1370,7 +1370,7 @@ export function PayoutsCommandCenter() {
                   <option value="NEFT_BULK">Corporate NEFT File Upload</option>
                   <option value="RTGS_BULK">RTGS Corporate Host-to-Host</option>
                   <option value="RAZORPAYX_PAYOUTS">RazorpayX Automated Payouts</option>
-                  <option value="CASHFREE_PAYOUTS">Cashfree Payouts Gateway</option>
+                  <option value="INSTANT_UPI_PAYOUTS">Razorpay Instant UPI Payouts</option>
                 </select>
               </div>
             </div>
