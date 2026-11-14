@@ -182,7 +182,6 @@ export function CheckoutPage() {
   // Background refresh status (does NOT block initial screen paint)
   const [isRefreshing, setIsRefreshing] = useState<boolean>(() => cachedAddrs.length === 0);
   const [placingOrder, setPlacingOrder] = useState<boolean>(false);
-  const [fabricConsentAccepted, setFabricConsentAccepted] = useState<boolean>(true);
   const [showFabricPolicyModal, setShowFabricPolicyModal] = useState<boolean>(false);
   const isPlacingOrderRef = useRef<boolean>(false);
   const checkoutIdempotencyKeyRef = useRef<string>(`idem-cart-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
@@ -374,13 +373,6 @@ export function CheckoutPage() {
 
   // Validate details and open Payment Selection Drawer
   const handleProceedToPayment = () => {
-    if (!fabricConsentAccepted) {
-      toast.error("Please accept the Special Fabric Care & Risk Consent to proceed.", {
-        description: "Ensures safety protocols for delicate and dry-clean garments.",
-      });
-      return;
-    }
-
     if (cart.lines.length === 0) {
       toast.error("Your cart is empty.");
       navigate({ to: "/home" });
@@ -1190,38 +1182,26 @@ export function CheckoutPage() {
             ) : null}
           </section>
 
-          {/* SECTION 7.5: SPECIAL FABRIC CARE & RISK CONSENT CARD */}
-          <section className="mt-4 rounded-3xl border border-emerald-200/90 bg-emerald-50/50 p-4 shadow-xs">
-            <div className="flex items-start gap-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-[#0c831f] text-white shadow-xs">
-                <ShieldCheck className="size-5" />
-              </div>
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="flex items-center justify-between gap-1">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-emerald-950">
-                    Garment Care &amp; Risk Consent
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => setShowFabricPolicyModal(true)}
-                    className="text-[11px] font-bold text-[#0c831f] hover:underline cursor-pointer flex items-center gap-0.5 shrink-0"
-                  >
-                    <Info className="size-3" />
-                    <span>View Policy</span>
-                  </button>
+          {/* SECTION 7.5: BLINKIT-STYLE FABRIC CARE & TRUST BADGE */}
+          <section className="mt-3.5 rounded-2xl border border-emerald-200/90 bg-emerald-50/60 p-3 shadow-2xs">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-xl bg-[#0c831f] text-white shadow-2xs">
+                  <ShieldCheck className="size-4" />
                 </div>
-                <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={fabricConsentAccepted}
-                    onChange={(e) => setFabricConsentAccepted(e.target.checked)}
-                    className="mt-0.5 size-4 rounded border-emerald-400 text-[#0c831f] focus:ring-[#0c831f] accent-[#0c831f] cursor-pointer"
-                  />
-                  <span className="text-[11px] leading-relaxed text-emerald-900 font-medium">
-                    I understand that delicate &amp; high-value garments (Pure Silk, Suede, Designer Embroidery, Antique Zari) carry inherent textile risks, and I agree to QuickPress Special Care &amp; Liability Protocols.
-                  </span>
-                </label>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-black text-emerald-950 leading-tight">100% Safe Care Guarantee</p>
+                  <p className="text-[10px] text-emerald-800/90 truncate">RO water • Zero Perchloroethylene • Loss Protection</p>
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setShowFabricPolicyModal(true)}
+                className="text-[10.5px] font-bold text-[#0c831f] hover:underline cursor-pointer flex items-center gap-0.5 shrink-0"
+              >
+                <span>Policy</span>
+                <ChevronRight className="size-3 stroke-[3]" />
+              </button>
             </div>
           </section>
         </div>
@@ -1229,18 +1209,26 @@ export function CheckoutPage() {
 
       {/* SECTION 8: STICKY BOTTOM ACTION BAR */}
       <aside className="fixed inset-x-0 bottom-0 z-40 bg-white border-t border-zinc-200/90 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-        {/* Pre-order Legal Disclosure */}
-        <p className="pb-2.5 text-center text-[10.5px] leading-relaxed text-zinc-500">
-          By placing this order, you agree to the QuickPress{" "}
+        {/* Pre-order Legal Disclosure (Implied Tap Consent) */}
+        <p className="pb-2 text-center text-[10.5px] leading-relaxed text-zinc-500">
+          By placing this order, you agree to QuickPress{" "}
           <a
             href="https://withquickpress.com/#terms"
             target="_blank"
             rel="noreferrer"
             className="font-bold text-zinc-800 underline hover:text-[#0c831f] cursor-pointer"
           >
-            Terms &amp; Conditions
-          </a>{" "}
-          and{" "}
+            Terms
+          </a>
+          ,{" "}
+          <button
+            type="button"
+            onClick={() => setShowFabricPolicyModal(true)}
+            className="font-bold text-zinc-800 underline hover:text-[#0c831f] cursor-pointer inline"
+          >
+            Fabric Care Policy
+          </button>
+          {" "}and{" "}
           <a
             href="https://withquickpress.com/#privacy"
             target="_blank"

@@ -11,8 +11,9 @@
 
 2. **Engineering Solutions Delivered:**
    - **Customer Web App — Garment Care & Fabric Risk Consent (`customer-frontend/src/routes/checkout.tsx`):**
-     - Integrated interactive **Special Fabric Care & Risk Consent Card** right above the checkout action bar.
-     - Added mandatory checkbox validation: Customer agrees to inherent textile risks for high-value delicate fabrics (Pure Silk, Suede, Designer Embroidery, Antique Zari).
+     - Replaced friction-heavy mandatory checkbox with Blinkit/Zomato-grade **Implied Consent & Trust Badge** (`100% Safe Care Guarantee • Loss Protection • RO Water`).
+     - Placed legal consent directly on the checkout action trigger: *"By placing this order, you agree to QuickPress Terms, Fabric Care Policy and Privacy Policy."*
+     - Retained interactive **Garment Care & Loss Policy Modal** for full transparency without obstructing 1-click checkout conversion.
      - Added full-screen **Garment Care & Loss Policy Modal** detailing European hydrocarbon eco-solvent protocols, pre-existing defect disclosures, and statutory 10x liability caps.
      - Validated before payment submission with clear toast alerts.
    - **Customer Web App — Fabric Expert Care Consultation (`customer-frontend/src/routes/services.$serviceId.tsx`):**
