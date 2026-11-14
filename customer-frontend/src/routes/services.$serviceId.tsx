@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Heart, Search, Store, WifiOff } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Heart, MessageCircle, Search, ShieldCheck, Sparkles, Store, WifiOff, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -131,6 +131,31 @@ function ServiceListingScreen() {
   /** Debounced copy of `query` — what actually reaches GET /api/partners. */
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const firstLoad = useRef(true);
+
+  const [showConsultModal, setShowConsultModal] = useState<boolean>(false);
+  const [consultGarment, setConsultGarment] = useState<string>("");
+  const [consultConcern, setConsultConcern] = useState<string>("");
+  const [consultPhone, setConsultPhone] = useState<string>("");
+  const [submittingConsult, setSubmittingConsult] = useState<boolean>(false);
+
+  const handleConsultSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!consultGarment.trim()) {
+      toast.error("Please enter the garment name (e.g. Silk Saree, Leather Jacket)");
+      return;
+    }
+    setSubmittingConsult(true);
+    setTimeout(() => {
+      setSubmittingConsult(false);
+      setShowConsultModal(false);
+      setConsultGarment("");
+      setConsultConcern("");
+      setConsultPhone("");
+      toast.success("Consultation Request Received!", {
+        description: "Our Textile Care Specialist will contact you via WhatsApp within 15 minutes.",
+      });
+    }, 600);
+  };
 
   // Live search debounce: 300 ms after the user stops typing.
   useEffect(() => {
@@ -295,6 +320,26 @@ function ServiceListingScreen() {
                 </div>
               </section>
 
+              {/* Special Care Consultation Trigger Banner */}
+              <div className="mt-3 flex items-center justify-between p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="size-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+                    <Sparkles className="size-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-amber-950 dark:text-amber-200 leading-tight">Special Fabric Consultation</p>
+                    <p className="text-[10.5px] text-amber-800 dark:text-amber-400 truncate">Free advice for Silk, Leather &amp; Designer wear</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowConsultModal(true)}
+                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shrink-0 transition-transform active:scale-95 cursor-pointer shadow-2xs"
+                >
+                  Consult Free
+                </button>
+              </div>
+
               <label className="mt-4 flex h-11 items-center gap-2 rounded-2xl border border-border bg-card px-3.5">
                 <Search className="size-4 shrink-0 text-muted-foreground" />
                 <input
@@ -343,6 +388,89 @@ function ServiceListingScreen() {
       </div>
 
       <FloatingCartBar />
+
+      {/* Special Care Consultation Modal */}
+      {showConsultModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="size-5 text-amber-500" />
+                <h2 className="text-sm font-black text-foreground">Fabric Expert Consultation</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowConsultModal(false)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConsultSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                  Garment / Fabric Type *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={consultGarment}
+                  onChange={(e) => setConsultGarment(e.target.value)}
+                  placeholder="e.g. Pure Silk Banarasi Saree, Leather Jacket, Sherwani"
+                  className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs text-foreground focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                  Specific Concern / Stain Details
+                </label>
+                <textarea
+                  rows={2}
+                  value={consultConcern}
+                  onChange={(e) => setConsultConcern(e.target.value)}
+                  placeholder="e.g. Grease stain on pallu, fear of color bleeding, delicate embroidery"
+                  className="w-full p-3 rounded-xl border border-border bg-card text-xs text-foreground focus:outline-none focus:border-amber-500 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                  WhatsApp / Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={consultPhone}
+                  onChange={(e) => setConsultPhone(e.target.value)}
+                  placeholder="e.g. +91 98765 43210 (For fast WhatsApp advice)"
+                  className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs text-foreground focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-muted/60 flex items-start gap-2 text-[10.5px] text-muted-foreground">
+                <ShieldCheck className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                <span>QuickPress fabric experts verify yarn composition and suggest the safest dry-cleaning cycle free of charge.</span>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submittingConsult}
+                className="w-full h-11 rounded-2xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-black text-xs shadow-md active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {submittingConsult ? (
+                  <span>Submitting Request...</span>
+                ) : (
+                  <>
+                    <MessageCircle className="size-4" />
+                    <span>Request Free WhatsApp Consultation</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -9,6 +9,7 @@ import {
   X,
   Sparkles,
   Info,
+  ShieldCheck,
 } from "lucide-react";
 
 export interface GarmentOrderItem {
@@ -310,6 +311,22 @@ export function RiderDoorstepPickupCard({
         placeholder="Notes (optional): e.g. white shirt collar stain, torn pocket..."
         className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-slate-900 transition-all shadow-2xs font-medium"
       />
+
+      {/* 7. Doorstep Handover & Defect Consent */}
+      <div className="p-2.5 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl space-y-1.5">
+        <div className="flex items-center justify-between text-[11px] font-black text-emerald-950">
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck className="size-3.5 text-emerald-700" />
+            <span>Customer Intake Consent</span>
+          </span>
+          <span className="text-[10px] text-emerald-800 font-bold">
+            {doorstepPieces} Pcs Counted
+          </span>
+        </div>
+        <p className="text-[10px] text-emerald-900/80 leading-relaxed font-medium">
+          Customer has physically verified the piece count and acknowledged any noted tears, stains or color bleed risks. Handover OTP serves as digital legal consent.
+        </p>
+      </div>
     </div>
   );
 }

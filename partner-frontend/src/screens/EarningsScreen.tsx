@@ -408,6 +408,30 @@ export function EarningsScreen() {
         </div>
 
         {/* ========================================================================= */}
+        {/* STATUTORY TDS & PAYOUT SETTLEMENT COMPLIANCE CARD                         */}
+        {/* ========================================================================= */}
+        <div className="rounded-2xl border border-blue-200/90 bg-blue-50/50 p-4 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs">
+              <ShieldCheck className="size-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-black uppercase tracking-wider text-blue-950">
+                  Statutory TDS (Section 194-O) &amp; Payout Consent Active
+                </h3>
+                <span className="rounded-full bg-blue-100 text-blue-800 px-2 py-0.5 text-[10px] font-bold">
+                  Verified
+                </span>
+              </div>
+              <p className="text-[11px] text-blue-900/80 leading-relaxed font-medium mt-0.5">
+                Platform commission and 1% TDS are deducted automatically as per Indian Income Tax regulations. Net earnings settle directly to your verified bank account via automated NEFT every Tuesday.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
         {/* HERO PAYOUT & BANK ACCOUNT RECONCILIATION CARD                            */}
         {/* ========================================================================= */}
         <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs relative overflow-hidden">

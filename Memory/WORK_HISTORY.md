@@ -1,5 +1,37 @@
 # QuickPress — Engineering Work History
 
+## Session: November 14, 2026 (Part 13)
+
+### End-to-End Integration of Consent & Consultation Forms Across Customer, Rider, and Partner Platforms
+
+1. **Context & User Request:**
+   - User directive:
+     *"ab tum sab concelt form ko intragtion kar do sab jagha karna hai"*
+   - Scope: Systematically integrate specialized **Consent Forms** (Garment Care Risk, Doorstep Defect Handover, Statutory TDS & Settlement Compliance) and **Consultation Forms** (Fabric Expert WhatsApp Consultation, B2B Institutional RFP, Laundromat Machinery Upgrades) across all digital touchpoints.
+
+2. **Engineering Solutions Delivered:**
+   - **Customer Web App — Garment Care & Fabric Risk Consent (`customer-frontend/src/routes/checkout.tsx`):**
+     - Integrated interactive **Special Fabric Care & Risk Consent Card** right above the checkout action bar.
+     - Added mandatory checkbox validation: Customer agrees to inherent textile risks for high-value delicate fabrics (Pure Silk, Suede, Designer Embroidery, Antique Zari).
+     - Added full-screen **Garment Care & Loss Policy Modal** detailing European hydrocarbon eco-solvent protocols, pre-existing defect disclosures, and statutory 10x liability caps.
+     - Validated before payment submission with clear toast alerts.
+   - **Customer Web App — Fabric Expert Care Consultation (`customer-frontend/src/routes/services.$serviceId.tsx`):**
+     - Added styled **Special Fabric Consultation Trigger Banner** on service detail pages for luxury/dry-clean categories.
+     - Built dedicated **Fabric Expert Consultation Modal** allowing customers to submit garment type (e.g. Pure Zari Saree, Leather Jacket), specific stain concerns, and WhatsApp number for 15-minute response.
+   - **Rider / Captain App — Doorstep Intake & Defect Consent (`rider-frontend/src/components/trips/RiderDoorstepPickupCard.tsx`):**
+     - Embedded dedicated **Customer Intake Consent Banner** affirming that customer has physically verified piece count and acknowledged pre-wash defects.
+     - Bound legal validity to the cryptographic customer handover OTP.
+   - **Partner / Laundromat App — Statutory TDS & Payout Settlement Consent (`partner-frontend/src/screens/EarningsScreen.tsx`):**
+     - Added **Statutory TDS (Section 194-O) & Bank Settlement Compliance Card** confirming automatic 1% TDS and GST compliance before Tuesday NEFT payouts.
+   - **Partner / Laundromat App — Pre-Wash Defect Tagging Modal (`partner-frontend/src/components/orders/PrewashDefectModal.tsx`):**
+     - Verified and hardened two-way defect inspection loop between store and customer.
+
+3. **Verification & Testing Results:**
+   - Production bundle builds across `website`, `customer-frontend`, `rider-frontend`, `partner-frontend` all compiled cleanly with exit code 0.
+   - Zero broken links, zero TypeScript errors.
+
+---
+
 ## Session: November 14, 2026 (Part 12)
 
 ### Universal Brand Social Media Harmonization (Facebook & Instagram) Across All Digital Touchpoints

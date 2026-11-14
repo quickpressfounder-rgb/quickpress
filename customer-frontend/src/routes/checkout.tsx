@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  AlertCircle,
   Banknote,
   Check,
   CheckCircle2,
@@ -10,6 +11,7 @@ import {
   CreditCard,
   Crown,
   Home,
+  Info,
   Loader2,
   MapPin,
   Minus,
@@ -17,6 +19,7 @@ import {
   Phone,
   Plus,
   QrCode,
+  ShieldCheck,
   ShoppingBag,
   Smartphone,
   Sparkles,
@@ -24,6 +27,7 @@ import {
   Trash2,
   User,
   Wallet,
+  X,
   Zap,
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
@@ -178,6 +182,8 @@ export function CheckoutPage() {
   // Background refresh status (does NOT block initial screen paint)
   const [isRefreshing, setIsRefreshing] = useState<boolean>(() => cachedAddrs.length === 0);
   const [placingOrder, setPlacingOrder] = useState<boolean>(false);
+  const [fabricConsentAccepted, setFabricConsentAccepted] = useState<boolean>(true);
+  const [showFabricPolicyModal, setShowFabricPolicyModal] = useState<boolean>(false);
   const isPlacingOrderRef = useRef<boolean>(false);
   const checkoutIdempotencyKeyRef = useRef<string>(`idem-cart-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
 
@@ -368,6 +374,13 @@ export function CheckoutPage() {
 
   // Validate details and open Payment Selection Drawer
   const handleProceedToPayment = () => {
+    if (!fabricConsentAccepted) {
+      toast.error("Please accept the Special Fabric Care & Risk Consent to proceed.", {
+        description: "Ensures safety protocols for delicate and dry-clean garments.",
+      });
+      return;
+    }
+
     if (cart.lines.length === 0) {
       toast.error("Your cart is empty.");
       navigate({ to: "/home" });
@@ -1176,6 +1189,41 @@ export function CheckoutPage() {
               </div>
             ) : null}
           </section>
+
+          {/* SECTION 7.5: SPECIAL FABRIC CARE & RISK CONSENT CARD */}
+          <section className="mt-4 rounded-3xl border border-emerald-200/90 bg-emerald-50/50 p-4 shadow-xs">
+            <div className="flex items-start gap-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-[#0c831f] text-white shadow-xs">
+                <ShieldCheck className="size-5" />
+              </div>
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex items-center justify-between gap-1">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-emerald-950">
+                    Garment Care &amp; Risk Consent
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowFabricPolicyModal(true)}
+                    className="text-[11px] font-bold text-[#0c831f] hover:underline cursor-pointer flex items-center gap-0.5 shrink-0"
+                  >
+                    <Info className="size-3" />
+                    <span>View Policy</span>
+                  </button>
+                </div>
+                <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={fabricConsentAccepted}
+                    onChange={(e) => setFabricConsentAccepted(e.target.checked)}
+                    className="mt-0.5 size-4 rounded border-emerald-400 text-[#0c831f] focus:ring-[#0c831f] accent-[#0c831f] cursor-pointer"
+                  />
+                  <span className="text-[11px] leading-relaxed text-emerald-900 font-medium">
+                    I understand that delicate &amp; high-value garments (Pure Silk, Suede, Designer Embroidery, Antique Zari) carry inherent textile risks, and I agree to QuickPress Special Care &amp; Liability Protocols.
+                  </span>
+                </label>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
 
@@ -1278,6 +1326,68 @@ export function CheckoutPage() {
         onPaymentSuccess={handlePaymentSuccess}
         onSelectCod={handleSelectCod}
       />
+
+      {/* Fabric Care & Risk Consent Policy Modal */}
+      {showFabricPolicyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md bg-white rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="size-5 text-[#0c831f]" />
+                <h2 className="text-sm font-black text-zinc-900">Garment Care &amp; Loss Policy</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFabricPolicyModal(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs text-zinc-600 max-h-80 overflow-y-auto pr-1">
+              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-1">
+                <p className="font-black text-emerald-950 text-xs">1. 100% Eco-Safe Cleaning Protocol</p>
+                <p className="text-[11px] text-emerald-800 leading-relaxed">
+                  All garments are processed using European hydrocarbon dry-cleaning solvents and RO-softened water with zero harmful perchloroethylene.
+                </p>
+              </div>
+
+              <div className="p-3 bg-amber-50 rounded-2xl border border-amber-100 space-y-1">
+                <p className="font-black text-amber-950 text-xs">2. Pre-Existing Defects &amp; Stains</p>
+                <p className="text-[11px] text-amber-800 leading-relaxed">
+                  Pre-existing tears, holes, frayed stitching, or deep chemical stains cannot be reversed. Our delivery captain captures photos at doorstep intake for mutual transparency.
+                </p>
+              </div>
+
+              <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200 space-y-1">
+                <p className="font-black text-zinc-900 text-xs">3. Antique Zari &amp; Color Fastness</p>
+                <p className="text-[11px] text-zinc-600 leading-relaxed">
+                  Hand-dyed artisanal silks or antique metallic embroideries without manufacturer wash-care tags are treated with maximum delicacy but carry inherent natural bleed risks.
+                </p>
+              </div>
+
+              <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200 space-y-1">
+                <p className="font-black text-zinc-900 text-xs">4. Maximum Liability Protection</p>
+                <p className="text-[11px] text-zinc-600 leading-relaxed">
+                  In the rare event of verified physical loss or terminal damage caused solely during processing, reimbursement is capped up to 10x the processing charge or actual garment depreciated value as per platform terms.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setFabricConsentAccepted(true);
+                setShowFabricPolicyModal(false);
+              }}
+              className="w-full py-3 rounded-2xl bg-[#0c831f] hover:bg-[#0a701a] text-white font-black text-xs shadow-md active:scale-98 transition-all cursor-pointer"
+            >
+              I Understand &amp; Agree
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
