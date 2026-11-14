@@ -37,6 +37,7 @@
 3. **Verification & Testing Results:**
    - Client & server production bundle verified: `export PATH="/usr/local/bin:$PATH"; cd admin-frontend && npm run build` exited with code 0 (all 2,724 modules transformed cleanly into Nitro production artifacts).
    - Zero references to undefined `Link` components.
+   - Pushed commit: `1ed362e0` (`feat(auth): enable direct cloudflare zero trust sso and eliminate internal login screen`).
 
 ---
 
