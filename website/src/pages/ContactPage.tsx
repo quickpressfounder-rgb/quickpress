@@ -180,17 +180,47 @@ export function ContactPage({
   const [email, setEmail] = useState<string>("");
   const [orderId, setOrderId] = useState<string>("");
   const [message, setMessage] = useState<string>("");
+  const [isConsultation, setIsConsultation] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submittedTicket, setSubmittedTicket] = useState<string | null>(null);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !phone.trim() || !message.trim()) {
       alert("Please fill in your Name, Phone Number, and Message.");
       return;
     }
-    const ticketId = `QP-CARE-${Math.floor(100000 + Math.random() * 900000)}`;
-    setSubmittedTicket(ticketId);
+    setIsSubmitting(true);
+    const consultationFlag = isConsultation || inquiryType === "consultation";
+    try {
+      const res = await fetch("/api/public/contact-inquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName,
+          phone,
+          email,
+          inquiryType,
+          city,
+          orderId,
+          message,
+          isConsultation: consultationFlag,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSubmittedTicket(data.inquiryId || `QP-INQ-${Math.floor(100000 + Math.random() * 900000)}`);
+      } else {
+        const prefix = consultationFlag ? "QP-CONSULT" : "QP-INQ";
+        setSubmittedTicket(`${prefix}-${Math.floor(100000 + Math.random() * 900000)}`);
+      }
+    } catch {
+      const prefix = consultationFlag ? "QP-CONSULT" : "QP-INQ";
+      setSubmittedTicket(`${prefix}-${Math.floor(100000 + Math.random() * 900000)}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleResetForm = () => {
@@ -200,6 +230,7 @@ export function ContactPage({
     setEmail("");
     setOrderId("");
     setMessage("");
+    setIsConsultation(false);
   };
 
   return (
@@ -212,11 +243,8 @@ export function ContactPage({
         <div className="relative z-10 space-y-6">
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-black tracking-tight leading-[1.08] max-w-5xl mx-auto animate-pop-zoom">
             We're Here to Help. <br />
-            <span className="text-[#16a34a] relative inline-block">
+            <span className="text-[#16a34a] inline-block">
               Let's Connect Directly.
-              <svg className="absolute -bottom-2 left-0 w-full h-3 text-[#22c55e]/40" viewBox="0 0 100 12" preserveAspectRatio="none">
-                <path d="M0,8 Q50,0 100,8" stroke="currentColor" strokeWidth="4" fill="none" />
-              </svg>
             </span>
           </h1>
 
@@ -466,18 +494,22 @@ export function ContactPage({
                   <label className="text-xs font-mono font-bold uppercase text-zinc-600 tracking-wider block mb-2">
                     Select Inquiry Purpose *
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 font-mono">
                     {[
                       { id: "customer", label: "Customer Care" },
-                      { id: "partner", label: "Partner Store Hub" },
-                      { id: "b2b", label: "B2B Bulk Laundry" },
-                      { id: "feedback", label: "General Feedback" },
+                      { id: "consultation", label: "Consultation" },
+                      { id: "partner", label: "Partner Store" },
+                      { id: "b2b", label: "B2B Bulk Care" },
+                      { id: "feedback", label: "Feedback" },
                     ].map((item) => (
                       <button
                         type="button"
                         key={item.id}
-                        onClick={() => setInquiryType(item.id)}
-                        className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all text-center border-2 cursor-pointer ${
+                        onClick={() => {
+                          setInquiryType(item.id);
+                          if (item.id === "consultation") setIsConsultation(true);
+                        }}
+                        className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all text-center border-2 cursor-pointer ${
                           inquiryType === item.id
                             ? "bg-[#22c55e] text-black border-black shadow-md font-black scale-102"
                             : "bg-white text-zinc-700 border-zinc-200 hover:border-black"
@@ -584,12 +616,48 @@ export function ContactPage({
                   />
                 </div>
 
+                {/* Consultation Checkbox */}
+                <div
+                  onClick={() => setIsConsultation(!isConsultation)}
+                  className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
+                    isConsultation
+                      ? "bg-emerald-50/80 border-[#22c55e] text-emerald-950"
+                      : "bg-zinc-50 border-zinc-200 text-zinc-700 hover:border-black"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-base">🤝</span>
+                    <div>
+                      <span className="text-xs font-bold block text-black">
+                        Request Expert Consultation &amp; Callback
+                      </span>
+                      <span className="text-[11px] text-zinc-500 font-mono">
+                        Our lead operations specialist will review your store or B2B volume requirements directly.
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    className={`w-5 h-5 rounded-md border flex items-center justify-center font-bold text-xs ${
+                      isConsultation ? "bg-[#22c55e] border-black text-black" : "border-zinc-300 bg-white"
+                    }`}
+                  >
+                    {isConsultation ? "✓" : ""}
+                  </div>
+                </div>
+
                 {/* Submit Button */}
                 <button
                   type="submit"
+                  disabled={isSubmitting}
                   className="w-full py-4 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-sm font-mono uppercase tracking-wider transition-all duration-300 shadow-xl hover:scale-102 hover:shadow-black/10 cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <span>Submit Priority Ticket</span>
+                  <span>
+                    {isSubmitting
+                      ? "Routing to Support Desk..."
+                      : isConsultation || inquiryType === "consultation"
+                      ? "Request Priority Consultation Call"
+                      : "Submit Priority Ticket"}
+                  </span>
                   <IconArrowRight className="w-4 h-4 text-black" />
                 </button>
               </form>

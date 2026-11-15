@@ -23,6 +23,7 @@ import {
   Globe,
   BookOpen,
   Video,
+  Briefcase,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,9 +42,14 @@ import {
   createAdminBlog,
   updateAdminBlog,
   deleteAdminBlog,
+  fetchAdminCareerJobs,
+  createAdminCareerJob,
+  updateAdminCareerJob,
+  deleteAdminCareerJob,
   type AdminStory,
   type AdminBanner,
   type AdminBlog,
+  type AdminCareerJob,
 } from "../api/promotions";
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
@@ -59,10 +65,11 @@ export const Route = createFileRoute("/promotions")({
 });
 
 export function PromotionsPage() {
-  const [activeTab, setActiveTab] = useState<"stories" | "banners" | "blogs">("stories");
+  const [activeTab, setActiveTab] = useState<"stories" | "banners" | "blogs" | "careers">("stories");
   const [stories, setStories] = useState<AdminStory[]>([]);
   const [banners, setBanners] = useState<AdminBanner[]>([]);
   const [blogs, setBlogs] = useState<AdminBlog[]>([]);
+  const [careerJobs, setCareerJobs] = useState<AdminCareerJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -78,21 +85,27 @@ export function PromotionsPage() {
   const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
   const [editingBlog, setEditingBlog] = useState<Partial<AdminBlog> | null>(null);
 
+  // Careers Job Edit/Create Modal State
+  const [isJobModalOpen, setIsJobModalOpen] = useState(false);
+  const [editingJob, setEditingJob] = useState<Partial<AdminCareerJob> | null>(null);
+
   // Preview Story in Mobile Frame
   const [previewStory, setPreviewStory] = useState<AdminStory | null>(null);
 
   const loadData = async (showToast = false) => {
     try {
       setRefreshing(true);
-      const [sRes, bRes, blRes] = await Promise.all([
+      const [sRes, bRes, blRes, cRes] = await Promise.all([
         fetchAdminStories(),
         fetchAdminBanners(),
         fetchAdminBlogs(),
+        fetchAdminCareerJobs(),
       ]);
       setStories(sRes);
       setBanners(bRes);
       setBlogs(blRes);
-      if (showToast) toast.success("Promotions, Stories & Blogs synced with live DB!");
+      setCareerJobs(cRes);
+      if (showToast) toast.success("Promotions, Stories, Blogs & Careers synced with live DB!");
     } catch {
       toast.error("Failed to fetch promotions. Please check backend connection.");
     } finally {
@@ -323,6 +336,72 @@ export function PromotionsPage() {
     }
   };
 
+  // --------------------------------------------------------------------------
+  // Careers & Job Openings Handlers
+  // --------------------------------------------------------------------------
+  const handleOpenCreateJob = () => {
+    setEditingJob({
+      title: "",
+      department: "Engineering",
+      location: "Kasganj / Noida (Hybrid)",
+      type: "Full-Time",
+      experience: "2–4 Years",
+      desc: "",
+      responsibilities: ["Lead operations and system design", "Ensure high SLA adherence and reliability"],
+      isActive: true,
+    });
+    setIsJobModalOpen(true);
+  };
+
+  const handleEditJob = (job: AdminCareerJob) => {
+    setEditingJob({ ...job });
+    setIsJobModalOpen(true);
+  };
+
+  const handleSaveJob = async () => {
+    if (!editingJob?.title?.trim()) {
+      toast.error("Please enter a job title.");
+      return;
+    }
+    try {
+      if (editingJob._id || editingJob.id) {
+        const id = editingJob._id || editingJob.id!;
+        await updateAdminCareerJob(id, editingJob);
+        toast.success("Job opening updated!");
+      } else {
+        await createAdminCareerJob(editingJob as any);
+        toast.success("New job opening published!");
+      }
+      setIsJobModalOpen(false);
+      setEditingJob(null);
+      await loadData();
+    } catch {
+      toast.error("Failed to save job opening.");
+    }
+  };
+
+  const handleDeleteJob = async (id: string) => {
+    if (!confirm("Permanently delete this job opening?")) return;
+    try {
+      await deleteAdminCareerJob(id);
+      toast.success("Job opening deleted.");
+      await loadData();
+    } catch {
+      toast.error("Failed to delete job opening.");
+    }
+  };
+
+  const handleToggleJobActive = async (job: AdminCareerJob) => {
+    const id = job._id || job.id;
+    try {
+      await updateAdminCareerJob(id, { isActive: !job.isActive });
+      toast.success(`Job ${!job.isActive ? "Activated" : "Deactivated"}!`);
+      await loadData();
+    } catch {
+      toast.error("Failed to toggle job status.");
+    }
+  };
+
   return (
     <AdminShell>
       <div className="space-y-6 max-w-7xl mx-auto pb-12">
@@ -394,6 +473,16 @@ export function PromotionsPage() {
                 <span>+ Publish New Blog</span>
               </button>
             )}
+            {activeTab === "careers" && (
+              <button
+                type="button"
+                onClick={handleOpenCreateJob}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white active:scale-95 text-xs font-bold transition shadow-sm cursor-pointer"
+              >
+                <Plus className="size-3.5" />
+                <span>+ Post New Job Opening</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -415,9 +504,9 @@ export function PromotionsPage() {
             hint={`${blogs.filter((b) => b.isSlider).length} in Hero Slider`}
           />
           <KpiCard
-            title="Target Audience"
-            value="Platform-Wide"
-            hint="Website &amp; Mobile Apps"
+            title="Careers / Open Roles"
+            value={careerJobs.length.toString()}
+            hint={`${careerJobs.filter((j) => j.isActive).length} Active Hiring`}
           />
         </div>
 
@@ -458,6 +547,18 @@ export function PromotionsPage() {
           >
             <BookOpen className="size-4" />
             <span>Blog Articles &amp; Sliders ({blogs.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("careers")}
+            className={`pb-3 px-4 font-bold text-sm border-b-2 transition-all flex items-center gap-2 ${
+              activeTab === "careers"
+                ? "border-emerald-600 text-zinc-950 font-black"
+                : "border-transparent text-zinc-500 hover:text-zinc-800"
+            }`}
+          >
+            <Briefcase className="size-4" />
+            <span>Careers &amp; Open Roles ({careerJobs.length})</span>
           </button>
         </div>
 
@@ -751,6 +852,135 @@ export function PromotionsPage() {
                   className="px-4 py-2 rounded-xl bg-zinc-950 text-white text-xs font-bold font-mono"
                 >
                   Create First Blog
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 4: CAREERS & OPEN ROLES CMS */}
+        {activeTab === "careers" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+              <div>
+                <h3 className="text-base font-black text-zinc-950 flex items-center gap-2">
+                  <span className="p-1 rounded-md bg-emerald-100 text-emerald-800 text-sm">💼</span>
+                  <span>Careers &amp; Job Openings ({careerJobs.length})</span>
+                </h3>
+                <p className="text-xs text-zinc-500">
+                  Active job roles sync dynamically with the public website <code>/careers</code> portal.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleOpenCreateJob}
+                className="px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white text-xs font-bold transition cursor-pointer shadow-xs"
+              >
+                + Post New Role
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {careerJobs.map((job, idx) => (
+                <div
+                  key={job._id || job.id || idx}
+                  className={`bg-white rounded-3xl border ${
+                    job.isActive ? "border-zinc-200" : "border-zinc-200/60 opacity-60"
+                  } p-5 shadow-xs space-y-4 hover:shadow-md transition flex flex-col justify-between`}
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-800 border border-zinc-200">
+                        {job.department}
+                      </span>
+                      <span
+                        className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                          job.isActive ? "bg-emerald-100 text-emerald-800" : "bg-zinc-100 text-zinc-500"
+                        }`}
+                      >
+                        {job.isActive ? "Active / Hiring" : "Paused"}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-black text-zinc-950 line-clamp-2">
+                        {job.title}
+                      </h4>
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500 font-mono mt-1">
+                        <span>📍 {job.location}</span>
+                        <span>•</span>
+                        <span>⏱️ {job.type}</span>
+                        <span>•</span>
+                        <span className="text-emerald-700 font-bold">💼 {job.experience}</span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-zinc-600 line-clamp-3 leading-relaxed">
+                      {job.desc}
+                    </p>
+
+                    {job.responsibilities && job.responsibilities.length > 0 && (
+                      <div className="pt-2 border-t border-zinc-100">
+                        <span className="text-[10px] font-mono font-bold text-zinc-400 block mb-1">RESPONSIBILITIES</span>
+                        <ul className="text-[11px] text-zinc-600 space-y-1">
+                          {job.responsibilities.slice(0, 2).map((r, rIdx) => (
+                            <li key={rIdx} className="line-clamp-1 flex items-center gap-1.5">
+                              <span className="w-1 h-1 rounded-full bg-emerald-600 shrink-0" />
+                              <span>{r}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-zinc-100 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleJobActive(job)}
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border cursor-pointer ${
+                        job.isActive
+                          ? "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
+                          : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                      }`}
+                    >
+                      {job.isActive ? "Pause Hiring" : "Activate Role"}
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleEditJob(job)}
+                        className="p-1.5 text-zinc-500 hover:text-zinc-900 rounded-lg hover:bg-zinc-100 cursor-pointer"
+                        title="Edit Job"
+                      >
+                        <Edit3 className="size-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteJob(job._id || job.id)}
+                        className="p-1.5 text-zinc-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 cursor-pointer"
+                        title="Delete Job"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {careerJobs.length === 0 && (
+              <div className="text-center py-16 bg-white rounded-3xl border border-zinc-200 space-y-3">
+                <Briefcase className="size-10 text-zinc-300 mx-auto" />
+                <h4 className="text-base font-black text-zinc-900">No job openings found</h4>
+                <p className="text-xs text-zinc-500">Post open roles here and they will immediately appear on the public Careers portal.</p>
+                <button
+                  type="button"
+                  onClick={handleOpenCreateJob}
+                  className="px-4 py-2 rounded-xl bg-zinc-950 text-white text-xs font-bold font-mono"
+                >
+                  Post First Job Role
                 </button>
               </div>
             )}
@@ -1210,6 +1440,160 @@ export function PromotionsPage() {
                   className="px-5 py-2 rounded-xl bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-xs uppercase tracking-wider transition shadow-sm cursor-pointer"
                 >
                   {editingBlog._id || editingBlog.id ? "Save Changes" : "Publish Article"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* JOB OPENING EDIT / CREATE MODAL */}
+        {isJobModalOpen && editingJob && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-zinc-200 space-y-4 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                <div className="flex items-center gap-2">
+                  <span className="p-1 rounded bg-emerald-100 text-emerald-800 text-sm">💼</span>
+                  <h3 className="text-base font-black text-zinc-950">
+                    {editingJob._id || editingJob.id ? "Edit Job Opening" : "Post New Job Opening"}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsJobModalOpen(false)}
+                  className="p-1 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3.5 text-xs">
+                {/* Title */}
+                <div>
+                  <label className="font-bold text-zinc-700 block mb-1">Job Role Title *</label>
+                  <input
+                    type="text"
+                    value={editingJob.title || ""}
+                    onChange={(e) => setEditingJob({ ...editingJob, title: e.target.value })}
+                    placeholder="e.g. Senior Frontend Engineer (React 19)"
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                {/* Department & Experience */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-zinc-700 block mb-1">Department *</label>
+                    <select
+                      value={editingJob.department || "Engineering"}
+                      onChange={(e) => setEditingJob({ ...editingJob, department: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-zinc-300 font-medium text-zinc-900 bg-white"
+                    >
+                      <option value="Engineering">Engineering</option>
+                      <option value="Operations">Operations</option>
+                      <option value="Growth">Growth & Franchise</option>
+                      <option value="Quality & Care">Quality & Fabric Care</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-zinc-700 block mb-1">Experience Required</label>
+                    <input
+                      type="text"
+                      value={editingJob.experience || ""}
+                      onChange={(e) => setEditingJob({ ...editingJob, experience: e.target.value })}
+                      placeholder="e.g. 2–4 Years"
+                      className="w-full px-3 py-2 rounded-xl border border-zinc-300 text-zinc-900 font-mono text-[11px]"
+                    />
+                  </div>
+                </div>
+
+                {/* Location & Type */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-zinc-700 block mb-1">Location / Work Mode</label>
+                    <input
+                      type="text"
+                      value={editingJob.location || ""}
+                      onChange={(e) => setEditingJob({ ...editingJob, location: e.target.value })}
+                      placeholder="e.g. Kasganj / Noida (Hybrid)"
+                      className="w-full px-3 py-2 rounded-xl border border-zinc-300 text-zinc-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-zinc-700 block mb-1">Job Type</label>
+                    <select
+                      value={editingJob.type || "Full-Time"}
+                      onChange={(e) => setEditingJob({ ...editingJob, type: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-zinc-300 font-medium text-zinc-900 bg-white"
+                    >
+                      <option value="Full-Time">Full-Time</option>
+                      <option value="Part-Time">Part-Time</option>
+                      <option value="Contract">Contract</option>
+                      <option value="Internship">Internship</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="font-bold text-zinc-700 block mb-1">Role Description / Scope</label>
+                  <textarea
+                    rows={3}
+                    value={editingJob.desc || ""}
+                    onChange={(e) => setEditingJob({ ...editingJob, desc: e.target.value })}
+                    placeholder="Describe what this role owns and key mission outcomes..."
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 text-zinc-900 font-medium leading-relaxed"
+                  />
+                </div>
+
+                {/* Responsibilities */}
+                <div>
+                  <label className="font-bold text-zinc-700 block mb-1">
+                    Key Responsibilities (One per line)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={(editingJob.responsibilities || []).join("\n")}
+                    onChange={(e) =>
+                      setEditingJob({
+                        ...editingJob,
+                        responsibilities: e.target.value.split("\n").filter((r) => r.trim().length > 0),
+                      })
+                    }
+                    placeholder="Own core FastAPI microservices\nScale React 19 web applications"
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 text-zinc-900 font-mono text-[11px]"
+                  />
+                </div>
+
+                {/* Active Toggle */}
+                <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200">
+                  <label className="flex items-center gap-2 cursor-pointer font-bold text-zinc-800">
+                    <input
+                      type="checkbox"
+                      checked={editingJob.isActive !== false}
+                      onChange={(e) => setEditingJob({ ...editingJob, isActive: e.target.checked })}
+                      className="size-4 rounded text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span>Active for Hiring (Visible on Website Careers Page)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Modal Action Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100">
+                <button
+                  type="button"
+                  onClick={() => setIsJobModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-zinc-300 text-zinc-700 hover:bg-zinc-100 font-bold text-xs cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveJob}
+                  className="px-5 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs uppercase tracking-wider transition shadow-sm cursor-pointer"
+                >
+                  {editingJob._id || editingJob.id ? "Save Changes" : "Post Role"}
                 </button>
               </div>
             </div>

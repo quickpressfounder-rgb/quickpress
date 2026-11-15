@@ -84,11 +84,8 @@ export function ReportFraudPage({
 
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-black tracking-tight leading-[1.08] max-w-5xl mx-auto">
             Report Fraud &amp; <br />
-            <span className="text-red-600 relative inline-block">
+            <span className="text-red-600 inline-block">
               Protect Our Community.
-              <svg className="absolute -bottom-2 left-0 w-full h-3 text-red-500/40" viewBox="0 0 100 12" preserveAspectRatio="none">
-                <path d="M0,8 Q50,0 100,8" stroke="currentColor" strokeWidth="4" fill="none" />
-              </svg>
             </span>
           </h1>
 
@@ -325,3 +322,4 @@ export function ReportFraudPage({
     </div>
   );
 }
+

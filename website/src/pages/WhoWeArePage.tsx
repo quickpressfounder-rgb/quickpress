@@ -8,37 +8,19 @@ export function WhoWeArePage({
   onNavigate: (page: PageType) => void;
   onOpenModal: (type: ModalType) => void;
 }) {
-  const [activeTab, setActiveTab] = useState<"all" | "customers" | "partners" | "captains">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "partners" | "captains">("all");
 
   const pillars = [
-    {
-      id: "customers",
-      tag: "For Customers",
-      badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-300",
-      title: "Effortless Garment Care at Your Doorstep",
-      desc: "We eliminate the weekend laundry burden for millions of Indian households. With 45-minute captain dispatch, waterproof sealed laundry bags, and medical-grade 80°C anti-bacterial hygiene, your clothes return crisply pressed, hygienic, and ready to wear.",
-      highlights: [
-        "10–12 Minute captain doorstep dispatch",
-        "Fabric-safe Italian vacuum steam pressing (zero scorch)",
-        "Individual barcode tracking & ₹5,000 Zero-Loss Guarantee",
-        "Live digital weight receipt & transparent pricing from ₹9/pc",
-      ],
-      icon: (
-        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
-        </svg>
-      ),
-    },
     {
       id: "partners",
       tag: "For Partner Stores",
       badgeColor: "bg-blue-50 text-blue-800 border-blue-300",
       title: "Empowering Local Dhobis into High-Growth Hubs",
-      desc: "Over 96% of India's laundry shops operate informally without modern equipment or steady demand. QuickPress equips neighborhood dry cleaners with industrial Italian steam tables, eco-friendly detergents, and our merchant app, tripling their daily processing capacity.",
+      desc: "Equipping neighborhood laundry shops with Italian vacuum steam tables, eco-friendly detergents, and digital merchant apps to triple daily processing throughput.",
       highlights: [
         "Zero franchise onboarding fees for local entrepreneurs",
         "Italian vacuum steam tables installed with operational training",
-        "Consistent neighborhood order routing from digital customers",
+        "Automated neighborhood order routing from digital customers",
         "Weekly guaranteed bank payouts with complete ledger transparency",
       ],
       icon: (
@@ -55,12 +37,12 @@ export function WhoWeArePage({
       tag: "For Delivery Captains",
       badgeColor: "bg-amber-50 text-amber-800 border-amber-300",
       title: "Dignity, Security & High-Yield Logistics",
-      desc: "Our delivery captains are the heartbeat of the QuickPress grid. We believe hyper-local logistics should guarantee dignity of labor, fair per-kilometer earnings, instant payouts, and comprehensive insurance coverage on every ride.",
+      desc: "Ensuring dignity of labor, fair per-kilometer earnings, instant bank cashouts, and comprehensive accidental insurance coverage on every hyper-local ride.",
       highlights: [
         "Instant IMPS cashout to any Indian bank account",
         "Complimentary accidental and medical health insurance",
         "Predictable short-radius batching (under 3.5 km rides)",
-        "Free professional waterproof kit, bags, and Bluetooth digital scale",
+        "Free professional waterproof kit, bags, and digital scale",
       ],
       icon: (
         <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -76,12 +58,12 @@ export function WhoWeArePage({
   const filteredPillars = activeTab === "all" ? pillars : pillars.filter((p) => p.id === activeTab);
 
   return (
-    <div className="pt-20 pb-24 bg-white text-zinc-950 font-sans selection:bg-[#22c55e] selection:text-black overflow-hidden space-y-24">
+    <div className="pt-20 pb-24 bg-white text-zinc-950 font-sans selection:bg-[#22c55e] selection:text-black overflow-hidden space-y-20">
       {/* ─── Hero Section with Ambient Glow ───────────────────────────────── */}
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-8 sm:pt-14 pb-8">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] sm:w-[650px] h-[340px] sm:h-[650px] bg-emerald-100/50 rounded-full blur-3xl pointer-events-none animate-pulse" />
 
-        <div className="relative z-10 space-y-6">
+        <div className="relative z-10 space-y-5">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-zinc-100 border border-zinc-200 text-xs font-mono font-bold text-zinc-900 shadow-xs">
             <span className="w-2 h-2 rounded-full bg-[#22c55e] animate-ping" />
             <span>WHO WE ARE • QUICKPRESS TECHNOLOGIES</span>
@@ -89,20 +71,17 @@ export function WhoWeArePage({
 
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-black tracking-tight leading-[1.08] max-w-5xl mx-auto">
             Better Garment Care <br />
-            <span className="text-[#16a34a] relative inline-block">
+            <span className="text-[#16a34a] inline-block">
               For Millions of Homes.
-              <svg className="absolute -bottom-2 left-0 w-full h-3 text-[#22c55e]/40" viewBox="0 0 100 12" preserveAspectRatio="none">
-                <path d="M0,8 Q50,0 100,8" stroke="currentColor" strokeWidth="4" fill="none" />
-              </svg>
             </span>
           </h1>
 
-          <p className="text-base sm:text-xl text-zinc-700 max-w-3xl mx-auto leading-relaxed pt-2 font-medium">
-            QuickPress is organizing India's ₹2.5 Lakh Crore garment care economy. Born in Kasganj, Uttar Pradesh, we build deep technology that empowers grassroots dhobis, elevates delivery captains, and brings instant, hygienic laundry care directly to your doorstep.
+          <p className="text-sm sm:text-lg text-zinc-700 max-w-2xl mx-auto leading-relaxed pt-1 font-medium">
+            QuickPress is organizing India's ₹2.5 Lakh Crore garment care economy. Born in Kasganj, UP, our technology empowers grassroots dhobis, elevates delivery captains, and brings hygienic laundry care directly to doorsteps.
           </p>
 
           {/* Quick CTA Buttons */}
-          <div className="pt-4 flex flex-wrap items-center justify-center gap-3 sm:gap-4 font-mono text-xs">
+          <div className="pt-3 flex flex-wrap items-center justify-center gap-3 sm:gap-4 font-mono text-xs">
             <button
               type="button"
               onClick={() => onOpenModal("booking")}
@@ -148,21 +127,20 @@ export function WhoWeArePage({
         </div>
       </section>
 
-      {/* ─── The 3-Way Ecosystem: Customers, Partners, Captains ───────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 reveal-on-scroll space-y-10">
-        <div className="text-center space-y-3">
-          <h2 className="text-3xl sm:text-5xl font-black text-black tracking-tight">
-            How We Drive The Hyperlocal Ecosystem
+      {/* ─── The Ecosystem: Partners & Captains ────────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 reveal-on-scroll space-y-8">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl sm:text-4xl font-black text-black tracking-tight">
+            How We Drive The Hyperlocal Supply Chain
           </h2>
-          <p className="text-sm sm:text-base text-zinc-600 max-w-2xl mx-auto font-medium">
-            A synchronized 3-way platform connecting households, certified laundromats, and delivery captains in real time.
+          <p className="text-xs sm:text-sm text-zinc-600 max-w-xl mx-auto font-medium">
+            A synchronized logistics grid connecting certified neighborhood laundromats and delivery captains in real time.
           </p>
 
           {/* Interactive Filter Pills */}
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-4 font-mono text-xs">
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2 font-mono text-xs">
             {[
               { id: "all", label: "All Ecosystem" },
-              { id: "customers", label: "For Customers" },
               { id: "partners", label: "For Store Partners" },
               { id: "captains", label: "For Delivery Captains" },
             ].map((tab) => (
@@ -183,13 +161,13 @@ export function WhoWeArePage({
         </div>
 
         {/* Pillars Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {filteredPillars.map((pillar) => (
             <div
               key={pillar.id}
-              className="p-8 rounded-3xl bg-white border-2 border-zinc-200 hover:border-black transition-all duration-300 hover:shadow-2xl flex flex-col justify-between space-y-6 group"
+              className="p-8 rounded-3xl bg-white border-2 border-zinc-200 hover:border-black transition-all duration-300 hover:shadow-2xl flex flex-col justify-between space-y-5 group"
             >
-              <div className="space-y-4">
+              <div className="space-y-3.5">
                 <div className="flex items-center justify-between">
                   <div className="w-12 h-12 rounded-2xl bg-zinc-100 border border-zinc-200 text-black flex items-center justify-center group-hover:bg-black group-hover:text-white transition-all shadow-xs">
                     {pillar.icon}
@@ -199,16 +177,16 @@ export function WhoWeArePage({
                   </span>
                 </div>
 
-                <h3 className="text-xl font-black text-black tracking-tight leading-snug">
+                <h3 className="text-lg sm:text-xl font-black text-black tracking-tight leading-snug">
                   {pillar.title}
                 </h3>
 
-                <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed font-medium">
+                <p className="text-xs text-zinc-600 leading-relaxed font-medium">
                   {pillar.desc}
                 </p>
 
                 {/* Highlights List */}
-                <ul className="space-y-2.5 pt-2 border-t border-zinc-100">
+                <ul className="space-y-2 pt-2 border-t border-zinc-100">
                   {pillar.highlights.map((h, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-zinc-800 font-medium">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#16a34a] mt-1.5 shrink-0" />
@@ -218,16 +196,7 @@ export function WhoWeArePage({
                 </ul>
               </div>
 
-              <div className="pt-4 border-t border-zinc-100">
-                {pillar.id === "customers" && (
-                  <button
-                    type="button"
-                    onClick={() => onOpenModal("booking")}
-                    className="w-full py-3 rounded-xl bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-xs font-mono uppercase tracking-wider transition-all cursor-pointer shadow-sm"
-                  >
-                    Book A Pickup
-                  </button>
-                )}
+              <div className="pt-3 border-t border-zinc-100">
                 {pillar.id === "partners" && (
                   <button
                     type="button"
@@ -364,3 +333,4 @@ export function WhoWeArePage({
     </div>
   );
 }
+

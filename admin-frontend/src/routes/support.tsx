@@ -59,12 +59,20 @@ import {
   fetchAdminFraudReports,
   updateAdminFraudReport,
   deleteAdminFraudReport,
+  fetchAdminContactInquiries,
+  updateAdminContactInquiry,
+  deleteAdminContactInquiry,
+  fetchAdminJobApplications,
+  updateAdminJobApplication,
+  deleteAdminJobApplication,
   type Ticket,
   type TicketRole,
   type TicketPriority,
   type TicketStatus,
   type CreateTicketPayload,
   type AdminFraudReport,
+  type AdminContactInquiry,
+  type AdminJobApplication,
 } from "../api/support";
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
@@ -167,6 +175,20 @@ export function SupportPage() {
   const [isFraudModalOpen, setIsFraudModalOpen] = useState(false);
   const [evidenceZoomUrl, setEvidenceZoomUrl] = useState<string | null>(null);
 
+  // Contact Inquiries & Consultations State
+  const [contactInquiries, setContactInquiries] = useState<AdminContactInquiry[]>([]);
+  const [selectedInquiry, setSelectedInquiry] = useState<AdminContactInquiry | null>(null);
+  const [inquiryStatusUpdate, setInquiryStatusUpdate] = useState("in_progress");
+  const [inquiryNotesUpdate, setInquiryNotesUpdate] = useState("");
+  const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
+
+  // Candidate Job Applications State
+  const [jobApplications, setJobApplications] = useState<AdminJobApplication[]>([]);
+  const [selectedApplication, setSelectedApplication] = useState<AdminJobApplication | null>(null);
+  const [applicationStatusUpdate, setApplicationStatusUpdate] = useState("under_review");
+  const [applicationNotesUpdate, setApplicationNotesUpdate] = useState("");
+  const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
+
   const loadFraudReports = async () => {
     try {
       const data = await fetchAdminFraudReports();
@@ -176,8 +198,28 @@ export function SupportPage() {
     }
   };
 
+  const loadInquiries = async () => {
+    try {
+      const data = await fetchAdminContactInquiries();
+      if (Array.isArray(data)) setContactInquiries(data);
+    } catch {
+      // Ignored
+    }
+  };
+
+  const loadApplications = async () => {
+    try {
+      const data = await fetchAdminJobApplications();
+      if (Array.isArray(data)) setJobApplications(data);
+    } catch {
+      // Ignored
+    }
+  };
+
   useEffect(() => {
     loadFraudReports();
+    loadInquiries();
+    loadApplications();
   }, []);
 
   const handleOpenFraudReview = (report: AdminFraudReport) => {
@@ -210,6 +252,74 @@ export function SupportPage() {
       await loadFraudReports();
     } catch {
       toast.error("Failed to delete fraud report.");
+    }
+  };
+
+  // Inquiry Handlers
+  const handleOpenInquiryReview = (inquiry: AdminContactInquiry) => {
+    setSelectedInquiry(inquiry);
+    setInquiryStatusUpdate(inquiry.status);
+    setInquiryNotesUpdate(inquiry.adminNotes || "");
+    setIsInquiryModalOpen(true);
+  };
+
+  const handleSaveInquiryStatus = async () => {
+    if (!selectedInquiry) return;
+    try {
+      await updateAdminContactInquiry(selectedInquiry._id || selectedInquiry.id, {
+        status: inquiryStatusUpdate,
+        adminNotes: inquiryNotesUpdate,
+      });
+      toast.success("Inquiry status updated!");
+      setIsInquiryModalOpen(false);
+      await loadInquiries();
+    } catch {
+      toast.error("Failed to update inquiry status.");
+    }
+  };
+
+  const handleDeleteInquiry = async (id: string) => {
+    if (!confirm("Delete this inquiry docket?")) return;
+    try {
+      await deleteAdminContactInquiry(id);
+      toast.success("Inquiry docket deleted.");
+      await loadInquiries();
+    } catch {
+      toast.error("Failed to delete inquiry.");
+    }
+  };
+
+  // Job Application Handlers
+  const handleOpenApplicationReview = (app: AdminJobApplication) => {
+    setSelectedApplication(app);
+    setApplicationStatusUpdate(app.status);
+    setApplicationNotesUpdate(app.adminNotes || "");
+    setIsApplicationModalOpen(true);
+  };
+
+  const handleSaveApplicationStatus = async () => {
+    if (!selectedApplication) return;
+    try {
+      await updateAdminJobApplication(selectedApplication._id || selectedApplication.id, {
+        status: applicationStatusUpdate,
+        adminNotes: applicationNotesUpdate,
+      });
+      toast.success("Job application status updated!");
+      setIsApplicationModalOpen(false);
+      await loadApplications();
+    } catch {
+      toast.error("Failed to update application status.");
+    }
+  };
+
+  const handleDeleteApplication = async (id: string) => {
+    if (!confirm("Delete this application docket?")) return;
+    try {
+      await deleteAdminJobApplication(id);
+      toast.success("Application docket deleted.");
+      await loadApplications();
+    } catch {
+      toast.error("Failed to delete application.");
     }
   };
 
@@ -441,12 +551,14 @@ export function SupportPage() {
         <SectionCard>
           <div className="flex flex-wrap items-center justify-between gap-3">
             {/* Role Channel Selector */}
-            <div className="flex items-center rounded-xl bg-zinc-100 p-0.5 border border-zinc-200">
+            <div className="flex items-center rounded-xl bg-zinc-100 p-0.5 border border-zinc-200 flex-wrap">
               {[
-                { id: "all", label: "All Channels" },
+                { id: "all", label: "All Tickets" },
                 { id: "customer", label: `Customer (${stats?.roles.customer ?? 0})` },
                 { id: "partner", label: `Partner Store (${stats?.roles.partner ?? 0})` },
                 { id: "rider", label: `Rider Fleet (${stats?.roles.rider ?? 0})` },
+                { id: "inquiries", label: `Inquiries & Consultations (${contactInquiries.length})` },
+                { id: "applications", label: `Job Applications (${jobApplications.length})` },
                 { id: "fraud", label: `Fraud & Vigilance Desk (${fraudReports.length})` },
               ].map((r) => (
                 <button
@@ -643,6 +755,299 @@ export function SupportPage() {
                 <CheckCircle2 className="size-10 text-emerald-500 mx-auto" />
                 <h4 className="text-base font-black text-zinc-900">Zero Pending Fraud Reports</h4>
                 <p className="text-xs text-zinc-500">No active cyber fraud or scam dockets reported by customers or riders.</p>
+              </div>
+            )}
+          </div>
+        ) : roleFilter === "inquiries" ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+              <div>
+                <h3 className="text-base font-black text-zinc-950 flex items-center gap-2">
+                  <span className="p-1 rounded-md bg-blue-100 text-blue-700 text-sm">📩</span>
+                  <span>Public Inquiries &amp; Consultations ({contactInquiries.length})</span>
+                </h3>
+                <p className="text-xs text-zinc-500">
+                  Submissions from Contact Us, Partner Onboarding &amp; Consultation Booking forms.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={loadInquiries}
+                className="px-3.5 py-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-bold text-zinc-800 cursor-pointer shadow-2xs"
+              >
+                Refresh Inquiries
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {contactInquiries.map((inq) => (
+                <div
+                  key={inq._id || inq.id}
+                  className="bg-white rounded-3xl border border-zinc-200 p-5 shadow-sm space-y-4 hover:shadow-md transition flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-black text-zinc-900">
+                        #{inq.id || inq._id}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {inq.isConsultation && (
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            🤝 Consultation
+                          </span>
+                        )}
+                        <span
+                          className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                            inq.status === "new"
+                              ? "bg-blue-100 text-blue-800 border border-blue-200 animate-pulse"
+                              : inq.status === "in_progress"
+                              ? "bg-amber-100 text-amber-800 border border-amber-200"
+                              : inq.status === "consultation_scheduled"
+                              ? "bg-purple-100 text-purple-800 border border-purple-200"
+                              : inq.status === "resolved"
+                              ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                              : "bg-zinc-100 text-zinc-700 border border-zinc-200"
+                          }`}
+                        >
+                          {inq.status.replace("_", " ")}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-mono font-bold uppercase text-zinc-500 block">
+                        Channel: {inq.inquiryType.toUpperCase()}
+                      </span>
+                      <h4 className="text-sm font-black text-zinc-900 mt-0.5">
+                        {inq.fullName}
+                      </h4>
+                      <div className="text-xs text-zinc-500 font-mono mt-0.5">
+                        {inq.phone} {inq.email ? `• ${inq.email}` : ""}
+                      </div>
+                    </div>
+
+                    {inq.city && (
+                      <div className="text-xs text-zinc-600 font-mono">
+                        📍 <strong>Zone:</strong> {inq.city}
+                      </div>
+                    )}
+
+                    {inq.orderId && (
+                      <div className="p-2 rounded-xl bg-zinc-50 border border-zinc-100 text-xs font-mono">
+                        <strong>Order Ref:</strong> {inq.orderId}
+                      </div>
+                    )}
+
+                    <div className="p-3 rounded-2xl bg-zinc-50 border border-zinc-100 text-xs text-zinc-700 leading-relaxed">
+                      "{inq.message}"
+                    </div>
+
+                    {inq.details && (
+                      <div className="text-[11px] text-zinc-500 font-mono">
+                        Note: {inq.details}
+                      </div>
+                    )}
+
+                    {inq.adminNotes && (
+                      <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 text-[11px] text-amber-900">
+                        <strong>Admin Note:</strong> {inq.adminNotes}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <a
+                        href={`tel:${inq.phone}`}
+                        className="px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold text-xs"
+                      >
+                        Call
+                      </a>
+                      <a
+                        href={`https://wa.me/${inq.phone.replace(/[^0-9]/g, "")}?text=Hi%20${encodeURIComponent(inq.fullName)},%20this%20is%20QuickPress%20Support%20regarding%20your%20inquiry.`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs"
+                      >
+                        WhatsApp
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenInquiryReview(inq)}
+                        className="px-2.5 py-1 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs cursor-pointer"
+                      >
+                        Status
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteInquiry(inq._id || inq.id)}
+                      className="p-1.5 text-zinc-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 cursor-pointer"
+                      title="Delete Inquiry"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {contactInquiries.length === 0 && (
+              <div className="rounded-3xl border border-zinc-200 bg-white p-12 text-center space-y-2">
+                <CheckCircle2 className="size-10 text-emerald-500 mx-auto" />
+                <h4 className="text-base font-black text-zinc-900">No Pending Contact Inquiries</h4>
+                <p className="text-xs text-zinc-500">All public contact requests and consultations are addressed.</p>
+              </div>
+            )}
+          </div>
+        ) : roleFilter === "applications" ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+              <div>
+                <h3 className="text-base font-black text-zinc-950 flex items-center gap-2">
+                  <span className="p-1 rounded-md bg-purple-100 text-purple-700 text-sm">💼</span>
+                  <span>Candidate Job Applications ({jobApplications.length})</span>
+                </h3>
+                <p className="text-xs text-zinc-500">
+                  Candidate profiles submitted via the public <code>/careers</code> portal for active roles.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={loadApplications}
+                className="px-3.5 py-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-bold text-zinc-800 cursor-pointer shadow-2xs"
+              >
+                Refresh Applications
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {jobApplications.map((app) => (
+                <div
+                  key={app._id || app.id}
+                  className="bg-white rounded-3xl border border-zinc-200 p-5 shadow-sm space-y-4 hover:shadow-md transition flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-black text-zinc-900">
+                        #{app.id || app._id}
+                      </span>
+                      <span
+                        className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                          app.status === "received"
+                            ? "bg-purple-100 text-purple-800 border border-purple-200"
+                            : app.status === "shortlisted"
+                            ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                            : app.status === "interview_scheduled"
+                            ? "bg-blue-100 text-blue-800 border border-blue-200"
+                            : app.status === "offered"
+                            ? "bg-amber-100 text-amber-800 border border-amber-200"
+                            : app.status === "rejected"
+                            ? "bg-rose-100 text-rose-800 border border-rose-200"
+                            : "bg-zinc-100 text-zinc-700 border border-zinc-200"
+                        }`}
+                      >
+                        {app.status.replace("_", " ")}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-mono font-bold uppercase text-emerald-700 block">
+                        Role: {app.roleTitle}
+                      </span>
+                      <h4 className="text-sm font-black text-zinc-900 mt-0.5">
+                        {app.applicantName}
+                      </h4>
+                      <div className="text-xs text-zinc-500 font-mono mt-0.5">
+                        {app.applicantPhone} {app.applicantEmail ? `• ${app.applicantEmail}` : ""}
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-zinc-600 font-mono">
+                      Experience: <strong>{app.experience || "N/A"}</strong>
+                    </div>
+
+                    {/* Resume & Portfolio Links */}
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {app.resumeUrl && (
+                        <a
+                          href={app.resumeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-mono font-bold text-[11px]"
+                        >
+                          <span>📄 Resume / CV</span>
+                        </a>
+                      )}
+                      {app.portfolioLink && (
+                        <a
+                          href={app.portfolioLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-mono font-bold text-[11px]"
+                        >
+                          <span>🌐 Portfolio</span>
+                        </a>
+                      )}
+                    </div>
+
+                    {app.applicantNote && (
+                      <p className="text-xs text-zinc-600 line-clamp-3 leading-relaxed italic bg-zinc-50 p-2.5 rounded-xl border border-zinc-100">
+                        "{app.applicantNote}"
+                      </p>
+                    )}
+
+                    {app.adminNotes && (
+                      <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 text-[11px] text-amber-900">
+                        <strong>Recruiter Note:</strong> {app.adminNotes}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <a
+                        href={`tel:${app.applicantPhone}`}
+                        className="px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold text-xs"
+                      >
+                        Call
+                      </a>
+                      <a
+                        href={`https://wa.me/${app.applicantPhone.replace(/[^0-9]/g, "")}?text=Hi%20${encodeURIComponent(app.applicantName)},%20this%20is%20QuickPress%20Talent%20Desk%20regarding%20your%20application%20for%20${encodeURIComponent(app.roleTitle)}.`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs"
+                      >
+                        WhatsApp
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenApplicationReview(app)}
+                        className="px-2.5 py-1 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs cursor-pointer"
+                      >
+                        Status
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteApplication(app._id || app.id)}
+                      className="p-1.5 text-zinc-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 cursor-pointer"
+                      title="Delete Application"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {jobApplications.length === 0 && (
+              <div className="rounded-3xl border border-zinc-200 bg-white p-12 text-center space-y-2">
+                <CheckCircle2 className="size-10 text-emerald-500 mx-auto" />
+                <h4 className="text-base font-black text-zinc-900">No Job Applications Pending</h4>
+                <p className="text-xs text-zinc-500">Candidate submissions for open roles will appear here.</p>
               </div>
             )}
           </div>
@@ -1566,6 +1971,189 @@ export function SupportPage() {
               className="rounded-xl text-xs font-bold"
             >
               Close Preview
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* =========================================================================
+          CONTACT INQUIRY & CONSULTATION REVIEW MODAL
+      ========================================================================= */}
+      <Dialog open={isInquiryModalOpen} onOpenChange={setIsInquiryModalOpen}>
+        <DialogContent className="sm:max-w-[540px] rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-zinc-950 flex items-center gap-2">
+              <span className="p-1 rounded bg-blue-100 text-blue-700 text-sm">📩</span>
+              <span>Review Inquiry #{selectedInquiry?.id || selectedInquiry?._id}</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500">
+              Update inquiry status, schedule operational callbacks, and record resolution notes.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedInquiry && (
+            <div className="space-y-4 py-2 text-xs">
+              <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80 space-y-1.5 font-mono">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Inquirer:</span>
+                  <span className="font-bold text-zinc-900">{selectedInquiry.fullName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Contact:</span>
+                  <span className="font-bold text-zinc-900">
+                    {selectedInquiry.phone} {selectedInquiry.email ? `(${selectedInquiry.email})` : ""}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Type / Channel:</span>
+                  <span className="font-bold uppercase text-zinc-800">{selectedInquiry.inquiryType}</span>
+                </div>
+                {selectedInquiry.city && (
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Operational City:</span>
+                    <span className="font-bold text-zinc-800">{selectedInquiry.city}</span>
+                  </div>
+                )}
+                {selectedInquiry.orderId && (
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Order ID:</span>
+                    <span className="font-bold text-zinc-800">{selectedInquiry.orderId}</span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="font-bold text-zinc-700 block mb-1">Inquiry Status</label>
+                <select
+                  value={inquiryStatusUpdate}
+                  onChange={(e) => setInquiryStatusUpdate(e.target.value)}
+                  className="w-full h-9 rounded-xl border border-zinc-200 bg-white px-3 font-semibold text-xs text-zinc-800"
+                >
+                  <option value="new">New Inbound</option>
+                  <option value="in_progress">In Progress / Agent Assigned</option>
+                  <option value="consultation_scheduled">Consultation Callback Scheduled</option>
+                  <option value="resolved">Resolved / Settled</option>
+                  <option value="dismissed">Dismissed / Spam</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-zinc-700 block mb-1">Admin Response / Follow-up Notes</label>
+                <Textarea
+                  rows={4}
+                  placeholder="Record callback summary, discussion details, customer advice or next actions..."
+                  value={inquiryNotesUpdate}
+                  onChange={(e) => setInquiryNotesUpdate(e.target.value)}
+                  className="rounded-xl text-xs resize-none"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setIsInquiryModalOpen(false)}
+              className="rounded-xl text-xs font-bold"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveInquiryStatus}
+              className="rounded-xl font-bold text-xs text-white bg-zinc-950 hover:bg-zinc-800 shadow-xs"
+            >
+              Save Inquiry Status
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* =========================================================================
+          CANDIDATE JOB APPLICATION REVIEW MODAL
+      ========================================================================= */}
+      <Dialog open={isApplicationModalOpen} onOpenChange={setIsApplicationModalOpen}>
+        <DialogContent className="sm:max-w-[540px] rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-zinc-950 flex items-center gap-2">
+              <span className="p-1 rounded bg-purple-100 text-purple-700 text-sm">💼</span>
+              <span>Review Candidate Application #{selectedApplication?.id || selectedApplication?._id}</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500">
+              Update recruitment pipeline stage, schedule interviews, and log recruiter evaluations.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedApplication && (
+            <div className="space-y-4 py-2 text-xs">
+              <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80 space-y-1.5 font-mono">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Candidate:</span>
+                  <span className="font-bold text-zinc-900">{selectedApplication.applicantName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Applied Role:</span>
+                  <span className="font-bold text-emerald-700">{selectedApplication.roleTitle}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Phone:</span>
+                  <span className="font-bold text-zinc-900">{selectedApplication.applicantPhone}</span>
+                </div>
+                {selectedApplication.applicantEmail && (
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Email:</span>
+                    <span className="font-bold text-zinc-900">{selectedApplication.applicantEmail}</span>
+                  </div>
+                )}
+                {selectedApplication.experience && (
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Experience:</span>
+                    <span className="font-bold text-zinc-900">{selectedApplication.experience}</span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="font-bold text-zinc-700 block mb-1">Recruitment Pipeline Stage</label>
+                <select
+                  value={applicationStatusUpdate}
+                  onChange={(e) => setApplicationStatusUpdate(e.target.value)}
+                  className="w-full h-9 rounded-xl border border-zinc-200 bg-white px-3 font-semibold text-xs text-zinc-800"
+                >
+                  <option value="received">Application Received</option>
+                  <option value="under_review">Profile Under Review</option>
+                  <option value="shortlisted">Shortlisted for Technical Round</option>
+                  <option value="interview_scheduled">Interview Scheduled</option>
+                  <option value="offered">Offer Extended</option>
+                  <option value="rejected">Archived / Rejected</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-zinc-700 block mb-1">Recruiter &amp; Technical Interview Notes</label>
+                <Textarea
+                  rows={4}
+                  placeholder="Record initial screening feedback, coding assessment score, CTC expectation, or interview feedback..."
+                  value={applicationNotesUpdate}
+                  onChange={(e) => setApplicationNotesUpdate(e.target.value)}
+                  className="rounded-xl text-xs resize-none"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setIsApplicationModalOpen(false)}
+              className="rounded-xl text-xs font-bold"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveApplicationStatus}
+              className="rounded-xl font-bold text-xs text-white bg-zinc-950 hover:bg-zinc-800 shadow-xs"
+            >
+              Save Application Status
             </Button>
           </DialogFooter>
         </DialogContent>

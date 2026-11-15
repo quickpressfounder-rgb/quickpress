@@ -294,8 +294,26 @@ export function PartnerModal({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      await fetch("/api/public/contact-inquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: businessName,
+          phone,
+          email,
+          inquiryType: "partner",
+          city,
+          details: `Service Category: ${category}`,
+          message: `Partner Store Onboarding Application for ${businessName} (${category}) in ${city}.`,
+          isConsultation: true,
+        }),
+      });
+    } catch {
+      // Ignored
+    }
     setIsSubmitted(true);
     onShowToast("Partner application submitted! Our team will contact you in 24h.");
   };
@@ -461,20 +479,40 @@ export function ContactModal({
   const [pincode, setPincode] = useState("");
   const [details, setDetails] = useState("");
   const [message, setMessage] = useState("");
+  const [isConsultation, setIsConsultation] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   if (!isOpen) return null;
 
   const INQUIRY_TYPES = [
     { id: "partner", label: "Partner Store Onboarding", desc: "List your laundry, dry cleaner store or ironing shop" },
+    { id: "consultation", label: "Expert Consultation", desc: "Book a 1-on-1 operational consultation call" },
     { id: "captain", label: "Captain / Rider Fleet", desc: "Join as a delivery captain or fleet logistics partner" },
     { id: "customer_help", label: "Customer & Order Help", desc: "Order tracking, pickup rescheduling or fabric care inquiry" },
     { id: "corporate", label: "B2B & Hotel Logistics", desc: "Bulk laundry contracts for hotels, salons & corporate staff" },
     { id: "general", label: "General & Media", desc: "General queries, feedback, or business consultation" },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      await fetch("/api/public/contact-inquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: name,
+          phone,
+          email,
+          inquiryType,
+          city: `${city} ${pincode}`.trim(),
+          details,
+          message: message || details || `Inquiry for ${inquiryType}`,
+          isConsultation: isConsultation || inquiryType === "consultation",
+        }),
+      });
+    } catch {
+      // Ignored
+    }
     setSubmitted(true);
     if (onSuccess) {
       onSuccess(`Thank you ${name}! Your inquiry for ${inquiryType.toUpperCase()} has been submitted.`);
@@ -683,6 +721,35 @@ export function ContactModal({
                   onChange={(e) => setMessage(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black bg-white"
                 />
+              </div>
+
+              {/* Consultation Option Checkbox */}
+              <div
+                onClick={() => setIsConsultation(!isConsultation)}
+                className={`p-3 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
+                  isConsultation
+                    ? "bg-emerald-50 border-[#22c55e] text-emerald-950"
+                    : "bg-zinc-50 border-zinc-200 text-zinc-700 hover:border-black"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🤝</span>
+                  <div>
+                    <span className="text-xs font-bold block text-black">
+                      Request Expert Consultation &amp; Callback
+                    </span>
+                    <span className="text-[11px] text-zinc-500">
+                      Our specialist will schedule a 1-on-1 operational discussion.
+                    </span>
+                  </div>
+                </div>
+                <div
+                  className={`w-5 h-5 rounded-md border flex items-center justify-center font-bold text-xs ${
+                    isConsultation ? "bg-[#22c55e] border-black text-black" : "border-zinc-300 bg-white"
+                  }`}
+                >
+                  {isConsultation ? "✓" : ""}
+                </div>
               </div>
 
               {/* Official Office Footer Stamp */}

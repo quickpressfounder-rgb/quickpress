@@ -546,15 +546,8 @@ export function HomePage({
           <h1 className="text-[32px] sm:text-6xl lg:text-7xl font-black text-gray-950 tracking-tight leading-[1.08] mb-4 animate-spring-up break-words">
             Fresh Clothes. <br />
             Delivered In{" "}
-            <span style={{ color: GREEN }} className="relative inline-block font-black">
+            <span style={{ color: GREEN }} className="inline-block font-black">
               Hours.
-              <svg
-                className="absolute left-0 -bottom-2 w-full h-3 text-yellow-400 opacity-90 -z-10"
-                viewBox="0 0 100 12"
-                preserveAspectRatio="none"
-              >
-                <path d="M0,8 Q50,0 100,8" stroke="currentColor" strokeWidth="4" fill="none" />
-              </svg>
             </span>
           </h1>
 

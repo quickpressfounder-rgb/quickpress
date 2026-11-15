@@ -1,5 +1,74 @@
 # QuickPress — Engineering Work History
 
+## Session: November 15, 2026 (Part 24)
+
+### Careers Dynamic CMS, Candidate Applications Pipeline, Consultation Desk & Global UI Polish
+
+1. **Context & User Request:**
+   - User directive:
+     - *"WORK WITH US • CAREERS AT QUICKPRESS ISKE ANDER SE 3D ICON HATAO OR YAHA DUMMY YA MOCK HATAO HUM ISKO BHI ADMIN PENAL SE EDIT KAR SKE OR LOG APPLY KARE USKI HUM ADMIN PENAL ME DEAKH SAKE ORRESPNSE KAR SAKEA"*
+     - *"YE JO PHICHE GREEN LINE HAI ISKO HATAO SAB ME SE"*
+     - *"ISME DECRIPTION KAM KARO OR ISKE JO BHI FORM BHARE USKA DATA ADMIN PENAL ME AAYE USKO HUM DEKH SAKE"*
+     - *"YE CUSTOMER HATAO"*
+     - *"FROUDE AND REPORT KA DEATIL BHI ADMIN PENAL MEAAYE"*
+     - *"CONATACT US KABHI DATA ADMIN PENAL ME AAYE SUPPORT KE ANDER YE JITNE BHI FORM INQUIRY ETC HAI SUPPORT KE ANDER OR FORMS ME CONSULTE LAGAO"*
+   - User provided 3 screenshots:
+     1. `media_1794768101866_7b72ac80.png`: Highlighting the green wavy underline brush behind "For Millions of Homes."
+     2. `media_1794768101869_f6a7f0d1.png`: Showing the 3 ecosystem columns (Customers, Store Partners, Delivery Captains).
+     3. `media_1794768101868_5ddfc21c.png`: Zoomed in on the `[ For Customers ]` pill button to be removed.
+
+2. **Engineering Solutions Delivered:**
+   - **Careers Engine & Public Jobs Portal (`website/src/pages/CareersPage.tsx`):**
+     - Removed all 3D/emoji icons (`📍`, `⏱️`, `💼`) and replaced with crisp, standardized SVG icons (location pin, clock, briefcase).
+     - Removed hardcoded dummy roles; jobs are now fetched live from `/api/public/careers/jobs` with automatic default fallback.
+     - Connected the candidate application form directly to `POST /api/public/careers/apply`, generating a unique application docket ticket (`QP-APP-XXXXXX`).
+   - **Removed Green Underline Stroke SVG Across All Website Pages:**
+     - Completely removed the curved SVG underline from all 7 pages: `WhoWeArePage.tsx`, `CareersPage.tsx`, `InvestorRelationsPage.tsx`, `ReportFraudPage.tsx`, `AboutPage.tsx`, `ContactPage.tsx`, and `HomePage.tsx`.
+   - **Ecosystem Supply-Side Focus & Description Tightening (`website/src/pages/WhoWeArePage.tsx`):**
+     - Removed "For Customers" card and filter pill; converted the section to a balanced 2-column supply-side grid focusing on Store Partners (Local Dhobis) and Delivery Captains (Logistics).
+     - Shortened and tightened descriptions across the hero, metrics, pillars, and values for a punchy, high-impact aesthetic.
+   - **Consultation Engine & Contact Inquiries Submission (`website`):**
+     - In `ContactPage.tsx`: Added a dedicated "Book Consultation" category pill and an interactive "Request Expert Consultation & Callback" toggle banner.
+     - In `Modals.tsx`: Wired `ContactModal` and `PartnerModal` to submit all inbound inquiries directly to `POST /api/public/contact-inquiries`.
+   - **Admin Console Promotions & Careers CMS (`admin-frontend/src/routes/promotions.tsx`):**
+     - Added 4th Tab: "Careers & Open Roles" allowing admins to create, edit, pause/activate, and delete job postings live on the website.
+     - Implemented `isJobModalOpen` modal dialog with validation for role title, department, experience, location, type, description, and responsibilities.
+   - **Admin Console Omnichannel Support Desk (`admin-frontend/src/routes/support.tsx`):**
+     - Added dedicated channel tabs:
+       1. `Inquiries & Consultations`: Review all submissions from Contact Us, Modals, and Consultation requests with caller details, direct Call/WhatsApp action links, status updater, and admin notes.
+       2. `Job Applications`: Review all candidate applications with resume link, portfolio link, experience, candidate notes, recruitment pipeline stage (`received`, `under_review`, `shortlisted`, `interview_scheduled`, `offered`, `rejected`), and recruiter notes.
+       3. `Fraud & Vigilance Desk`: Review submitted fraud incident dockets with evidence lightbox preview.
+   - **Backend API Endpoints (`backend-python`):**
+     - `GET /api/public/careers/jobs` & `POST /api/public/careers/apply`.
+     - `GET /api/admin/careers/jobs`, `POST`, `PUT`, `DELETE /api/admin/careers/jobs/{id}`.
+     - `GET /api/admin/careers/applications`, `PATCH`, `DELETE /api/admin/careers/applications/{id}`.
+     - `POST /api/public/contact-inquiries`.
+     - `GET /api/admin/contact-inquiries`, `PATCH`, `DELETE /api/admin/contact-inquiries/{id}`.
+
+3. **Verification & Testing Results:**
+   - Website Build: PASSED (`npm --prefix website run build` exit code 0, 0 errors, built in 1.21s).
+   - Admin Frontend Build: PASSED (`npm --prefix admin-frontend run build` exit code 0, 0 errors, built in 2.04s).
+   - Backend Pytest: PASSED (`backend-python/venv/bin/pytest backend-python/tests/test_fcm_notifications.py` 5/5 tests passed in 9.82s).
+
+4. **Modified Files:**
+   - `admin-frontend/src/api/promotions.ts`
+   - `admin-frontend/src/api/support.ts`
+   - `admin-frontend/src/routes/promotions.tsx`
+   - `admin-frontend/src/routes/support.tsx`
+   - `backend-python/app/api/admin.py`
+   - `backend-python/app/api/public.py`
+   - `website/src/components/Modals.tsx`
+   - `website/src/pages/AboutPage.tsx`
+   - `website/src/pages/CareersPage.tsx`
+   - `website/src/pages/ContactPage.tsx`
+   - `website/src/pages/HomePage.tsx`
+   - `website/src/pages/InvestorRelationsPage.tsx`
+   - `website/src/pages/ReportFraudPage.tsx`
+   - `website/src/pages/WhoWeArePage.tsx`
+   - `Memory/WORK_HISTORY.md`
+
+---
+
 ## Session: November 15, 2026 (Part 23)
 
 ### Zomato-Inspired Informational Pages Suite, Dynamic Blog/Slider CMS Engine & Fraud Vigilance Desk

@@ -2984,6 +2984,197 @@ async def admin_delete_fraud_report(
     return {"ok": True, "deleted": report_id}
 
 
+# ============================================================================
+# CAREERS & OPEN POSITIONS ADMIN CMS
+# ============================================================================
+
+@router.get("/careers/jobs")
+async def admin_list_careers_jobs(
+    user: User = Depends(require_roles(Role.admin)),
+) -> List[Dict[str, Any]]:
+    """Admin: List all job postings."""
+    from app.api.public import DEFAULT_CAREER_ROLES
+    try:
+        roles = await database.find_many("careers_jobs")
+        if not roles:
+            for r in DEFAULT_CAREER_ROLES:
+                doc = {**r, "_id": r["id"]}
+                await database.insert("careers_jobs", doc)
+            roles = await database.find_many("careers_jobs")
+        return roles
+    except Exception as e:
+        logger.warning(f"Error fetching admin career jobs: {e}")
+        return DEFAULT_CAREER_ROLES
+
+
+@router.post("/careers/jobs", status_code=201)
+async def admin_create_career_job(
+    payload: Dict[str, Any],
+    user: User = Depends(require_roles(Role.admin)),
+) -> Dict[str, Any]:
+    """Admin: Create a new job opening."""
+    import re
+    job_id = payload.get("id")
+    if not job_id:
+        slug = re.sub(r"[^a-z0-9]+", "-", payload.get("title", "role").lower()).strip("-")
+        job_id = f"job-{slug[:30]}"
+
+    doc = {
+        "_id": job_id,
+        "id": job_id,
+        "title": payload.get("title", "Open Role"),
+        "department": payload.get("department", "Engineering"),
+        "location": payload.get("location", "Kasganj / Remote"),
+        "type": payload.get("type", "Full-Time"),
+        "experience": payload.get("experience", "1–3 Years"),
+        "desc": payload.get("desc", ""),
+        "responsibilities": payload.get("responsibilities", []),
+        "isActive": payload.get("isActive", True),
+        "createdAt": now_iso(),
+        "updatedAt": now_iso(),
+    }
+    await database.insert("careers_jobs", doc)
+    return {"ok": True, "job": doc}
+
+
+@router.put("/careers/jobs/{job_id}")
+async def admin_update_career_job(
+    job_id: str,
+    payload: Dict[str, Any],
+    user: User = Depends(require_roles(Role.admin)),
+) -> Dict[str, Any]:
+    """Admin: Update an existing job opening."""
+    changes = {
+        **payload,
+        "updatedAt": now_iso(),
+    }
+    updated = await database.update("careers_jobs", {"_id": job_id}, changes)
+    if not updated:
+        updated = await database.update("careers_jobs", {"id": job_id}, changes)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Job opening not found.")
+    return {"ok": True, "jobId": job_id, "updated": changes}
+
+
+@router.delete("/careers/jobs/{job_id}")
+async def admin_delete_career_job(
+    job_id: str,
+    user: User = Depends(require_roles(Role.admin)),
+) -> Dict[str, Any]:
+    """Admin: Delete a job opening."""
+    res = await database.delete_one("careers_jobs", {"_id": job_id})
+    if not res:
+        res = await database.delete_one("careers_jobs", {"id": job_id})
+    return {"ok": True, "deleted": job_id}
+
+
+# ============================================================================
+# JOB APPLICATIONS ADMIN DESK
+# ============================================================================
+
+@router.get("/careers/applications")
+async def admin_list_job_applications(
+    status: Optional[str] = Query(None),
+    user: User = Depends(require_roles(Role.admin)),
+) -> List[Dict[str, Any]]:
+    """Admin: List candidate job applications."""
+    try:
+        query: Dict[str, Any] = {}
+        if status and status.lower() != "all":
+            query["status"] = status.lower()
+        docs = await database.find_many("job_applications", query)
+        docs.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
+        return docs
+    except Exception as e:
+        logger.warning(f"Error fetching admin job applications: {e}")
+        return []
+
+
+@router.patch("/careers/applications/{app_id}")
+async def admin_update_job_application(
+    app_id: str,
+    payload: Dict[str, Any],
+    user: User = Depends(require_roles(Role.admin)),
+) -> Dict[str, Any]:
+    """Admin: Update status and interview/evaluation notes for an application."""
+    changes = {
+        **payload,
+        "updatedAt": now_iso(),
+    }
+    updated = await database.update("job_applications", {"_id": app_id}, changes)
+    if not updated:
+        updated = await database.update("job_applications", {"id": app_id}, changes)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    return {"ok": True, "applicationId": app_id, "updated": changes}
+
+
+@router.delete("/careers/applications/{app_id}")
+async def admin_delete_job_application(
+    app_id: str,
+    user: User = Depends(require_roles(Role.admin)),
+) -> Dict[str, Any]:
+    """Admin: Delete an application docket."""
+    res = await database.delete_one("job_applications", {"_id": app_id})
+    if not res:
+        res = await database.delete_one("job_applications", {"id": app_id})
+    return {"ok": True, "deleted": app_id}
+
+
+# ============================================================================
+# CONTACT INQUIRIES & CONSULTATIONS ADMIN DESK
+# ============================================================================
+
+@router.get("/contact-inquiries")
+async def admin_list_contact_inquiries(
+    status: Optional[str] = Query(None),
+    user: User = Depends(require_roles(Role.admin)),
+) -> List[Dict[str, Any]]:
+    """Admin: List all public contact inquiries and consultation requests."""
+    try:
+        query: Dict[str, Any] = {}
+        if status and status.lower() != "all":
+            query["status"] = status.lower()
+        docs = await database.find_many("contact_inquiries", query)
+        docs.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
+        return docs
+    except Exception as e:
+        logger.warning(f"Error fetching admin contact inquiries: {e}")
+        return []
+
+
+@router.patch("/contact-inquiries/{inquiry_id}")
+async def admin_update_contact_inquiry(
+    inquiry_id: str,
+    payload: Dict[str, Any],
+    user: User = Depends(require_roles(Role.admin)),
+) -> Dict[str, Any]:
+    """Admin: Update status and response notes on an inquiry."""
+    changes = {
+        **payload,
+        "updatedAt": now_iso(),
+    }
+    updated = await database.update("contact_inquiries", {"_id": inquiry_id}, changes)
+    if not updated:
+        updated = await database.update("contact_inquiries", {"id": inquiry_id}, changes)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Inquiry not found.")
+    return {"ok": True, "inquiryId": inquiry_id, "updated": changes}
+
+
+@router.delete("/contact-inquiries/{inquiry_id}")
+async def admin_delete_contact_inquiry(
+    inquiry_id: str,
+    user: User = Depends(require_roles(Role.admin)),
+) -> Dict[str, Any]:
+    """Admin: Delete an inquiry docket."""
+    res = await database.delete_one("contact_inquiries", {"_id": inquiry_id})
+    if not res:
+        res = await database.delete_one("contact_inquiries", {"id": inquiry_id})
+    return {"ok": True, "deleted": inquiry_id}
+
+
+
 
 
 

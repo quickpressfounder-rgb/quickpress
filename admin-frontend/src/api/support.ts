@@ -367,4 +367,109 @@ export async function deleteAdminFraudReport(id: string): Promise<any> {
   return res.json();
 }
 
+// --------------------------------------------------------------------------
+// Public Contact Inquiries & Consultations
+// --------------------------------------------------------------------------
+
+export interface AdminContactInquiry {
+  _id?: string;
+  id: string;
+  fullName: string;
+  phone: string;
+  email?: string;
+  inquiryType: string;
+  city?: string;
+  orderId?: string;
+  details?: string;
+  message: string;
+  isConsultation?: boolean;
+  status: "new" | "in_progress" | "consultation_scheduled" | "resolved" | "dismissed";
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export async function fetchAdminContactInquiries(status?: string): Promise<AdminContactInquiry[]> {
+  try {
+    const q = status && status !== "all" ? `?status=${status}` : "";
+    return await apiGetJson<AdminContactInquiry[]>(`/api/admin/contact-inquiries${q}`);
+  } catch {
+    return [];
+  }
+}
+
+export async function updateAdminContactInquiry(
+  id: string,
+  payload: { status: string; adminNotes?: string }
+): Promise<any> {
+  const res = await fetch(`/api/admin/contact-inquiries/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error("Failed to update contact inquiry");
+  return res.json();
+}
+
+export async function deleteAdminContactInquiry(id: string): Promise<any> {
+  const res = await fetch(`/api/admin/contact-inquiries/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete contact inquiry");
+  return res.json();
+}
+
+// --------------------------------------------------------------------------
+// Careers & Candidate Job Applications
+// --------------------------------------------------------------------------
+
+export interface AdminJobApplication {
+  _id?: string;
+  id: string;
+  applicantName: string;
+  applicantPhone: string;
+  applicantEmail?: string;
+  roleId?: string;
+  roleTitle: string;
+  experience?: string;
+  portfolioLink?: string;
+  resumeUrl?: string;
+  applicantNote?: string;
+  status: "received" | "under_review" | "shortlisted" | "interview_scheduled" | "offered" | "rejected";
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export async function fetchAdminJobApplications(status?: string): Promise<AdminJobApplication[]> {
+  try {
+    const q = status && status !== "all" ? `?status=${status}` : "";
+    return await apiGetJson<AdminJobApplication[]>(`/api/admin/careers/applications${q}`);
+  } catch {
+    return [];
+  }
+}
+
+export async function updateAdminJobApplication(
+  id: string,
+  payload: { status: string; adminNotes?: string }
+): Promise<any> {
+  const res = await fetch(`/api/admin/careers/applications/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error("Failed to update job application");
+  return res.json();
+}
+
+export async function deleteAdminJobApplication(id: string): Promise<any> {
+  const res = await fetch(`/api/admin/careers/applications/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete job application");
+  return res.json();
+}
+
+
 

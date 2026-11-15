@@ -167,3 +167,56 @@ export async function deleteAdminBlog(id: string): Promise<{ ok: boolean }> {
   });
 }
 
+// --------------------------------------------------------------------------
+// Careers & Open Positions CMS
+// --------------------------------------------------------------------------
+
+export interface AdminCareerJob {
+  _id?: string;
+  id: string;
+  title: string;
+  department: string;
+  location: string;
+  type: string;
+  experience: string;
+  desc: string;
+  responsibilities: string[];
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export async function fetchAdminCareerJobs(): Promise<AdminCareerJob[]> {
+  try {
+    return await request<AdminCareerJob[]>("/careers/jobs");
+  } catch {
+    return [];
+  }
+}
+
+export async function createAdminCareerJob(
+  payload: Omit<AdminCareerJob, "_id" | "id"> & { id?: string }
+): Promise<any> {
+  return await request<any>("/careers/jobs", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAdminCareerJob(
+  id: string,
+  payload: Partial<AdminCareerJob>
+): Promise<any> {
+  return await request<any>(`/careers/jobs/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAdminCareerJob(id: string): Promise<{ ok: boolean }> {
+  return await request<{ ok: boolean }>(`/careers/jobs/${id}`, {
+    method: "DELETE",
+  });
+}
+
+

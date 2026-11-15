@@ -35,11 +35,8 @@ export function InvestorRelationsPage({
 
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-black tracking-tight leading-[1.08] max-w-5xl mx-auto">
             Building Sustainable <br />
-            <span className="text-[#16a34a] relative inline-block">
+            <span className="text-[#16a34a] inline-block">
               Hyperlocal Unit Economics.
-              <svg className="absolute -bottom-2 left-0 w-full h-3 text-[#22c55e]/40" viewBox="0 0 100 12" preserveAspectRatio="none">
-                <path d="M0,8 Q50,0 100,8" stroke="currentColor" strokeWidth="4" fill="none" />
-              </svg>
             </span>
           </h1>
 
@@ -297,3 +294,4 @@ export function InvestorRelationsPage({
     </div>
   );
 }
+

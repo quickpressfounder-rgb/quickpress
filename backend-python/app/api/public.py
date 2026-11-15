@@ -654,4 +654,227 @@ async def delete_fraud_report(report_id: str) -> Dict[str, Any]:
     return {"success": True, "deleted": report_id}
 
 
+# ============================================================================
+# CAREERS & OPEN POSITIONS CMS & APPLICATIONS
+# ============================================================================
+
+DEFAULT_CAREER_ROLES = [
+    {
+        "id": "eng-fullstack",
+        "title": "Senior Full-Stack Engineer (React 19 + Python 3.12)",
+        "department": "Engineering",
+        "location": "Kasganj / Noida (Hybrid)",
+        "type": "Full-Time",
+        "experience": "3–6 Years",
+        "desc": "Architect low-latency dispatch APIs, double-entry ledger settlement pipelines, and real-time WebSocket order tracking across our 3-app ecosystem.",
+        "responsibilities": [
+            "Own core FastAPI microservices and Supabase PostgreSQL schema optimization",
+            "Scale our React 19 + TanStack Router client applications for sub-second hydration",
+            "Integrate hardware IoT Bluetooth weighing scales with captain mobile apps",
+        ],
+        "isActive": True,
+    },
+    {
+        "id": "eng-mobile",
+        "title": "Lead Mobile Architect (Android / Capacitor)",
+        "department": "Engineering",
+        "location": "Remote / Hybrid",
+        "type": "Full-Time",
+        "experience": "4+ Years",
+        "desc": "Lead mobile development for the QuickPress Captain, Partner Store, and Customer applications with offline-first synchronization.",
+        "responsibilities": [
+            "Design native background geo-fencing, turn-by-turn routing, and battery optimization",
+            "Implement real-time push notification audio alarms for urgent order pickups",
+            "Optimize APK size and memory footprints for low-spec Android devices in Tier 2/3 cities",
+        ],
+        "isActive": True,
+    },
+    {
+        "id": "ops-hub-manager",
+        "title": "Central Logistics Hub Manager",
+        "department": "Operations",
+        "location": "Kasganj, Uttar Pradesh (On-Site)",
+        "type": "Full-Time",
+        "experience": "2–5 Years",
+        "desc": "Oversee daily laundry order throughput, captain dispatch queues, and strict garment care turnaround SLAs across our flagship Western UP hub.",
+        "responsibilities": [
+            "Manage physical intake, digital weighing, and barcode tracking of thousands of daily garments",
+            "Coordinate with local laundromat partners to ensure 80°C anti-bacterial hygiene protocols",
+            "Maintain a 99.8% on-time dispatch and delivery SLA record",
+        ],
+        "isActive": True,
+    },
+    {
+        "id": "growth-partner-onboarding",
+        "title": "Merchant Hub Growth Lead (Franchise Onboarding)",
+        "department": "Growth",
+        "location": "Western UP (Aligarh / Agra / Kasganj)",
+        "type": "Full-Time",
+        "experience": "2–4 Years",
+        "desc": "Onboard neighborhood dry cleaners and dhobis onto the QuickPress network, modernizing traditional workshops with Italian steam table setups.",
+        "responsibilities": [
+            "Identify high-density laundry zones and build trust with local laundry shop owners",
+            "Conduct store audits, equipment inspections, and digital POS app onboarding",
+            "Drive partner retention, weekly earnings transparency, and volume scaling",
+        ],
+        "isActive": True,
+    },
+    {
+        "id": "quality-garment-specialist",
+        "title": "Master Textile & Stain Restoration Specialist",
+        "department": "Quality & Care",
+        "location": "Kasganj Hub (On-Site)",
+        "type": "Full-Time",
+        "experience": "3+ Years",
+        "desc": "Champion fabric safety, delicate silk care, sneaker spa restoration, and hydrocarbon dry cleaning standards across our partner network.",
+        "responsibilities": [
+            "Inspect care labels for delicate textiles (chiffon, cashmere, pure silks, wedding lehengas)",
+            "Train partner staff on German enzymatic stain removals and solvent temperature control",
+            "Resolve customer fabric grievances under our ₹5,000 Zero-Loss Guarantee",
+        ],
+        "isActive": True,
+    },
+]
+
+
+class CareerRolePayload(BaseModel):
+    title: str = Field(..., min_length=3)
+    department: str = Field(..., min_length=2)
+    location: str = "Kasganj / Remote"
+    type: str = "Full-Time"
+    experience: str = "1–3 Years"
+    desc: str = Field(..., min_length=10)
+    responsibilities: List[str] = Field(default_factory=list)
+    isActive: bool = True
+
+
+class JobApplicationPayload(BaseModel):
+    applicantName: str = Field(..., min_length=2)
+    applicantPhone: str = Field(..., min_length=7)
+    applicantEmail: Optional[str] = None
+    roleId: Optional[str] = None
+    roleTitle: str = Field(..., min_length=2)
+    experience: Optional[str] = "Entry / Mid"
+    portfolioLink: Optional[str] = None
+    resumeUrl: Optional[str] = None
+    applicantNote: Optional[str] = None
+
+
+@router.get("/careers/jobs")
+async def list_public_careers() -> List[Dict[str, Any]]:
+    """Public: List all active open job positions at QuickPress."""
+    try:
+        roles = await database.find_many("careers_jobs", {"isActive": True})
+        if not roles:
+            # Seed default roles if empty
+            for r in DEFAULT_CAREER_ROLES:
+                doc = {**r, "_id": r["id"]}
+                await database.insert("careers_jobs", doc)
+            roles = [r for r in DEFAULT_CAREER_ROLES if r.get("isActive", True)]
+        return roles
+    except Exception as e:
+        logger.warning(f"Error fetching career roles: {e}")
+        return DEFAULT_CAREER_ROLES
+
+
+@router.post("/careers/apply", status_code=201)
+async def submit_job_application(payload: JobApplicationPayload) -> Dict[str, Any]:
+    """Public: Submit a candidate job application for review by QuickPress hiring desk."""
+    import random
+    from datetime import datetime, timezone
+    app_id = f"QP-APP-{random.randint(100000, 999999)}"
+    now = datetime.now(timezone.utc).isoformat()
+
+    doc = {
+        "_id": app_id,
+        "id": app_id,
+        **payload.model_dump(),
+        "status": "received",
+        "adminNotes": "",
+        "createdAt": now,
+        "updatedAt": now,
+    }
+
+    try:
+        await database.insert("job_applications", doc)
+    except Exception as e:
+        logger.warning(f"Could not save job application: {e}")
+
+    return {
+        "success": True,
+        "applicationId": app_id,
+        "message": f"Thank you {payload.applicantName}! Your application for {payload.roleTitle} has been received.",
+        "application": doc,
+    }
+
+
+# ============================================================================
+# CONTACT INQUIRIES & FREE CONSULTATIONS
+# ============================================================================
+
+class ContactInquiryPayload(BaseModel):
+    fullName: str = Field(..., min_length=2)
+    phone: str = Field(..., min_length=7)
+    email: Optional[str] = None
+    inquiryType: str = "customer"
+    city: Optional[str] = "Kasganj"
+    message: str = Field(..., min_length=2)
+    orderId: Optional[str] = None
+    details: Optional[str] = None
+    isConsultation: bool = False
+
+
+class ContactInquiryStatusUpdate(BaseModel):
+    status: str
+    adminNotes: Optional[str] = None
+
+
+@router.post("/contact-inquiries", status_code=201)
+async def submit_contact_inquiry(payload: ContactInquiryPayload) -> Dict[str, Any]:
+    """Public: Submit contact messages, partner inquiries, or consultation requests."""
+    import random
+    from datetime import datetime, timezone
+    prefix = "QP-CONSULT" if payload.isConsultation else "QP-INQ"
+    inq_id = f"{prefix}-{random.randint(100000, 999999)}"
+    now = datetime.now(timezone.utc).isoformat()
+
+    doc = {
+        "_id": inq_id,
+        "id": inq_id,
+        **payload.model_dump(),
+        "status": "new",
+        "adminNotes": "",
+        "createdAt": now,
+        "updatedAt": now,
+    }
+
+    try:
+        await database.insert("contact_inquiries", doc)
+    except Exception as e:
+        logger.warning(f"Could not save contact inquiry: {e}")
+
+    return {
+        "success": True,
+        "inquiryId": inq_id,
+        "message": "Your inquiry has been routed to our operations and consultation desk.",
+        "inquiry": doc,
+    }
+
+
+@router.get("/contact-inquiries")
+async def list_contact_inquiries(status: Optional[str] = Query(None)) -> List[Dict[str, Any]]:
+    """List contact inquiries and consultation requests."""
+    try:
+        query: Dict[str, Any] = {}
+        if status and status.lower() != "all":
+            query["status"] = status.lower()
+        docs = await database.find_many("contact_inquiries", query)
+        docs.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
+        return docs
+    except Exception as e:
+        logger.warning(f"Error fetching contact inquiries: {e}")
+        return []
+
+
+
 
