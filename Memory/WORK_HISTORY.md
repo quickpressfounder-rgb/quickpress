@@ -1,5 +1,92 @@
 # QuickPress — Engineering Work History
 
+## Session: November 15, 2026 (Part 23)
+
+### Zomato-Inspired Informational Pages Suite, Dynamic Blog/Slider CMS Engine & Fraud Vigilance Desk
+
+1. **Context & User Request:**
+   - User directive:
+     - *"YE 4 OR ADD KARO ISKE FOOTER ME INFORMATION PAGE Who We Are, Blog, Work With Us, Investors Relations, Report Fraud KO KI MENE ZOMAOT ME DIKHAO HAI BUT TUMKO ISKE JAISA DESING RAKHKAR QUICKPRESS KE BANANAN HAI JISME KI HUM BLOG KO ADMIN PENAL KE SLIDER ME SE BLOG BLOG KO EDIT DELET ADD KARO SAKE OR IMAGE VIDEO BHI ATTCHE KAR SAKE OR REPORT KE LIYE JO WAHA UPLORD KAREGE BHO YAHA DEKHA SAKE WAHA SE EDIT BHI KAR SAKE YE 5 PAGE BANAO SAME ISKE JASIA MERE LIYA MARE PEROJECT KE LIYA"*
+   - Scope:
+     - Add 5 comprehensive, high-aesthetic informational pages inspired by Zomato's corporate ecosystem tailored specifically to QuickPress hyper-local laundry marketplace.
+     - Implement live CMS in the Admin Console to create, edit, delete, and toggle Blog articles in hero slider with image and video links.
+     - Implement an Anti-Fraud and Vigilance Desk in the Admin Console to review public fraud incident reports, inspect uploaded evidence screenshots, update investigation statuses, and log internal audit notes.
+     - Build public and admin backend endpoints in FastAPI (`backend-python`).
+     - Fully integrate and link all 5 pages in the website footer and client-side navigation router.
+
+2. **Engineering Solutions Delivered:**
+   - **Informational Pages Suite (`website`):**
+     1. **Who We Are (`website/src/pages/WhoWeArePage.tsx` - `#who-we-are`):**
+        - Features the 3-way marketplace architecture (Customers, Store Partners, Delivery Captains).
+        - Live metrics grid (10-12m doorstep pickup SLA, 99.8% on-time rate, ₹5,000 garment protection guarantee).
+        - Kasganj origin vision, grassroots values, and zero-compromise fabric hygiene standards.
+     2. **Blog & Newsroom (`website/src/pages/BlogPage.tsx` - `#blog`):**
+        - Rotating hero carousel slider displaying highlighted articles (`isSlider: true`).
+        - Category filtering (All, Innovation, Fabric Care, City Launch, Franchise).
+        - Search bar for quick content discovery.
+        - Full modal reading view with video embeds and high-resolution banner images.
+        - Direct synchronization with backend `/api/promotions/blogs` with zero-downtime static fallback.
+     3. **Work With Us / Careers (`website/src/pages/CareersPage.tsx` - `#careers`):**
+        - QuickPress company culture pillars (Grassroots Empathy, High Velocity, Extreme Ownership, Transparency).
+        - Role directory filtered across Engineering, Operations, Growth, and Quality Control.
+        - Interactive job application modal with resume link, portfolio, and experience submissions.
+     4. **Investor Relations (`website/src/pages/InvestorRelationsPage.tsx` - `#investor-relations`):**
+        - Statutory entity profile (QUICKPRESS TECHNOLOGIES PRIVATE LIMITED, CIN: U74999UP2024PTC198141).
+        - Hyper-local unit economics breakdown (Order Contribution Margin, AOV, Captain Utilization).
+        - Corporate governance principles and institutional data room briefing request form.
+     5. **Report Fraud & Vigilance (`website/src/pages/ReportFraudPage.tsx` - `#report-fraud`):**
+        - Advisory warnings against payment spoofing, fake recruitment charges, and unauthorized franchises.
+        - Interactive incident reporting form with suspect details and file/screenshot upload.
+        - Instant unique incident docket generation (`QP-FRAUD-XXXXXX`) with direct submission to backend API.
+     6. **Website Navigation & Footer (`website/src/components/Footer.tsx` & `website/src/App.tsx`):**
+        - Added all 5 pages into the primary "About QuickPress" column in the footer.
+        - Configured seamless routing aliases in `App.tsx` for `#who-we-are`, `#blog`, `#careers`, `#investor-relations`, and `#report-fraud`.
+   - **Admin Console CMS & Fraud Vigilance Desk (`admin-frontend`):**
+     1. **Blog & Slider CMS (`admin-frontend/src/routes/promotions.tsx`):**
+        - Added 3rd tab: "Blog Articles & Sliders" with KPI overview cards.
+        - Full CRUD modal allowing creation and modification of titles, excerpts, categories, read times, banner image URLs, video URLs, and publication status.
+        - "In Slider" toggle to dynamically feature articles in the public website hero carousel.
+        - Integrated with `admin-frontend/src/api/promotions.ts`.
+     2. **Fraud & Vigilance Desk (`admin-frontend/src/routes/support.tsx`):**
+        - Added channel selector tab: "Fraud & Vigilance Desk" alongside Customer, Partner, and Captain channels.
+        - Incident card grid displaying reporter information, suspect handle, incident date, and category.
+        - Attached evidence preview lightbox modal to inspect submitted proof screenshots in high resolution.
+        - Review dialog to update investigation status (`pending`, `investigating`, `verified_fraud`, `resolved`, `dismissed`) and record admin action notes.
+        - Integrated with `admin-frontend/src/api/support.ts`.
+   - **Backend API Endpoints (`backend-python`):**
+     1. `backend-python/app/api/promotions.py`:
+        - Public: `GET /api/promotions/blogs`, `GET /api/promotions/blogs/{id}`.
+        - Admin: `GET /api/admin/promotions/blogs`, `POST /api/admin/promotions/blogs`, `PUT /api/admin/promotions/blogs/{id}`, `DELETE /api/admin/promotions/blogs/{id}`.
+     2. `backend-python/app/api/public.py`:
+        - Public: `POST /api/public/fraud-reports`, `GET /api/public/fraud-reports`, `PATCH /api/public/fraud-reports/{id}`, `DELETE /api/public/fraud-reports/{id}`.
+     3. `backend-python/app/api/admin.py`:
+        - Admin aliases: `GET /api/admin/fraud-reports`, `PATCH /api/admin/fraud-reports/{id}`, `DELETE /api/admin/fraud-reports/{id}`.
+
+3. **Verification & Testing Results:**
+   - Website Build: PASSED (`npm --prefix website run build` exit code 0, 0 errors, built in 2.01s).
+   - Admin Frontend Build: PASSED (`npm --prefix admin-frontend run build` exit code 0, 0 errors, built in 3.08s).
+   - Backend Pytest: PASSED (`backend-python/venv/bin/pytest backend-python/tests/test_fcm_notifications.py` 5/5 tests passed).
+
+4. **Modified & Created Files:**
+   - `website/src/types.ts`
+   - `website/src/pages/WhoWeArePage.tsx` (created)
+   - `website/src/pages/BlogPage.tsx` (created)
+   - `website/src/pages/CareersPage.tsx` (created)
+   - `website/src/pages/InvestorRelationsPage.tsx` (created)
+   - `website/src/pages/ReportFraudPage.tsx` (created)
+   - `website/src/components/Footer.tsx`
+   - `website/src/App.tsx`
+   - `admin-frontend/src/api/promotions.ts`
+   - `admin-frontend/src/routes/promotions.tsx`
+   - `admin-frontend/src/api/support.ts`
+   - `admin-frontend/src/routes/support.tsx`
+   - `backend-python/app/api/promotions.py`
+   - `backend-python/app/api/public.py`
+   - `backend-python/app/api/admin.py`
+   - `Memory/WORK_HISTORY.md`
+
+---
+
 ## Session: November 15, 2026 (Part 22)
 
 ### Public Website Contact Page Redesign, Communication Channels Streamlining & Operations Support Desk

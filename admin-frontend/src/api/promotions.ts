@@ -110,3 +110,60 @@ export async function deleteAdminBanner(id: string): Promise<{ ok: boolean }> {
     method: "DELETE",
   });
 }
+
+// --------------------------------------------------------------------------
+// Blogs & Hero Sliders Endpoints
+// --------------------------------------------------------------------------
+
+export interface AdminBlog {
+  _id: string;
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  category: string;
+  coverImage: string;
+  videoUrl?: string;
+  author: string;
+  authorRole: string;
+  readTime: string;
+  isSlider: boolean;
+  isFeatured: boolean;
+  priority: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export async function fetchAdminBlogs(): Promise<AdminBlog[]> {
+  try {
+    return await request<AdminBlog[]>("/promotions/blogs");
+  } catch {
+    return [];
+  }
+}
+
+export async function createAdminBlog(payload: Omit<AdminBlog, "_id" | "id">): Promise<AdminBlog> {
+  return await request<AdminBlog>("/promotions/blogs", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAdminBlog(
+  id: string,
+  payload: Partial<AdminBlog>
+): Promise<AdminBlog> {
+  return await request<AdminBlog>(`/promotions/blogs/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAdminBlog(id: string): Promise<{ ok: boolean }> {
+  return await request<{ ok: boolean }>(`/promotions/blogs/${id}`, {
+    method: "DELETE",
+  });
+}
+

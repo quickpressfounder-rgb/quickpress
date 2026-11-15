@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Search,
@@ -56,11 +56,15 @@ import {
   updateTicketStatus,
   assignTicket,
   compensateTicket,
+  fetchAdminFraudReports,
+  updateAdminFraudReport,
+  deleteAdminFraudReport,
   type Ticket,
   type TicketRole,
   type TicketPriority,
   type TicketStatus,
   type CreateTicketPayload,
+  type AdminFraudReport,
 } from "../api/support";
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
@@ -154,6 +158,60 @@ export function SupportPage() {
     city: "",
     assignee: "Lead Admin",
   });
+
+  // Anti-Fraud & Vigilance Desk State
+  const [fraudReports, setFraudReports] = useState<AdminFraudReport[]>([]);
+  const [selectedFraudReport, setSelectedFraudReport] = useState<AdminFraudReport | null>(null);
+  const [fraudStatusUpdate, setFraudStatusUpdate] = useState("investigating");
+  const [fraudNotesUpdate, setFraudNotesUpdate] = useState("");
+  const [isFraudModalOpen, setIsFraudModalOpen] = useState(false);
+  const [evidenceZoomUrl, setEvidenceZoomUrl] = useState<string | null>(null);
+
+  const loadFraudReports = async () => {
+    try {
+      const data = await fetchAdminFraudReports();
+      if (Array.isArray(data)) setFraudReports(data);
+    } catch {
+      // Ignored
+    }
+  };
+
+  useEffect(() => {
+    loadFraudReports();
+  }, []);
+
+  const handleOpenFraudReview = (report: AdminFraudReport) => {
+    setSelectedFraudReport(report);
+    setFraudStatusUpdate(report.status);
+    setFraudNotesUpdate(report.adminNotes || "");
+    setIsFraudModalOpen(true);
+  };
+
+  const handleSaveFraudStatus = async () => {
+    if (!selectedFraudReport) return;
+    try {
+      await updateAdminFraudReport(selectedFraudReport._id || selectedFraudReport.id, {
+        status: fraudStatusUpdate,
+        adminNotes: fraudNotesUpdate,
+      });
+      toast.success("Fraud report status updated!");
+      setIsFraudModalOpen(false);
+      await loadFraudReports();
+    } catch {
+      toast.error("Failed to update fraud report status.");
+    }
+  };
+
+  const handleDeleteFraudReport = async (id: string) => {
+    if (!confirm("Permanently delete this fraud incident docket?")) return;
+    try {
+      await deleteAdminFraudReport(id);
+      toast.success("Fraud report docket deleted.");
+      await loadFraudReports();
+    } catch {
+      toast.error("Failed to delete fraud report.");
+    }
+  };
 
   // Queries
   const ticketsQuery = useQuery({
@@ -389,6 +447,7 @@ export function SupportPage() {
                 { id: "customer", label: `Customer (${stats?.roles.customer ?? 0})` },
                 { id: "partner", label: `Partner Store (${stats?.roles.partner ?? 0})` },
                 { id: "rider", label: `Rider Fleet (${stats?.roles.rider ?? 0})` },
+                { id: "fraud", label: `Fraud & Vigilance Desk (${fraudReports.length})` },
               ].map((r) => (
                 <button
                   key={r.id}
@@ -466,8 +525,128 @@ export function SupportPage() {
         </SectionCard>
 
         {/* =========================================================================
-            3. MAIN OMNICHANNEL SPLIT WORKSPACE
+            3. MAIN WORKSPACE: FRAUD DESK OR OMNICHANNEL SPLIT
         ========================================================================= */}
+        {roleFilter === "fraud" ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+              <div>
+                <h3 className="text-base font-black text-zinc-950 flex items-center gap-2">
+                  <span className="p-1 rounded-md bg-red-100 text-red-700 text-sm">⚠️</span>
+                  <span>Public Fraud &amp; Security Reports ({fraudReports.length})</span>
+                </h3>
+                <p className="text-xs text-zinc-500">
+                  Incident dockets submitted via Public Website for payment scams, recruitment fraud &amp; impersonation.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={loadFraudReports}
+                className="px-3.5 py-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-bold text-zinc-800 cursor-pointer shadow-2xs"
+              >
+                Refresh Reports
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {fraudReports.map((report) => (
+                <div
+                  key={report._id || report.id}
+                  className="bg-white rounded-3xl border border-zinc-200 p-5 shadow-sm space-y-4 hover:shadow-md transition flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-black text-zinc-900">
+                        #{report.id || report._id}
+                      </span>
+                      <span
+                        className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                          report.status === "verified_fraud"
+                            ? "bg-red-100 text-red-800 border border-red-200"
+                            : report.status === "investigating"
+                            ? "bg-amber-100 text-amber-800 border border-amber-200"
+                            : report.status === "resolved"
+                            ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                            : "bg-zinc-100 text-zinc-700 border border-zinc-200"
+                        }`}
+                      >
+                        {report.status.replace("_", " ")}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-mono font-bold uppercase text-red-600 block">
+                        Category: {report.scamCategory.replace("_", " ")}
+                      </span>
+                      <h4 className="text-sm font-black text-zinc-900 mt-0.5">
+                        Reporter: {report.reporterName} ({report.reporterPhone})
+                      </h4>
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-zinc-50 border border-zinc-100 text-xs font-mono space-y-1">
+                      <div>
+                        <strong className="text-zinc-500">Suspect:</strong>{" "}
+                        <span className="text-red-700 font-bold">{report.suspectInfo || "N/A"}</span>
+                      </div>
+                      <div>
+                        <strong className="text-zinc-500">Date:</strong> {report.incidentDate || "Recent"}
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-zinc-600 line-clamp-3 leading-relaxed">
+                      {report.description}
+                    </p>
+
+                    {/* Evidence Attachment Preview */}
+                    {report.evidenceUrl && (
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setEvidenceZoomUrl(report.evidenceUrl!)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[11px] font-mono font-bold cursor-pointer"
+                        >
+                          <span>🔍 View Attached Evidence Proof</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {report.adminNotes && (
+                      <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 text-[11px] text-amber-900">
+                        <strong>Admin Note:</strong> {report.adminNotes}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenFraudReview(report)}
+                      className="px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs cursor-pointer"
+                    >
+                      Update Status / Notes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteFraudReport(report._id || report.id)}
+                      className="p-1.5 text-zinc-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 cursor-pointer"
+                      title="Delete Report"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {fraudReports.length === 0 && (
+              <div className="rounded-3xl border border-zinc-200 bg-white p-12 text-center space-y-2">
+                <CheckCircle2 className="size-10 text-emerald-500 mx-auto" />
+                <h4 className="text-base font-black text-zinc-900">Zero Pending Fraud Reports</h4>
+                <p className="text-xs text-zinc-500">No active cyber fraud or scam dockets reported by customers or riders.</p>
+              </div>
+            )}
+          </div>
+        ) : (
         <div className="grid gap-6 lg:grid-cols-12">
           {/* ================= LEFT: TICKETS INBOX LIST (5 COLS) ================= */}
           <div className="lg:col-span-5 space-y-3">
@@ -927,6 +1106,7 @@ export function SupportPage() {
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* =========================================================================
@@ -1272,6 +1452,120 @@ export function SupportPage() {
                 : targetResolveStatus === "Closed"
                 ? "Confirm & Close Ticket"
                 : "Confirm & Mark Resolved"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* =========================================================================
+          FRAUD INCIDENT REVIEW & STATUS UPDATE MODAL
+      ========================================================================= */}
+      <Dialog open={isFraudModalOpen} onOpenChange={setIsFraudModalOpen}>
+        <DialogContent className="sm:max-w-[540px] rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-zinc-950 flex items-center gap-2">
+              <span className="p-1 rounded bg-red-100 text-red-700 text-sm">🛡️</span>
+              <span>Review Fraud Incident Docket #{selectedFraudReport?.id || selectedFraudReport?._id}</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500">
+              Update investigative status, verify claims, and store internal legal / police compliance notes.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedFraudReport && (
+            <div className="space-y-4 py-2 text-xs">
+              <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80 space-y-1.5 font-mono">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Reporter:</span>
+                  <span className="font-bold text-zinc-900">{selectedFraudReport.reporterName} ({selectedFraudReport.reporterPhone})</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Suspect Handle:</span>
+                  <span className="font-bold text-red-600">{selectedFraudReport.suspectInfo || "N/A"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Scam Type:</span>
+                  <span className="font-bold uppercase text-zinc-800">{selectedFraudReport.scamCategory.replace("_", " ")}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-zinc-700 block mb-1">Investigative Status</label>
+                <select
+                  value={fraudStatusUpdate}
+                  onChange={(e) => setFraudStatusUpdate(e.target.value)}
+                  className="w-full h-9 rounded-xl border border-zinc-200 bg-white px-3 font-semibold text-xs text-zinc-800"
+                >
+                  <option value="pending">Pending Triage</option>
+                  <option value="investigating">Under Vigilance Investigation</option>
+                  <option value="verified_fraud">Confirmed / Blacklisted Fraudster</option>
+                  <option value="resolved">Resolved / Transferred to Cyber Police</option>
+                  <option value="dismissed">Dismissed / Inconclusive Evidence</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-zinc-700 block mb-1">Admin Investigation Notes & Action Taken</label>
+                <Textarea
+                  rows={4}
+                  placeholder="Record UPI transaction IDs flagged, cyber crime docket number, bank accounts frozen, or user communication notes..."
+                  value={fraudNotesUpdate}
+                  onChange={(e) => setFraudNotesUpdate(e.target.value)}
+                  className="rounded-xl text-xs resize-none"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setIsFraudModalOpen(false)}
+              className="rounded-xl text-xs font-bold"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveFraudStatus}
+              className="rounded-xl font-bold text-xs text-white bg-zinc-950 hover:bg-zinc-800 shadow-xs"
+            >
+              Save Investigation Status
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* =========================================================================
+          ATTACHED EVIDENCE LIGHTBOX MODAL
+      ========================================================================= */}
+      <Dialog open={Boolean(evidenceZoomUrl)} onOpenChange={(open) => !open && setEvidenceZoomUrl(null)}>
+        <DialogContent className="sm:max-w-[700px] rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base font-black text-zinc-950">
+              Attached Incident Proof / Screenshot
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500">
+              High-resolution evidence submitted by user during fraud incident report.
+            </DialogDescription>
+          </DialogHeader>
+
+          {evidenceZoomUrl && (
+            <div className="py-2 flex items-center justify-center bg-zinc-950 rounded-2xl p-2 max-h-[70vh] overflow-hidden">
+              <img
+                src={evidenceZoomUrl}
+                alt="Fraud Proof Evidence"
+                className="max-h-[65vh] w-auto max-w-full object-contain rounded-xl"
+              />
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEvidenceZoomUrl(null)}
+              className="rounded-xl text-xs font-bold"
+            >
+              Close Preview
             </Button>
           </DialogFooter>
         </DialogContent>

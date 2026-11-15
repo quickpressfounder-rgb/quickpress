@@ -557,3 +557,101 @@ async def send_app_download_link(payload: AppLinkEmailPayload) -> Dict[str, Any]
     }
 
 
+# =========================================================================
+#  7. Anti-Fraud & Security Reporting Desk (Public Submission & Admin Review)
+# =========================================================================
+
+class FraudReportPayload(BaseModel):
+    reporterName: str = Field(..., min_length=2, max_length=100)
+    reporterPhone: str = Field(..., min_length=10, max_length=15)
+    reporterEmail: Optional[str] = ""
+    scamCategory: str = Field(..., min_length=2)  # payment_scam, fake_job, impersonation, fake_qr, rider_overcharge, other
+    suspectInfo: str = ""
+    incidentDate: str = ""
+    description: str = Field(..., min_length=10, max_length=3000)
+    evidenceUrl: Optional[str] = ""
+
+
+class FraudReportStatusUpdate(BaseModel):
+    status: str = Field(...)  # pending, investigating, verified_fraud, resolved, dismissed
+    adminNotes: Optional[str] = ""
+
+
+@router.post("/fraud-reports", status_code=201)
+async def submit_public_fraud_report(payload: FraudReportPayload) -> Dict[str, Any]:
+    """Public: Submit an incident report for payment scams, fake jobs, or impersonation."""
+    import random
+    from datetime import datetime, timezone
+    ticket_id = f"QP-FRAUD-{random.randint(100000, 999999)}"
+    now = datetime.now(timezone.utc).isoformat()
+
+    doc = {
+        "_id": ticket_id,
+        "id": ticket_id,
+        **payload.model_dump(),
+        "status": "pending",
+        "adminNotes": "",
+        "createdAt": now,
+        "updatedAt": now,
+    }
+
+    try:
+        await database.insert("fraud_reports", doc)
+    except Exception as e:
+        logger.warning(f"Could not save fraud report to DB: {e}")
+
+    return {
+        "success": True,
+        "ticketId": ticket_id,
+        "message": "Your fraud report has been submitted to QuickPress Security Desk. Our vigilance team will investigate immediately.",
+        "report": doc,
+    }
+
+
+@router.get("/fraud-reports")
+async def list_fraud_reports(status: Optional[str] = Query(None)) -> List[Dict[str, Any]]:
+    """List all submitted fraud reports with optional status filtering."""
+    try:
+        query: Dict[str, Any] = {}
+        if status and status.lower() != "all":
+            query["status"] = status.lower()
+        docs = await database.find_many("fraud_reports", query)
+        docs.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
+        return docs
+    except Exception as err:
+        logger.warning(f"Error fetching fraud reports: {err}")
+        return []
+
+
+@router.patch("/fraud-reports/{report_id}")
+async def update_fraud_report(report_id: str, payload: FraudReportStatusUpdate) -> Dict[str, Any]:
+    """Admin: Update status and investigation notes on a fraud report."""
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat()
+
+    changes = {
+        "status": payload.status,
+        "updatedAt": now,
+    }
+    if payload.adminNotes is not None:
+        changes["adminNotes"] = payload.adminNotes
+
+    updated = await database.update("fraud_reports", {"_id": report_id}, changes)
+    if not updated:
+        updated = await database.update("fraud_reports", {"id": report_id}, changes)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Fraud report ticket not found.")
+
+    return {"success": True, "ticketId": report_id, "updated": changes}
+
+
+@router.delete("/fraud-reports/{report_id}")
+async def delete_fraud_report(report_id: str) -> Dict[str, Any]:
+    """Admin: Delete a fraud report ticket."""
+    res = await database.delete_one("fraud_reports", {"_id": report_id})
+    if not res:
+        res = await database.delete_one("fraud_reports", {"id": report_id})
+    return {"success": True, "deleted": report_id}
+
+
+

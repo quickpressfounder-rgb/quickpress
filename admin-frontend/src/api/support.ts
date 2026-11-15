@@ -316,3 +316,55 @@ export function closeTicket(
   });
 }
 
+// --------------------------------------------------------------------------
+// Fraud & Security Reports API
+// --------------------------------------------------------------------------
+
+export interface AdminFraudReport {
+  _id: string;
+  id: string;
+  reporterName: string;
+  reporterPhone: string;
+  reporterEmail?: string;
+  scamCategory: string;
+  suspectInfo: string;
+  incidentDate: string;
+  description: string;
+  evidenceUrl?: string;
+  status: "pending" | "investigating" | "verified_fraud" | "resolved" | "dismissed";
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export async function fetchAdminFraudReports(status?: string): Promise<AdminFraudReport[]> {
+  try {
+    const q = status && status !== "all" ? `?status=${status}` : "";
+    return await apiGetJson<AdminFraudReport[]>(`/api/public/fraud-reports${q}`);
+  } catch {
+    return [];
+  }
+}
+
+export async function updateAdminFraudReport(
+  id: string,
+  payload: { status: string; adminNotes?: string }
+): Promise<any> {
+  const res = await fetch(`/api/public/fraud-reports/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error("Failed to update fraud report");
+  return res.json();
+}
+
+export async function deleteAdminFraudReport(id: string): Promise<any> {
+  const res = await fetch(`/api/public/fraud-reports/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete fraud report");
+  return res.json();
+}
+
+

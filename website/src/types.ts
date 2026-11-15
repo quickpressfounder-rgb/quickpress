@@ -6,7 +6,12 @@ export type PageType =
   | "terms"
   | "b2b-partner"
   | "city-landing"
-  | "store";
+  | "store"
+  | "who-we-are"
+  | "blog"
+  | "careers"
+  | "investor-relations"
+  | "report-fraud";
 
 export interface B2BPartnerLead {
   id?: string;
@@ -86,4 +91,38 @@ export interface TeamMember {
   prevCompany: string;
   bio: string;
   avatar: string;
+}
+
+export interface BlogPost {
+  _id?: string;
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  category: string;
+  coverImage: string;
+  videoUrl?: string;
+  author: string;
+  authorRole: string;
+  readTime: string;
+  isSlider: boolean;
+  isFeatured: boolean;
+  priority?: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface FraudReportItem {
+  ticketId: string;
+  reporterName: string;
+  reporterPhone: string;
+  reporterEmail?: string;
+  scamCategory: string;
+  suspectInfo: string;
+  incidentDate: string;
+  description: string;
+  evidenceUrl?: string;
+  status: "pending" | "investigating" | "verified_fraud" | "resolved" | "dismissed";
+  createdAt: string;
 }

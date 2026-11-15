@@ -179,6 +179,174 @@ DEFAULT_BANNERS: List[Dict[str, Any]] = [
 ]
 
 
+DEFAULT_BLOGS: List[Dict[str, Any]] = [
+    {
+        "_id": "blog_kasganj_mission",
+        "id": "blog_kasganj_mission",
+        "slug": "how-quickpress-is-organizing-bharats-laundry-economy",
+        "title": "How QuickPress is Organizing Bharat's ₹2.5 Lakh Crore Laundry Economy",
+        "excerpt": "From the historic streets of Kasganj to Western UP, how our proprietary 3-way app grid connects everyday households with local dhobi entrepreneurs.",
+        "content": (
+            "We didn't conceive QuickPress sitting in an air-conditioned glass skyscraper in Bangalore or Gurgaon. "
+            "It was built on the ground in Kasganj, listening to mothers scrub heavy cotton uniforms with sore hands, "
+            "students rushing for early morning college, and traditional iron-wallahs battling erratic voltage fluctuations.\n\n"
+            "India's garment care market is overwhelmingly fragmented. Over 96% of neighborhood dry cleaners and local dhobis "
+            "operate without digital order tracking, industrial steam tables, or predictable customer flow. QuickPress bridges this "
+            "divide by equipping existing hubs with Italian vacuum steam pressing tables, medical-grade hygiene chemicals, "
+            "and an algorithmic 10-minute captain dispatch network.\n\n"
+            "Today, every garment processed through QuickPress carries a digital barcode audit trail, verified on calibrated scales "
+            "right at the customer's doorstep with ₹5,000 zero-loss protection. This is how deep-tech solves real grassroots problems."
+        ),
+        "category": "Company News",
+        "coverImage": "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=1200&q=80",
+        "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "author": "Himanshu Pal",
+        "authorRole": "Founder & Chief Executive Officer",
+        "readTime": "4 min read",
+        "isSlider": True,
+        "isFeatured": True,
+        "priority": 1,
+        "isActive": True,
+        "createdAt": now_iso(),
+        "updatedAt": now_iso(),
+    },
+    {
+        "_id": "blog_fabric_science",
+        "id": "blog_fabric_science",
+        "slug": "the-science-of-garment-care-80c-thermal-sanitization",
+        "title": "The Science of Garment Care: 80°C Thermal Sanitization vs Conventional Washing",
+        "excerpt": "Why boiling detergents damage delicate weaves while our hypoallergenic enzymatic wash cycle eliminates 99.9% of dust mites and bacteria safely.",
+        "content": (
+            "Garment longevity depends entirely on water chemistry and thermal control. Traditional household washing machines "
+            "frequently mix hard groundwater with harsh alkaline detergents, stripping textile fibers and causing early fabric fraying.\n\n"
+            "At QuickPress certified hubs, we implement a multi-stage RO water treatment system paired with German hypoallergenic enzymes. "
+            "For heavy quilts, bed linens, and hospital uniforms, our computerized commercial drums achieve medical-grade 80°C anti-bacterial "
+            "thermal sanitization without fabric scorch or color bleeding.\n\n"
+            "Delicate garments, silk sarees, and corporate blazers are processed with hydrocarbon eco-solvents—100% free of carcinogenic perchloroethylene (PERC)."
+        ),
+        "category": "Fabric Care",
+        "coverImage": "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=1200&q=80",
+        "videoUrl": "",
+        "author": "Garment Science Desk",
+        "authorRole": "Textile Engineering Lead",
+        "readTime": "5 min read",
+        "isSlider": True,
+        "isFeatured": True,
+        "priority": 2,
+        "isActive": True,
+        "createdAt": now_iso(),
+        "updatedAt": now_iso(),
+    },
+    {
+        "_id": "blog_dhobi_empowerment",
+        "id": "blog_dhobi_empowerment",
+        "slug": "from-charcoal-irons-to-italian-vacuum-tables",
+        "title": "From Charcoal Irons to Italian Vacuum Steam Tables: Empowering Local Dhobi Partners",
+        "excerpt": "Meet Ramesh Kumar, whose neighborhood shop in Kasganj transformed from earning ₹800 a day to managing a ₹1.2 Lakh monthly digitally routed hub.",
+        "content": (
+            "For three generations, Ramesh Kumar and his family heated heavy 6kg charcoal irons inside a tiny 100 sq ft stall. "
+            "Charcoal dust constantly threatened clean white shirts, and power cuts in the afternoon meant zero work could be done.\n\n"
+            "When Ramesh onboarded with QuickPress in 2024, our partner operations team installed an industrial vacuum steam pressing table "
+            "powered by high-efficiency boilers. With orders routed directly to his store tablet from nearby neighborhoods, "
+            "his daily processing output tripled while physical fatigue dropped dramatically.\n\n"
+            "'QuickPress did not replace our shop; it made our shop modern,' says Ramesh. We are proud to expand this model across hundreds of micro-entrepreneurs in Uttar Pradesh."
+        ),
+        "category": "Partner Stories",
+        "coverImage": "https://images.unsplash.com/photo-1582735689369-4fe89db7114c?auto=format&fit=crop&w=1200&q=80",
+        "videoUrl": "",
+        "author": "Partner Success Team",
+        "authorRole": "Hyperlocal Hub Operations",
+        "readTime": "6 min read",
+        "isSlider": True,
+        "isFeatured": True,
+        "priority": 3,
+        "isActive": True,
+        "createdAt": now_iso(),
+        "updatedAt": now_iso(),
+    },
+    {
+        "_id": "blog_dispatch_algorithm",
+        "id": "blog_dispatch_algorithm",
+        "slug": "inside-the-quickpress-10-minute-captain-dispatch-grid",
+        "title": "Inside the QuickPress 10-Minute Captain Dispatch Grid",
+        "excerpt": "How our geo-fenced batching algorithm groups nearby pickups and drop-offs to maintain sub-12 minute door arrival with zero carbon waste.",
+        "content": (
+            "Hyperlocal logistics in Tier 2 and Tier 3 cities require a radically different architectural approach than Tier 1 metros. "
+            "Streets are narrower, GPS waypoints are frequently offset, and road conditions change rapidly during monsoons.\n\n"
+            "Our routing engine calculates multi-order clustering based on live rider coordinates, partner hub capacity, and delivery deadlines. "
+            "When a customer books a 45-minute pickup, the system dispatches the nearest active Captain within 30 seconds, "
+            "complete with turn-by-turn navigation and digital weight scale pairing via Bluetooth.\n\n"
+            "The result: 99.8% on-time execution and sustainable per-kilometer captain earnings."
+        ),
+        "category": "Technology",
+        "coverImage": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80",
+        "videoUrl": "",
+        "author": "QuickPress Engineering",
+        "authorRole": "Logistics Systems Team",
+        "readTime": "5 min read",
+        "isSlider": False,
+        "isFeatured": False,
+        "priority": 4,
+        "isActive": True,
+        "createdAt": now_iso(),
+        "updatedAt": now_iso(),
+    },
+    {
+        "_id": "blog_sneaker_spa",
+        "id": "blog_sneaker_spa",
+        "slug": "sneaker-spa-how-we-restore-suede-leather-and-knit-kicks",
+        "title": "Sneaker Spa: How We Restore Suede, Premium Leather, and Knit Kicks",
+        "excerpt": "A deep dive into deep foam cleaning, sole groove disinfection, suede nap revival, and hydrophobic nano-coating protection.",
+        "content": (
+            "Sneakers are an investment. Throwing high-grade leather kicks or delicate suede into a standard household washing machine "
+            "ruins internal adhesives, stiffens suede fibers, and discolors white midsoles.\n\n"
+            "At the QuickPress Sneaker Spa, our trained shoe craftsmen perform a manual 7-stage restoration: dry brush surface dirt removal, "
+            "hypoallergenic conditioning foam scrub, unyellowing UV sole oxidation, deep inner-lining disinfection, and a water-repellent nano shield.\n\n"
+            "Your favorite sneakers return fresh, odor-free, and sealed in breathable dust bags."
+        ),
+        "category": "Fabric Care",
+        "coverImage": "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1200&q=80",
+        "videoUrl": "",
+        "author": "Sneaker Spa Craftsmen",
+        "authorRole": "Footwear Care Specialists",
+        "readTime": "3 min read",
+        "isSlider": False,
+        "isFeatured": False,
+        "priority": 5,
+        "isActive": True,
+        "createdAt": now_iso(),
+        "updatedAt": now_iso(),
+    },
+    {
+        "_id": "blog_sustainability",
+        "id": "blog_sustainability",
+        "slug": "saving-1-million-liters-of-clean-water-our-green-pledge",
+        "title": "Saving 1 Million Liters of Clean Water: Our Green Eco-Care Pledge",
+        "excerpt": "How water recycling filtration, low-temp bio detergents, and reusable waterproof laundry bags cut single-use plastic by 100%.",
+        "content": (
+            "Garment care cannot come at the expense of our planet. Traditional home washing consumes upwards of 60 liters of water per 5kg load, "
+            "often discharging unfiltered chemical residue into local waterways.\n\n"
+            "QuickPress partner hubs employ closed-loop water treatment units that filter and recirculate rinse water, cutting net consumption by 45%. "
+            "Moreover, we have eliminated single-use polythene wrapping across all daily orders, replacing them with multi-use waterproof nylon bags "
+            "that customers keep and exchange on every order.\n\n"
+            "Clean clothes, clean consciousness."
+        ),
+        "category": "Sustainability",
+        "coverImage": "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1200&q=80",
+        "videoUrl": "",
+        "author": "Eco-Care Initiative",
+        "authorRole": "Sustainability & ESG Desk",
+        "readTime": "4 min read",
+        "isSlider": False,
+        "isFeatured": False,
+        "priority": 6,
+        "isActive": True,
+        "createdAt": now_iso(),
+        "updatedAt": now_iso(),
+    },
+]
+
+
 # =========================================================================
 #  Pydantic Models
 # =========================================================================
@@ -211,6 +379,23 @@ class BannerPayload(BaseModel):
     ctaLink: str = ""
     actionType: str = "reward_scratch"  # reward_scratch, external_link, google_form, internal_route
     audience: str = "riders"  # riders, customers, partners, all
+    priority: int = 1
+    isActive: bool = True
+
+
+class BlogPayload(BaseModel):
+    title: str = Field(..., min_length=2)
+    slug: Optional[str] = ""
+    excerpt: str = ""
+    content: str = ""
+    category: str = "Company News"
+    coverImage: str = ""
+    videoUrl: Optional[str] = ""
+    author: str = "QuickPress Editorial Team"
+    authorRole: str = "Staff Writer"
+    readTime: str = "4 min read"
+    isSlider: bool = False
+    isFeatured: bool = False
     priority: int = 1
     isActive: bool = True
 
@@ -384,3 +569,136 @@ async def admin_delete_banner(banner_id: str, _user: User = Depends(require_role
     if not res:
         res = await database.delete_one("promotions_banners", {"id": banner_id})
     return {"ok": True, "deleted": banner_id}
+
+
+# =========================================================================
+#  BLOG ENDPOINTS (Public & Admin Blog Management with Slider & Video)
+# =========================================================================
+
+@router.get("/promotions/blogs")
+async def get_public_blogs(
+    category: Optional[str] = Query(None),
+    isSlider: Optional[bool] = Query(None),
+):
+    """Public: Get active blogs with optional category and slider filter."""
+    try:
+        query: Dict[str, Any] = {"isActive": True}
+        if category and category.lower() != "all":
+            query["category"] = category
+        if isSlider is not None:
+            query["isSlider"] = isSlider
+
+        docs = await database.find_many("promotions_blogs", query)
+        if not docs:
+            # Seed default blogs
+            for b in DEFAULT_BLOGS:
+                await database.insert("promotions_blogs", b)
+            docs = [
+                b for b in DEFAULT_BLOGS
+                if (not category or category.lower() == "all" or b.get("category") == category)
+                and (isSlider is None or b.get("isSlider") == isSlider)
+            ]
+
+        docs.sort(key=lambda x: int(x.get("priority", 99)))
+        return docs
+    except Exception as err:
+        logger.warning("Error fetching public blogs: %s", err)
+        return [
+            b for b in DEFAULT_BLOGS
+            if (not category or category.lower() == "all" or b.get("category") == category)
+            and (isSlider is None or b.get("isSlider") == isSlider)
+        ]
+
+
+@router.get("/promotions/blogs/{blog_id_or_slug}")
+async def get_public_blog_detail(blog_id_or_slug: str):
+    """Public: Get single blog post by slug or ID."""
+    try:
+        doc = await database.find_one("promotions_blogs", {"slug": blog_id_or_slug})
+        if not doc:
+            doc = await database.find_one("promotions_blogs", {"_id": blog_id_or_slug})
+        if not doc:
+            doc = await database.find_one("promotions_blogs", {"id": blog_id_or_slug})
+        if not doc:
+            # Check default seed blogs
+            doc = next(
+                (b for b in DEFAULT_BLOGS if b.get("slug") == blog_id_or_slug or b.get("id") == blog_id_or_slug or b.get("_id") == blog_id_or_slug),
+                None
+            )
+        if not doc:
+            raise HTTPException(status_code=404, detail="Blog post not found.")
+        return doc
+    except HTTPException:
+        raise
+    except Exception as err:
+        logger.warning("Error fetching blog post detail: %s", err)
+        doc = next(
+            (b for b in DEFAULT_BLOGS if b.get("slug") == blog_id_or_slug or b.get("id") == blog_id_or_slug or b.get("_id") == blog_id_or_slug),
+            None
+        )
+        if doc:
+            return doc
+        raise HTTPException(status_code=404, detail="Blog post not found.")
+
+
+@router.get("/admin/promotions/blogs")
+async def admin_list_blogs(_user: User = Depends(require_roles(Role.admin))):
+    """Admin: List all blog posts (active & inactive)."""
+    try:
+        docs = await database.find_many("promotions_blogs")
+        if not docs:
+            for b in DEFAULT_BLOGS:
+                await database.insert("promotions_blogs", b)
+            docs = list(DEFAULT_BLOGS)
+        docs.sort(key=lambda x: int(x.get("priority", 99)))
+        return docs
+    except Exception as err:
+        logger.warning("Admin list blogs error: %s", err)
+        return DEFAULT_BLOGS
+
+
+@router.post("/admin/promotions/blogs", status_code=status.HTTP_201_CREATED)
+async def admin_create_blog(payload: BlogPayload, _user: User = Depends(require_roles(Role.admin))):
+    """Admin: Create a new blog post."""
+    blog_id = f"blog_{uuid4().hex[:10]}"
+    slug = payload.slug.strip() if payload.slug and payload.slug.strip() else payload.title.lower().replace(" ", "-").replace(":", "").replace("?", "")
+    doc = {
+        "_id": blog_id,
+        "id": blog_id,
+        **payload.model_dump(),
+        "slug": slug,
+        "createdAt": now_iso(),
+        "updatedAt": now_iso(),
+    }
+    await database.insert("promotions_blogs", doc)
+    return doc
+
+
+@router.put("/admin/promotions/blogs/{blog_id}")
+async def admin_update_blog(blog_id: str, payload: BlogPayload, _user: User = Depends(require_roles(Role.admin))):
+    """Admin: Update an existing blog post."""
+    slug = payload.slug.strip() if payload.slug and payload.slug.strip() else payload.title.lower().replace(" ", "-").replace(":", "").replace("?", "")
+    changes = {
+        **payload.model_dump(),
+        "slug": slug,
+        "updatedAt": now_iso(),
+    }
+    updated = await database.update("promotions_blogs", {"_id": blog_id}, changes)
+    if not updated:
+        updated = await database.update("promotions_blogs", {"id": blog_id}, changes)
+    if not updated:
+        changes["_id"] = blog_id
+        changes["id"] = blog_id
+        changes["createdAt"] = now_iso()
+        await database.insert("promotions_blogs", changes)
+        return changes
+    return updated
+
+
+@router.delete("/admin/promotions/blogs/{blog_id}")
+async def admin_delete_blog(blog_id: str, _user: User = Depends(require_roles(Role.admin))):
+    """Admin: Delete a blog post."""
+    res = await database.delete_one("promotions_blogs", {"_id": blog_id})
+    if not res:
+        res = await database.delete_one("promotions_blogs", {"id": blog_id})
+    return {"ok": True, "deleted": blog_id}

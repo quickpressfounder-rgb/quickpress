@@ -2937,6 +2937,54 @@ async def verify_treasury_health_alias(
     return await reconciliation_repository.verify_treasury_health()
 
 
+# ─── Anti-Fraud & Security Review Desk ──────────────────────────────────────────
+
+@router.get("/fraud-reports")
+async def admin_list_fraud_reports(
+    status: Optional[str] = Query(None),
+    user: User = Depends(require_roles(Role.admin)),
+) -> List[Dict[str, Any]]:
+    """Admin: List all submitted fraud incident reports."""
+    query: Dict[str, Any] = {}
+    if status and status.lower() != "all":
+        query["status"] = status.lower()
+    docs = await database.find_many("fraud_reports", query)
+    docs.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
+    return docs
+
+
+@router.patch("/fraud-reports/{report_id}")
+async def admin_update_fraud_report(
+    report_id: str,
+    payload: Dict[str, Any] = Body(...),
+    user: User = Depends(require_roles(Role.admin)),
+) -> Dict[str, Any]:
+    """Admin: Update status and notes on a fraud report."""
+    changes = {
+        **payload,
+        "updatedAt": now_iso(),
+    }
+    updated = await database.update("fraud_reports", {"_id": report_id}, changes)
+    if not updated:
+        updated = await database.update("fraud_reports", {"id": report_id}, changes)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Fraud report not found.")
+    return {"ok": True, "ticketId": report_id, "updated": changes}
+
+
+@router.delete("/fraud-reports/{report_id}")
+async def admin_delete_fraud_report(
+    report_id: str,
+    user: User = Depends(require_roles(Role.admin)),
+) -> Dict[str, Any]:
+    """Admin: Delete a fraud report."""
+    res = await database.delete_one("fraud_reports", {"_id": report_id})
+    if not res:
+        res = await database.delete_one("fraud_reports", {"id": report_id})
+    return {"ok": True, "deleted": report_id}
+
+
+
 
 
 

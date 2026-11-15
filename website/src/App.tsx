@@ -20,6 +20,11 @@ import { ContactPage } from "@/pages/ContactPage";
 import { B2BPartnerPage } from "@/pages/B2BPartnerPage";
 import { StorePage } from "@/pages/StorePage";
 import { CityLandingPage } from "@/pages/CityLandingPage";
+import { WhoWeArePage } from "@/pages/WhoWeArePage";
+import { BlogPage } from "@/pages/BlogPage";
+import { CareersPage } from "@/pages/CareersPage";
+import { InvestorRelationsPage } from "@/pages/InvestorRelationsPage";
+import { ReportFraudPage } from "@/pages/ReportFraudPage";
 
 // Mobile App Redirection Utility
 import {
@@ -140,6 +145,32 @@ export default function App() {
         return;
       }
 
+      // 5. Information Pages Route Aliases (Zomato-Style)
+      if (target === "who-we-are" || target === "whoweare" || target === "who") {
+        setCurrentPage("who-we-are");
+        return;
+      }
+
+      if (target === "blog" || target === "blogs" || target === "stories") {
+        setCurrentPage("blog");
+        return;
+      }
+
+      if (target === "careers" || target === "work-with-us" || target === "jobs" || target === "workwithus") {
+        setCurrentPage("careers");
+        return;
+      }
+
+      if (target === "investor-relations" || target === "investors" || target === "investor" || target === "ir") {
+        setCurrentPage("investor-relations");
+        return;
+      }
+
+      if (target === "report-fraud" || target === "fraud" || target === "reportfraud" || target === "security") {
+        setCurrentPage("report-fraud");
+        return;
+      }
+
       const validPages: PageType[] = [
         "home",
         "about",
@@ -149,6 +180,11 @@ export default function App() {
         "b2b-partner",
         "city-landing",
         "store",
+        "who-we-are",
+        "blog",
+        "careers",
+        "investor-relations",
+        "report-fraud",
       ];
       if (validPages.includes(target as PageType)) {
         setCurrentPage(target as PageType);
@@ -280,6 +316,41 @@ export default function App() {
               onOpenModal={handleOpenModal}
               onShowToast={showToast}
               onNavigateHome={() => navigateTo("home")}
+            />
+          )}
+
+          {currentPage === "who-we-are" && (
+            <WhoWeArePage
+              onNavigate={navigateTo}
+              onOpenModal={handleOpenModal}
+            />
+          )}
+
+          {currentPage === "blog" && (
+            <BlogPage
+              onNavigate={navigateTo}
+              onOpenModal={handleOpenModal}
+            />
+          )}
+
+          {currentPage === "careers" && (
+            <CareersPage
+              onNavigate={navigateTo}
+              onOpenModal={handleOpenModal}
+            />
+          )}
+
+          {currentPage === "investor-relations" && (
+            <InvestorRelationsPage
+              onNavigate={navigateTo}
+              onOpenModal={handleOpenModal}
+            />
+          )}
+
+          {currentPage === "report-fraud" && (
+            <ReportFraudPage
+              onNavigate={navigateTo}
+              onOpenModal={handleOpenModal}
             />
           )}
         </div>

@@ -44,26 +44,62 @@ export function Footer({
               <li>
                 <button
                   type="button"
-                  onClick={() => onNavigate("home")}
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
+                  onClick={() => onNavigate("who-we-are")}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium block"
                 >
-                  Home
+                  Who We Are
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onNavigate("blog")}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium block"
+                >
+                  Blog &amp; Stories
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onNavigate("careers")}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium block"
+                >
+                  Work With Us (Careers)
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onNavigate("investor-relations")}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium block"
+                >
+                  Investor Relations
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onNavigate("report-fraud")}
+                  className="hover:text-red-400 transition-colors cursor-pointer text-left font-medium block text-red-500/90"
+                >
+                  Report Fraud
                 </button>
               </li>
               <li>
                 <button
                   type="button"
                   onClick={() => onNavigate("about")}
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium block"
                 >
-                  About Us & Story
+                  Founder Story &amp; Origin
                 </button>
               </li>
               <li>
                 <button
                   type="button"
                   onClick={() => onNavigate("contact")}
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium block"
                 >
                   Contact Us
                 </button>
