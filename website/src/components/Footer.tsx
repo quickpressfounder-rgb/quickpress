@@ -71,57 +71,62 @@ export function Footer({
             </ul>
           </div>
 
-          {/* Column 2: Pan-India Operating Hubs */}
+          {/* Column 2: Core Laundry Verticals */}
           <div className="space-y-3">
             <h5 className="text-xs sm:text-sm font-black tracking-wider uppercase text-white mb-4">
-              Pan-India Laundry Hubs
+              Core Services
             </h5>
             <ul className="space-y-2 text-xs text-zinc-400">
               <li>
-                <a href="/laundry-service-in-delhi" className="hover:text-white transition-colors block">
-                  Delhi NCR Laundry
-                </a>
+                <button
+                  type="button"
+                  onClick={() => onOpenModal("booking")}
+                  className="hover:text-white transition-colors cursor-pointer text-left block"
+                >
+                  Doorstep Wash &amp; Fold
+                </button>
               </li>
               <li>
-                <a href="/laundry-service-in-mumbai" className="hover:text-white transition-colors block">
-                  Mumbai Dry Cleaning
-                </a>
+                <button
+                  type="button"
+                  onClick={() => onOpenModal("booking")}
+                  className="hover:text-white transition-colors cursor-pointer text-left block"
+                >
+                  Italian Steam Ironing
+                </button>
               </li>
               <li>
-                <a href="/laundry-service-in-bangalore" className="hover:text-white transition-colors block">
-                  Bengaluru Garment Care
-                </a>
+                <button
+                  type="button"
+                  onClick={() => onOpenModal("booking")}
+                  className="hover:text-white transition-colors cursor-pointer text-left block"
+                >
+                  Premium Hydrocarbon Dry Clean
+                </button>
               </li>
               <li>
-                <a href="/laundry-service-in-hyderabad" className="hover:text-white transition-colors block">
-                  Hyderabad Laundry
-                </a>
+                <button
+                  type="button"
+                  onClick={() => onOpenModal("booking")}
+                  className="hover:text-white transition-colors cursor-pointer text-left block"
+                >
+                  Sneaker &amp; Shoe Care Spa
+                </button>
               </li>
               <li>
-                <a href="/laundry-service-in-pune" className="hover:text-white transition-colors block">
-                  Pune Steam Ironing
-                </a>
-              </li>
-              <li>
-                <a href="/laundry-service-in-lucknow" className="hover:text-white transition-colors block">
-                  Lucknow Laundry Hub
-                </a>
-              </li>
-              <li>
-                <a href="/laundry-service-in-jaipur" className="hover:text-white transition-colors block">
-                  Jaipur Dry Cleaners
-                </a>
-              </li>
-              <li>
-                <a href="/laundry-service-in-kasganj" className="hover:text-white transition-colors block">
-                  Kasganj Flagship Hub
-                </a>
+                <button
+                  type="button"
+                  onClick={() => onOpenModal("booking")}
+                  className="hover:text-white transition-colors cursor-pointer text-left block"
+                >
+                  Blankets &amp; Heavy Linen
+                </button>
               </li>
               <li className="pt-2">
                 <button
                   type="button"
                   onClick={() => onNavigate("b2b-partner")}
-                  className="hover:text-white transition-colors cursor-pointer text-left font-semibold text-emerald-400 block"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-semibold text-zinc-300 block"
                 >
                   Commercial B2B Laundry
                 </button>
@@ -211,7 +216,7 @@ export function Footer({
                     if (typeof window !== "undefined") window.location.hash = "#grievance";
                     onNavigate("terms");
                   }}
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium text-emerald-400 font-semibold"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium text-zinc-300 font-semibold"
                 >
                   Grievance & Nodal Desk
                 </button>
@@ -270,7 +275,7 @@ export function Footer({
                   rel="noopener noreferrer"
                   aria-label={s.name}
                   title={s.name}
-                  className="w-7 h-7 rounded-full bg-white flex items-center justify-center hover:scale-110 hover:bg-emerald-400 transition-all cursor-pointer shadow-xs"
+                  className="w-7 h-7 rounded-full bg-white flex items-center justify-center hover:scale-110 hover:bg-black hover:text-white transition-all cursor-pointer shadow-xs border border-zinc-200"
                 >
                   {s.icon}
                 </a>

@@ -54,8 +54,8 @@ export function PrivacyPolicyPage({
               <p className="font-sans font-bold text-gray-900 text-sm">QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</p>
               <p>Corporate Identity Number (CIN): U74999UP2024PTC198141</p>
               <p>Registered Office: 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India</p>
-              <p>Official Phone / Helpline: <a href="tel:18000123456" className="text-emerald-700 underline font-bold">1800 012 3456</a></p>
-              <p>Grievance / Privacy Email: <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline font-bold">official.quickpress@gmail.com</a></p>
+              <p>Official Phone / Helpline: <a href="tel:+919258730561" className="text-black underline font-bold">+91 9258730561</a></p>
+              <p>Grievance / Privacy Email: <a href="mailto:official.quickpress@gmail.com" className="text-black underline font-bold">official.quickpress@gmail.com</a></p>
               <p>Official Website: https://withquickpress.com</p>
             </div>
           </div>
@@ -438,15 +438,15 @@ export function PrivacyPolicyPage({
             <p>
               In accordance with the <strong>Digital Personal Data Protection Act, 2023 (DPDP Act)</strong> and the Information Technology Act, 2000, our designated Data Protection Officer (DPO) and Grievance Redressal Officer details are published below:
             </p>
-            <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200 text-xs sm:text-sm space-y-1.5 text-emerald-950">
-              <p className="font-bold text-emerald-900 text-sm">Grievance &amp; Data Protection Officer (DPO)</p>
+            <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200 text-xs sm:text-sm space-y-1.5 text-zinc-950">
+              <p className="font-bold text-black text-sm">Grievance &amp; Data Protection Officer (DPO)</p>
               <p><strong>Designation:</strong> Data Protection Officer, QuickPress</p>
               <p><strong>Legal Entity:</strong> QUICKPRESS TECHNOLOGIES PRIVATE LIMITED (Data Fiduciary)</p>
               <p><strong>CIN:</strong> U74999UP2024PTC198141</p>
               <p><strong>Registered Office:</strong> 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India</p>
-              <p><strong>DPO Official Email:</strong> <a href="mailto:dpo@withquickpress.com" className="text-emerald-700 underline font-bold">dpo@withquickpress.com</a> / <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline font-bold">official.quickpress@gmail.com</a></p>
-              <p><strong>Customer Helpline:</strong> <a href="tel:18000123456" className="text-emerald-700 underline font-bold">1800 012 3456</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
-              <p className="text-emerald-800/90 text-xs font-semibold pt-1">
+              <p><strong>DPO Official Email:</strong> <a href="mailto:dpo@withquickpress.com" className="text-black underline font-bold">dpo@withquickpress.com</a> / <a href="mailto:official.quickpress@gmail.com" className="text-black underline font-bold">official.quickpress@gmail.com</a></p>
+              <p><strong>Customer Helpline:</strong> <a href="tel:+919258730561" className="text-black underline font-bold">+91 9258730561</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
+              <p className="text-zinc-600 text-xs font-semibold pt-1">
                 Statutory SLA: Acknowledgment within 24 hours | Final Resolution within 15–30 days. If your grievance is not resolved satisfactorily, you hold the statutory right to escalate to the <strong>Data Protection Board of India (DPBI)</strong> under Section 13(3) of the DPDP Act, 2023.
               </p>
             </div>
@@ -463,8 +463,8 @@ export function PrivacyPolicyPage({
             <p>For any queries, feedback, or data privacy requests, you may connect with our team through:</p>
             <ul className="list-disc pl-5 space-y-1 text-xs sm:text-sm text-gray-700">
               <li>Legal Entity: <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (CIN: <strong>U74999UP2024PTC198141</strong>)</li>
-              <li>Official Phone / Helpline: <a href="tel:18000123456" className="text-emerald-700 font-bold underline">1800 012 3456</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</li>
-              <li>General Support & Grievance Email: <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 font-bold underline">official.quickpress@gmail.com</a></li>
+              <li>Official Phone / Helpline: <a href="tel:+919258730561" className="text-black font-bold underline">+91 9258730561</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</li>
+              <li>General Support & Grievance Email: <a href="mailto:official.quickpress@gmail.com" className="text-black font-bold underline">official.quickpress@gmail.com</a></li>
               <li>In-App Support: Available on Customer, Partner, and Captain apps.</li>
               <li>Physical Registered Office: 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India</li>
             </ul>
@@ -516,13 +516,9 @@ export function PrivacyPolicyPage({
   return (
     <div className="bg-white text-gray-900 min-h-screen pt-16 sm:pt-20 pb-20 selection:bg-emerald-200 selection:text-emerald-950">
       {/* Header Banner */}
-      <div className="bg-emerald-50/60 text-gray-950 py-10 sm:py-14 px-4 sm:px-6 lg:px-8 border-b border-emerald-100 reveal-on-scroll">
+      <div className="bg-zinc-50 text-gray-950 py-10 sm:py-14 px-4 sm:px-6 lg:px-8 border-b border-zinc-200 reveal-on-scroll">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-900 text-xs font-bold uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-              QuickPress Legal Center
-            </span>
+          <div className="mb-3">
             <span className="text-xs text-gray-500 font-mono">
               Last Updated: 3 September 2026
             </span>
@@ -535,15 +531,15 @@ export function PrivacyPolicyPage({
             Official privacy, personal data protection, location access, and statutory disclosures for the QuickPress Customer App, Partner Store App, Delivery Partner (Captain) App, and website.
           </p>
 
-          {/* DPDP Act Bilingual Language Toggle (Section 5(3)) */}
+          {/* Bilingual Language Toggle */}
           <div className="flex flex-wrap items-center gap-3 mt-5">
             <span className="text-xs font-bold text-gray-700">Language / भाषा:</span>
-            <div className="inline-flex rounded-xl p-1 bg-white border border-emerald-200 shadow-2xs">
+            <div className="inline-flex rounded-xl p-1 bg-white border border-zinc-200 shadow-2xs">
               <button
                 type="button"
                 onClick={() => setLang("en")}
                 className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                  lang === "en" ? "bg-emerald-600 text-white shadow-xs" : "text-gray-700 hover:text-gray-900"
+                  lang === "en" ? "bg-black text-white shadow-xs" : "text-gray-700 hover:text-gray-900"
                 }`}
               >
                 English
@@ -552,43 +548,39 @@ export function PrivacyPolicyPage({
                 type="button"
                 onClick={() => setLang("hi")}
                 className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                  lang === "hi" ? "bg-emerald-600 text-white shadow-xs" : "text-gray-700 hover:text-gray-900"
+                  lang === "hi" ? "bg-black text-white shadow-xs" : "text-gray-700 hover:text-gray-900"
                 }`}
               >
                 हिन्दी (Hindi)
               </button>
             </div>
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-950 font-bold bg-emerald-100/90 px-3 py-1 rounded-full border border-emerald-300 shadow-2xs">
-              <IconShield className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-              <span>DPDP Act 2023 Sec 5(3) Bilingual Notice</span>
-            </span>
           </div>
 
           {/* Hindi Summary Card (Rendered when Hindi is selected) */}
           {lang === "hi" && (
-            <div className="mt-5 p-4 bg-white rounded-2xl border-2 border-emerald-500 shadow-md text-xs sm:text-sm text-gray-800 space-y-2 animate-in fade-in duration-200">
+            <div className="mt-5 p-4 bg-white rounded-2xl border-2 border-zinc-200 hover:border-black shadow-md text-xs sm:text-sm text-gray-800 space-y-2 animate-in fade-in duration-200 transition-all">
               <div className="flex items-center gap-2">
-                <span className="size-2 rounded-full bg-emerald-600" />
+                <span className="size-2 rounded-full bg-black" />
                 <h3 className="font-black text-gray-950 text-sm">डिजिटल व्यक्तिगत डेटा संरक्षण अधिनियम, 2023 (DPDP Act) — मुख्य अधिकार</h3>
               </div>
               <p className="leading-relaxed">
                 QuickPress (क्विकप्रेस) आपके व्यक्तिगत डेटा की पूर्ण सुरक्षा के लिए प्रतिबद्ध है। DPDP अधिनियम, 2023 के तहत आपको निम्नलिखित कानूनी अधिकार प्राप्त हैं:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs">
-                <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
-                  <p className="font-bold text-emerald-950">1. डेटा की जानकारी पाने का अधिकार (धारा 11)</p>
+                <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200">
+                  <p className="font-bold text-black">1. डेटा की जानकारी पाने का अधिकार (धारा 11)</p>
                   <p className="text-gray-600 mt-0.5">आप अपने ऐप प्रोफाइल से 1-क्लिक में अपना सारा व्यक्तिगत डेटा डाउनलोड कर सकते हैं।</p>
                 </div>
-                <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
-                  <p className="font-bold text-emerald-950">2. डेटा हटाने/डिलीट करने का अधिकार (धारा 12)</p>
+                <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200">
+                  <p className="font-bold text-black">2. डेटा हटाने/डिलीट करने का अधिकार (धारा 12)</p>
                   <p className="text-gray-600 mt-0.5">आप कभी भी 'Delete Account' विकल्प चुनकर अपना डेटा हमेशा के लिए मिटा सकते हैं।</p>
                 </div>
-                <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
-                  <p className="font-bold text-emerald-950">3. सहमति वापस लेने का अधिकार (धारा 6)</p>
+                <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200">
+                  <p className="font-bold text-black">3. सहमति वापस लेने का अधिकार (धारा 6)</p>
                   <p className="text-gray-600 mt-0.5">आप प्रोमोशनल व्हाट्सएप और मार्केटिंग मैसेज कभी भी प्रोफाइल सेटिंग से बंद कर सकते हैं।</p>
                 </div>
-                <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
-                  <p className="font-bold text-emerald-950">4. नॉमिनी नियुक्त करने का अधिकार (धारा 14)</p>
+                <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200">
+                  <p className="font-bold text-black">4. नॉमिनी नियुक्त करने का अधिकार (धारा 14)</p>
                   <p className="text-gray-600 mt-0.5">आप अपने डिजिटल वॉलेट और खाते के लिए किसी भी पारिवारिक सदस्य को नॉमिनी बना सकते हैं।</p>
                 </div>
               </div>
@@ -603,10 +595,10 @@ export function PrivacyPolicyPage({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search Privacy Policy (e.g. Location, Payment, Cookies, Deletion, Partner)..."
-                className="w-full h-12 pl-11 pr-4 rounded-2xl bg-white border border-gray-300 text-gray-950 text-xs sm:text-sm placeholder:text-gray-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 shadow-sm"
+                className="w-full h-12 pl-11 pr-4 rounded-2xl bg-white border border-gray-300 text-gray-950 text-xs sm:text-sm placeholder:text-gray-400 focus:outline-none focus:border-black focus:ring-2 focus:ring-black/10 shadow-sm transition-colors"
               />
               <svg
-                className="w-4 h-4 text-emerald-600 absolute left-4 top-1/2 -translate-y-1/2"
+                className="w-4 h-4 text-black absolute left-4 top-1/2 -translate-y-1/2"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -676,7 +668,7 @@ export function PrivacyPolicyPage({
                 <h3 className="text-xs font-black uppercase tracking-wider text-gray-900">
                   Table of Contents
                 </h3>
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                <span className="text-[10px] font-bold text-gray-500">
                   26 Sections
                 </span>
               </div>
@@ -710,10 +702,10 @@ export function PrivacyPolicyPage({
                 </button>
                 <button
                   onClick={() => onOpenModal("contact")}
-                  className="w-full py-2 px-3 rounded-xl bg-white border border-gray-200 hover:border-emerald-600 text-xs font-bold text-gray-900 flex items-center justify-between cursor-pointer shadow-2xs"
+                  className="w-full py-2 px-3 rounded-xl bg-white border border-gray-200 hover:border-black text-xs font-bold text-gray-900 flex items-center justify-between cursor-pointer shadow-2xs transition-all"
                 >
                   <span>Privacy Support</span>
-                  <IconMail className="w-3.5 h-3.5 text-emerald-600" />
+                  <IconMail className="w-3.5 h-3.5 text-black" />
                 </button>
               </div>
             </div>
@@ -722,12 +714,12 @@ export function PrivacyPolicyPage({
           {/* Right Content Area */}
           <main className="lg:col-span-8 xl:col-span-9 space-y-12">
             {/* Quick Overview Pill Card */}
-            <div className="p-6 rounded-3xl bg-gradient-to-br from-emerald-50 via-teal-50/40 to-white border border-emerald-100 shadow-xs">
-              <div className="flex items-center gap-2 text-emerald-900 font-bold text-sm mb-2">
-                <IconShield className="w-4 h-4 text-emerald-700" />
+            <div className="p-6 rounded-3xl bg-zinc-50 border border-zinc-200 shadow-xs">
+              <div className="flex items-center gap-2 text-black font-bold text-sm mb-2">
+                <IconShield className="w-4 h-4 text-black" />
                 <span>Plain-English Privacy Commitment</span>
               </div>
-              <p className="text-xs sm:text-sm text-emerald-950/80 leading-relaxed">
+              <p className="text-xs sm:text-sm text-zinc-700 leading-relaxed">
                 QuickPress operates an on-demand laundry and garment logistics network. We collect only what is necessary to pick up your laundry, clean it with the highest fabric standards, and return it safely to your doorstep. We never sell your personal data to external advertisers or brokers.
               </p>
             </div>
@@ -737,11 +729,11 @@ export function PrivacyPolicyPage({
               <section
                 key={s.id}
                 id={s.id}
-                className="scroll-mt-28 p-6 sm:p-8 rounded-3xl bg-white border border-gray-200/90 shadow-2xs hover:border-emerald-200 transition-all space-y-4"
+                className="scroll-mt-28 p-6 sm:p-8 rounded-3xl bg-white border border-gray-200/90 shadow-2xs hover:border-black transition-all space-y-4"
               >
                 <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                   <h2 className="text-lg sm:text-xl font-black text-gray-950 flex items-center gap-2.5">
-                    <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-black">
+                    <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-zinc-100 text-black font-black">
                       {s.num}
                     </span>
                     <span>{s.title}</span>
@@ -751,7 +743,7 @@ export function PrivacyPolicyPage({
                       navigator.clipboard?.writeText(`${window.location.origin}/#privacy`);
                       alert("Link to Privacy Policy copied to clipboard!");
                     }}
-                    className="text-[11px] font-bold text-gray-400 hover:text-emerald-700 transition-colors"
+                    className="text-[11px] font-bold text-gray-400 hover:text-black transition-colors"
                     title="Copy section link"
                   >
                     Share
@@ -765,7 +757,7 @@ export function PrivacyPolicyPage({
             <div className="pt-8 border-t border-gray-200 flex flex-wrap items-center justify-between gap-4">
               <button
                 onClick={() => onNavigate("home")}
-                className="px-6 py-2.5 rounded-full bg-white border border-gray-300 text-gray-900 text-xs font-bold hover:border-emerald-600 hover:text-emerald-700 transition-all cursor-pointer flex items-center gap-2 shadow-xs"
+                className="px-6 py-2.5 rounded-full bg-white border border-gray-300 text-gray-900 text-xs font-bold hover:border-black hover:text-black transition-all cursor-pointer flex items-center gap-2 shadow-xs"
               >
                 <span>← Back to Home</span>
               </button>

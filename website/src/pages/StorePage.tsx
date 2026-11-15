@@ -137,16 +137,9 @@ export function StorePage({
         </div>
 
         {/* Storefront Hero Banner */}
-        <div className="relative overflow-hidden rounded-3xl bg-white border border-zinc-200/90 shadow-sm p-6 sm:p-10">
-          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-72 h-72 rounded-full bg-emerald-500/5 blur-3xl pointer-events-none" />
-
+        <div className="relative overflow-hidden rounded-3xl bg-white border-2 border-zinc-200 hover:border-black shadow-sm p-6 sm:p-10 transition-all duration-300">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
             <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
-                <span className="size-2 rounded-full bg-emerald-600 animate-pulse" />
-                <span>QuickPress Certified Partner Hub</span>
-              </div>
-
               <h1 className="text-2xl sm:text-4xl font-black text-zinc-950 tracking-tight">
                 QuickPress Laundry &amp; Garment Care Hub
               </h1>
@@ -155,7 +148,7 @@ export function StorePage({
                 <span className="font-mono bg-zinc-100 px-2.5 py-1 rounded-lg text-zinc-900 border border-zinc-200">
                   Store ID: {partnerId}
                 </span>
-                <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 font-bold">
+                <span className="inline-flex items-center gap-1 text-black bg-zinc-100 px-2.5 py-1 rounded-lg border border-zinc-200 font-bold">
                   ★ 5.0 (Verified Storefront)
                 </span>
                 <span className="text-zinc-500">•</span>
@@ -170,7 +163,7 @@ export function StorePage({
               <button
                 type="button"
                 onClick={() => onOpenModal("booking")}
-                className="px-6 py-3.5 rounded-2xl bg-zinc-950 text-white font-black text-sm hover:bg-zinc-800 active:scale-95 transition-all shadow-md cursor-pointer flex items-center gap-2"
+                className="px-6 py-3.5 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-sm active:scale-95 transition-all shadow-md cursor-pointer flex items-center gap-2"
               >
                 <span>Book Pickup Now</span>
                 <span>→</span>
@@ -207,43 +200,33 @@ export function StorePage({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           {/* Left Column: Services & Rate Card (2 Cols) */}
           <div className="lg:col-span-2 space-y-5">
-            <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-              <div>
-                <h2 className="text-lg font-black text-zinc-950">Store Services &amp; Rate Card</h2>
-                <p className="text-xs text-zinc-500 font-medium">All prices include doorstep pickup, processing, and return delivery</p>
-              </div>
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                Live Pricing
-              </span>
+            <div className="pb-2 border-b border-zinc-200">
+              <h2 className="text-lg font-black text-zinc-950">Store Services &amp; Rate Card</h2>
+              <p className="text-xs text-zinc-500 font-medium">All prices include doorstep pickup, processing, and return delivery</p>
             </div>
 
             <div className="space-y-3.5">
               {STORE_SERVICES.map((srv) => (
                 <div
                   key={srv.id}
-                  className="rounded-2xl border border-zinc-200/90 bg-white p-5 hover:border-zinc-300 transition-all shadow-xs space-y-3"
+                  className="rounded-2xl border-2 border-zinc-200 hover:border-black bg-white p-5 transition-all duration-300 shadow-xs space-y-3"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-base font-black text-zinc-900">{srv.title}</h3>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">
-                          {srv.badge}
-                        </span>
-                      </div>
+                      <h3 className="text-base font-black text-zinc-900">{srv.title}</h3>
                       <p className="text-xs text-zinc-500">{srv.tagline}</p>
                     </div>
 
                     <div className="text-right shrink-0">
                       <p className="text-base font-black text-zinc-950">{srv.price}</p>
-                      <p className="text-[10.5px] font-bold text-emerald-700 mt-0.5">⏱ {srv.turnaround}</p>
+                      <p className="text-[10.5px] font-bold text-black mt-0.5">⏱ {srv.turnaround}</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-zinc-100">
                     {srv.details.map((dt, i) => (
                       <div key={i} className="flex items-center gap-2 text-xs text-zinc-600 font-medium">
-                        <span className="size-1.5 rounded-full bg-emerald-600 shrink-0" />
+                        <span className="size-1.5 rounded-full bg-black shrink-0" />
                         <span>{dt}</span>
                       </div>
                     ))}
@@ -255,11 +238,8 @@ export function StorePage({
 
           {/* Right Column: Store QR Standee & Smart Deep Link Card (1 Col Sticky) */}
           <div className="space-y-5 lg:sticky lg:top-28">
-            <div className="rounded-3xl border-2 border-dashed border-zinc-300 bg-white p-6 shadow-sm text-center space-y-4">
+            <div className="rounded-3xl border-2 border-zinc-200 hover:border-black bg-white p-6 shadow-sm text-center space-y-4 transition-all duration-300">
               <div className="space-y-1">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 text-zinc-800 text-[11px] font-mono font-bold uppercase tracking-wider">
-                  Store Standee QR Code
-                </span>
                 <h3 className="text-base font-black text-zinc-950">Scan with Phone to Order</h3>
                 <p className="text-xs text-zinc-500">
                   Open your mobile camera or scanner to launch this store directly in the QuickPress Customer App.
@@ -281,7 +261,7 @@ export function StorePage({
                   <button
                     type="button"
                     onClick={handleCopyLink}
-                    className="text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer"
+                    className="text-[11px] font-bold text-black hover:underline cursor-pointer"
                   >
                     {copiedLink ? "✓ Copied!" : "Copy Link"}
                   </button>
@@ -304,7 +284,7 @@ export function StorePage({
                   href={`https://wa.me/?text=${encodeURIComponent(`Order laundry & garment care from QuickPress Store Hub (${partnerId}):\n${canonicalStoreUrl}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-1.5"
+                  className="py-2.5 px-3 rounded-xl bg-[#22c55e] hover:bg-[#16a34a] text-xs font-black text-black transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-1.5"
                 >
                   <span>WhatsApp</span>
                 </a>
@@ -321,14 +301,14 @@ export function StorePage({
             </div>
 
             {/* Helpline Card */}
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-xs space-y-1.5">
+            <div className="rounded-2xl border-2 border-zinc-200 hover:border-black bg-zinc-50 p-4 text-xs space-y-1.5 transition-all">
               <p className="font-bold text-zinc-900">Need Assistance with this Store?</p>
               <p className="text-zinc-500">
                 Our central merchant dispatch desk is available 24x7 for pickups and garment inquiries.
               </p>
               <p className="font-bold text-zinc-950 pt-1">
-                Toll-Free: <a href="tel:18008897842" className="text-emerald-700 hover:underline">1800-889-QUICK</a> ·{" "}
-                <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 hover:underline">official.quickpress@gmail.com</a>
+                Customer Helpline: <a href="tel:+919258730561" className="text-black font-black hover:underline">+91 9258730561</a> ·{" "}
+                <a href="mailto:official.quickpress@gmail.com" className="text-black font-bold hover:underline">official.quickpress@gmail.com</a>
               </p>
             </div>
           </div>

@@ -81,12 +81,11 @@ export default function App() {
 
       if (storeMatch && storeMatch[1]) {
         const id = decodeURIComponent(storeMatch[1]);
-        setPartnerStoreId(id);
-        setCurrentPage("store");
-
-        // Device Check: If opened on mobile, instantly launch Customer APK (0.0002 ms) without intermediate redirect page!
+        // Device Check: If opened on mobile, instantly launch Customer APK directly
         if (isMobileOrTabletDevice() && !shouldBypassRedirect()) {
           triggerInstantAppLaunch(`partner/${id}`);
+        } else {
+          setCurrentPage("home");
         }
         return;
       }
@@ -105,38 +104,19 @@ export default function App() {
         return;
       }
 
-      // 3. Detect Programmatic City & Pan-India Landing Routes
-      // Examples: /laundry-service-in-delhi, /dry-cleaning-in-mumbai, /laundry-in-bangalore, /laundry-services-in-india
+      // 3. Remove Programmatic Mock Cities — Route directly to clean Home
       const cityMatch = target.match(
         /^(?:laundry|dry-cleaning|steam-ironing|shoe-cleaning|wash-fold)(?:-service|-services)?-in-([a-zA-Z0-9_-]+)/i
       );
 
-      if (cityMatch && cityMatch[1]) {
-        const rawCity = cityMatch[1].replace(/[-_]/g, " ");
-        setSelectedCityName(rawCity);
-
-        if (target.includes("dry-cleaning")) {
-          setCityServiceFocus("dry-cleaning");
-        } else if (target.includes("steam-ironing") || target.includes("steam-iron")) {
-          setCityServiceFocus("steam-iron");
-        } else if (target.includes("shoe-cleaning") || target.includes("shoe-spa")) {
-          setCityServiceFocus("shoe-cleaning");
-        } else {
-          setCityServiceFocus("laundry");
-        }
-        setCurrentPage("city-landing");
-        return;
-      }
-
       if (
+        cityMatch ||
         target === "india" ||
         target === "all-india" ||
         target === "laundry-india" ||
         target === "laundry-service-india"
       ) {
-        setSelectedCityName("All India");
-        setCityServiceFocus("laundry");
-        setCurrentPage("city-landing");
+        setCurrentPage("home");
         return;
       }
 

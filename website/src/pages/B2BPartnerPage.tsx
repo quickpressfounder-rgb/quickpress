@@ -271,13 +271,6 @@ export function B2BPartnerPage({
     <div className="min-h-screen bg-white text-zinc-900 pt-16 sm:pt-20 pb-24 selection:bg-black selection:text-white font-sans">
       {/* ── Top Official Government/Corporate Header ────────────────────────── */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center border-b border-zinc-200 pb-10 reveal-on-scroll">
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-zinc-300 bg-zinc-50 text-zinc-800 text-[11px] font-mono tracking-widest uppercase shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>OFFICIAL REGISTRATION PORTAL • FORM B2B-2026/V4</span>
-          </div>
-        </div>
-
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-black tracking-tight leading-tight uppercase font-mono">
           B2B Regular Bulk Order Setup
         </h1>
@@ -806,9 +799,6 @@ export function B2BPartnerPage({
                     <div className="border-2 border-black rounded-2xl p-4 bg-zinc-50 flex items-start justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded-full bg-black text-white text-[10px] font-mono font-bold uppercase">
-                            Recommended
-                          </span>
                           <h4 className="text-sm font-black text-black uppercase font-mono">
                             Schedule Free 25–50 kg Sample Test Wash
                           </h4>
@@ -944,10 +934,6 @@ export function B2BPartnerPage({
           <div className="bg-white border-2 border-black rounded-3xl shadow-2xl overflow-hidden animate-slide-up">
             {/* Header Stamp */}
             <div className="bg-black text-white p-6 sm:p-8 text-center border-b border-zinc-800">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-emerald-400 font-mono text-xs uppercase tracking-widest mb-3">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>OFFICIALLY REGISTERED • VERIFIED RECORD</span>
-              </div>
               <h2 className="text-2xl sm:text-3xl font-black uppercase font-mono tracking-tight">
                 B2B Bulk Order Partnership Approved
               </h2>
@@ -973,7 +959,7 @@ export function B2BPartnerPage({
                     title="Copy B2B ID"
                     className="p-2.5 rounded-xl border border-zinc-300 bg-white hover:bg-zinc-100 text-black cursor-pointer transition-colors"
                   >
-                    {copied ? <IconCheck className="w-4 h-4 text-emerald-600" /> : <IconCopy className="w-4 h-4" />}
+                    {copied ? <IconCheck className="w-4 h-4 text-black" /> : <IconCopy className="w-4 h-4" />}
                   </button>
                 </div>
                 <p className="text-xs text-zinc-500 font-mono mt-2">
@@ -1023,7 +1009,7 @@ export function B2BPartnerPage({
                   </div>
                   <div className="flex justify-between">
                     <span className="text-zinc-500">Sample Wash:</span>
-                    <span className="text-emerald-700 font-bold">
+                    <span className="text-black font-bold">
                       {formData.trialRequested ? `Confirmed: ${formData.trialDate}` : "Standard Contract"}
                     </span>
                   </div>

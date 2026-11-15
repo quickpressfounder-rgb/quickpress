@@ -55,7 +55,7 @@ export function Navbar({
         <Logo onClick={() => onNavigate("home")} />
         <button
           onClick={() => onNavigate("home")}
-          className="text-xs font-bold text-emerald-800 hover:text-emerald-950 px-3.5 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+          className="text-xs font-black text-black px-4 py-2 rounded-xl bg-[#22c55e] hover:bg-[#16a34a] transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105"
         >
           <span>←</span>
           <span>Back to Home</span>

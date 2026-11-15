@@ -1857,3 +1857,30 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
      - `admin-frontend` production build passed cleanly (`vite v8.2.1` & `nitro`).
      - Backend pytest suites `test_async_order_notifications.py` and `test_unified_finance_engine.py` passed 9/9 tests (3.50s).
 
+
+
+---
+
+## Date: 2026-11-15 (Website Brand Design Polish, Mock Data Elimination & Monochrome Border Harmonization)
+### Objectives Achieved:
+1. **Mock Data, Mock Cities & Mock Addresses Elimination:**
+   - Completely purged mock store addresses (e.g. Noida Bhutani Alphathum, fake store addresses) across the marketing website.
+   - Centralized official headquarters address strictly as: `0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India`.
+   - Replaced all legacy toll-free / mock phone numbers (`1800 012 3456`, `1800 889 QUICK`) with the official central helpline `+91 9258730561`.
+   - Programmatically routed mock city URLs (`/laundry-service-in-mumbai`, `/laundry-service-in-delhi`, etc.) directly to the clean Home page.
+2. **Complete Badge Pill Purge Across All Pages:**
+   - Removed all `rounded-full` badge pills (e.g., `DPDP Act 2023 Sec 5(3) Bilingual Notice`, `THE NORTH STAR • PURPOSE & AMBITION`, `EXPERIENCE THE DIFFERENCE`, `EST. 2024`, `FOUNDER & CHIEF EXECUTIVE OFFICER`, `AVG RESPONSE < 10 MINS`, `DEDICATED KEY ACCOUNT MANAGER`, `EXECUTIVE PRIORITY DESK`, `DEPARTMENT DIRECTORY`, `Most Popular`, `Daily Essential`, `Transparent National Rates`, etc.) from `HomePage`, `AboutPage`, `ContactPage`, `PrivacyPolicyPage`, `TermsPage`, `StorePage`, `CityLandingPage`, and `Modals.tsx`.
+3. **Monochrome Border Outlines & Hover Effects:**
+   - Converted all card containers, search bars, and dialogs from green borders (`border-emerald-200`, `border-[#22c55e]`) to sleek, responsive monochrome borders: `border-2 border-zinc-200 hover:border-black transition-all duration-300`.
+   - Converted input focus rings from `focus:border-emerald-600` to `focus:border-black focus:ring-black/10`.
+4. **Green Headings Preserved:**
+   - Strictly retained vibrant brand green styling on key headings per user specification:
+     - `Built to Simplify Everyday India.` (`AboutPage.tsx`)
+     - `Let's Connect Directly.` (`ContactPage.tsx`)
+     - `Delivered In Hours.` (`HomePage.tsx`)
+5. **Vector Icons Converted to Black:**
+   - Transformed all green vector icons (`IconZap`, `IconCheck`, `IconShieldCheck`, `IconMapPin`, `IconGooglePlay`, `IconCrosshair`, etc.) from emerald to solid black (`text-black`) with monochrome hover states.
+6. **Primary Action Buttons Standardized (Green with Solid Black Text):**
+   - Standardized all primary action and submit buttons to vibrant brand green with high-contrast, bold black text: `bg-[#22c55e] hover:bg-[#16a34a] text-black font-black`.
+7. **Verification & Testing:**
+   - Production build of `website` passed cleanly with exit code 0 (`vite build` in 887ms).

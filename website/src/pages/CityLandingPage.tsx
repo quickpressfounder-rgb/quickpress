@@ -341,16 +341,6 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry", cityNam
       <section className="relative overflow-hidden bg-gradient-to-b from-emerald-50/70 via-white to-slate-50 py-16 md:py-24 border-b border-slate-200/80">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="flex flex-col items-center text-center">
-            {/* National / Local Badge */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-100/70 px-4 py-1.5 text-xs font-bold text-emerald-900 shadow-2xs mb-6">
-              <IconMapPin className="size-3.5 text-emerald-700" />
-              <span>
-                {isNational
-                  ? "India's #1 On-Demand Garment Care Network • Pan-India Doorstep Dispatch"
-                  : `${displayCity} Verified Hub • 15-Minute Doorstep Dispatch`}
-              </span>
-            </div>
-
             {/* Main H1 */}
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-950 max-w-4xl leading-tight">
               {getH1()}
@@ -367,13 +357,13 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry", cityNam
                 <IconCheck className="size-3.5 text-emerald-600" /> 15-Min Doorstep Pickup
               </span>
               <span className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs">
-                <IconCheck className="size-3.5 text-emerald-600" /> 100% RO Water Wash
+                <IconCheck className="size-3.5 text-black" /> 100% RO Water Wash
               </span>
-              <span className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs">
-                <IconCheck className="size-3.5 text-emerald-600" /> 4-Digit Security OTP
+              <span className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs font-semibold">
+                <IconCheck className="size-3.5 text-black" /> 4-Digit Security OTP
               </span>
-              <span className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs">
-                <IconCheck className="size-3.5 text-emerald-600" /> Rated 4.9/5 Across India
+              <span className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs font-semibold">
+                <IconCheck className="size-3.5 text-black" /> Rated 4.9/5 Across India
               </span>
             </div>
 
@@ -382,18 +372,18 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry", cityNam
               <button
                 type="button"
                 onClick={handleGetStartedRedirect}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-7 py-3.5 text-sm font-bold text-white shadow-md hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#22c55e] hover:bg-[#16a34a] px-7 py-3.5 text-sm font-black text-black shadow-md active:scale-95 transition-all cursor-pointer"
               >
                 <span>Book Doorstep Pickup Now</span>
-                <IconArrowRight className="size-4" />
+                <IconArrowRight className="size-4 text-black" />
               </button>
               <a
                 href={`https://wa.me/919258730561?text=${encodeURIComponent(
-                  `Hi QuickPress, I want to book a laundry pickup in ${displayCity}`
+                  `Hi QuickPress, I want to book a laundry pickup`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3.5 text-sm font-bold text-slate-800 shadow-2xs hover:bg-slate-50 active:scale-95 transition-all"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border-2 border-zinc-200 hover:border-black bg-white px-6 py-3.5 text-sm font-bold text-black shadow-2xs hover:bg-slate-50 active:scale-95 transition-all"
               >
                 <span>WhatsApp Booking (+91 9258730561)</span>
               </a>
@@ -402,43 +392,12 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry", cityNam
         </div>
       </section>
 
-      {/* Coverage Map & Localities */}
-      <section className="py-12 bg-white border-b border-slate-200/80">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="text-center max-w-3xl mx-auto">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-950">
-              {isNational
-                ? "Active Metro & Regional Operating Hubs Across India"
-                : `Active Doorstep Pickup Zones in ${displayCity}`}
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              {isNational
-                ? "Our certified laundromat partners and delivery captains provide seamless doorstep service in key Indian urban hubs."
-                : `Our delivery fleet operates throughout ${displayCity} with guaranteed 15-minute collection response.`}
-            </p>
-          </div>
-
-          <div className="mt-8 flex flex-wrap justify-center gap-2 sm:gap-3 max-w-4xl mx-auto">
-            {activeAreas.map((area) => (
-              <span
-                key={area}
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-xs font-semibold text-slate-800"
-              >
-                <IconMapPin className="size-3 text-emerald-600" />
-                <span>{area}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Services & Live Pricing Table */}
       <section className="py-16 bg-slate-50 border-b border-slate-200/80">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="text-center max-w-3xl mx-auto mb-12">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Transparent National Rates</span>
-            <h2 className="mt-1 text-2xl sm:text-3xl font-black text-slate-950">
-              {displayCity} Service Menu & Delivery Timelines
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-950">
+              Service Menu &amp; Delivery Timelines
             </h2>
             <p className="mt-2 text-sm text-slate-600">
               Zero hidden fees. We weigh and inspect garments right at your doorstep before issuing digital receipt.
@@ -449,28 +408,25 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry", cityNam
             {LOCAL_SERVICES.map((s) => (
               <div
                 key={s.id}
-                className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-xs hover:border-emerald-300 hover:shadow-md transition-all"
+                className="flex flex-col justify-between rounded-2xl border-2 border-zinc-200 hover:border-black bg-white p-6 shadow-xs transition-all duration-300"
               >
                 <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 border border-emerald-100">
-                      {s.tag}
-                    </span>
-                    <span className="text-xs font-medium text-slate-500">{s.turnaround}</span>
+                  <div className="flex items-center justify-end gap-2">
+                    <span className="text-xs font-semibold text-slate-500">{s.turnaround}</span>
                   </div>
-                  <h3 className="mt-4 text-lg font-black text-slate-950">{s.title}</h3>
+                  <h3 className="mt-3 text-lg font-black text-slate-950">{s.title}</h3>
                   <p className="mt-2 text-xs text-slate-600 leading-relaxed">{s.highlight}</p>
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
-                  <div className="text-base font-black text-emerald-700">{s.price}</div>
+                  <div className="text-base font-black text-black">{s.price}</div>
                   <button
                     type="button"
                     onClick={handleGetStartedRedirect}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-slate-900 hover:text-emerald-700 cursor-pointer"
+                    className="inline-flex items-center gap-1 text-xs font-black text-black hover:underline cursor-pointer"
                   >
                     <span>Book</span>
-                    <IconArrowRight className="size-3.5" />
+                    <IconArrowRight className="size-3.5 text-black" />
                   </button>
                 </div>
               </div>
@@ -483,15 +439,14 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry", cityNam
       <section className="py-16 bg-white border-b border-slate-200/80">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="text-center max-w-3xl mx-auto mb-12">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Simple 3-Step Process</span>
-            <h2 className="mt-1 text-2xl sm:text-3xl font-black text-slate-950">
-              How Doorstep Laundry Works {isNational ? "Across India" : `in ${displayCity}`}
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-950">
+              How Doorstep Laundry Works
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-6 text-center">
-              <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 font-black text-lg mb-4">
+            <div className="rounded-2xl border-2 border-zinc-200 hover:border-black bg-white p-6 text-center transition-all duration-300">
+              <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-black border border-zinc-200 font-black text-lg mb-4">
                 1
               </div>
               <h3 className="text-base font-black text-slate-950">Schedule Pickup</h3>
@@ -500,8 +455,8 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry", cityNam
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-6 text-center">
-              <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 font-black text-lg mb-4">
+            <div className="rounded-2xl border-2 border-zinc-200 hover:border-black bg-white p-6 text-center transition-all duration-300">
+              <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-black border border-zinc-200 font-black text-lg mb-4">
                 2
               </div>
               <h3 className="text-base font-black text-slate-950">15-Min Collection & Washing</h3>
@@ -510,8 +465,8 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry", cityNam
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-6 text-center">
-              <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 font-black text-lg mb-4">
+            <div className="rounded-2xl border-2 border-zinc-200 hover:border-black bg-white p-6 text-center transition-all duration-300">
+              <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-black border border-zinc-200 font-black text-lg mb-4">
                 3
               </div>
               <h3 className="text-base font-black text-slate-950">Fresh Doorstep Delivery</h3>
@@ -527,8 +482,7 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry", cityNam
       <section className="py-16 bg-slate-50">
         <div className="mx-auto max-w-4xl px-4 sm:px-6">
           <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Got Questions?</span>
-            <h2 className="mt-1 text-2xl sm:text-3xl font-black text-slate-950">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-950">
               {displayCity} Laundry Service FAQs
             </h2>
           </div>
@@ -539,7 +493,7 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry", cityNam
               return (
                 <div
                   key={faq.q}
-                  className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs"
+                  className="rounded-xl border-2 border-zinc-200 hover:border-black bg-white overflow-hidden shadow-2xs transition-all duration-300"
                 >
                   <button
                     type="button"
@@ -547,7 +501,7 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry", cityNam
                     className="flex w-full items-center justify-between p-4 sm:p-5 text-left text-sm sm:text-base font-bold text-slate-900 cursor-pointer"
                   >
                     <span>{faq.q}</span>
-                    <span className="ml-3 shrink-0 text-emerald-600 text-lg font-black">
+                    <span className="ml-3 shrink-0 text-black text-lg font-black">
                       {isOpen ? "−" : "+"}
                     </span>
                   </button>
@@ -562,24 +516,24 @@ export function CityLandingPage({ onOpenModal, serviceFocus = "laundry", cityNam
           </div>
 
           {/* Bottom CTA Banner */}
-          <div className="mt-12 rounded-2xl bg-gradient-to-r from-emerald-800 to-emerald-950 p-8 text-center text-white shadow-lg">
+          <div className="mt-12 rounded-2xl bg-black p-8 text-center text-white shadow-lg border border-zinc-800">
             <h3 className="text-xl sm:text-2xl font-black">
               Ready for Fresh, Clean Clothes {isNational ? "in India" : `in ${displayCity}`}?
             </h3>
-            <p className="mt-2 text-xs sm:text-sm text-emerald-100 max-w-xl mx-auto">
+            <p className="mt-2 text-xs sm:text-sm text-zinc-300 max-w-xl mx-auto">
               Schedule your doorstep pickup in 60 seconds. Our delivery captain will arrive at your home within 15 minutes!
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <button
                 type="button"
                 onClick={handleGetStartedRedirect}
-                className="rounded-xl bg-white px-6 py-3 text-xs sm:text-sm font-bold text-emerald-950 hover:bg-emerald-50 active:scale-95 transition-all cursor-pointer"
+                className="rounded-xl bg-[#22c55e] hover:bg-[#16a34a] px-6 py-3 text-xs sm:text-sm font-black text-black active:scale-95 transition-all cursor-pointer shadow-md"
               >
                 Book Doorstep Pickup
               </button>
               <a
                 href="tel:+919258730561"
-                className="rounded-xl border border-emerald-400/40 bg-emerald-900/60 px-6 py-3 text-xs sm:text-sm font-bold text-white hover:bg-emerald-900 active:scale-95 transition-all"
+                className="rounded-xl border-2 border-zinc-700 hover:border-white bg-zinc-900 px-6 py-3 text-xs sm:text-sm font-bold text-white active:scale-95 transition-all"
               >
                 Call Support: +91 9258730561
               </a>

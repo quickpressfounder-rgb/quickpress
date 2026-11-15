@@ -205,11 +205,6 @@ export function AboutPage({
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] sm:w-[650px] h-[360px] sm:h-[650px] bg-emerald-100/50 rounded-full blur-3xl pointer-events-none animate-pulse" />
 
         <div className="relative z-10 space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border-2 border-emerald-300 text-emerald-800 text-xs font-mono font-bold tracking-widest uppercase shadow-md animate-spring-up">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e] animate-ping" />
-            <span>FOUNDER'S STORY • BORN IN KASGANJ, SERVING BHARAT</span>
-          </div>
-
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-black tracking-tight leading-[1.08] max-w-5xl mx-auto animate-pop-zoom">
             Born in Kasganj. <br />
             <span className="text-[#16a34a] relative inline-block">
@@ -226,7 +221,7 @@ export function AboutPage({
 
           {/* Quick Metrics Bar: Pure White Floating Cards */}
           <div className="pt-6 flex flex-wrap items-center justify-center gap-4 sm:gap-8 font-mono animate-pop-zoom">
-            <div className="bg-white border-2 border-zinc-200 hover:border-[#22c55e] rounded-2xl px-6 py-4 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-4">
+            <div className="bg-white border-2 border-zinc-200 hover:border-black rounded-2xl px-6 py-4 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-4">
               <span className="text-3xl sm:text-4xl font-black text-black">10-12m</span>
               <div className="text-xs text-zinc-600 leading-tight text-left">
                 <span className="font-black text-black block">Captain Dispatch</span>
@@ -234,15 +229,15 @@ export function AboutPage({
               </div>
             </div>
 
-            <div className="bg-white border-2 border-emerald-300 hover:border-[#16a34a] rounded-2xl px-6 py-4 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-4">
-              <span className="text-3xl sm:text-4xl font-black text-[#16a34a]">2 Hrs</span>
+            <div className="bg-white border-2 border-zinc-200 hover:border-black rounded-2xl px-6 py-4 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-4">
+              <span className="text-3xl sm:text-4xl font-black text-black">2 Hrs</span>
               <div className="text-xs text-zinc-600 leading-tight text-left">
                 <span className="font-black text-black block">Express Steam Press</span>
                 Emergency Turnaround
               </div>
             </div>
 
-            <div className="bg-white border-2 border-zinc-200 hover:border-[#22c55e] rounded-2xl px-6 py-4 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-4">
+            <div className="bg-white border-2 border-zinc-200 hover:border-black rounded-2xl px-6 py-4 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-4">
               <span className="text-3xl sm:text-4xl font-black text-black">Kasganj</span>
               <div className="text-xs text-zinc-600 leading-tight text-left">
                 <span className="font-black text-black block">Home Roots</span>
@@ -255,7 +250,7 @@ export function AboutPage({
 
       {/* ─── Founder Spotlight: Pure White Luxury Card ────────────────────── */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 reveal-on-scroll">
-        <div className="group relative rounded-3xl bg-white text-black p-8 sm:p-14 border-2 border-emerald-300 shadow-2xl overflow-hidden hover:border-[#22c55e] hover:shadow-emerald-500/15 transition-all duration-500 animate-spring-up hover:-translate-y-1">
+        <div className="group relative rounded-3xl bg-white text-black p-8 sm:p-14 border-2 border-zinc-200 shadow-xl overflow-hidden hover:border-black hover:shadow-2xl transition-all duration-500 animate-spring-up hover:-translate-y-1">
           {/* Subtle Radiant Emerald Glow */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-100/60 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-200/50 transition-all duration-500" />
 
@@ -263,11 +258,11 @@ export function AboutPage({
             {/* Left Column: Founder Bio & Vision */}
             <div className="lg:col-span-7 space-y-6">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="px-3.5 py-1.5 rounded-full bg-emerald-50 border-2 border-emerald-300 text-emerald-800 text-xs font-mono font-bold uppercase tracking-wider shadow-xs">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-black">
                   Founder & Chief Executive Officer
                 </span>
                 <span className="text-xs font-mono text-zinc-600 flex items-center gap-1.5 font-semibold">
-                  <IconMapPin className="w-4 h-4 text-[#16a34a]" />
+                  <IconMapPin className="w-4 h-4 text-black" />
                   <span>Kasganj, Uttar Pradesh</span>
                 </span>
               </div>
@@ -276,12 +271,12 @@ export function AboutPage({
                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-black">
                   Himanshu Pal
                 </h2>
-                <p className="text-sm font-mono text-[#16a34a] font-bold mt-1.5">
+                <p className="text-sm font-mono text-zinc-600 font-bold mt-1.5">
                   (Widely known to friends & community as Himanshu Baghel)
                 </p>
               </div>
 
-              <blockquote className="text-base sm:text-lg text-zinc-800 italic border-l-4 border-[#22c55e] bg-emerald-50/50 p-4 rounded-r-2xl leading-relaxed font-serif">
+              <blockquote className="text-base sm:text-lg text-zinc-800 italic border-l-4 border-black bg-zinc-50 hover:bg-zinc-100 p-4 rounded-r-2xl leading-relaxed font-serif transition-colors">
                 "We didn't build QuickPress sitting in an air-conditioned skyscraper in a metro city. We conceived it on the streets of Kasganj by listening to mothers scrubbing clothes with sore hands, students rushing for morning college, and local iron-wallahs battling erratic power cuts."
               </blockquote>
 
@@ -293,30 +288,14 @@ export function AboutPage({
                   Coupled with his deep self-taught mastery in <strong>Full Stack Engineering</strong>, high-throughput cloud architecture, and growth operations, he wrote the very first lines of QuickPress code to prove that world-class hyper-local technology can originate right out of Kasganj.
                 </p>
               </div>
-
-              {/* Founder Badges: Pure Vector Outline Icons (Zero Emojis) */}
-              <div className="flex flex-wrap gap-2.5 pt-2">
-                <span className="px-3.5 py-2 rounded-xl bg-white border-2 border-zinc-200 text-[11px] font-mono font-bold text-black shadow-xs hover:border-[#22c55e] transition-all flex items-center gap-2">
-                  <IconZap className="w-3.5 h-3.5 text-[#16a34a]" />
-                  <span>Full Stack Engineer & Architect</span>
-                </span>
-                <span className="px-3.5 py-2 rounded-xl bg-white border-2 border-zinc-200 text-[11px] font-mono font-bold text-black shadow-xs hover:border-[#22c55e] transition-all flex items-center gap-2">
-                  <IconGraduationCap className="w-3.5 h-3.5 text-[#16a34a]" />
-                  <span>Saraswati Vidya Mandir Alumnus</span>
-                </span>
-                <span className="px-3.5 py-2 rounded-xl bg-white border-2 border-zinc-200 text-[11px] font-mono font-bold text-black shadow-xs hover:border-[#22c55e] transition-all flex items-center gap-2">
-                  <IconTarget className="w-3.5 h-3.5 text-[#16a34a]" />
-                  <span>Grassroots Execution Leader</span>
-                </span>
-              </div>
             </div>
 
             {/* Right Column: Short Introduction Card & Official Overview */}
             <div className="lg:col-span-5 flex justify-center">
-              <div className="w-full max-w-md rounded-3xl bg-white border-2 border-zinc-200 p-6 sm:p-8 space-y-5 text-left relative shadow-xl hover:shadow-2xl hover:border-emerald-300 transition-all duration-300 animate-pop-zoom">
+              <div className="w-full max-w-md rounded-3xl bg-white border-2 border-zinc-200 p-6 sm:p-8 space-y-5 text-left relative shadow-xl hover:shadow-2xl hover:border-black transition-all duration-300 animate-pop-zoom">
                 <div className="flex items-center justify-between pb-4 border-b border-zinc-200">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-white border-2 border-emerald-300 overflow-hidden flex items-center justify-center p-1.5 shadow-sm">
+                    <div className="w-12 h-12 rounded-2xl bg-white border-2 border-zinc-200 hover:border-black overflow-hidden flex items-center justify-center p-1.5 shadow-sm transition-all">
                       <img src={logoLight} alt="QuickPress Logo" className="w-full h-auto object-contain" />
                     </div>
                     <div>
@@ -324,14 +303,14 @@ export function AboutPage({
                       <span className="text-[11px] text-zinc-600 font-mono font-semibold">Kasganj Headquarters</span>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono font-bold uppercase px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800">
+                  <span className="text-xs font-mono font-bold text-zinc-500 uppercase">
                     Est. 2024
                   </span>
                 </div>
 
                 {/* Short Introduction */}
                 <div className="space-y-2">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#16a34a] block">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-500 block">
                     SHORT INTRODUCTION
                   </span>
                   <p className="text-xs text-zinc-700 leading-relaxed font-sans font-medium">
@@ -351,7 +330,7 @@ export function AboutPage({
                   </div>
                   <div className="flex justify-between py-1 border-b border-zinc-100">
                     <span className="text-zinc-600 font-semibold">CIN:</span>
-                    <span className="font-mono text-[#16a34a] font-black text-right">U74999UP2024PTC198141</span>
+                    <span className="font-mono text-black font-black text-right">U74999UP2024PTC198141</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-zinc-100">
                     <span className="text-zinc-600 font-semibold">Registered Office:</span>
@@ -361,7 +340,7 @@ export function AboutPage({
                   </div>
                   <div className="flex justify-between py-1">
                     <span className="text-zinc-600 font-semibold">Founding Desk:</span>
-                    <span className="font-black text-[#16a34a]">Himanshu Pal & Rishab Baghel</span>
+                    <span className="font-black text-black">Himanshu Pal & Rishab Baghel</span>
                   </div>
                 </div>
 
@@ -370,23 +349,23 @@ export function AboutPage({
                   href="https://www.shrisurajprasaddagasvmickasganj.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3 rounded-2xl bg-white border border-zinc-200 hover:border-[#22c55e] hover:shadow-md transition-all text-left text-xs group cursor-pointer"
+                  className="flex items-center justify-between p-3 rounded-2xl bg-white border border-zinc-200 hover:border-black hover:shadow-md transition-all text-left text-xs group cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#16a34a] flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-zinc-100 text-black border border-zinc-200 group-hover:bg-black group-hover:text-white flex items-center justify-center shrink-0 transition-all">
                       <IconGraduationCap className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="font-bold text-black text-[11px] group-hover:text-[#16a34a] transition-colors">
+                      <div className="font-bold text-black text-[11px] group-hover:text-black transition-colors">
                         Suraj Prasad Daga SVM Inter College
                       </div>
                       <div className="text-[10px] text-zinc-500 font-mono">Alma Mater • Kasganj, UP</div>
                     </div>
                   </div>
-                  <IconExternalLink className="w-3.5 h-3.5 text-zinc-400 group-hover:text-[#16a34a] transition-colors" />
+                  <IconExternalLink className="w-3.5 h-3.5 text-zinc-400 group-hover:text-black transition-colors" />
                 </a>
 
-                <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-[11px] text-zinc-800 leading-relaxed font-sans font-medium">
+                <div className="p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200 hover:border-black text-[11px] text-zinc-800 leading-relaxed font-sans font-medium transition-all">
                   "Every garment handed to QuickPress represents someone's hard work, confidence, and trust. We treat it like our own family's clothes."
                 </div>
               </div>
@@ -398,9 +377,6 @@ export function AboutPage({
       {/* ─── The Problem Observed: The Everyday Household Struggle ─────────── */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 reveal-on-scroll">
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-12">
-          <span className="px-3.5 py-1 rounded-full bg-emerald-50 border-2 border-emerald-300 text-emerald-800 text-xs font-mono font-bold uppercase tracking-widest shadow-xs">
-            THE SPARK • WHY QUICKPRESS EXISTS
-          </span>
           <h2 className="text-3xl sm:text-5xl font-black text-black tracking-tight animate-pop-zoom">
             The Unspoken Struggle in 90 Million Indian Homes
           </h2>
@@ -480,41 +456,41 @@ export function AboutPage({
             </>
           ) : (
             <>
-              <div className="bg-white border-2 border-emerald-300 rounded-3xl p-7 space-y-4 hover:shadow-2xl hover:shadow-emerald-500/15 transition-all duration-300 hover:-translate-y-1.5 animate-pop-zoom">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-black flex items-center justify-center font-bold border border-emerald-300">
-                  <IconCheck className="w-6 h-6 text-[#16a34a]" />
+              <div className="group bg-white border-2 border-zinc-200 hover:border-black rounded-3xl p-7 space-y-4 hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 animate-pop-zoom">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-100 text-black flex items-center justify-center font-bold border border-zinc-200 group-hover:bg-black group-hover:text-white transition-all">
+                  <IconCheck className="w-6 h-6 text-black group-hover:text-white transition-colors" />
                 </div>
                 <h3 className="text-lg font-black text-black font-mono">10-Min Captain Doorstep Dispatch</h3>
                 <p className="text-xs sm:text-sm text-zinc-700 leading-relaxed font-medium">
                   Tap once on the QuickPress app. A verified delivery captain reaches your home within 10–12 minutes with a secure, waterproof sealable laundry bag. Zero weekend effort.
                 </p>
-                <div className="text-[11px] font-mono text-emerald-800 font-bold pt-2">
+                <div className="text-[11px] font-mono text-zinc-600 font-bold pt-2">
                   Reclaim your entire weekend for family & rest
                 </div>
               </div>
 
-              <div className="bg-white border-2 border-emerald-300 rounded-3xl p-7 space-y-4 hover:shadow-2xl hover:shadow-emerald-500/15 transition-all duration-300 hover:-translate-y-1.5 animate-pop-zoom">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-black flex items-center justify-center font-bold border border-emerald-300">
-                  <IconZap className="w-6 h-6 text-[#16a34a]" />
+              <div className="group bg-white border-2 border-zinc-200 hover:border-black rounded-3xl p-7 space-y-4 hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 animate-pop-zoom">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-100 text-black flex items-center justify-center font-bold border border-zinc-200 group-hover:bg-black group-hover:text-white transition-all">
+                  <IconZap className="w-6 h-6 text-black group-hover:text-white transition-colors" />
                 </div>
                 <h3 className="text-lg font-black text-black font-mono">2-Hour Express Steam Pressing</h3>
                 <p className="text-xs sm:text-sm text-zinc-700 leading-relaxed font-medium">
                   Got an urgent meeting or evening event? Choose Express Delivery. Italian vacuum steam tables remove wrinkles in seconds without burning delicate fabric, delivered back in 2 hours.
                 </p>
-                <div className="text-[11px] font-mono text-emerald-800 font-bold pt-2">
+                <div className="text-[11px] font-mono text-zinc-600 font-bold pt-2">
                   Crisp, wrinkle-free clothes when you need them most
                 </div>
               </div>
 
-              <div className="bg-white border-2 border-emerald-300 rounded-3xl p-7 space-y-4 hover:shadow-2xl hover:shadow-emerald-500/15 transition-all duration-300 hover:-translate-y-1.5 animate-pop-zoom">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-black flex items-center justify-center font-bold border border-emerald-300">
-                  <IconShieldCheck className="w-6 h-6 text-[#16a34a]" />
+              <div className="group bg-white border-2 border-zinc-200 hover:border-black rounded-3xl p-7 space-y-4 hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 animate-pop-zoom">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-100 text-black flex items-center justify-center font-bold border border-zinc-200 group-hover:bg-black group-hover:text-white transition-all">
+                  <IconShieldCheck className="w-6 h-6 text-black group-hover:text-white transition-colors" />
                 </div>
                 <h3 className="text-lg font-black text-black font-mono">Barcode Tracking & ₹5,000 Guarantee</h3>
                 <p className="text-xs sm:text-sm text-zinc-700 leading-relaxed font-medium">
                   Every garment is individually barcoded and photographed upon arrival. Processed with 80°C thermal anti-bacterial hygiene, backed by our ₹5,000 QuickPress Garment Care Guarantee.
                 </p>
-                <div className="text-[11px] font-mono text-emerald-800 font-bold pt-2">
+                <div className="text-[11px] font-mono text-zinc-600 font-bold pt-2">
                   100% Peace of mind & digital transparency
                 </div>
               </div>
@@ -526,10 +502,6 @@ export function AboutPage({
       {/* ─── Vision & Mission: Pure White with Vibrant Emerald Accents ─────── */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-zinc-200 reveal-on-scroll">
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-14">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border-2 border-emerald-300 text-emerald-800 text-xs font-mono font-bold tracking-widest uppercase shadow-xs animate-spring-up">
-            <IconCompass className="w-4 h-4 text-[#16a34a]" />
-            <span>THE NORTH STAR • PURPOSE & AMBITION</span>
-          </div>
           <h2 className="text-3xl sm:text-5xl font-black text-black tracking-tight animate-pop-zoom">
             Our Vision & Mission
           </h2>
@@ -539,12 +511,12 @@ export function AboutPage({
         </div>
 
         {/* Vision Hero Banner: Pure White with Emerald Radial Backdrop */}
-        <div className="group relative rounded-3xl bg-white text-black p-8 sm:p-12 border-2 border-emerald-300 shadow-2xl overflow-hidden hover:border-[#22c55e] hover:shadow-emerald-500/15 transition-all duration-500 mb-10 animate-spring-up hover:-translate-y-1">
+        <div className="group relative rounded-3xl bg-white text-black p-8 sm:p-12 border-2 border-zinc-200 shadow-xl overflow-hidden hover:border-black hover:shadow-2xl transition-all duration-500 mb-10 animate-spring-up hover:-translate-y-1">
           <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-100/50 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-200/40 transition-all duration-500" />
           <div className="relative z-10 grid lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-8 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border-2 border-emerald-300 text-emerald-800 text-xs font-mono font-bold uppercase tracking-wider">
-                <IconEye className="w-4 h-4 text-[#16a34a]" />
+              <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-black">
+                <IconEye className="w-4 h-4 text-black" />
                 <span>Our Vision</span>
               </div>
               <h3 className="text-2xl sm:text-4xl font-black text-black tracking-tight leading-snug">
@@ -556,16 +528,16 @@ export function AboutPage({
             </div>
 
             <div className="lg:col-span-4 grid grid-cols-1 gap-3 font-mono">
-              <div className="p-4 rounded-2xl bg-white border-2 border-emerald-200 shadow-sm hover:shadow-md hover:border-[#16a34a] hover:scale-[1.02] transition-all">
-                <div className="text-2xl sm:text-3xl font-black text-[#16a34a]">100+ Cities</div>
+              <div className="p-4 rounded-2xl bg-white border-2 border-zinc-200 shadow-sm hover:shadow-md hover:border-black hover:scale-[1.02] transition-all">
+                <div className="text-2xl sm:text-3xl font-black text-black">100+ Cities</div>
                 <div className="text-[11px] text-zinc-600 font-semibold">Expansion Target Across Bharat</div>
               </div>
               <div className="p-4 rounded-2xl bg-white border-2 border-zinc-200 shadow-sm hover:shadow-md hover:border-black hover:scale-[1.02] transition-all">
                 <div className="text-2xl sm:text-3xl font-black text-black">32+ Hours</div>
                 <div className="text-[11px] text-zinc-600 font-semibold">Reclaimed Per Month Per Household</div>
               </div>
-              <div className="p-4 rounded-2xl bg-white border-2 border-emerald-200 shadow-sm hover:shadow-md hover:border-[#16a34a] hover:scale-[1.02] transition-all">
-                <div className="text-2xl sm:text-3xl font-black text-[#16a34a]">25,000+</div>
+              <div className="p-4 rounded-2xl bg-white border-2 border-zinc-200 shadow-sm hover:shadow-md hover:border-black hover:scale-[1.02] transition-all">
+                <div className="text-2xl sm:text-3xl font-black text-black">25,000+</div>
                 <div className="text-[11px] text-zinc-600 font-semibold">Local Partners & Captains Empowered</div>
               </div>
             </div>
@@ -590,14 +562,14 @@ export function AboutPage({
             {MISSION_PILLARS.map((pillar) => (
               <div
                 key={pillar.number}
-                className="group relative bg-white border-2 border-zinc-200 hover:border-[#22c55e] rounded-3xl p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-500/10 flex flex-col justify-between hover:-translate-y-2 hover:scale-[1.02] animate-pop-zoom"
+                className="group relative bg-white border-2 border-zinc-200 hover:border-black rounded-3xl p-6 transition-all duration-300 hover:shadow-2xl flex flex-col justify-between hover:-translate-y-2 hover:scale-[1.02] animate-pop-zoom"
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-black text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-full">
+                    <span className="font-mono text-xs font-black text-black">
                       Pillar {pillar.number}
                     </span>
-                    <div className="w-10 h-10 rounded-xl bg-white border-2 border-zinc-200 flex items-center justify-center text-zinc-900 group-hover:bg-[#22c55e] group-hover:text-black group-hover:border-[#22c55e] transition-all shadow-xs">
+                    <div className="w-10 h-10 rounded-xl bg-white border-2 border-zinc-200 flex items-center justify-center text-zinc-900 group-hover:bg-black group-hover:text-white group-hover:border-black transition-all shadow-xs">
                       <pillar.icon className="w-5 h-5" />
                     </div>
                   </div>
@@ -612,7 +584,7 @@ export function AboutPage({
                 </div>
 
                 <div className="pt-4 mt-4 border-t border-zinc-100 text-[11px] font-mono font-bold text-black flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#22c55e]" />
+                  <span className="w-2 h-2 rounded-full bg-black" />
                   <span>{pillar.metric}</span>
                 </div>
               </div>
@@ -624,9 +596,6 @@ export function AboutPage({
       {/* ─── Interactive Journey & Milestones Timeline: Commenced 2024 ───────── */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 reveal-on-scroll">
         <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
-          <span className="px-3.5 py-1 rounded-full bg-white border-2 border-zinc-300 text-black text-xs font-mono font-bold uppercase tracking-wider shadow-xs">
-            THE CHRONOLOGY • FROM SCHOOL TO NATIONAL SCALE
-          </span>
           <h2 className="text-3xl sm:text-4xl font-black text-black tracking-tight animate-pop-zoom">
             From School Benches to National Scale
           </h2>
@@ -645,14 +614,14 @@ export function AboutPage({
                 onClick={() => setActiveMilestone(idx)}
                 className={`w-full text-left p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 ${
                   activeMilestone === idx
-                    ? "border-[#22c55e] bg-white text-black shadow-xl scale-[1.02] ring-2 ring-emerald-500/20"
-                    : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400 hover:scale-[1.01]"
+                    ? "border-black bg-white text-black shadow-xl scale-[1.02] ring-2 ring-black/10"
+                    : "border-zinc-200 bg-white text-zinc-700 hover:border-black hover:scale-[1.01]"
                 }`}
               >
                 <div
                   className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
                     activeMilestone === idx
-                      ? "bg-[#22c55e] border-[#16a34a] text-black shadow-md"
+                      ? "bg-black border-black text-white shadow-md"
                       : "bg-white border-zinc-200 text-zinc-700"
                   }`}
                 >
@@ -660,8 +629,8 @@ export function AboutPage({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-black text-[#16a34a]">{m.year}</span>
-                    <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800">
+                    <span className="font-mono text-xs font-black text-black">{m.year}</span>
+                    <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">
                       {m.badge}
                     </span>
                   </div>
@@ -675,7 +644,7 @@ export function AboutPage({
           <div className="lg:col-span-7 bg-white rounded-3xl p-8 sm:p-12 border-2 border-black shadow-2xl relative min-h-[320px] flex flex-col justify-between animate-pop-zoom">
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-zinc-200 pb-4">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-full">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-black">
                   {MILESTONES[activeMilestone].badge}
                 </span>
                 <span className="text-2xl font-black font-mono text-black">
@@ -697,7 +666,7 @@ export function AboutPage({
               <button
                 type="button"
                 onClick={() => setActiveMilestone((prev) => (prev + 1) % MILESTONES.length)}
-                className="text-black font-black hover:text-[#16a34a] transition-colors flex items-center gap-1.5 cursor-pointer hover:scale-105"
+                className="text-black font-black hover:text-zinc-600 transition-colors flex items-center gap-1.5 cursor-pointer hover:scale-105"
               >
                 <span>Next Milestone</span>
                 <IconArrowRight className="w-4 h-4" />
@@ -710,9 +679,6 @@ export function AboutPage({
       {/* ─── Leadership Team with Verified Social Handles & Alma Mater ──────── */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-zinc-200 reveal-on-scroll">
         <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
-          <span className="px-3.5 py-1 rounded-full bg-emerald-50 border-2 border-emerald-300 text-emerald-800 text-xs font-mono font-bold uppercase tracking-widest shadow-xs">
-            LEADERSHIP
-          </span>
           <h2 className="text-3xl sm:text-4xl font-black text-black tracking-tight animate-pop-zoom">
             Built by School Friends. Driven by Conviction.
           </h2>
@@ -723,9 +689,9 @@ export function AboutPage({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Himanshu Pal (Instagram, LinkedIn, Twitter/X, SVM College) */}
-          <div className="bg-white rounded-3xl p-8 border-2 border-[#22c55e] shadow-xl hover:shadow-2xl hover:border-[#16a34a] transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] space-y-5 animate-slide-left">
+          <div className="bg-white rounded-3xl p-8 border-2 border-zinc-200 hover:border-black shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] space-y-5 animate-slide-left">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-black text-white shadow-xs">
+              <span className="text-xs font-mono font-bold text-black uppercase tracking-wider">
                 Founder & CEO
               </span>
               <span className="text-xs font-mono text-zinc-500 font-bold">Kasganj, UP</span>
@@ -733,7 +699,7 @@ export function AboutPage({
 
             <div>
               <h3 className="text-2xl font-black text-black">Himanshu Pal</h3>
-              <p className="text-xs font-mono text-[#16a34a] font-bold">Himanshu Baghel</p>
+              <p className="text-xs font-mono text-zinc-600 font-bold">Himanshu Baghel</p>
             </div>
 
             <p className="text-xs text-zinc-700 leading-relaxed font-sans font-medium">
@@ -787,22 +753,22 @@ export function AboutPage({
                 href="https://www.shrisurajprasaddagasvmickasganj.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-between w-full p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 hover:border-[#22c55e] text-emerald-900 hover:text-black text-xs font-mono font-bold transition-all group cursor-pointer"
+                className="flex items-center justify-between w-full p-2.5 rounded-xl bg-zinc-50 border border-zinc-200 hover:border-black text-black text-xs font-mono font-bold transition-all group cursor-pointer"
               >
                 <div className="flex items-center gap-2">
-                  <IconGraduationCap className="w-4 h-4 text-[#16a34a]" />
+                  <IconGraduationCap className="w-4 h-4 text-black" />
                   <span>Suraj Prasad Daga SVM Inter College, Kasganj</span>
                 </div>
-                <IconExternalLink className="w-3.5 h-3.5 text-emerald-700 group-hover:translate-x-0.5 transition-transform" />
+                <IconExternalLink className="w-3.5 h-3.5 text-zinc-400 group-hover:text-black group-hover:translate-x-0.5 transition-all" />
               </a>
             </div>
           </div>
 
           {/* Rishab Baghel (ONLY Instagram as requested) */}
-          <div className="bg-white rounded-3xl p-8 border-2 border-zinc-300 hover:border-[#22c55e] shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] space-y-5 animate-slide-right flex flex-col justify-between">
+          <div className="bg-white rounded-3xl p-8 border-2 border-zinc-200 hover:border-black shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] space-y-5 animate-slide-right flex flex-col justify-between">
             <div className="space-y-5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white text-black border-2 border-zinc-300 shadow-xs">
+                <span className="text-xs font-mono font-bold text-black uppercase tracking-wider">
                   Co-Founder & Ops Lead
                 </span>
                 <span className="text-xs font-mono text-zinc-500 font-bold">Kasganj, UP</span>
@@ -842,19 +808,15 @@ export function AboutPage({
 
       {/* ─── Bottom CTA Banner: Pure White Radiant Card ───────────────────── */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 reveal-on-scroll">
-        <div className="bg-white text-black rounded-3xl p-8 sm:p-14 text-center space-y-6 border-2 border-[#22c55e] shadow-2xl relative overflow-hidden animate-spring-up hover:shadow-emerald-500/20 transition-all duration-500">
+        <div className="bg-white text-black rounded-3xl p-8 sm:p-14 text-center space-y-6 border-2 border-zinc-200 hover:border-black shadow-xl relative overflow-hidden animate-spring-up transition-all duration-500">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-100/60 rounded-full blur-3xl pointer-events-none" />
-
-          <span className="text-xs font-mono font-bold uppercase tracking-widest text-emerald-800 bg-emerald-50 px-4 py-1.5 rounded-full border-2 border-emerald-300 inline-block shadow-xs">
-            EXPERIENCE THE DIFFERENCE
-          </span>
 
           <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-black max-w-2xl mx-auto animate-pop-zoom">
             Ready to give up your weekend laundry chore?
           </h2>
 
           <p className="text-xs sm:text-base text-zinc-600 max-w-xl mx-auto leading-relaxed font-medium">
-            Join thousands of happy households across Kasganj, Noida, and NCR who trust QuickPress for fresh, hygienic, steam-pressed clothes.
+            Join households across Kasganj and Western UP who trust QuickPress for fresh, hygienic, steam-pressed clothes.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">

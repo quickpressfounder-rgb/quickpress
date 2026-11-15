@@ -131,10 +131,6 @@ export function TermsPage({
     <div className="bg-white text-gray-900 min-h-screen pt-16 sm:pt-20 pb-24">
       {/* ─── Hero Header ──────────────────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 mb-10 reveal-on-scroll">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold tracking-widest uppercase mb-4 shadow-xs">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-live-dot" />
-          <span>STATUTORY LEGAL & REGULATORY COMPLIANCE CENTER • INDIA</span>
-        </div>
         <h1 className="text-3xl sm:text-5xl font-black text-gray-950 leading-tight">
           Terms & <span style={{ color: GREEN }}>Legal Policies</span>
         </h1>
@@ -149,7 +145,7 @@ export function TermsPage({
           <span className="text-gray-300">•</span>
           <span><strong>CIN:</strong> U74999UP2024PTC198141</span>
           <span className="text-gray-300">•</span>
-          <span><strong>Phone:</strong> 1800 012 3456</span>
+          <span><strong>Phone:</strong> +91 9258730561</span>
           <span className="text-gray-300">•</span>
           <span><strong>Email:</strong> official.quickpress@gmail.com</span>
           <span className="text-gray-300">•</span>
@@ -192,20 +188,11 @@ export function TermsPage({
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 border ${
                     isActive
-                      ? "bg-emerald-50 text-emerald-950 border-emerald-300 shadow-xs ring-2 ring-emerald-600/10"
-                      : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:text-gray-900"
+                      ? "bg-zinc-100 text-black border-black shadow-xs ring-2 ring-black/10"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-gray-900"
                   }`}
                 >
                   <span>{tab.label}</span>
-                  <span
-                    className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ${
-                      isActive
-                        ? "bg-emerald-200 text-emerald-900"
-                        : "bg-gray-100 text-gray-500"
-                    }`}
-                  >
-                    {tab.badge}
-                  </span>
                 </button>
               );
             })}
@@ -230,10 +217,10 @@ export function TermsPage({
           {/* Active Tab Subtitle & Version Strip */}
           <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-gray-100">
             <div>
-              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 {TABS.find((t) => t.id === activeTab)?.subtitle}
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-gray-950 mt-2">
+              </p>
+              <h2 className="text-2xl sm:text-3xl font-black text-gray-950 mt-1">
                 {TABS.find((t) => t.id === activeTab)?.label}
               </h2>
             </div>
@@ -246,9 +233,9 @@ export function TermsPage({
 
           {/* Statutory Hindi Overview Card when Hindi is selected */}
           {lang === "hi" && (
-            <div className="p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-300 text-xs text-emerald-950 space-y-2">
-              <div className="flex items-center gap-2 font-bold text-emerald-900 text-sm">
-                <IconShield className="w-4 h-4 text-emerald-700" />
+            <div className="p-5 rounded-2xl bg-zinc-50 border-2 border-zinc-200 hover:border-black text-xs text-black space-y-2 transition-all">
+              <div className="flex items-center gap-2 font-bold text-black text-sm">
+                <IconShield className="w-4 h-4 text-black" />
                 <span>वैधानिक हिंदी सारांश — QuickPress कानूनी नियम</span>
               </div>
               <p className="leading-relaxed">
@@ -342,13 +329,13 @@ export function TermsPage({
 
               <section className="space-y-3">
                 <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">6</span>
+                  <span className="w-6 h-6 rounded-lg bg-zinc-100 text-black text-xs font-black flex items-center justify-center">6</span>
                   <span>Garment Care Guarantee & Liability Limitation</span>
                 </h3>
                 <p>
                   While our certified partner processing hubs follow rigorous textile preservation protocols, in the unlikely event of physical damage or loss directly attributable to certified processing negligence:
                 </p>
-                <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-xs text-emerald-950 space-y-1.5">
+                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs text-black space-y-1.5">
                   <p><strong>QuickPress Garment Care Guarantee:</strong></p>
                   <p>• Compensation is capped at up to <strong>₹5,000 per verified claim</strong> or 10x the service fee for that item (whichever is lower).</p>
                   <p>• Any damage claim must be reported within <strong>24 hours</strong> of delivery through the app or grievance email with clear photographic evidence.</p>
@@ -436,9 +423,9 @@ export function TermsPage({
                 <h3 className="text-lg font-black text-gray-950">
                   Payment Gateway Refund Timelines (Razorpay & Banking Cycle)
                 </h3>
-                <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 space-y-2 text-xs">
-                  <p className="font-bold text-emerald-950">Approved refunds are processed to your original payment method:</p>
-                  <ul className="list-disc pl-5 space-y-1 text-emerald-900">
+                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2 text-xs">
+                  <p className="font-bold text-black">Approved refunds are processed to your original payment method:</p>
+                  <ul className="list-disc pl-5 space-y-1 text-zinc-800">
                     <li><strong>QuickPress Wallet / In-App Credits:</strong> Instant credit (Available within 5 minutes of approval).</li>
                     <li><strong>UPI (Google Pay, PhonePe, Paytm, BHIM):</strong> 1 to 3 banking business days.</li>
                     <li><strong>Debit / Credit Cards & NetBanking:</strong> 5 to 7 working days, subject to the issuing bank's settlement cycle.</li>
@@ -527,10 +514,10 @@ export function TermsPage({
 
               <section className="space-y-3">
                 <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">5</span>
+                  <span className="w-6 h-6 rounded-lg bg-zinc-100 text-black text-xs font-black flex items-center justify-center">5</span>
                   <span>Statutory Liability Limitation (10x Cap / Max ₹3,000)</span>
                 </h3>
-                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 space-y-2">
+                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs text-black space-y-2">
                   <p className="font-bold">Indian Contract Act, 1872 (Section 151 & 152 Bailment Compliance):</p>
                   <p>
                     In the extraordinary and verified event of physical damage or loss directly attributable to our operational negligence:
@@ -618,7 +605,7 @@ export function TermsPage({
           {activeTab === "cookie" && (
             <div className="space-y-8 text-sm text-gray-700 leading-relaxed">
               {lang === "hi" && (
-                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 space-y-1">
+                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs text-black space-y-1">
                   <p className="font-bold">🍪 कुकी एवं डेटा ट्रैकिंग नीति:</p>
                   <p>हम आपकी लॉगिन सुरक्षा, शॉपिंग कार्ट और ऐप की स्पीड बनाए रखने के लिए आवश्यक कुकीज़ का उपयोग करते हैं। हम आपका व्यक्तिगत डेटा किसी भी तीसरे पक्ष के एड नेटवर्क को नहीं बेचते हैं। आप ब्राउज़र सेटिंग्स से कुकीज़ नियंत्रित कर सकते हैं।</p>
                 </div>
@@ -626,22 +613,21 @@ export function TermsPage({
 
               <section className="space-y-3">
                 <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">1</span>
+                  <span className="w-6 h-6 rounded-lg bg-zinc-100 text-black text-xs font-black flex items-center justify-center">1</span>
                   <span>Scope & Technologies Employed</span>
                 </h3>
                 <p>
-                  This Cookie Policy explains how <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> utilizes cookies, web beacons, pixel tags, LocalStorage, and IndexedDB across our website (<a href="https://withquickpress.com" className="text-emerald-700 underline font-mono">withquickpress.com</a>) and progressive web applications, in alignment with India's <strong>Digital Personal Data Protection Act, 2023 (DPDP Act)</strong>.
+                  This Cookie Policy explains how <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> utilizes cookies, web beacons, pixel tags, LocalStorage, and IndexedDB across our website (<a href="https://withquickpress.com" className="text-black underline font-mono">withquickpress.com</a>) and progressive web applications, in alignment with India's <strong>Digital Personal Data Protection Act, 2023 (DPDP Act)</strong>.
                 </p>
               </section>
 
               <section className="space-y-3">
                 <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">2</span>
+                  <span className="w-6 h-6 rounded-lg bg-zinc-100 text-black text-xs font-black flex items-center justify-center">2</span>
                   <span>Categorization of Cookies & Client Storage</span>
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-1.5">
-                    <span className="text-[10px] font-black uppercase text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">Always Active</span>
                     <h4 className="font-bold text-xs uppercase text-gray-950">1. Strictly Necessary Cookies</h4>
                     <p className="text-xs text-gray-600">
                       Essential for authentication, CSRF attack defense, JWT bearer validation, and preserving active cart items during checkout. These cannot be disabled.
@@ -649,7 +635,6 @@ export function TermsPage({
                   </div>
 
                   <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-1.5">
-                    <span className="text-[10px] font-black uppercase text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full">Preferences</span>
                     <h4 className="font-bold text-xs uppercase text-gray-950">2. Functional Storage</h4>
                     <p className="text-xs text-gray-600">
                       Stores language preference (English/Hindi), chosen pickup addresses, and UI theme options to ensure a frictionless return visit.
@@ -657,7 +642,6 @@ export function TermsPage({
                   </div>
 
                   <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-1.5">
-                    <span className="text-[10px] font-black uppercase text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full">Performance</span>
                     <h4 className="font-bold text-xs uppercase text-gray-950">3. Analytics & Speed Telemetry</h4>
                     <p className="text-xs text-gray-600">
                       Cookieless, privacy-preserving event telemetry (Plausible Analytics) to detect slow page loads, route errors, and API latencies without tracking across websites.
@@ -665,7 +649,6 @@ export function TermsPage({
                   </div>
 
                   <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-1.5">
-                    <span className="text-[10px] font-black uppercase text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">Marketing</span>
                     <h4 className="font-bold text-xs uppercase text-gray-950">4. Attribution & Referrals</h4>
                     <p className="text-xs text-gray-600">
                       Validates promotional discount codes, referral links, and app install attribution. We do not sell tracking profiles to third-party ad brokers.
@@ -676,7 +659,7 @@ export function TermsPage({
 
               <section className="space-y-3">
                 <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">3</span>
+                  <span className="w-6 h-6 rounded-lg bg-zinc-100 text-black text-xs font-black flex items-center justify-center">3</span>
                   <span>LocalStorage & Device Token Usage</span>
                 </h3>
                 <p>
@@ -692,7 +675,7 @@ export function TermsPage({
 
               <section className="space-y-3">
                 <h3 className="text-lg font-black text-gray-950 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">4</span>
+                  <span className="w-6 h-6 rounded-lg bg-zinc-100 text-black text-xs font-black flex items-center justify-center">4</span>
                   <span>User Rights & How to Control Cookies</span>
                 </h3>
                 <p>
@@ -719,10 +702,7 @@ export function TermsPage({
               {/* 3 Tier Architecture Cards */}
               <div className="space-y-4">
                 <div className="p-6 rounded-3xl bg-gray-50 border border-gray-200 space-y-2">
-                  <span className="text-[10px] font-black uppercase text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                    Tier 1 · First Contact
-                  </span>
-                  <h4 className="text-base font-black text-gray-950">Help & Support Desk</h4>
+                  <h4 className="text-base font-black text-gray-950">Tier 1 · Help & Support Desk</h4>
                   <p className="text-xs text-gray-600">
                     Accessible via the QuickPress Customer Mobile App ("Help & Support"), Website Contact Center, or by emailing <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline font-semibold">official.quickpress@gmail.com</a>.
                   </p>
@@ -731,31 +711,25 @@ export function TermsPage({
                   </p>
                 </div>
 
-                <div className="p-6 rounded-3xl bg-emerald-50/60 border-2 border-emerald-300 space-y-3">
-                  <span className="text-[10px] font-black uppercase text-emerald-900 bg-emerald-200 px-2.5 py-0.5 rounded-full">
-                    Tier 2 · Statutory Escalation
-                  </span>
-                  <h4 className="text-base font-black text-gray-950">Designated Grievance Officer</h4>
+                <div className="p-6 rounded-3xl bg-zinc-50 border-2 border-zinc-200 hover:border-black transition-all space-y-3">
+                  <h4 className="text-base font-black text-gray-950">Tier 2 · Designated Grievance Officer</h4>
                   <p className="text-xs text-gray-700">
                     If your complaint has not been redressed within 48 hours or you are dissatisfied with Tier 1 resolution, you may escalate directly to our designated Grievance Officer:
                   </p>
 
-                  <div className="bg-white p-4 rounded-2xl border border-emerald-200 text-xs font-mono space-y-1 text-gray-900">
+                  <div className="bg-white p-4 rounded-2xl border border-zinc-200 text-xs font-mono space-y-1 text-gray-900">
                     <p><strong>Legal Entity:</strong> QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</p>
                     <p><strong>Corporate Identity Number (CIN):</strong> U74999UP2024PTC198141</p>
                     <p><strong>Registered Office:</strong> 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India</p>
-                    <p><strong>Direct Email:</strong> <a href="mailto:info@withquickpress.com" className="text-emerald-700 underline font-bold">info@withquickpress.com</a> / <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline">official.quickpress@gmail.com</a></p>
-                    <p><strong>Official Phone / Helpdesk:</strong> <a href="tel:+919258730561" className="text-emerald-700 underline font-bold">+91 9258730561</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
+                    <p><strong>Direct Email:</strong> <a href="mailto:info@withquickpress.com" className="text-black underline font-bold">info@withquickpress.com</a> / <a href="mailto:official.quickpress@gmail.com" className="text-black underline">official.quickpress@gmail.com</a></p>
+                    <p><strong>Official Phone / Helpdesk:</strong> <a href="tel:+919258730561" className="text-black underline font-bold">+91 9258730561</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
                     <p><strong>Statutory Acknowledgment:</strong> Within 48 Hours with unique CRM Ticket ID</p>
                     <p><strong>Mandatory Disposal Timeline:</strong> Within 30 Days of receipt of complaint</p>
                   </div>
                 </div>
 
                 <div className="p-6 rounded-3xl bg-gray-50 border border-gray-200 space-y-2">
-                  <span className="text-[10px] font-black uppercase text-gray-600 bg-gray-200 px-2.5 py-0.5 rounded-full">
-                    Tier 3 · Regulatory Liaison
-                  </span>
-                  <h4 className="text-base font-black text-gray-950">Nodal Officer (Law Enforcement Coordination)</h4>
+                  <h4 className="text-base font-black text-gray-950">Tier 3 · Nodal Officer (Law Enforcement Coordination)</h4>
                   <p className="text-xs text-gray-600">
                     For statutory cyber-crime law enforcement agencies, consumer fora, and judicial requisitions:
                   </p>

@@ -564,17 +564,17 @@ export function HomePage({
 
           {/* ─── Dual Search Bar: Location (Kasganj & Operational Areas) + Service Search ─── */}
           <div className="max-w-3xl mx-auto relative animate-pop-zoom">
-            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-emerald-950/5 border-2 border-emerald-600/30 p-2 sm:p-2.5 flex flex-col md:flex-row items-stretch gap-2 transition-all duration-200 focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/10">
+            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-black/5 border-2 border-zinc-200 hover:border-black p-2 sm:p-2.5 flex flex-col md:flex-row items-stretch gap-2 transition-all duration-300 focus-within:border-black focus-within:ring-4 focus-within:ring-black/5">
               {/* Left Segment: Location Selector with Live GPS Detection */}
               <div className="relative md:w-5/12">
-                <div className="w-full h-full px-3 py-2 rounded-xl sm:rounded-2xl bg-gray-50/90 hover:bg-gray-100/90 transition-colors flex items-center justify-between gap-2 text-left border border-transparent focus-within:border-emerald-300">
+                <div className="w-full h-full px-3 py-2 rounded-xl sm:rounded-2xl bg-gray-50/90 hover:bg-gray-100/90 transition-colors flex items-center justify-between gap-2 text-left border border-transparent focus-within:border-zinc-300">
                   <button
                     type="button"
                     onClick={() => setIsLocationDropdownOpen((prev) => !prev)}
                     className="flex items-center gap-2.5 min-w-0 flex-1 text-left cursor-pointer"
                   >
                     <IconMapPin
-                      className={`w-5 h-5 shrink-0 ${isServiceAvailable ? "text-emerald-700" : "text-amber-600 animate-pulse"
+                      className={`w-5 h-5 shrink-0 ${isServiceAvailable ? "text-black" : "text-amber-600 animate-pulse"
                         }`}
                     />
                     <div className="min-w-0">
@@ -582,11 +582,11 @@ export function HomePage({
                         {selectedLocation}
                       </span>
                       <span
-                        className={`text-[10px] font-semibold flex items-center gap-1 ${isServiceAvailable ? "text-emerald-700" : "text-amber-700 font-bold"
+                        className={`text-[10px] font-semibold flex items-center gap-1 ${isServiceAvailable ? "text-zinc-600" : "text-amber-700 font-bold"
                           }`}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${isServiceAvailable ? "bg-emerald-500 animate-live-dot" : "bg-amber-500"
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${isServiceAvailable ? "bg-[#22c55e] animate-live-dot" : "bg-amber-500"
                             }`}
                         />
                         {isServiceAvailable ? "45-min pickup active" : "Unavailable area"}
@@ -603,10 +603,10 @@ export function HomePage({
                         e.stopPropagation();
                         handleDetectCurrentLocation();
                       }}
-                      className="p-1.5 rounded-lg bg-emerald-100/80 hover:bg-emerald-200 text-emerald-800 transition-all cursor-pointer shadow-2xs hover:scale-105"
+                      className="p-1.5 rounded-lg bg-zinc-100 hover:bg-black hover:text-white text-black transition-all cursor-pointer shadow-2xs hover:scale-105 border border-zinc-200"
                     >
                       <IconCrosshair
-                        className={`w-4 h-4 ${isDetectingLocation ? "animate-spin text-emerald-700" : ""}`}
+                        className={`w-4 h-4 ${isDetectingLocation ? "animate-spin text-black" : "text-black"}`}
                       />
                     </button>
 
@@ -631,32 +631,32 @@ export function HomePage({
                       <button
                         type="button"
                         onClick={handleDetectCurrentLocation}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 text-emerald-950 font-bold text-xs flex items-center justify-between transition-all cursor-pointer shadow-2xs group"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-50 hover:bg-black hover:text-white border border-zinc-200 text-black font-bold text-xs flex items-center justify-between transition-all cursor-pointer shadow-2xs group"
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-emerald-700 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                          <div className="w-7 h-7 rounded-lg bg-zinc-200 group-hover:bg-zinc-800 text-black group-hover:text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-all">
                             <IconCrosshair
                               className={`w-4 h-4 ${isDetectingLocation ? "animate-spin" : ""}`}
                             />
                           </div>
                           <div>
-                            <span className="block font-black text-emerald-950 text-left">
+                            <span className="block font-black text-black group-hover:text-white text-left">
                               {isDetectingLocation ? "Detecting Live GPS..." : "Detect My Live Location"}
                             </span>
-                            <span className="text-[10px] text-emerald-800 font-medium block text-left">
+                            <span className="text-[10px] text-zinc-500 group-hover:text-zinc-300 font-medium block text-left">
                               Auto GPS check & 45-min pickup validation
                             </span>
                           </div>
                         </div>
-                        <span className="text-[10px] font-black text-emerald-700 bg-white px-2 py-0.5 rounded shadow-2xs">
+                        <span className="text-[10px] font-black text-black bg-white px-2 py-0.5 rounded shadow-2xs group-hover:bg-zinc-800 group-hover:text-white">
                           GPS
                         </span>
                       </button>
                     </div>
 
-                    <div className="px-4 py-2 text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50/50 flex items-center justify-between">
+                    <div className="px-4 py-2 text-[10px] font-black uppercase tracking-wider text-black bg-zinc-100 flex items-center justify-between">
                       <span>Available Operational Zones (Kasganj Hub)</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-live-dot" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-black animate-live-dot" />
                     </div>
                     {OPERATIONAL_LOCALITIES.map((loc) => (
                       <button
@@ -664,15 +664,15 @@ export function HomePage({
                         type="button"
                         onClick={() => handleSelectLocality(loc)}
                         className={`w-full px-4 py-2 text-xs flex items-center justify-between text-left cursor-pointer transition-colors ${selectedLocation === loc.name
-                            ? "bg-emerald-50 text-emerald-950 font-bold"
-                            : "text-gray-700 hover:bg-gray-50 hover:text-emerald-900"
+                            ? "bg-zinc-100 text-black font-bold"
+                            : "text-gray-700 hover:bg-zinc-50 hover:text-black"
                           }`}
                       >
                         <div className="truncate">
                           <span className="truncate block font-semibold">{loc.name}</span>
                           <span className="text-[10px] text-gray-400 block">{loc.places}</span>
                         </div>
-                        <span className="text-[10px] text-emerald-700 font-bold shrink-0">{loc.eta}</span>
+                        <span className="text-[10px] text-black font-bold shrink-0">{loc.eta}</span>
                       </button>
                     ))}
 
@@ -729,13 +729,12 @@ export function HomePage({
                 <button
                   type="button"
                   onClick={() => handleServiceClick()}
-                  className="px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-bold text-white text-xs sm:text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shrink-0 ml-1 flex items-center gap-1.5 whitespace-nowrap"
-                  style={{ background: GREEN }}
+                  className="px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black text-black text-xs sm:text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shrink-0 ml-1 flex items-center gap-1.5 whitespace-nowrap bg-[#22c55e] hover:bg-[#16a34a]"
                 >
                   <span className="hidden xs:inline sm:inline">Explore</span>
                   <span className="inline xs:hidden sm:hidden">Find</span>
                   <span className="hidden sm:inline">Services</span>
-                  <IconArrowRight className="w-3.5 h-3.5" />
+                  <IconArrowRight className="w-3.5 h-3.5 text-black" />
                 </button>
 
                 {/* Instant Search Suggestions Dropdown */}
@@ -791,7 +790,7 @@ export function HomePage({
                   <button
                     type="button"
                     onClick={handleSwitchToKasganj}
-                    className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs whitespace-nowrap"
+                    className="px-3.5 py-2 bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-xs rounded-xl transition-all cursor-pointer shadow-xs whitespace-nowrap"
                   >
                     Switch to Kasganj Hub
                   </button>
@@ -820,7 +819,7 @@ export function HomePage({
                   key={pill.label}
                   type="button"
                   onClick={() => handleServiceClick(pill.id)}
-                  className="px-3 py-1 rounded-full bg-white border border-gray-200/90 text-gray-700 hover:text-emerald-900 hover:border-emerald-400 hover:bg-emerald-50/50 transition-all font-semibold text-[11px] cursor-pointer shadow-2xs"
+                  className="px-3 py-1 rounded-full bg-white border border-zinc-200 text-zinc-800 hover:text-black hover:border-black hover:bg-zinc-50 transition-all font-semibold text-[11px] cursor-pointer shadow-2xs"
                 >
                   {pill.label}
                 </button>
@@ -848,7 +847,7 @@ export function HomePage({
                   }}
                   className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/75 hover:bg-white text-gray-900 border border-gray-300 hover:border-gray-900 shadow-sm hover:shadow-md backdrop-blur-md hover:scale-105 active:scale-95 transition-all duration-300 group cursor-pointer"
                 >
-                  <IconGooglePlay className="w-6 h-6 text-emerald-600 shrink-0 group-hover:scale-110 transition-transform" />
+                  <IconGooglePlay className="w-6 h-6 text-black shrink-0 group-hover:scale-110 transition-transform" />
                   <div className="text-left">
                     <span className="text-[9px] uppercase font-bold text-gray-500 block tracking-wider leading-none">
                       GET IT ON
@@ -884,12 +883,12 @@ export function HomePage({
                   const el = document.getElementById("the-three-cards");
                   if (el) el.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="pt-2 inline-flex flex-col items-center gap-1 text-xs font-bold text-gray-500 hover:text-emerald-700 transition-colors cursor-pointer group"
+                className="pt-2 inline-flex flex-col items-center gap-1 text-xs font-bold text-gray-500 hover:text-black transition-colors cursor-pointer group"
               >
-                <span className="text-[11px] tracking-wider uppercase font-semibold text-gray-400 group-hover:text-emerald-700">
+                <span className="text-[11px] tracking-wider uppercase font-semibold text-gray-400 group-hover:text-black">
                   Scroll down to explore
                 </span>
-                <span className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center animate-bounce shadow-xs border border-emerald-100 group-hover:bg-emerald-100 font-black">
+                <span className="w-7 h-7 rounded-full bg-zinc-100 text-black flex items-center justify-center animate-bounce shadow-xs border border-zinc-200 group-hover:bg-black group-hover:text-white font-black transition-colors">
                   ⌵
                 </span>
               </button>
@@ -968,10 +967,10 @@ export function HomePage({
                 a.download = "QuickPress-Captain.apk";
                 a.click();
               }}
-              className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border border-emerald-200/70 bg-gradient-to-b from-[#ECFDF5]/80 via-[#F7FEFA] to-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 cursor-pointer group relative overflow-hidden reveal-on-scroll delay-300"
+              className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border-2 border-zinc-200 hover:border-black bg-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-300 cursor-pointer group relative overflow-hidden reveal-on-scroll delay-300"
             >
               {/* Big Real Captain Squircle Logo */}
-              <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-[36px] bg-white shadow-xl shadow-emerald-900/15 flex items-center justify-center p-3 mb-8 group-hover:scale-108 transition-transform duration-500 overflow-hidden border border-emerald-100">
+              <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-[36px] bg-white shadow-xl flex items-center justify-center p-3 mb-8 group-hover:scale-108 transition-transform duration-500 overflow-hidden border border-zinc-200">
                 <img
                   src={captainLogo}
                   alt="QuickPress Captain Fleet"
@@ -988,7 +987,7 @@ export function HomePage({
                 </p>
               </div>
 
-              <div className="text-sm sm:text-base font-black text-emerald-800 flex items-center gap-1.5 group-hover:gap-3 transition-all mt-4">
+              <div className="text-sm sm:text-base font-black text-black flex items-center gap-1.5 group-hover:gap-3 transition-all mt-4">
                 <span>Check it out</span>
                 <span className="text-xs">▶</span>
               </div>
@@ -1043,8 +1042,8 @@ export function HomePage({
                   }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
-                    <IconShield className="w-6 h-6 text-emerald-600" />
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-100 text-black border border-zinc-200 flex items-center justify-center shrink-0 shadow-2xs">
+                    <IconShield className="w-6 h-6 text-black" />
                   </div>
                   <div>
                     <span className="text-sm font-black text-gray-900 block">Eco Mode</span>
@@ -1145,8 +1144,8 @@ export function HomePage({
                 className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${activeFeatureHover === "gps-route" ? "ring-2 ring-emerald-500 scale-110 shadow-xl" : ""
                   }`}
               >
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
-                  <IconVan className="w-6 h-6 text-emerald-600" />
+                <div className="w-12 h-12 rounded-2xl bg-zinc-100 text-black border border-zinc-200 flex items-center justify-center shrink-0 shadow-2xs">
+                  <IconVan className="w-6 h-6 text-black" />
                 </div>
                 <div>
                   <span className="text-sm font-black text-gray-900 block">Live GPS Telemetry</span>
@@ -1161,8 +1160,8 @@ export function HomePage({
                 className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${activeFeatureHover === "express" ? "ring-2 ring-emerald-500 scale-110 shadow-xl" : ""
                   }`}
               >
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 shadow-2xs">
-                  <IconBolt className="w-6 h-6 text-emerald-600" />
+                <div className="w-12 h-12 rounded-2xl bg-zinc-100 text-black border border-zinc-200 flex items-center justify-center shrink-0 shadow-2xs">
+                  <IconBolt className="w-6 h-6 text-black" />
                 </div>
                 <div>
                   <span className="text-sm font-black text-gray-900 block">Express 4-Hour</span>
@@ -1199,9 +1198,6 @@ export function HomePage({
       {/* ─── 4. Email Link Dispatch Tool ─────────────────────────────────────────────── */}
       <section className="py-12 bg-white border-t border-gray-100 reveal-on-scroll">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-            Instant Email Dispatch
-          </span>
           <h3 className="text-xl sm:text-2xl font-black text-gray-950 mt-2 mb-2">
             Receive Download Links Directly in Your Inbox
           </h3>
@@ -1216,13 +1212,12 @@ export function HomePage({
               onChange={(e) => setEmailInput(e.target.value)}
               placeholder="Enter your email address"
               required
-              className="flex-1 px-4 py-3 rounded-2xl border border-gray-300 text-xs sm:text-sm text-gray-900 focus:outline-none focus:border-emerald-600 bg-white shadow-2xs"
+              className="flex-1 px-4 py-3 rounded-2xl border border-gray-300 text-xs sm:text-sm text-gray-900 focus:outline-none focus:border-black bg-white shadow-2xs"
             />
             <button
               type="submit"
               disabled={isSubmittingEmail}
-              className="px-6 py-3 rounded-2xl font-bold text-white text-xs sm:text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shrink-0 disabled:opacity-50"
-              style={{ background: GREEN }}
+              className="px-6 py-3 rounded-2xl font-black text-black text-xs sm:text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shrink-0 disabled:opacity-50 bg-[#22c55e] hover:bg-[#16a34a]"
             >
               {isSubmittingEmail ? "Sending..." : "Send Links to Email"}
             </button>
@@ -1239,7 +1234,7 @@ export function HomePage({
       {/* ─── 5. "Download the app now!" QR Card (Screenshot 5 - Green Theme at Page End) ─ */}
       <section className="py-16 sm:py-24 bg-white border-t border-gray-100 reveal-on-scroll">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="rounded-[36px] bg-gradient-to-r from-emerald-50/70 via-emerald-50/30 to-white border border-emerald-100 p-8 sm:p-12 lg:p-14 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 sm:gap-12">
+          <div className="rounded-[36px] bg-white border-2 border-zinc-200 hover:border-black p-8 sm:p-12 lg:p-14 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 sm:gap-12 transition-all duration-300">
             {/* Background Aesthetic Waves */}
             <div className="absolute -right-20 -top-20 w-80 h-80 rounded-full border border-emerald-200/40 pointer-events-none" />
             <div className="absolute -right-10 -top-10 w-96 h-96 rounded-full border border-emerald-200/20 pointer-events-none" />
@@ -1262,7 +1257,7 @@ export function HomePage({
                   onClick={() => onOpenModal("download_app")}
                   className="px-5 py-2.5 rounded-2xl bg-black hover:bg-gray-900 text-white flex items-center gap-2.5 shadow-md hover:scale-105 transition-all cursor-pointer"
                 >
-                  <IconGooglePlay className="w-5 h-5 text-emerald-400" />
+                  <IconGooglePlay className="w-5 h-5 text-white" />
                   <div className="text-left">
                     <span className="text-[8px] uppercase tracking-wider text-gray-400 block leading-none">GET IT ON</span>
                     <span className="text-xs sm:text-sm font-bold block leading-tight">Google Play</span>
@@ -1374,10 +1369,7 @@ export function HomePage({
       <section className="py-16 sm:py-24 bg-gray-50/70 border-t border-gray-100 reveal-on-scroll">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <span className="text-xs font-black uppercase tracking-widest text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
-              Got Questions?
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-black text-gray-950 mt-3 tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-black text-gray-950 tracking-tight">
               Frequently Asked Questions
             </h2>
             <p className="text-xs sm:text-sm text-gray-500 mt-1">

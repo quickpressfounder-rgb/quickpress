@@ -130,12 +130,6 @@ export function BookingModal({
 
         {!isSubmitted ? (
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-600" />
-              <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
-                QuickPress Instant Booking
-              </span>
-            </div>
             <h3 className="text-2xl font-black text-gray-900 mb-1">Schedule a Service</h3>
             <p className="text-xs sm:text-sm text-gray-500 mb-6">
               Select your service and pickup window for instant courier dispatch.
@@ -153,10 +147,10 @@ export function BookingModal({
                       type="button"
                       key={s.id}
                       onClick={() => setSelectedService(s.id)}
-                      className={`p-3 rounded-xl border text-left text-xs font-bold transition-all cursor-pointer ${
+                      className={`p-3 rounded-xl border-2 text-left text-xs font-bold transition-all cursor-pointer ${
                         selectedService === s.id
-                          ? "border-emerald-600 bg-emerald-50/80 text-emerald-950 ring-2 ring-emerald-600/20"
-                          : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                          ? "border-black bg-zinc-100 text-black ring-2 ring-black/10"
+                          : "border-zinc-200 text-gray-700 hover:border-black hover:bg-zinc-50"
                       }`}
                     >
                       <div>{s.title}</div>
@@ -174,10 +168,10 @@ export function BookingModal({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Unit 406 Tower B, Bhutani Alphathum, Sector 90, Noida"
+                  placeholder="e.g. Flat/House No, Building, Landmark, Area"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black"
                 />
               </div>
 
@@ -189,7 +183,7 @@ export function BookingModal({
                 <select
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600 bg-white"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black bg-white"
                 >
                   <option>Today, Immediate Window (Under 45m)</option>
                   <option>Today, Afternoon (2:00 PM – 4:00 PM)</option>
@@ -209,7 +203,7 @@ export function BookingModal({
                   placeholder="e.g. Leave with doorman, delicate garment"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black"
                 />
               </div>
 
@@ -226,8 +220,7 @@ export function BookingModal({
 
                 <button
                   type="submit"
-                  className="px-6 py-3 rounded-full font-bold text-white text-sm shadow-lg hover:scale-105 transition-all cursor-pointer"
-                  style={{ background: GREEN }}
+                  className="px-6 py-3 rounded-full font-black text-black text-sm shadow-lg hover:scale-105 transition-all cursor-pointer bg-[#22c55e] hover:bg-[#16a34a]"
                 >
                   Confirm Booking →
                 </button>
@@ -235,11 +228,11 @@ export function BookingModal({
 
               <p className="text-[11px] text-gray-500 text-center mt-3 leading-relaxed">
                 By creating an account, you acknowledge that you have read and understood our{" "}
-                <a href="#privacy" onClick={onClose} className="text-emerald-700 font-bold underline">
+                <a href="#privacy" onClick={onClose} className="text-black font-bold underline">
                   Privacy Policy
                 </a>{" "}
                 and agree to the applicable{" "}
-                <a href="#terms" onClick={onClose} className="text-emerald-700 font-bold underline">
+                <a href="#terms" onClick={onClose} className="text-black font-bold underline">
                   Terms & Conditions
                 </a>.
               </p>
@@ -261,7 +254,7 @@ export function BookingModal({
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Pickup Address:</span>
-                <span className="font-bold text-gray-900 truncate max-w-[200px]">{address || "Bhutani Alphathum, Sector 90, Noida"}</span>
+                <span className="font-bold text-gray-900 truncate max-w-[200px]">{address || "Doorstep Address"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Scheduled Slot:</span>
@@ -354,7 +347,7 @@ export function PartnerModal({
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600 bg-white"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black bg-white"
                 >
                   <option>Commercial Laundromat / Dry Cleaner Store Partner</option>
                   <option>Independent Delivery Captain / Fleet Partner</option>
@@ -372,10 +365,10 @@ export function PartnerModal({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Noida, Delhi-NCR"
+                    placeholder="e.g. Kasganj, UP"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black"
                   />
                 </div>
                 <div>
@@ -388,7 +381,7 @@ export function PartnerModal({
                     placeholder="+91 98765 43210"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black"
                   />
                 </div>
               </div>
@@ -403,7 +396,7 @@ export function PartnerModal({
                   placeholder="contact@yourbusiness.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black"
                 />
               </div>
 
@@ -417,7 +410,7 @@ export function PartnerModal({
                 </button>
                 <p className="text-[11px] text-gray-500 text-center mt-2.5">
                   Your information will be used to respond to your request. See our{" "}
-                  <a href="#privacy" onClick={onClose} className="text-emerald-700 font-bold underline">
+                  <a href="#privacy" onClick={onClose} className="text-black font-bold underline">
                     Privacy Policy
                   </a>{" "}
                   for more information.
@@ -464,7 +457,7 @@ export function ContactModal({
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [city, setCity] = useState("Noida");
+  const [city, setCity] = useState("Kasganj");
   const [pincode, setPincode] = useState("");
   const [details, setDetails] = useState("");
   const [message, setMessage] = useState("");
@@ -512,15 +505,14 @@ export function ContactModal({
         {!submitted ? (
           <div className="space-y-6">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-black tracking-widest uppercase mb-2 border border-emerald-200">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-live-dot" />
-                QuickPress Help & Contact Center
-              </div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                QuickPress Help &amp; Contact Center
+              </p>
               <h3 className="text-2xl sm:text-3xl font-black text-gray-950">
                 How Can We Help You Today?
               </h3>
               <p className="text-xs sm:text-sm text-gray-500 mt-1 leading-relaxed">
-                Select your inquiry category below. Our dedicated specialist team in Noida HQ will respond within <strong>2 business hours</strong>.
+                Select your inquiry category below. Our dedicated specialist team will respond within <strong>2 business hours</strong>.
               </p>
             </div>
 
@@ -539,14 +531,14 @@ export function ContactModal({
                       onClick={() => setInquiryType(t.id as any)}
                       className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                         isSelected
-                          ? "bg-white text-emerald-950 border-2 border-emerald-600 shadow-md ring-2 ring-emerald-500/20"
+                          ? "bg-zinc-100 text-black border-2 border-black shadow-md ring-2 ring-black/10"
                           : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
                       }`}
                     >
-                      <span className={`text-xs font-black block ${isSelected ? "text-emerald-900" : "text-gray-900"}`}>
+                      <span className={`text-xs font-black block ${isSelected ? "text-black" : "text-gray-900"}`}>
                         {t.label}
                       </span>
-                      <span className={`text-[10px] mt-1 leading-tight block ${isSelected ? "text-emerald-700" : "text-gray-500"}`}>
+                      <span className={`text-[10px] mt-1 leading-tight block ${isSelected ? "text-zinc-600" : "text-gray-500"}`}>
                         {t.desc}
                       </span>
                     </button>
@@ -568,7 +560,7 @@ export function ContactModal({
                     placeholder="e.g. Amit Sharma / Rahul Verma"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600 bg-white"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black bg-white"
                   />
                 </div>
 
@@ -582,7 +574,7 @@ export function ContactModal({
                     placeholder="+91 98765 43210"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600 bg-white"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black bg-white"
                   />
                 </div>
               </div>
@@ -598,7 +590,7 @@ export function ContactModal({
                     placeholder="name@gmail.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600 bg-white"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black bg-white"
                   />
                 </div>
 
@@ -609,25 +601,25 @@ export function ContactModal({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Noida / Delhi / Gurugram"
+                    placeholder="e.g. Kasganj / Agra / Aligarh"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600 bg-white"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black bg-white"
                   />
                 </div>
               </div>
 
               {/* Dynamic Field Based on Selected Category */}
               {inquiryType === "partner" && (
-                <div className="p-3.5 bg-emerald-50/70 rounded-2xl border border-emerald-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-emerald-950 uppercase mb-1">
+                    <label className="block text-[11px] font-bold text-zinc-950 uppercase mb-1">
                       Business Facility Type
                     </label>
                     <select
                       value={details}
                       onChange={(e) => setDetails(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-emerald-300 text-xs font-bold text-gray-900 bg-white focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-zinc-300 text-xs font-bold text-gray-900 bg-white focus:outline-none focus:border-black"
                     >
                       <option value="Laundromat / Wash & Fold Store">Laundromat / Wash & Fold Store</option>
                       <option value="Dry Cleaner & Steam Press Plant">Dry Cleaner & Steam Press Facility</option>
@@ -636,24 +628,24 @@ export function ContactModal({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-emerald-950 uppercase mb-1">
-                      Target Noida Sector / Pincode
+                    <label className="block text-[11px] font-bold text-zinc-950 uppercase mb-1">
+                      Target Area / Pincode
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Sector 62 / 75 Noida (201301)"
+                      placeholder="e.g. Bilram Gate / Pincode 207123"
                       value={pincode}
                       onChange={(e) => setPincode(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-emerald-300 text-xs text-gray-900 bg-white focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-zinc-300 text-xs text-gray-900 bg-white focus:outline-none focus:border-black"
                     />
                   </div>
                 </div>
               )}
 
               {inquiryType === "customer_help" && (
-                <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-emerald-950 uppercase mb-1">
+                    <label className="block text-[11px] font-bold text-zinc-950 uppercase mb-1">
                       Order ID (if applicable)
                     </label>
                     <input
@@ -661,19 +653,19 @@ export function ContactModal({
                       placeholder="e.g. QP-94820"
                       value={details}
                       onChange={(e) => setDetails(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-emerald-300 text-xs text-gray-900 bg-white focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-zinc-300 text-xs text-gray-900 bg-white focus:outline-none focus:border-black"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-emerald-950 uppercase mb-1">
-                      Delivery Address / Society
+                    <label className="block text-[11px] font-bold text-zinc-950 uppercase mb-1">
+                      Delivery Address / Area
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Paras Tierea, Sector 137"
+                      placeholder="e.g. Bilram Gate, Kasganj"
                       value={pincode}
                       onChange={(e) => setPincode(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-emerald-300 text-xs text-gray-900 bg-white focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-zinc-300 text-xs text-gray-900 bg-white focus:outline-none focus:border-black"
                     />
                   </div>
                 </div>
@@ -689,17 +681,17 @@ export function ContactModal({
                   placeholder="Please describe your query, location, or questions..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600 bg-white"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black bg-white"
                 />
               </div>
 
               {/* Official Office Footer Stamp */}
               <div className="p-3 bg-gray-50 rounded-xl border border-gray-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between text-[11px] text-gray-500 gap-2">
                 <div>
-                  <span className="font-black text-gray-900 block">QUICKPRESS HQ Noida</span>
-                  <span>Unit 406 Tower B, Bhutani Alphathum, Sector 90, Noida</span>
+                  <span className="font-black text-gray-900 block">QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</span>
+                  <span>0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, UP - 207123</span>
                 </div>
-                <div className="text-right sm:text-right font-semibold text-emerald-800">
+                <div className="text-right sm:text-right font-semibold text-black">
                   official.quickpress@gmail.com
                 </div>
               </div>
@@ -707,14 +699,13 @@ export function ContactModal({
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full py-4 rounded-full font-black text-white text-sm shadow-xl hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center gap-2"
-                  style={{ background: GREEN }}
+                  className="w-full py-4 rounded-full font-black text-black text-sm shadow-xl hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center gap-2 bg-[#22c55e] hover:bg-[#16a34a]"
                 >
                   <span>Submit Inquiry →</span>
                 </button>
                 <p className="text-[11px] text-gray-500 text-center mt-2.5">
                   Your information will be used to respond to your request. See our{" "}
-                  <a href="#privacy" onClick={onClose} className="text-emerald-700 font-bold underline">
+                  <a href="#privacy" onClick={onClose} className="text-black font-bold underline">
                     Privacy Policy
                   </a>{" "}
                   for more information.
@@ -731,7 +722,7 @@ export function ContactModal({
               Inquiry Successfully Dispatched!
             </h3>
             <p className="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-              Thank you, <strong>{name}</strong>. Your inquiry for <strong>{inquiryType.toUpperCase()}</strong> has been routed directly to our Noida HQ operations desk. We will call you on <strong>{phone}</strong> and email <strong>{email}</strong> within 2 hours.
+              Thank you, <strong>{name}</strong>. Your inquiry for <strong>{inquiryType.toUpperCase()}</strong> has been routed directly to our operations desk. We will call you on <strong>{phone}</strong> and email <strong>{email}</strong> within 2 hours.
             </p>
             <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 max-w-sm mx-auto text-xs text-emerald-900 font-semibold">
               Support Reference: #QP-INQ-{Math.floor(100000 + Math.random() * 900000)}
@@ -795,7 +786,7 @@ export function JobApplyModal({
 
         {!isSubmitted ? (
           <div>
-            <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block mb-2">
+            <span className="text-xs font-mono font-bold text-black uppercase tracking-wider block mb-2">
               {job.dept} • {job.type}
             </span>
             <h3 className="text-2xl font-black text-gray-900 mb-1">Apply for {job.title}</h3>
@@ -812,7 +803,7 @@ export function JobApplyModal({
                   placeholder="Taylor Smith"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black"
                 />
               </div>
 
@@ -824,7 +815,7 @@ export function JobApplyModal({
                   placeholder="taylor@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black"
                 />
               </div>
 
@@ -835,7 +826,7 @@ export function JobApplyModal({
                   placeholder="https://linkedin.com/in/taylorsmith"
                   value={portfolio}
                   onChange={(e) => setPortfolio(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black"
                 />
               </div>
 
@@ -846,21 +837,20 @@ export function JobApplyModal({
                   placeholder="Tell us about your experience..."
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black"
                 />
               </div>
 
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-full font-bold text-white text-sm shadow-md hover:scale-[1.02] transition-all cursor-pointer"
-                  style={{ background: GREEN }}
+                  className="w-full py-3.5 rounded-full font-black text-black text-sm shadow-md hover:scale-[1.02] transition-all cursor-pointer bg-[#22c55e] hover:bg-[#16a34a]"
                 >
                   Submit Application →
                 </button>
                 <p className="text-[11px] text-gray-500 text-center mt-2.5">
                   Your information will be used to process your application. See our{" "}
-                  <a href="#privacy" onClick={onClose} className="text-emerald-700 font-bold underline">
+                  <a href="#privacy" onClick={onClose} className="text-black font-bold underline">
                     Privacy Policy
                   </a>{" "}
                   for more information.
@@ -928,10 +918,6 @@ export function DownloadAppModal({
         </button>
 
         <div className="text-center space-y-3 mb-8">
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold uppercase tracking-wider border border-emerald-100">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-live-dot" />
-            QuickPress Mobile App
-          </span>
           <h3 className="text-2xl sm:text-4xl font-black text-gray-950">
             Download the QuickPress App
           </h3>
@@ -948,7 +934,7 @@ export function DownloadAppModal({
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => onShowToast("Redirecting to Apple App Store...")}
-            className="flex items-center gap-3.5 p-4 rounded-2xl bg-white text-gray-950 border-2 border-gray-200 hover:border-emerald-600 transition-all shadow-sm hover:shadow-md hover:scale-[1.02] cursor-pointer group"
+            className="flex items-center gap-3.5 p-4 rounded-2xl bg-white text-gray-950 border-2 border-zinc-200 hover:border-black transition-all shadow-sm hover:shadow-md hover:scale-[1.02] cursor-pointer group"
           >
             <IconApple className="w-8 h-8 text-gray-950 shrink-0 group-hover:scale-110 transition-transform" />
             <div className="text-left">
@@ -974,9 +960,9 @@ export function DownloadAppModal({
                 onShowToast("Opening QuickPress on Google Play...");
               }
             }}
-            className="flex items-center gap-3.5 p-4 rounded-2xl bg-white text-gray-950 border-2 border-gray-200 hover:border-emerald-600 transition-all shadow-sm hover:shadow-md hover:scale-[1.02] cursor-pointer group"
+            className="flex items-center gap-3.5 p-4 rounded-2xl bg-white text-gray-950 border-2 border-zinc-200 hover:border-black transition-all shadow-sm hover:shadow-md hover:scale-[1.02] cursor-pointer group"
           >
-            <IconGooglePlay className="w-8 h-8 text-emerald-600 shrink-0 group-hover:scale-110 transition-transform" />
+            <IconGooglePlay className="w-8 h-8 text-black shrink-0 group-hover:scale-110 transition-transform" />
             <div className="text-left">
               <span className="text-[10px] uppercase font-semibold text-gray-500 block leading-tight">
                 GET IT ON
@@ -989,7 +975,7 @@ export function DownloadAppModal({
         </div>
 
         {/* QR Code & SMS Link Box */}
-        <div className="bg-slate-50 text-gray-950 rounded-2xl p-6 border-2 border-emerald-100 grid sm:grid-cols-12 gap-6 items-center mb-6">
+        <div className="bg-slate-50 text-gray-950 rounded-2xl p-6 border-2 border-zinc-200 hover:border-black grid sm:grid-cols-12 gap-6 items-center mb-6 transition-all">
           <div className="sm:col-span-4 flex flex-col items-center justify-center p-3 bg-white rounded-xl shadow-xs border border-gray-200 text-center">
             {/* SVG Visual QR Code */}
             <svg className="w-24 h-24 text-gray-950" viewBox="0 0 100 100" fill="currentColor">
@@ -1008,7 +994,7 @@ export function DownloadAppModal({
               <rect x="42" y="24" width="6" height="6" />
               <rect x="10" y="45" width="6" height="6" />
               <rect x="25" y="45" width="6" height="6" />
-              <rect x="40" y="40" width="20" height="20" rx="3" fill="#1A7A3C" />
+              <rect x="40" y="40" width="20" height="20" rx="3" fill="#000000" />
               <rect x="70" y="45" width="6" height="6" />
               <rect x="85" y="45" width="6" height="6" />
               <rect x="42" y="70" width="6" height="6" />
@@ -1031,16 +1017,16 @@ export function DownloadAppModal({
                 placeholder="+91 98765 43210"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400 text-xs focus:outline-none focus:border-emerald-600"
+                className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400 text-xs focus:outline-none focus:border-black"
               />
               <button
                 type="submit"
-                className="px-4 py-2.5 rounded-xl bg-emerald-700 text-white font-black text-xs hover:bg-emerald-800 transition-all cursor-pointer shrink-0"
+                className="px-4 py-2.5 rounded-xl bg-[#22c55e] text-black font-black text-xs hover:bg-[#16a34a] transition-all cursor-pointer shrink-0"
               >
                 {linkSent ? "Link Sent ✓" : "Send Link"}
               </button>
             </form>
-            <p className="text-[10px] text-emerald-300/60">
+            <p className="text-[10px] text-zinc-500">
               Free download • Compatible with iOS 15.0+ and Android 9.0+
             </p>
           </div>
