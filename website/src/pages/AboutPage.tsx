@@ -290,83 +290,72 @@ export function AboutPage({
               </div>
             </div>
 
-            {/* Right Column: Short Introduction Card & Official Overview */}
+            {/* Right Column: Founder Professional Executive Portrait Frame */}
             <div className="lg:col-span-5 flex justify-center">
-              <div className="w-full max-w-md rounded-3xl bg-white border-2 border-zinc-200 p-6 sm:p-8 space-y-5 text-left relative shadow-xl hover:shadow-2xl hover:border-black transition-all duration-300 animate-pop-zoom">
-                <div className="flex items-center justify-between pb-4 border-b border-zinc-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-white border-2 border-zinc-200 hover:border-black overflow-hidden flex items-center justify-center p-1.5 shadow-sm transition-all">
-                      <img src={logoLight} alt="QuickPress Logo" className="w-full h-auto object-contain" />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-sm text-black font-mono">QuickPress</h4>
-                      <span className="text-[11px] text-zinc-600 font-mono font-semibold">Kasganj Headquarters</span>
-                    </div>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-zinc-500 uppercase">
-                    Est. 2024
-                  </span>
-                </div>
+              <div className="w-full max-w-md rounded-3xl bg-white border-2 border-zinc-200 hover:border-black p-3 sm:p-4 shadow-xl hover:shadow-2xl transition-all duration-500 animate-pop-zoom group/frame flex flex-col justify-between">
+                {/* Photo Viewport / Canvas */}
+                <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden bg-gradient-to-b from-zinc-100 via-zinc-50 to-zinc-200/80 border border-zinc-200/80 flex flex-col items-center justify-center p-6 text-center group-hover/frame:border-zinc-400 transition-all duration-300">
+                  {/* Studio Corner Crop Marks */}
+                  <div className="absolute top-3 left-3 w-3 h-3 border-t-2 border-l-2 border-zinc-400/60 pointer-events-none" />
+                  <div className="absolute top-3 right-3 w-3 h-3 border-t-2 border-r-2 border-zinc-400/60 pointer-events-none" />
+                  <div className="absolute bottom-3 left-3 w-3 h-3 border-b-2 border-l-2 border-zinc-400/60 pointer-events-none" />
+                  <div className="absolute bottom-3 right-3 w-3 h-3 border-b-2 border-r-2 border-zinc-400/60 pointer-events-none" />
 
-                {/* Short Introduction */}
-                <div className="space-y-2">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-500 block">
-                    SHORT INTRODUCTION
-                  </span>
-                  <p className="text-xs text-zinc-700 leading-relaxed font-sans font-medium">
-                    QuickPress is India's on-demand hyper-local garment care network. Launched on the ground in Kasganj in 2024, our proprietary 3-app technology connects everyday households with local partner laundromat hubs — delivering 10–12 minute captain pickups, 2-hour express steam pressing, and medical-grade 80°C thermal fabric care.
-                  </p>
-                </div>
-
-                {/* Company Details Table */}
-                <div className="space-y-3 text-xs font-mono pt-2 border-t border-zinc-100">
-                  <div className="flex justify-between py-1 border-b border-zinc-100">
-                    <span className="text-zinc-600 font-semibold">Operations Started:</span>
-                    <span className="font-black text-black text-right">2024 (Kasganj, UP)</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-zinc-100">
-                    <span className="text-zinc-600 font-semibold">Corporate Brand:</span>
-                    <span className="font-black text-black text-right">QuickPress</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-zinc-100">
-                    <span className="text-zinc-600 font-semibold">CIN:</span>
-                    <span className="font-mono text-black font-black text-right">U74999UP2024PTC198141</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-zinc-100">
-                    <span className="text-zinc-600 font-semibold">Registered Office:</span>
-                    <span className="text-black font-bold text-right max-w-[170px] truncate" title="0, Jail Road, Nagla Beni, Kasganj, UP">
-                      Jail Road, Kasganj, UP
+                  {/* Top Header Badge inside Photo Frame */}
+                  <div className="absolute top-4 inset-x-0 flex justify-center pointer-events-none">
+                    <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-zinc-500 bg-white/85 backdrop-blur-md px-3 py-1 rounded-full border border-zinc-200 shadow-2xs">
+                      Official Executive Portrait
                     </span>
                   </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-zinc-600 font-semibold">Founding Desk:</span>
-                    <span className="font-black text-black">Himanshu Pal & Rishab Baghel</span>
+
+                  {/* Centered Professional Silhouette / Portrait Placeholder */}
+                  <div className="flex flex-col items-center justify-center space-y-4 my-auto">
+                    <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white border-2 border-zinc-300 group-hover/frame:border-black group-hover/frame:scale-105 shadow-md flex items-center justify-center text-zinc-400 group-hover/frame:text-black transition-all duration-300">
+                      <svg
+                        className="w-14 h-14 sm:w-16 sm:h-16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-xs font-mono font-bold text-zinc-800 tracking-wider uppercase">
+                        Portrait Frame
+                      </p>
+                      <p className="text-[11px] font-mono text-zinc-500">
+                        Reserved for Founder &amp; CEO
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Bottom Studio Watermark */}
+                  <div className="absolute bottom-3 inset-x-0 flex justify-center pointer-events-none">
+                    <span className="text-[10px] font-mono text-zinc-400 tracking-wider">
+                      QuickPress Leadership • Kasganj Hub
+                    </span>
                   </div>
                 </div>
 
-                {/* SVM Alma Mater Link */}
-                <a
-                  href="https://www.shrisurajprasaddagasvmickasganj.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3 rounded-2xl bg-white border border-zinc-200 hover:border-black hover:shadow-md transition-all text-left text-xs group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-zinc-100 text-black border border-zinc-200 group-hover:bg-black group-hover:text-white flex items-center justify-center shrink-0 transition-all">
-                      <IconGraduationCap className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="font-bold text-black text-[11px] group-hover:text-black transition-colors">
-                        Suraj Prasad Daga SVM Inter College
-                      </div>
-                      <div className="text-[10px] text-zinc-500 font-mono">Alma Mater • Kasganj, UP</div>
-                    </div>
+                {/* Executive Plaque / Nameplate Below Photo */}
+                <div className="pt-3 px-2 flex items-center justify-between">
+                  <div className="text-left">
+                    <h4 className="text-base font-black text-black tracking-tight leading-tight">
+                      Himanshu Pal
+                    </h4>
+                    <p className="text-xs font-mono text-zinc-600 font-semibold mt-0.5">
+                      Founder &amp; Chief Executive Officer
+                    </p>
                   </div>
-                  <IconExternalLink className="w-3.5 h-3.5 text-zinc-400 group-hover:text-black transition-colors" />
-                </a>
-
-                <div className="p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200 hover:border-black text-[11px] text-zinc-800 leading-relaxed font-sans font-medium transition-all">
-                  "Every garment handed to QuickPress represents someone's hard work, confidence, and trust. We treat it like our own family's clothes."
+                  <div className="w-9 h-9 rounded-xl bg-zinc-100 border border-zinc-200 flex items-center justify-center p-1.5 shadow-2xs group-hover/frame:border-black transition-colors shrink-0">
+                    <img src={logoLight} alt="QuickPress" className="w-full h-auto object-contain" />
+                  </div>
                 </div>
               </div>
             </div>

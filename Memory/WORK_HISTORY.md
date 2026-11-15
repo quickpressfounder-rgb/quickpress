@@ -1884,3 +1884,8 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
    - Standardized all primary action and submit buttons to vibrant brand green with high-contrast, bold black text: `bg-[#22c55e] hover:bg-[#16a34a] text-black font-black`.
 7. **Verification & Testing:**
    - Production build of `website` passed cleanly with exit code 0 (`vite build` in 887ms).
+
+8. **Founder Spotlight Executive Photo Frame (`AboutPage.tsx`):**
+   - Replaced the right-side text overview card with a high-end, responsive professional executive portrait frame for Founder & CEO **Himanshu Pal**.
+   - Built a sleek 4:5 aspect ratio studio viewport with minimalist corner crop viewfinder marks, luxury radial gradient lighting, centered portrait silhouette avatar, and official executive plaque with QuickPress insignia.
+   - Clean architecture prepared so when the founder photo is provided, it seamlessly renders inside the frame.
