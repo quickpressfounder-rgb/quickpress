@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { apiUrl } from "@/utils/api";
 import { PageType, ModalType } from "@/types";
 
 export function InvestorRelationsPage({
@@ -14,10 +15,29 @@ export function InvestorRelationsPage({
   const [investorPhone, setInvestorPhone] = useState("");
   const [inquiryType, setInquiryType] = useState("data_room");
   const [message, setMessage] = useState("");
+  const [isConsultation, setIsConsultation] = useState(true);
   const [requestSubmitted, setRequestSubmitted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      fetch(apiUrl("/api/public/contact-inquiries"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: `${investorName} (${investorFirm})`,
+          phone: investorPhone,
+          email: investorEmail,
+          inquiryType: "investor",
+          city: "Institutional Desk",
+          details: `Inquiry: ${inquiryType} | Firm: ${investorFirm}`,
+          message: message || `Investor inquiry for ${inquiryType}`,
+          isConsultation,
+        }),
+      }).catch(() => {});
+    } catch {
+      // Ignored
+    }
     setRequestSubmitted(true);
   };
 
@@ -280,6 +300,24 @@ export function InvestorRelationsPage({
                   className="w-full px-4 py-2.5 rounded-xl border-2 border-zinc-200 text-xs text-black focus:outline-none focus:border-black bg-white font-medium"
                 />
               </div>
+
+              {/* Consultation / Executive Briefing Checkbox */}
+              <label className="flex items-start gap-2.5 cursor-pointer select-none bg-emerald-50/80 hover:bg-emerald-50 p-3.5 rounded-xl border border-emerald-300 transition-all">
+                <input
+                  type="checkbox"
+                  checked={isConsultation}
+                  onChange={(e) => setIsConsultation(e.target.checked)}
+                  className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                />
+                <div className="text-xs">
+                  <span className="font-bold text-slate-900 block">
+                    🤝 Request 1-on-1 Founder &amp; Executive Briefing Consultation
+                  </span>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Schedule a direct video call with our Founders to review unit economics, technology stack, and capital allocation roadmap.
+                  </p>
+                </div>
+              </label>
 
               <button
                 type="submit"

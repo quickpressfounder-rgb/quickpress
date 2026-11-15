@@ -98,6 +98,7 @@ export function BookingModal({
   const [address, setAddress] = useState("");
   const [date, setDate] = useState("Today, Immediate Window (Under 45m)");
   const [notes, setNotes] = useState("");
+  const [isConsultation, setIsConsultation] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
@@ -208,6 +209,24 @@ export function BookingModal({
                 />
               </div>
 
+              {/* Consultation / Fabric Care Expert Checkbox */}
+              <label className="flex items-start gap-2.5 cursor-pointer select-none bg-emerald-50/70 hover:bg-emerald-50 p-3 rounded-xl border border-emerald-300 transition-all">
+                <input
+                  type="checkbox"
+                  checked={isConsultation}
+                  onChange={(e) => setIsConsultation(e.target.checked)}
+                  className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                />
+                <div className="text-xs">
+                  <span className="font-bold text-slate-900 block">
+                    🤝 Free Garment Care &amp; Fabric Consultation
+                  </span>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Our master dhobi / textile specialist will inspect your fabrics before processing and call with care recommendations.
+                  </p>
+                </div>
+              </label>
+
               {/* Total & Submit */}
               <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
                 <div>
@@ -291,6 +310,7 @@ export function PartnerModal({
   const [city, setCity] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [isConsultation, setIsConsultation] = useState(true);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   if (!isOpen) return null;
@@ -309,7 +329,7 @@ export function PartnerModal({
           city,
           details: `Service Category: ${category}`,
           message: `Partner Store Onboarding Application for ${businessName} (${category}) in ${city}.`,
-          isConsultation: true,
+          isConsultation,
         }),
       });
     } catch {
@@ -418,6 +438,24 @@ export function PartnerModal({
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black"
                 />
               </div>
+
+              {/* Partner Consultation Checkbox */}
+              <label className="flex items-start gap-2.5 cursor-pointer select-none bg-emerald-50/70 hover:bg-emerald-50 p-3 rounded-xl border border-emerald-300 transition-all">
+                <input
+                  type="checkbox"
+                  checked={isConsultation}
+                  onChange={(e) => setIsConsultation(e.target.checked)}
+                  className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                />
+                <div className="text-xs">
+                  <span className="font-bold text-slate-900 block">
+                    🤝 Request Store Onboarding Consultation &amp; Growth Audit
+                  </span>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Schedule a 1-on-1 strategy call with our Expansion Lead to evaluate daily volume projections and ROI.
+                  </p>
+                </div>
+              </label>
 
               <div className="pt-3">
                 <button
@@ -764,6 +802,24 @@ export function ContactModal({
                 </div>
               </div>
 
+              {/* Pre-Screening Consultation Checkbox */}
+              <label className="flex items-start gap-2.5 cursor-pointer select-none bg-emerald-50/70 hover:bg-emerald-50 p-3 rounded-xl border border-emerald-300 transition-all">
+                <input
+                  type="checkbox"
+                  checked={isConsultation}
+                  onChange={(e) => setIsConsultation(e.target.checked)}
+                  className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                />
+                <div className="text-xs">
+                  <span className="font-bold text-slate-900 block">
+                    🤝 Request Pre-Interview Consultation &amp; Culture Sync
+                  </span>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Schedule an informal 15-minute briefing with a team lead before formal technical rounds.
+                  </p>
+                </div>
+              </label>
+
               <div className="pt-2">
                 <button
                   type="submit"
@@ -827,12 +883,33 @@ export function JobApplyModal({
   const [email, setEmail] = useState("");
   const [portfolio, setPortfolio] = useState("");
   const [note, setNote] = useState("");
+  const [isConsultation, setIsConsultation] = useState(true);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   if (!isOpen || !job) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      await fetch(apiUrl("/api/public/careers/apply"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roleId: job.id,
+          roleTitle: job.title,
+          department: "General",
+          applicantName: name,
+          applicantEmail: email,
+          applicantPhone: "+91 0000000000",
+          resumeUrl: portfolio || "https://linkedin.com",
+          portfolioLink: portfolio,
+          applicantNote: note,
+          isConsultation,
+        }),
+      });
+    } catch {
+      // Ignored
+    }
     setIsSubmitted(true);
     onShowToast(`Application submitted for ${job.title}!`);
   };
@@ -908,6 +985,24 @@ export function JobApplyModal({
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-black"
                 />
               </div>
+
+              {/* Pre-Screening Consultation Checkbox */}
+              <label className="flex items-start gap-2.5 cursor-pointer select-none bg-emerald-50/70 hover:bg-emerald-50 p-3 rounded-xl border border-emerald-300 transition-all">
+                <input
+                  type="checkbox"
+                  checked={isConsultation}
+                  onChange={(e) => setIsConsultation(e.target.checked)}
+                  className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                />
+                <div className="text-xs">
+                  <span className="font-bold text-slate-900 block">
+                    🤝 Request Pre-Interview Consultation &amp; Culture Sync
+                  </span>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Schedule an informal 15-minute briefing with a team lead before formal technical rounds.
+                  </p>
+                </div>
+              </label>
 
               <div className="pt-2">
                 <button

@@ -18,6 +18,7 @@ export function ReportFraudPage({
   const [description, setDescription] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [evidencePreview, setEvidencePreview] = useState<string | null>(null);
+  const [isConsultation, setIsConsultation] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedTicket, setSubmittedTicket] = useState<string | null>(null);
 
@@ -49,6 +50,7 @@ export function ReportFraudPage({
       incidentDate: incidentDate || new Date().toISOString().split("T")[0],
       description,
       evidenceUrl,
+      isConsultation,
       status: "pending",
       createdAt: new Date().toISOString(),
     };
@@ -317,6 +319,24 @@ export function ReportFraudPage({
                   </div>
                 )}
               </div>
+
+              {/* Security Officer Consultation Checkbox */}
+              <label className="flex items-start gap-2.5 cursor-pointer select-none bg-emerald-50/80 hover:bg-emerald-50 p-3.5 rounded-2xl border border-emerald-300 transition-all">
+                <input
+                  type="checkbox"
+                  checked={isConsultation}
+                  onChange={(e) => setIsConsultation(e.target.checked)}
+                  className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                />
+                <div className="text-xs">
+                  <span className="font-bold text-slate-900 block">
+                    🤝 Request Security &amp; Vigilance Officer Consultation Call
+                  </span>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Speak directly with our cyber vigilance officer to assist with evidence preservation, FIR documentation, and bank cybercell reporting.
+                  </p>
+                </div>
+              </label>
 
               {/* Submit Button */}
               <button

@@ -102,6 +102,7 @@ export function CareersPage({
   const [portfolioLink, setPortfolioLink] = useState("");
   const [resumeUrl, setResumeUrl] = useState("");
   const [applicantNote, setApplicantNote] = useState("");
+  const [isConsultation, setIsConsultation] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [applicationSuccess, setApplicationSuccess] = useState(false);
   const [applicationTicket, setApplicationTicket] = useState<string | null>(null);
@@ -143,6 +144,7 @@ export function CareersPage({
       portfolioLink,
       resumeUrl,
       applicantNote,
+      isConsultation,
       createdAt: new Date().toISOString(),
       status: "received",
     };
@@ -457,6 +459,24 @@ export function CareersPage({
                     className="w-full px-4 py-2.5 rounded-xl border-2 border-zinc-200 text-xs text-black focus:outline-none focus:border-black bg-white font-medium"
                   />
                 </div>
+
+                {/* Consultation & Mentorship Call Checkbox */}
+                <label className="flex items-start gap-2.5 cursor-pointer select-none bg-emerald-50/80 hover:bg-emerald-50 p-3.5 rounded-xl border border-emerald-300 transition-all">
+                  <input
+                    type="checkbox"
+                    checked={isConsultation}
+                    onChange={(e) => setIsConsultation(e.target.checked)}
+                    className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                  />
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-900 block">
+                      🤝 Request Pre-Interview Consultation &amp; Culture Chat
+                    </span>
+                    <p className="text-[11px] text-slate-600 mt-0.5">
+                      Schedule an informal 15-minute briefing with an engineering or operations lead to clarify expectations before interview rounds.
+                    </p>
+                  </div>
+                </label>
 
                 <button
                   type="submit"

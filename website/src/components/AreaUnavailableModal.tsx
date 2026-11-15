@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { apiUrl } from "@/utils/api";
 import { IconClose, IconCheck, IconMapPin } from "./Icons";
 
 interface AreaUnavailableModalProps {
@@ -17,6 +18,7 @@ export function AreaUnavailableModal({
   onShowToast,
 }: AreaUnavailableModalProps) {
   const [contactInput, setContactInput] = useState("");
+  const [isConsultation, setIsConsultation] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   if (!isOpen) return null;
@@ -24,6 +26,26 @@ export function AreaUnavailableModal({
   const handleWaitlistSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!contactInput.trim()) return;
+
+    try {
+      fetch(apiUrl("/api/public/contact-inquiries"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: `Waitlist User (${cityName || "New Area"})`,
+          phone: contactInput.includes("@") ? "+91 0000000000" : contactInput,
+          email: contactInput.includes("@") ? contactInput : "",
+          inquiryType: "waitlist",
+          city: cityName || "Expansion Area",
+          details: `Waitlist for ${cityName || "New Area"}`,
+          message: `User requested launch notification for ${cityName || "New Area"}. Consultation requested: ${isConsultation ? "Yes" : "No"}.`,
+          isConsultation,
+        }),
+      }).catch(() => {});
+    } catch {
+      // Ignored
+    }
+
     setIsSubmitted(true);
     onShowToast(`🎉 You're on the priority waitlist for ${cityName || "your city"}!`);
   };
@@ -90,6 +112,25 @@ export function AreaUnavailableModal({
                 Notify Me
               </button>
             </div>
+
+            {/* Expansion & Franchise Consultation Checkbox */}
+            <label className="flex items-start gap-2 cursor-pointer select-none bg-emerald-50/70 hover:bg-emerald-50 p-2.5 rounded-xl border border-emerald-300 transition-all">
+              <input
+                type="checkbox"
+                checked={isConsultation}
+                onChange={(e) => setIsConsultation(e.target.checked)}
+                className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+              />
+              <div className="text-[11px]">
+                <span className="font-bold text-slate-900 block">
+                  🤝 Request City Franchise / Hub Partnership Consultation
+                </span>
+                <p className="text-[10px] text-slate-600 mt-0.5">
+                  Interested in bringing QuickPress to {cityName || "your city"} as a franchise partner or hub owner? Schedule a discovery call.
+                </p>
+              </div>
+            </label>
+
             <p className="text-[10px] text-gray-400">
               Zero spam. We'll only send a single launch alert when captains go live in your pincode.
             </p>

@@ -155,6 +155,7 @@ export function B2BPartnerPage({
     trialRequested: true,
     trialDate: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10),
     specialNotes: "",
+    isConsultation: true,
   });
 
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
@@ -870,6 +871,24 @@ export function B2BPartnerPage({
                         <span className="font-bold text-black">{formData.frequency}</span>
                       </div>
                     </div>
+
+                    {/* Free Consultation & Custom Rate Review Checkbox */}
+                    <label className="flex items-start gap-3 cursor-pointer select-none bg-emerald-50/80 hover:bg-emerald-50 p-4 rounded-2xl border-2 border-emerald-300 transition-all">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formData.isConsultation)}
+                        onChange={(e) => setFormData({ ...formData, isConsultation: e.target.checked })}
+                        className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                      />
+                      <div className="text-xs">
+                        <span className="font-bold text-slate-900 block text-sm">
+                          🤝 Request Free B2B Consultation &amp; Custom Volume Rate Review
+                        </span>
+                        <p className="text-[11px] text-slate-600 mt-1">
+                          Schedule a direct 1-on-1 strategy call with our Enterprise Operations Lead to customize batch pricing, machine allocation, and SLA turnaround.
+                        </p>
+                      </div>
+                    </label>
 
                     <div className="flex items-start gap-2.5 text-xs text-zinc-600 pt-2">
                       <input

@@ -1,6 +1,50 @@
 # QuickPress — Engineering Work History
 
-## Session: November 15, 2026 (Part 25)
+## Session: November 15, 2026 (Part 26)
+
+### Admin Crash Resolution (Trash2), Universal Pricing Elimination (Strictly City-Wise), and Website Forms Consultation Integration
+
+1. **Context & User Directives:**
+   - User issue 1 (Screenshot): `QuickPress Admin Error: Trash2 is not defined`.
+   - User issue 2 (Screenshot & text): *"UNIVERSAL PRICING HATAO"* — Remove Universal / All India National Master Baseline pricing completely; all rules, fares, fees, and pricing must be configured strictly on a City & Area basis.
+   - User issue 3: *"OR HAR FORM MR CONSULTE FORM KA CHECKBOX ADD KARO ONLY WEBSITE KE FORMS ME KANRA HAI"* — Add consultation checkbox across every form on the public website.
+
+2. **Engineering Solutions Delivered:**
+   - **Admin Console Runtime Crash Resolution (`admin-frontend/src/routes/support.tsx`):**
+     - Imported `Trash2` from `lucide-react` in `support.tsx`, completely resolving the runtime ReferenceError on the Support & Helpdesk Desk.
+   - **Universal Pricing Elimination & 100% City-Wise Pricing Engine (`admin-frontend/src/components/finance/UnifiedStakeholderRulesEngine.tsx`):**
+     - Purged `NATIONAL_MASTER` operational scope entirely. Default scope set directly to active city (`Kasganj::Soron Gate`).
+     - Replaced National Master Baseline banner with `📍 City & Area: {currentScopeLabel}`.
+     - Removed `All India (National Master Default)` from the operational scope dropdown, displaying only real operating cities and zones.
+     - Removed National Master baseline row from the All-Areas Matrix modal, displaying only operational city & area records.
+     - Connected input fields directly to `handleUpdateAreaField` for zero-leak zone-level pricing persistence.
+   - **Website Consultation Checkbox Integration (`website`):**
+     - Added stylized, interactive consultation checkboxes across all interactive forms on the public website:
+       1. `website/src/pages/B2BPartnerPage.tsx`: Step 5 Commercial Rate & Strategy consultation checkbox.
+       2. `website/src/pages/CareersPage.tsx`: Pre-interview role & culture consultation checkbox.
+       3. `website/src/pages/InvestorRelationsPage.tsx`: 1-on-1 Founder & financial briefing consultation checkbox.
+       4. `website/src/pages/ReportFraudPage.tsx`: Cyber vigilance & security officer consultation checkbox.
+       5. `website/src/components/Modals.tsx` (`PartnerModal`): Laundromat store onboarding consultation checkbox.
+       6. `website/src/components/Modals.tsx` (`JobApplyModal`): Pre-screening consultation checkbox.
+       7. `website/src/components/Modals.tsx` (`BookingModal`): Master fabric care consultation checkbox.
+       8. `website/src/components/AreaUnavailableModal.tsx`: City launch franchise & hub consultation checkbox.
+       9. `website/src/pages/ContactPage.tsx`: General & customer care consultation checkbox.
+
+3. **Verification & Testing Results:**
+   - `website`: `npm run build` passed cleanly in 1.35s (exit code 0).
+   - `admin-frontend`: `NITRO_PRESET=node-server npm run build` passed cleanly in 36.19s (exit code 0).
+   - `backend-python`: `pytest` (6/6 tests passed 100% in 4.92s).
+
+4. **Modified Files:**
+   - `admin-frontend/src/routes/support.tsx`
+   - `admin-frontend/src/components/finance/UnifiedStakeholderRulesEngine.tsx`
+   - `website/src/pages/B2BPartnerPage.tsx`
+   - `website/src/pages/CareersPage.tsx`
+   - `website/src/pages/InvestorRelationsPage.tsx`
+   - `website/src/pages/ReportFraudPage.tsx`
+   - `website/src/components/Modals.tsx`
+   - `website/src/components/AreaUnavailableModal.tsx`
+   - `Memory/WORK_HISTORY.md`
 
 ### AWS Infrastructure Alignment, EC2 Nginx Reverse Proxy & End-to-End Production Verification
 

@@ -81,8 +81,8 @@ export function UnifiedStakeholderRulesEngine({
     "customer" | "partner" | "rider" | "gst" | "penalties" | "history"
   >("customer");
 
-  // Geographic Scope Selection ("NATIONAL_MASTER" or "City::Area")
-  const [selectedScope, setSelectedScope] = useState<string>("NATIONAL_MASTER");
+  // Geographic Scope Selection ("City::Area") — Strictly City/Area-wise, no Universal pricing
+  const [selectedScope, setSelectedScope] = useState<string>("Kasganj::Soron Gate");
 
   // Modals for Area Management
   const [isMatrixModalOpen, setIsMatrixModalOpen] = useState(false);
@@ -144,19 +144,20 @@ export function UnifiedStakeholderRulesEngine({
     return list;
   }, [citiesQuery.data, editableRules?.delivery?.cityAreaPricing]);
 
-  // Current Scope Helpers
-  const isAreaScope = selectedScope !== "NATIONAL_MASTER";
+  // Current Scope Helpers — Strictly City & Area Wise (No Universal Pricing)
+  const isAreaScope = true;
 
   const activeOverrideIndex = useMemo(() => {
-    if (!isAreaScope) return -1;
-    const [c, a] = selectedScope.split("::");
+    const [c, a] = (selectedScope && selectedScope.includes("::"))
+      ? selectedScope.split("::")
+      : ["Kasganj", "Soron Gate"];
     const list = editableRules?.delivery?.cityAreaPricing || [];
     return list.findIndex(
       (item: any) =>
         item.city?.toLowerCase() === c?.toLowerCase() &&
         item.area?.toLowerCase() === a?.toLowerCase()
     );
-  }, [selectedScope, isAreaScope, editableRules?.delivery?.cityAreaPricing]);
+  }, [selectedScope, editableRules?.delivery?.cityAreaPricing]);
 
   const activeAreaOverride = activeOverrideIndex >= 0
     ? editableRules?.delivery?.cityAreaPricing[activeOverrideIndex]
@@ -164,14 +165,16 @@ export function UnifiedStakeholderRulesEngine({
 
   const hasActiveAreaOverride = Boolean(activeAreaOverride);
 
-  const currentScopeCity = isAreaScope ? selectedScope.split("::")[0] : "All India";
-  const currentScopeArea = isAreaScope ? selectedScope.split("::")[1] : "National Master";
-  const currentScopeLabel = isAreaScope ? `${currentScopeCity} – ${currentScopeArea}` : "All India (National Master)";
+  const [currentScopeCity, currentScopeArea] = (selectedScope && selectedScope.includes("::"))
+    ? selectedScope.split("::")
+    : ["Kasganj", "Soron Gate"];
+  const currentScopeLabel = `${currentScopeCity} – ${currentScopeArea}`;
 
-  // Update a field specifically for the active area override
+  // Update a field specifically for the active city & area scope
   const handleUpdateAreaField = (fieldKey: string, val: any) => {
-    if (!isAreaScope) return;
-    const [city, area] = selectedScope.split("::");
+    const [city, area] = (selectedScope && selectedScope.includes("::"))
+      ? selectedScope.split("::")
+      : ["Kasganj", "Soron Gate"];
     const currentList = [...(editableRules?.delivery?.cityAreaPricing || [])];
 
     if (activeOverrideIndex >= 0) {
@@ -180,11 +183,13 @@ export function UnifiedStakeholderRulesEngine({
         [fieldKey]: val,
       };
     } else {
-      // Auto-initialize override cloned from master
+      // Auto-initialize zone rule
       currentList.push({
         id: `del-${Date.now()}`,
         city,
         area,
+        basePrice: editableRules?.pricing?.universalBasePrice ?? "69",
+        expressPrice: editableRules?.pricing?.universalExpressPrice ?? "99",
         baseFee: editableRules?.delivery?.baseFee ?? "29",
         perKmRate: editableRules?.delivery?.perKmRate ?? "8.0",
         minFee: editableRules?.pricing?.minimumOrderValue ?? "99",
@@ -206,8 +211,10 @@ export function UnifiedStakeholderRulesEngine({
 
   // One-click create custom override for the selected area
   const handleCustomizeArea = () => {
-    if (!isAreaScope || hasActiveAreaOverride) return;
-    const [city, area] = selectedScope.split("::");
+    if (hasActiveAreaOverride) return;
+    const [city, area] = (selectedScope && selectedScope.includes("::"))
+      ? selectedScope.split("::")
+      : ["Kasganj", "Soron Gate"];
     const currentList = [...(editableRules?.delivery?.cityAreaPricing || [])];
 
     currentList.push({
@@ -232,13 +239,13 @@ export function UnifiedStakeholderRulesEngine({
     toast.success(`Custom pricing rules enabled for ${area}, ${city}`);
   };
 
-  // Revert active area to inherit from National Master
+  // Revert active area to inherit default city rates
   const handleRevertToNationalMaster = () => {
-    if (!isAreaScope || !hasActiveAreaOverride) return;
+    if (!hasActiveAreaOverride) return;
     const currentList = [...(editableRules?.delivery?.cityAreaPricing || [])];
     currentList.splice(activeOverrideIndex, 1);
     updateField("delivery.cityAreaPricing", currentList);
-    toast.info(`${currentScopeLabel} reverted to National Master baseline.`);
+    toast.info(`${currentScopeLabel} reset to baseline city rate.`);
   };
 
   // Delete an area override by ID
@@ -530,24 +537,17 @@ export function UnifiedStakeholderRulesEngine({
                   <span className="text-xs font-black uppercase tracking-wider text-emerald-950">
                     Active Operational Scope:
                   </span>
-                  {!isAreaScope ? (
-                    <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 font-black text-[10px]">
-                      🇮🇳 All India (National Master Baseline)
-                    </Badge>
-                  ) : hasActiveAreaOverride ? (
-                    <Badge className="bg-blue-100 text-blue-900 border border-blue-300 font-black text-[10px]">
-                      📍 Custom Area Override Active
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[10px]">
-                      ⚡ Inheriting National Master
+                  <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 font-black text-[10px]">
+                    📍 City &amp; Area: {currentScopeLabel}
+                  </Badge>
+                  {hasActiveAreaOverride && (
+                    <Badge className="bg-blue-100 text-blue-900 border border-blue-300 font-bold text-[10px]">
+                      Custom Rates Active
                     </Badge>
                   )}
                 </div>
                 <p className="text-[11px] text-zinc-600 mt-0.5">
-                  {!isAreaScope
-                    ? `Default baseline applied across all operating cities unless an area has a dedicated override. (${(editableRules?.delivery?.cityAreaPricing || []).length} active area overrides)`
-                    : `Configuring rates specifically for ${currentScopeLabel}. Changes affect only this zone.`}
+                  Configuring live rates, base fees, and pricing specifically for {currentScopeLabel}. Changes affect only this zone.
                 </p>
               </div>
             </div>
@@ -560,11 +560,8 @@ export function UnifiedStakeholderRulesEngine({
                     <SelectValue placeholder="Select Area / City" />
                   </SelectTrigger>
                   <SelectContent className="max-h-72">
-                    <SelectItem value="NATIONAL_MASTER" className="text-xs font-black text-emerald-900">
-                      🇮🇳 All India (National Master Default)
-                    </SelectItem>
                     <div className="px-2 py-1 text-[10px] font-black uppercase text-zinc-400 bg-zinc-50 my-1">
-                      Operational Areas &amp; Hubs
+                      Operating Cities &amp; Hubs
                     </div>
                     {allOperationalAreas.map((item) => {
                       const hasOverride = (editableRules?.delivery?.cityAreaPricing || []).some(
@@ -577,8 +574,8 @@ export function UnifiedStakeholderRulesEngine({
                           <div className="flex items-center justify-between w-full gap-2">
                             <span>{item.city} – {item.area}</span>
                             {hasOverride && (
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 font-bold">
-                                Custom
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold">
+                                Active Zone
                               </span>
                             )}
                           </div>
@@ -589,18 +586,7 @@ export function UnifiedStakeholderRulesEngine({
                 </Select>
               </div>
 
-              {isAreaScope && !hasActiveAreaOverride && (
-                <Button
-                  size="sm"
-                  onClick={handleCustomizeArea}
-                  className="h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-2xs gap-1.5 cursor-pointer"
-                >
-                  <Zap className="size-3.5" />
-                  <span>Customize This Area</span>
-                </Button>
-              )}
-
-              {isAreaScope && hasActiveAreaOverride && (
+              {hasActiveAreaOverride && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -608,7 +594,7 @@ export function UnifiedStakeholderRulesEngine({
                   className="h-9 border-zinc-300 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 text-zinc-700 font-bold text-xs rounded-xl shadow-2xs gap-1.5 cursor-pointer"
                 >
                   <RotateCcw className="size-3.5" />
-                  <span>Revert to Master</span>
+                  <span>Reset Zone Rates</span>
                 </Button>
               )}
 
@@ -1950,44 +1936,7 @@ export function UnifiedStakeholderRulesEngine({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
-                  {/* National Master Row */}
-                  <tr className="bg-emerald-50/40 font-medium">
-                    <td className="p-3 font-bold text-emerald-950">
-                      🇮🇳 All India (National Master)
-                    </td>
-                    <td className="p-3">
-                      <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 font-bold text-[9px]">
-                        Default Baseline
-                      </Badge>
-                    </td>
-                    <td className="p-3 font-bold">
-                      ₹{editableRules?.delivery?.baseFee ?? "29"} (+₹{editableRules?.delivery?.perKmRate ?? "8"}/km)
-                    </td>
-                    <td className="p-3 font-bold text-emerald-700">
-                      ₹{editableRules?.delivery?.freeDeliveryThreshold ?? "149"}
-                    </td>
-                    <td className="p-3 font-bold">
-                      {100 - (Number(editableRules?.commission?.partnerPayoutPercent) || 85)}%
-                    </td>
-                    <td className="p-3 font-bold">
-                      ₹{editableRules?.riderPayout?.basePay ?? "35"} (+₹{editableRules?.riderPayout?.perKmRate ?? "8"}/km)
-                    </td>
-                    <td className="p-3 text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedScope("NATIONAL_MASTER");
-                          setIsMatrixModalOpen(false);
-                        }}
-                        className="h-7 text-[11px] font-bold border-zinc-300 rounded-lg cursor-pointer"
-                      >
-                        Edit Master
-                      </Button>
-                    </td>
-                  </tr>
-
-                  {/* Operational Areas Rows */}
+                  {/* Operational Areas Rows (Strictly City & Area Wise) */}
                   {allOperationalAreas
                     .filter((item) =>
                       matrixSearchQuery

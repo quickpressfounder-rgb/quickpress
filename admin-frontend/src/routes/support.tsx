@@ -36,6 +36,7 @@ import {
   ExternalLink,
   Crown,
   AlertTriangle,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
