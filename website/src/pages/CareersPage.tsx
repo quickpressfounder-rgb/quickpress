@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { PageType, ModalType } from "@/types";
+import { apiUrl } from "@/utils/api";
 
 interface OpenRole {
   id: string;
@@ -108,7 +109,7 @@ export function CareersPage({
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const res = await fetch("/api/public/careers/jobs");
+        const res = await fetch(apiUrl("/api/public/careers/jobs"));
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
@@ -132,34 +133,46 @@ export function CareersPage({
     e.preventDefault();
     if (!applyingRole) return;
     setIsSubmitting(true);
+    const payload = {
+      applicantName,
+      applicantPhone,
+      applicantEmail,
+      roleId: applyingRole.id,
+      roleTitle: applyingRole.title,
+      experience: applyingRole.experience,
+      portfolioLink,
+      resumeUrl,
+      applicantNote,
+      createdAt: new Date().toISOString(),
+      status: "received",
+    };
+
+    let generatedTicket = `QP-APP-${Math.floor(100000 + Math.random() * 900000)}`;
+
     try {
-      const payload = {
-        applicantName,
-        applicantPhone,
-        applicantEmail,
-        roleId: applyingRole.id,
-        roleTitle: applyingRole.title,
-        experience: applyingRole.experience,
-        portfolioLink,
-        resumeUrl,
-        applicantNote,
-      };
-      const res = await fetch("/api/public/careers/apply", {
+      const res = await fetch(apiUrl("/api/public/careers/apply"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       if (res.ok) {
         const data = await res.json();
-        setApplicationTicket(data.applicationId || `QP-APP-${Math.floor(100000 + Math.random() * 900000)}`);
-      } else {
-        setApplicationTicket(`QP-APP-${Math.floor(100000 + Math.random() * 900000)}`);
+        generatedTicket = data.applicationId || generatedTicket;
       }
-      setApplicationSuccess(true);
     } catch {
-      setApplicationTicket(`QP-APP-${Math.floor(100000 + Math.random() * 900000)}`);
-      setApplicationSuccess(true);
+      // Offline fallback
     } finally {
+      // Cache locally so admin panel on same browser/device or sync sees it immediately
+      try {
+        const cached = JSON.parse(localStorage.getItem("qp_submitted_job_applications") || "[]");
+        cached.unshift({ ...payload, id: generatedTicket, _id: generatedTicket });
+        localStorage.setItem("qp_submitted_job_applications", JSON.stringify(cached.slice(0, 50)));
+      } catch {
+        /* ignore localStorage quota */
+      }
+
+      setApplicationTicket(generatedTicket);
+      setApplicationSuccess(true);
       setIsSubmitting(false);
     }
   };

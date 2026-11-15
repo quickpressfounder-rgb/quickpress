@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { PageType, ModalType } from "@/types";
+import { apiUrl } from "@/utils/api";
 import logoLight from "@/assets/quickpress-logo.png";
 
 // Clean, sharp vector outline icons (Strictly NO 3D icons, NO cartoon graphics, NO emojis)
@@ -193,32 +194,45 @@ export function ContactPage({
     }
     setIsSubmitting(true);
     const consultationFlag = isConsultation || inquiryType === "consultation";
+    const prefix = consultationFlag ? "QP-CONSULT" : "QP-INQ";
+    let generatedTicket = `${prefix}-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    const payload = {
+      fullName,
+      phone,
+      email,
+      inquiryType,
+      city,
+      orderId,
+      message,
+      isConsultation: consultationFlag,
+      status: "new",
+      createdAt: new Date().toISOString(),
+    };
+
     try {
-      const res = await fetch("/api/public/contact-inquiries", {
+      const res = await fetch(apiUrl("/api/public/contact-inquiries"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName,
-          phone,
-          email,
-          inquiryType,
-          city,
-          orderId,
-          message,
-          isConsultation: consultationFlag,
-        }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         const data = await res.json();
-        setSubmittedTicket(data.inquiryId || `QP-INQ-${Math.floor(100000 + Math.random() * 900000)}`);
-      } else {
-        const prefix = consultationFlag ? "QP-CONSULT" : "QP-INQ";
-        setSubmittedTicket(`${prefix}-${Math.floor(100000 + Math.random() * 900000)}`);
+        generatedTicket = data.inquiryId || generatedTicket;
       }
     } catch {
-      const prefix = consultationFlag ? "QP-CONSULT" : "QP-INQ";
-      setSubmittedTicket(`${prefix}-${Math.floor(100000 + Math.random() * 900000)}`);
+      // Local fallback
     } finally {
+      // Cache locally so admin panel can access immediately
+      try {
+        const cached = JSON.parse(localStorage.getItem("qp_submitted_contact_inquiries") || "[]");
+        cached.unshift({ ...payload, id: generatedTicket, _id: generatedTicket });
+        localStorage.setItem("qp_submitted_contact_inquiries", JSON.stringify(cached.slice(0, 50)));
+      } catch {
+        /* ignore */
+      }
+
+      setSubmittedTicket(generatedTicket);
       setIsSubmitting(false);
     }
   };

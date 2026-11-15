@@ -375,22 +375,20 @@ export function AboutPage({
             <button
               type="button"
               onClick={() => setActiveTab("struggle")}
-              className={`px-5 py-2.5 rounded-xl text-xs font-mono font-bold transition-all duration-300 cursor-pointer ${
-                activeTab === "struggle"
-                  ? "bg-black text-white shadow-lg scale-105"
-                  : "bg-white text-zinc-700 hover:text-black"
-              }`}
+              className={`px-5 py-2.5 rounded-xl text-xs font-mono font-bold transition-all duration-300 cursor-pointer ${activeTab === "struggle"
+                ? "bg-black text-white shadow-lg scale-105"
+                : "bg-white text-zinc-700 hover:text-black"
+                }`}
             >
               The Traditional Struggle (Before)
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("solution")}
-              className={`px-5 py-2.5 rounded-xl text-xs font-mono font-black transition-all duration-300 cursor-pointer ${
-                activeTab === "solution"
-                  ? "bg-[#22c55e] text-black shadow-lg shadow-emerald-500/20 scale-105"
-                  : "bg-white text-zinc-700 hover:text-black"
-              }`}
+              className={`px-5 py-2.5 rounded-xl text-xs font-mono font-black transition-all duration-300 cursor-pointer ${activeTab === "solution"
+                ? "bg-[#22c55e] text-black shadow-lg shadow-emerald-500/20 scale-105"
+                : "bg-white text-zinc-700 hover:text-black"
+                }`}
             >
               The QuickPress Experience (Now)
             </button>
@@ -598,18 +596,16 @@ export function AboutPage({
                 key={m.year}
                 type="button"
                 onClick={() => setActiveMilestone(idx)}
-                className={`w-full text-left p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 ${
-                  activeMilestone === idx
-                    ? "border-black bg-white text-black shadow-xl scale-[1.02] ring-2 ring-black/10"
-                    : "border-zinc-200 bg-white text-zinc-700 hover:border-black hover:scale-[1.01]"
-                }`}
+                className={`w-full text-left p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 ${activeMilestone === idx
+                  ? "border-black bg-white text-black shadow-xl scale-[1.02] ring-2 ring-black/10"
+                  : "border-zinc-200 bg-white text-zinc-700 hover:border-black hover:scale-[1.01]"
+                  }`}
               >
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
-                    activeMilestone === idx
-                      ? "bg-black border-black text-white shadow-md"
-                      : "bg-white border-zinc-200 text-zinc-700"
-                  }`}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all ${activeMilestone === idx
+                    ? "bg-black border-black text-white shadow-md"
+                    : "bg-white border-zinc-200 text-zinc-700"
+                    }`}
                 >
                   <m.icon className="w-5 h-5" />
                 </div>

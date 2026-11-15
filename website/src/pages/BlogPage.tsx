@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { PageType, ModalType, BlogPost } from "@/types";
+import { apiUrl } from "@/utils/api";
 
 const SEED_BLOGS: BlogPost[] = [
   {
@@ -140,7 +141,7 @@ export function BlogPage({
 
   // Fetch live blogs from Backend API with seamless fallback
   useEffect(() => {
-    fetch("/api/promotions/blogs")
+    fetch(apiUrl("/api/promotions/blogs"))
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error("API fallback");

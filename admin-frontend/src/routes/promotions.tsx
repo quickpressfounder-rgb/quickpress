@@ -24,6 +24,10 @@ import {
   BookOpen,
   Video,
   Briefcase,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  Play,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -92,6 +96,9 @@ export function PromotionsPage() {
   // Preview Story in Mobile Frame
   const [previewStory, setPreviewStory] = useState<AdminStory | null>(null);
 
+  // Live Hero Slider Preview State
+  const [activeHeroSlideIndex, setActiveHeroSlideIndex] = useState(0);
+
   const loadData = async (showToast = false) => {
     try {
       setRefreshing(true);
@@ -117,6 +124,69 @@ export function PromotionsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const heroSliderSlides = useMemo(() => {
+    const list: Array<{
+      id: string;
+      type: "blog" | "banner";
+      title: string;
+      badge: string;
+      badgeColor: string;
+      desc: string;
+      image?: string;
+      ctaText: string;
+      originalBlog?: AdminBlog;
+      originalBanner?: AdminBanner;
+    }> = [];
+
+    // 1. Featured blogs marked for slider
+    blogs.filter((b) => b.isSlider && b.isActive).forEach((b) => {
+      list.push({
+        id: b.id || b._id,
+        type: "blog",
+        title: b.title,
+        badge: b.category,
+        badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-300",
+        desc: b.excerpt,
+        image: b.coverImage,
+        ctaText: "Read Article ➔",
+        originalBlog: b,
+      });
+    });
+
+    // 2. Active banners
+    banners.filter((b) => b.isActive).forEach((b) => {
+      list.push({
+        id: b.id || b._id,
+        type: "banner",
+        title: b.title,
+        badge: b.badge || "SPECIAL OFFER",
+        badgeColor: "bg-amber-50 text-amber-800 border-amber-300",
+        desc: b.subtitle,
+        ctaText: b.ctaText || "View Offer ➔",
+        originalBanner: b,
+      });
+    });
+
+    // Fallback if none active
+    if (list.length === 0 && blogs.length > 0) {
+      blogs.slice(0, 3).forEach((b) => {
+        list.push({
+          id: b.id || b._id,
+          type: "blog",
+          title: b.title,
+          badge: b.category,
+          badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-300",
+          desc: b.excerpt,
+          image: b.coverImage,
+          ctaText: "Read Article ➔",
+          originalBlog: b,
+        });
+      });
+    }
+
+    return list;
+  }, [blogs, banners]);
 
   // --- Story Handlers ---
   const handleOpenCreateStory = (isGoogleForm = false) => {
@@ -509,6 +579,171 @@ export function PromotionsPage() {
             hint={`${careerJobs.filter((j) => j.isActive).length} Active Hiring`}
           />
         </div>
+
+        {/* HERO PROMOTIONS SLIDER PREVIEW & MANAGEMENT BANNER */}
+        {heroSliderSlides.length > 0 && (
+          <div className="bg-gradient-to-r from-zinc-900 via-zinc-950 to-black rounded-3xl p-6 sm:p-7 text-white border border-zinc-800 shadow-xl space-y-4 relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-4">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 rounded-xl bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/30">
+                  <Sparkles className="size-4" />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-black tracking-tight text-white">
+                      Live Promotional Hero Slider
+                    </h3>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-[#22c55e] border border-emerald-500/30 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
+                      <span>{heroSliderSlides.length} Live Slides</span>
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400">
+                    Live rotating carousel featured on Public Website (<code className="text-zinc-300">/#blog</code>) and Customer App
+                  </p>
+                </div>
+              </div>
+
+              {/* Slider Navigation & Quick Controls */}
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <span className="text-xs font-mono text-zinc-400">
+                  Slide {(activeHeroSlideIndex % heroSliderSlides.length) + 1} of {heroSliderSlides.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveHeroSlideIndex((prev) =>
+                      prev === 0 ? heroSliderSlides.length - 1 : prev - 1
+                    )
+                  }
+                  className="p-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition cursor-pointer"
+                  title="Previous Slide"
+                >
+                  <ChevronLeft className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveHeroSlideIndex((prev) => (prev + 1) % heroSliderSlides.length)
+                  }
+                  className="p-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition cursor-pointer"
+                  title="Next Slide"
+                >
+                  <ChevronRight className="size-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Current Active Slide Card Preview */}
+            {(() => {
+              const currentSlide = heroSliderSlides[activeHeroSlideIndex % heroSliderSlides.length];
+              if (!currentSlide) return null;
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center bg-zinc-900/80 rounded-2xl p-5 border border-zinc-800">
+                  {/* Left Column: Image or Gradient */}
+                  {currentSlide.image ? (
+                    <div className="md:col-span-4 h-36 rounded-xl overflow-hidden bg-zinc-800 border border-zinc-700 relative shrink-0">
+                      <img
+                        src={currentSlide.image}
+                        alt={currentSlide.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-xs text-[10px] font-black uppercase text-emerald-400 border border-emerald-500/30">
+                        {currentSlide.badge}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="md:col-span-4 h-36 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-900 p-4 flex flex-col justify-between border border-emerald-500/30 shrink-0">
+                      <span className="px-2 py-0.5 rounded-md bg-black/40 text-[10px] font-black uppercase text-white self-start">
+                        {currentSlide.badge}
+                      </span>
+                      <Sparkles className="size-6 text-white/50" />
+                    </div>
+                  )}
+
+                  {/* Right Column: Title, Excerpt, Actions */}
+                  <div className="md:col-span-8 space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">
+                        Type: {currentSlide.type.toUpperCase()}
+                      </span>
+                      <span className="text-[10px] font-mono text-emerald-400">
+                        ★ Live in Hero Slider
+                      </span>
+                    </div>
+
+                    <h4 className="text-base font-black text-white line-clamp-1">
+                      {currentSlide.title}
+                    </h4>
+
+                    <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                      {currentSlide.desc}
+                    </p>
+
+                    <div className="pt-1 flex flex-wrap items-center gap-2">
+                      {currentSlide.originalBlog && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleBlogSlider(currentSlide.originalBlog!)}
+                            className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition cursor-pointer"
+                          >
+                            Remove from Slider
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleEditBlog(currentSlide.originalBlog!)}
+                            className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Edit3 className="size-3.5" />
+                            <span>Edit Blog</span>
+                          </button>
+                        </>
+                      )}
+
+                      {currentSlide.originalBanner && (
+                        <button
+                          type="button"
+                          onClick={() => handleEditBanner(currentSlide.originalBanner!)}
+                          className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Edit3 className="size-3.5" />
+                          <span>Edit Banner</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("blogs")}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-500 text-black hover:bg-emerald-400 text-xs font-black transition cursor-pointer"
+                      >
+                        Manage All Blogs &amp; Sliders
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Slide Pagination Dots */}
+            <div className="flex items-center justify-center gap-1.5 pt-1">
+              {heroSliderSlides.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setActiveHeroSlideIndex(idx)}
+                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                    activeHeroSlideIndex % heroSliderSlides.length === idx
+                      ? "w-6 bg-[#22c55e]"
+                      : "w-2 bg-zinc-700 hover:bg-zinc-500"
+                  }`}
+                  title={`Go to slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Tab Switcher */}
         <div className="flex border-b border-zinc-200">

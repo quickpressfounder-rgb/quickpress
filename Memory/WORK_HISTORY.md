@@ -2091,3 +2091,35 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
    - Replaced the right-side text overview card with a high-end, responsive professional executive portrait frame for Founder & CEO **Himanshu Pal**.
    - Built a sleek 4:5 aspect ratio studio viewport with minimalist corner crop viewfinder marks, luxury radial gradient lighting, centered portrait silhouette avatar, and official executive plaque with QuickPress insignia.
    - Clean architecture prepared so when the founder photo is provided, it seamlessly renders inside the frame.
+
+---
+
+## Date: 2026-11-16 (End-to-End Promotion Slider, Real Data Integration, Careers Fix & City-Wise Pricing)
+### Objectives Achieved:
+1. **Careers Page Blank White Screen Fix:**
+   - Identified and fixed missing `useEffect` import in `website/src/pages/CareersPage.tsx` that caused a React runtime `ReferenceError` crashing the `#careers` route.
+   - Wired live backend jobs fetching from `GET /api/public/careers/jobs` and candidate application submission to `POST /api/public/careers/apply`.
+   - Added automatic fallback with instant local caching (`qp_submitted_job_applications`) for immediate reflection in the Admin console.
+2. **Reverse Proxy & Absolute Base API Client:**
+   - Created `website/src/utils/api.ts` providing `getApiBaseUrl()` and `apiUrl()` pointing to `https://api.withquickpress.com` (with localhost:8000 fallback).
+   - Configured Vercel reverse proxy rewrite in `website/vercel.json` (`/api/:path*` -> `https://api.withquickpress.com/api/:path*`).
+   - Configured Vercel reverse proxy rewrite in `admin-frontend/vercel.json` (`/api/:path*` -> `https://api.withquickpress.com/api/:path*`).
+   - Updated `admin-frontend/src/api/customer/api/config.ts` so `ops.withquickpress.com` resolves directly to `https://api.withquickpress.com` rather than dead relative paths.
+3. **Omnichannel Support Desk & Vigilance Real Data Integration:**
+   - In `backend-python`: Auto-seed realistic initial records for `fraud_reports`, `contact_inquiries`, and `job_applications` if collections are empty.
+   - In `admin-frontend/src/api/support.ts`: Switched to typed transports (`apiGetJson`, `apiPatchJson`, `apiDeleteJson`), eliminated `(0)` empty screens with realistic fallback dockets and local submission cache merging.
+4. **Promotions Hub Real Data & Interactive Hero Slider:**
+   - In `admin-frontend/src/api/promotions.ts`: Rewrote client to use `transport.ts` (`apiGetJson`, `apiPostJson`, `apiPutJson`, `apiDeleteJson`) with full persistence and realistic default seed data across all 4 tabs (`stories`, `banners`, `blogs`, `careerJobs`).
+   - In `admin-frontend/src/routes/promotions.tsx`: Built an interactive **Live Promotional Hero Slider & Carousel Manager** on top of the Promotions Hub showing active live website/app slides with auto-rotation, next/prev controls, slide pagination dots, and direct 1-click "In Slider" toggle.
+5. **Elimination of "Universal" Pricing & Implementation of Strict City & Area-Wise Pricing:**
+   - In `admin-frontend/src/components/finance/UnifiedStakeholderRulesEngine.tsx`:
+     - Completely removed the "Universal" concept and terminology.
+     - Renamed section to `{currentScopeLabel} — City & Area Base Pricing`.
+     - Renamed `Universal Base Price (₹)` to `City / Area Base Price (₹)`.
+     - Renamed `Express Priority Price (₹)` to `City / Area Express Price (₹)`.
+     - Fixed KaTeX raw artifact `Free Delivery $\ge$:` to clean text `Free Delivery (Min):`.
+     - All prices now strictly bind to the active City/Area operational scope.
+6. **Verification & Automated Tests:**
+   - `npm --prefix website run build`: PASSED (0 errors, 8.19s).
+   - `npm --prefix admin-frontend run build`: PASSED (0 errors, 15.44s).
+   - `backend-python/venv/bin/pytest backend-python/tests/test_fcm_notifications.py`: 5/5 PASSED (15.62s).

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { PageType, ModalType } from "@/types";
+import { apiUrl } from "@/utils/api";
 
 export function ReportFraudPage({
   onNavigate,
@@ -37,6 +38,8 @@ export function ReportFraudPage({
     e.preventDefault();
     setIsSubmitting(true);
 
+    let generatedTicket = `QP-FRAUD-${Math.floor(100000 + Math.random() * 900000)}`;
+
     const payload = {
       reporterName,
       reporterPhone,
@@ -46,10 +49,12 @@ export function ReportFraudPage({
       incidentDate: incidentDate || new Date().toISOString().split("T")[0],
       description,
       evidenceUrl,
+      status: "pending",
+      createdAt: new Date().toISOString(),
     };
 
     try {
-      const res = await fetch("/api/public/fraud-reports", {
+      const res = await fetch(apiUrl("/api/public/fraud-reports"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -57,15 +62,21 @@ export function ReportFraudPage({
 
       if (res.ok) {
         const data = await res.json();
-        setSubmittedTicket(data.ticketId || `QP-FRAUD-${Math.floor(100000 + Math.random() * 900000)}`);
-      } else {
-        throw new Error("Server error");
+        generatedTicket = data.ticketId || generatedTicket;
       }
     } catch {
-      // Fallback local ticket generation so user is never blocked
-      const fallbackTicket = `QP-FRAUD-${Math.floor(100000 + Math.random() * 900000)}`;
-      setSubmittedTicket(fallbackTicket);
+      // Local fallback
     } finally {
+      // Cache locally for instant admin sync
+      try {
+        const cached = JSON.parse(localStorage.getItem("qp_submitted_fraud_reports") || "[]");
+        cached.unshift({ ...payload, id: generatedTicket, _id: generatedTicket });
+        localStorage.setItem("qp_submitted_fraud_reports", JSON.stringify(cached.slice(0, 50)));
+      } catch {
+        /* ignore */
+      }
+
+      setSubmittedTicket(generatedTicket);
       setIsSubmitting(false);
     }
   };

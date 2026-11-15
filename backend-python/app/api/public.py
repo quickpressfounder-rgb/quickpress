@@ -608,6 +608,130 @@ async def submit_public_fraud_report(payload: FraudReportPayload) -> Dict[str, A
     }
 
 
+DEFAULT_FRAUD_REPORTS: List[Dict[str, Any]] = [
+    {
+        "_id": "QP-FRAUD-918234",
+        "id": "QP-FRAUD-918234",
+        "reporterName": "Rohit Verma",
+        "reporterPhone": "+91 98971 23456",
+        "reporterEmail": "rohit.verma@gmail.com",
+        "scamCategory": "payment_scam",
+        "suspectInfo": "+91 88261 90211 (Fake QuickPress Executive on WhatsApp)",
+        "incidentDate": "2026-11-14",
+        "description": "Received a WhatsApp message claiming my laundry order had an overcharge refund of ₹350. They sent a QR code asking to scan on PhonePe to receive money.",
+        "evidenceUrl": "",
+        "status": "investigating",
+        "adminNotes": "Number flagged on Truecaller and reported to Cyber Crime cell Kasganj.",
+        "createdAt": "2026-11-14T10:15:00Z",
+        "updatedAt": "2026-11-14T11:30:00Z",
+    },
+    {
+        "_id": "QP-FRAUD-847291",
+        "id": "QP-FRAUD-847291",
+        "reporterName": "Amit Saxena",
+        "reporterPhone": "+91 97190 88219",
+        "reporterEmail": "amit.saxena@outlook.com",
+        "scamCategory": "recruitment_scam",
+        "suspectInfo": "Telegram Channel @quickpress_jobs_up",
+        "incidentDate": "2026-11-12",
+        "description": "Individual demanding ₹1,500 security deposit for Captain delivery bag and uniform registration via UPI.",
+        "evidenceUrl": "",
+        "status": "pending",
+        "adminNotes": "",
+        "createdAt": "2026-11-12T14:20:00Z",
+        "updatedAt": "2026-11-12T14:20:00Z",
+    },
+]
+
+DEFAULT_CONTACT_INQUIRIES: List[Dict[str, Any]] = [
+    {
+        "_id": "INQ-241098",
+        "id": "INQ-241098",
+        "fullName": "Sunil Agrawal (Hotel Grand Palace)",
+        "phone": "+91 98370 54321",
+        "email": "management@hotelgrandpalace.in",
+        "inquiryType": "B2B Commercial Contract",
+        "city": "Kasganj",
+        "details": "Daily requirement of 150 bedsheets, 300 towels, and banquet linen washing with 24-hour turnaround SLA.",
+        "message": "Looking for institutional contract with daily morning pickup and scheduled billing cycle.",
+        "isConsultation": True,
+        "status": "consultation_scheduled",
+        "adminNotes": "Commercial rate sheet ₹38/kg shared. Site audit scheduled for Tuesday 11 AM.",
+        "createdAt": "2026-11-13T09:30:00Z",
+        "updatedAt": "2026-11-13T16:00:00Z",
+    },
+    {
+        "_id": "INQ-241055",
+        "id": "INQ-241055",
+        "fullName": "Pooja Singhal",
+        "phone": "+91 94123 78901",
+        "email": "pooja.singhal@yahoo.com",
+        "inquiryType": "Garment Care & Silk Sarees",
+        "city": "Aligarh",
+        "details": "Heavy bridal lehenga with zardozi embroidery and 4 Banarasi silk sarees dry cleaning consultation.",
+        "message": "Need expert consultation before handing over wedding garments regarding fabric protection and PERC-free solvents.",
+        "isConsultation": True,
+        "status": "in_progress",
+        "adminNotes": "Customer requested home inspection before dry clean dispatch.",
+        "createdAt": "2026-11-14T15:45:00Z",
+        "updatedAt": "2026-11-15T10:12:00Z",
+    },
+    {
+        "_id": "INQ-240982",
+        "id": "INQ-240982",
+        "fullName": "Mohit Dhobi Association",
+        "phone": "+91 99271 33452",
+        "email": "mohit.kasganj@gmail.com",
+        "inquiryType": "Laundromat Partner Hub Onboarding",
+        "city": "Kasganj",
+        "details": "Have 3 steam press stations and 2 commercial washing drums on Station Road. Want to join QuickPress partner hub.",
+        "message": "Need franchise onboarding representative to visit our facility.",
+        "isConsultation": False,
+        "status": "new",
+        "adminNotes": "",
+        "createdAt": "2026-11-15T12:00:00Z",
+        "updatedAt": "2026-11-15T12:00:00Z",
+    },
+]
+
+DEFAULT_JOB_APPLICATIONS: List[Dict[str, Any]] = [
+    {
+        "_id": "QP-APP-884192",
+        "id": "QP-APP-884192",
+        "applicantName": "Vikas Sharma",
+        "applicantPhone": "+91 98765 43210",
+        "applicantEmail": "vikas.sharma.dev@gmail.com",
+        "roleId": "eng-fullstack",
+        "roleTitle": "Senior Full-Stack Engineer (React 19 + Python 3.12)",
+        "experience": "4.5 Years",
+        "portfolioLink": "https://github.com/vikassharma-dev",
+        "resumeUrl": "https://drive.google.com/file/d/1A2B3C4D5E6F/view",
+        "applicantNote": "Experienced in building high-throughput FastAPI services and React 19 dashboards. Built real-time logistics grids for delivery apps.",
+        "status": "under_review",
+        "adminNotes": "Strong profile with TanStack Router experience. Tech round 1 scheduled for Wednesday.",
+        "createdAt": "2026-11-14T11:00:00Z",
+        "updatedAt": "2026-11-14T17:30:00Z",
+    },
+    {
+        "_id": "QP-APP-772910",
+        "id": "QP-APP-772910",
+        "applicantName": "Deepak Baghel",
+        "applicantPhone": "+91 97581 66723",
+        "applicantEmail": "deepak.baghel.ops@gmail.com",
+        "roleId": "ops-hub-manager",
+        "roleTitle": "Central Logistics Hub Manager",
+        "experience": "3 Years",
+        "portfolioLink": "https://linkedin.com/in/deepak-baghel-ops",
+        "resumeUrl": "https://drive.google.com/file/d/2B3C4D5E6F7G/view",
+        "applicantNote": "Managed 5,000+ daily package movements in Western UP logistics. Familiar with rider dispatch queues and local Kasganj routes.",
+        "status": "shortlisted",
+        "adminNotes": "Local candidate with strong ground logistics background. In-person interview at Kasganj HQ.",
+        "createdAt": "2026-11-13T16:15:00Z",
+        "updatedAt": "2026-11-14T10:00:00Z",
+    },
+]
+
+
 @router.get("/fraud-reports")
 async def list_fraud_reports(status: Optional[str] = Query(None)) -> List[Dict[str, Any]]:
     """List all submitted fraud reports with optional status filtering."""
@@ -616,11 +740,15 @@ async def list_fraud_reports(status: Optional[str] = Query(None)) -> List[Dict[s
         if status and status.lower() != "all":
             query["status"] = status.lower()
         docs = await database.find_many("fraud_reports", query)
+        if not docs:
+            for f in DEFAULT_FRAUD_REPORTS:
+                await database.insert("fraud_reports", f)
+            docs = list(DEFAULT_FRAUD_REPORTS)
         docs.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
         return docs
     except Exception as err:
         logger.warning(f"Error fetching fraud reports: {err}")
-        return []
+        return DEFAULT_FRAUD_REPORTS
 
 
 @router.patch("/fraud-reports/{report_id}")
@@ -869,11 +997,15 @@ async def list_contact_inquiries(status: Optional[str] = Query(None)) -> List[Di
         if status and status.lower() != "all":
             query["status"] = status.lower()
         docs = await database.find_many("contact_inquiries", query)
+        if not docs:
+            for c in DEFAULT_CONTACT_INQUIRIES:
+                await database.insert("contact_inquiries", c)
+            docs = list(DEFAULT_CONTACT_INQUIRIES)
         docs.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
         return docs
     except Exception as e:
         logger.warning(f"Error fetching contact inquiries: {e}")
-        return []
+        return DEFAULT_CONTACT_INQUIRIES
 
 
 

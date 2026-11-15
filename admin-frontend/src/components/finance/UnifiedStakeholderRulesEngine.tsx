@@ -640,7 +640,7 @@ export function UnifiedStakeholderRulesEngine({
 
               <div className="flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
                 <Truck className="size-3.5 text-emerald-600" />
-                <span className="font-bold text-zinc-800">Free Delivery $\ge$:</span>
+                <span className="font-bold text-zinc-800">Free Delivery (Min):</span>
                 <span className="font-black text-emerald-700">₹{effectiveFreeDeliveryThreshold}</span>
               </div>
             </div>
@@ -714,28 +714,28 @@ export function UnifiedStakeholderRulesEngine({
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-5">
-              {/* Universal Base Pricing */}
+              {/* City & Area-Wise Base Pricing */}
               <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-2xs">
-                <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <div className="flex items-center justify-between border-b border-zinc-100 pb-3 flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
                     <span className="size-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm">
-                      🏷️
+                      📍
                     </span>
                     <div>
-                      <h3 className="text-sm font-black text-zinc-950">Universal Base Pricing &amp; Core Fees</h3>
+                      <h3 className="text-sm font-black text-zinc-950">{currentScopeLabel} — City &amp; Area Base Pricing</h3>
                       <p className="text-[11px] text-zinc-500">
-                        Base item pricing and checkout convenience applicable to {currentScopeLabel}
+                        Base item pricing and checkout convenience configured specifically for <strong>{currentScopeLabel}</strong>
                       </p>
                     </div>
                   </div>
                   <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
-                    {isAreaScope ? "Area Rule" : "National Master"}
+                    {isAreaScope ? `${currentScopeLabel} (City Override)` : "City Master Default"}
                   </Badge>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="space-y-1.5 bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-200">
-                    <Label className="text-xs font-black text-emerald-950">Universal Base Price (₹)</Label>
+                    <Label className="text-xs font-black text-emerald-950">City / Area Base Price (₹)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                       <Input
@@ -746,11 +746,11 @@ export function UnifiedStakeholderRulesEngine({
                         className="bg-white border-emerald-300 text-emerald-950 font-black text-sm pl-7 shadow-2xs"
                       />
                     </div>
-                    <p className="text-[10px] text-zinc-500">Standard base per order.</p>
+                    <p className="text-[10px] text-zinc-500">Base order charge in {currentScopeLabel}.</p>
                   </div>
 
                   <div className="space-y-1.5 bg-amber-50/50 p-3.5 rounded-2xl border border-amber-200">
-                    <Label className="text-xs font-black text-amber-950">Express Priority Price (₹)</Label>
+                    <Label className="text-xs font-black text-amber-950">City / Area Express Price (₹)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
                       <Input
@@ -764,7 +764,7 @@ export function UnifiedStakeholderRulesEngine({
                         className="bg-white border-amber-300 text-amber-950 font-black text-sm pl-7 shadow-2xs"
                       />
                     </div>
-                    <p className="text-[10px] text-zinc-500">24-hour turnaround fee.</p>
+                    <p className="text-[10px] text-zinc-500">24h express fee in {currentScopeLabel}.</p>
                   </div>
 
                   <div className="space-y-1.5 bg-blue-50/50 p-3.5 rounded-2xl border border-blue-200">
@@ -1943,7 +1943,7 @@ export function UnifiedStakeholderRulesEngine({
                     <th className="p-3">City &amp; Area</th>
                     <th className="p-3">Scope Status</th>
                     <th className="p-3">Customer Delivery</th>
-                    <th className="p-3">Free Delivery $\ge$</th>
+                    <th className="p-3">Free Delivery Min (₹)</th>
                     <th className="p-3">Partner Comm.</th>
                     <th className="p-3">Rider Base &amp; /km</th>
                     <th className="p-3 text-right">Actions</th>
