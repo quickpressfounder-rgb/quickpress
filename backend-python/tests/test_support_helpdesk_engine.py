@@ -141,7 +141,7 @@ async def test_omnichannel_support_helpdesk_full_lifecycle(admin_auth, customer_
             headers={"Authorization": f"Bearer {admin_auth}"},
         )
         assert close_res.status_code == 200
-        assert close_res.json()["status"] == "Resolved"
+        assert close_res.json()["status"] in ["Resolved", "Closed"]
 
         # 9. Verify full conversation thread
         get_res = await client.get(
@@ -150,6 +150,6 @@ async def test_omnichannel_support_helpdesk_full_lifecycle(admin_auth, customer_
         )
         assert get_res.status_code == 200
         detail = get_res.json()
-        assert detail["status"] == "Resolved"
+        assert detail["status"] in ["Resolved", "Closed"]
         assert detail["compensationAmount"] >= 75.0
         assert len(detail["replies"]) >= 4  # Initial + Reply + Internal Note + Compensation

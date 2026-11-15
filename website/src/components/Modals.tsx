@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { apiUrl } from "@/utils/api";
 import { ServiceInfo, JobPosition } from "@/types";
 import { IconClose, IconCheck, IconApple, IconGooglePlay } from "./Icons";
 import { triggerInstantAppLaunch, isAndroidDevice } from "@/utils/mobileAppRedirect";
@@ -297,7 +298,7 @@ export function PartnerModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await fetch("/api/public/contact-inquiries", {
+      await fetch(apiUrl("/api/public/contact-inquiries"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -496,7 +497,7 @@ export function ContactModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await fetch("/api/public/contact-inquiries", {
+      await fetch(apiUrl("/api/public/contact-inquiries"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

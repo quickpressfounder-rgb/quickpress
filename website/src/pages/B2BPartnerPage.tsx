@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { apiUrl } from "@/utils/api";
 import { PageType, ModalType, B2BPartnerLead } from "@/types";
 
 // Clean, sharp vector outline icons (Strictly NO 3D, NO cartoon graphics)
@@ -222,7 +223,7 @@ export function B2BPartnerPage({
 
     try {
       // 1. Post to Backend API
-      const res = await fetch("/api/b2b/register", {
+      const res = await fetch(apiUrl("/api/b2b/register"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

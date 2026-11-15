@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { apiUrl } from "@/utils/api";
 import { PageType, ModalType, ServiceInfo } from "@/types";
 import {
   IconCheck,
@@ -333,7 +334,7 @@ export function HomePage({
   // Fetch live master catalog from database
   useEffect(() => {
     let mounted = true;
-    fetch("/api/public/services")
+    fetch(apiUrl("/api/public/services"))
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!mounted || !Array.isArray(data) || data.length === 0) return;
@@ -510,7 +511,7 @@ export function HomePage({
     setIsSubmittingEmail(true);
 
     try {
-      await fetch("/api/public/send-app-link", {
+      await fetch(apiUrl("/api/public/send-app-link"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

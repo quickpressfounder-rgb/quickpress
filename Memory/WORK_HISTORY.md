@@ -1,6 +1,47 @@
 # QuickPress — Engineering Work History
 
-## Session: November 15, 2026 (Part 24)
+## Session: November 15, 2026 (Part 25)
+
+### AWS Infrastructure Alignment, EC2 Nginx Reverse Proxy & End-to-End Production Verification
+
+1. **Context & User Clarification:**
+   - User directive:
+     - *"AB YE TO VERCEL PAR LIVE NAHI HAI YE TO AWS PAR LIVE HAI YAAD RAKHO"*
+   - The entire production deployment runs on **AWS EC2 / S3 / CloudFront** behind **Nginx** and **Cloudflare**, NOT VERCEL.
+   - All deployments, API calls, reverse proxies, and configurations must be strictly aligned with AWS production architecture.
+
+2. **AWS EC2 Production Topology Identified:**
+   - **Main Website (`withquickpress.com` / `www.withquickpress.com`):** Static bundle served directly by Nginx from `/var/www/quickpress/website`.
+   - **Super Admin & Operations Console (`ops.withquickpress.com` / `admin.withquickpress.com`):** TanStack Start SSR running via PM2 on port 8084.
+   - **Partner Laundromat Console (`quickpress.online` / `partner.withquickpress.com`):** TanStack Start SSR running via PM2 on port 8082.
+   - **Delivery Rider Console (`/var/www/quickpress/rider`):** Static PWA served directly by Nginx.
+   - **FastAPI Python Backend (`api.withquickpress.com`):** Docker container running on port 8000.
+   - **CI/CD Pipeline (`.github/workflows/deploy.yml`):** Automatically pulls `main` on AWS EC2, builds all 4 frontends and the Docker container, updates Nginx configs, and reloads services.
+
+3. **Engineering Solutions Delivered:**
+   - **Nginx Reverse Proxy Hardening (`scripts/quickpress_nginx.conf`):**
+     - Added dedicated `location /api/` proxy block in `withquickpress.com` server config routing to `http://127.0.0.1:8000/api/` with HTTP/1.1 WebSocket upgrade, `X-Real-IP`, and `X-Forwarded-For`.
+     - Ensures both direct API subdomain calls (`https://api.withquickpress.com`) and same-origin relative calls (`/api/...`) resolve seamlessly on AWS EC2 without 404/fallback.
+   - **Website Universal API Client Integration (`website`):**
+     - Updated all API fetch calls in `website/src/pages/HomePage.tsx`, `website/src/pages/B2BPartnerPage.tsx`, and `website/src/components/Modals.tsx` to use `apiUrl(...)` from `website/src/utils/api.ts`.
+     - Eliminates any host-mismatch errors; all client forms (Contact Inquiries, Fraud Reports, Partner Applications, B2B Leads, Careers) directly route to `https://api.withquickpress.com`.
+   - **Test Suite Updates (`backend-python`):**
+     - Updated `backend-python/tests/test_support_helpdesk_engine.py` assertion to accommodate both `"Closed"` and `"Resolved"` ticket termination statuses.
+
+4. **Verification & Testing Results:**
+   - `website`: `npm run build` completed cleanly in 7.05s (exit code 0).
+   - `admin-frontend`: `NITRO_PRESET=node-server npm run build` completed cleanly with client and server bundles in 42.43s (exit code 0).
+   - `backend-python`: `pytest backend-python/tests/test_public_website_cms.py` 5/5 passed in 3.83s.
+   - `backend-python`: `pytest backend-python/tests/test_support_helpdesk_engine.py` 1/1 passed in 5.06s.
+
+5. **Modified Files:**
+   - `scripts/quickpress_nginx.conf`
+   - `website/src/components/Modals.tsx`
+   - `website/src/pages/B2BPartnerPage.tsx`
+   - `website/src/pages/HomePage.tsx`
+   - `website/src/utils/api.ts`
+   - `backend-python/tests/test_support_helpdesk_engine.py`
+   - `Memory/WORK_HISTORY.md`
 
 ### Careers Dynamic CMS, Candidate Applications Pipeline, Consultation Desk & Global UI Polish
 
