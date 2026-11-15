@@ -268,7 +268,7 @@ export function B2BPartnerPage({
   };
 
   return (
-    <div className="min-h-screen bg-white text-zinc-900 pt-24 sm:pt-28 pb-24 selection:bg-black selection:text-white font-sans">
+    <div className="min-h-screen bg-white text-zinc-900 pt-16 sm:pt-20 pb-24 selection:bg-black selection:text-white font-sans">
       {/* ── Top Official Government/Corporate Header ────────────────────────── */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center border-b border-zinc-200 pb-10 reveal-on-scroll">
         <div className="flex flex-wrap items-center justify-center gap-3 mb-4">

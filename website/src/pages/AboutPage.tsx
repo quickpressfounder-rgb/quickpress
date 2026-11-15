@@ -198,7 +198,7 @@ export function AboutPage({
   const [activeMilestone, setActiveMilestone] = useState<number>(0);
 
   return (
-    <div className="pt-24 sm:pt-28 pb-24 bg-white text-zinc-950 font-sans selection:bg-[#22c55e] selection:text-black overflow-hidden">
+    <div className="pt-16 sm:pt-20 pb-24 bg-white text-zinc-950 font-sans selection:bg-[#22c55e] selection:text-black overflow-hidden">
       {/* ─── Hero Section with Animated Ambient Radiant Glow ────────────────── */}
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-8 pb-16">
         {/* Animated Radial Emerald Glow */}

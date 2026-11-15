@@ -128,7 +128,7 @@ export function TermsPage({
   };
 
   return (
-    <div className="bg-white text-gray-900 min-h-screen pt-24 sm:pt-32 pb-24">
+    <div className="bg-white text-gray-900 min-h-screen pt-16 sm:pt-20 pb-24">
       {/* ─── Hero Header ──────────────────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 mb-10 reveal-on-scroll">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold tracking-widest uppercase mb-4 shadow-xs">

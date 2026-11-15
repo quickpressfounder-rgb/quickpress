@@ -514,9 +514,9 @@ export function PrivacyPolicyPage({
   };
 
   return (
-    <div className="bg-white text-gray-900 min-h-screen pt-24 pb-20 selection:bg-emerald-200 selection:text-emerald-950">
+    <div className="bg-white text-gray-900 min-h-screen pt-16 sm:pt-20 pb-20 selection:bg-emerald-200 selection:text-emerald-950">
       {/* Header Banner */}
-      <div className="bg-emerald-50/60 text-gray-950 py-14 sm:py-18 px-4 sm:px-6 lg:px-8 border-b border-emerald-100 reveal-on-scroll">
+      <div className="bg-emerald-50/60 text-gray-950 py-10 sm:py-14 px-4 sm:px-6 lg:px-8 border-b border-emerald-100 reveal-on-scroll">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-900 text-xs font-bold uppercase tracking-wider">
@@ -528,7 +528,7 @@ export function PrivacyPolicyPage({
             </span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-gray-950 mb-4">
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-gray-950 mb-3 sm:mb-4">
             QuickPress Privacy Policy
           </h1>
           <p className="text-gray-600 text-sm sm:text-base leading-relaxed max-w-3xl">
@@ -542,7 +542,7 @@ export function PrivacyPolicyPage({
               <button
                 type="button"
                 onClick={() => setLang("en")}
-                className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
+                className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
                   lang === "en" ? "bg-emerald-600 text-white shadow-xs" : "text-gray-700 hover:text-gray-900"
                 }`}
               >
@@ -551,15 +551,16 @@ export function PrivacyPolicyPage({
               <button
                 type="button"
                 onClick={() => setLang("hi")}
-                className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
+                className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
                   lang === "hi" ? "bg-emerald-600 text-white shadow-xs" : "text-gray-700 hover:text-gray-900"
                 }`}
               >
                 हिन्दी (Hindi)
               </button>
             </div>
-            <span className="text-[11px] text-emerald-900 font-semibold bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-200">
-              DPDP Act 2023 Sec 5(3) Bilingual Notice
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-950 font-bold bg-emerald-100/90 px-3 py-1 rounded-full border border-emerald-300 shadow-2xs">
+              <IconShield className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+              <span>DPDP Act 2023 Sec 5(3) Bilingual Notice</span>
             </span>
           </div>
 

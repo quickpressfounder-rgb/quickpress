@@ -1,5 +1,40 @@
 # QuickPress — Engineering Work History
 
+## Session: November 15, 2026 (Part 21)
+
+### Public Website Header Logo Clipping Fix, DPDP Badge Polish & Platform-Wide Compliance Badge Audit
+
+1. **Context & User Request:**
+   - User directive:
+     - *"ISKO SAHI KARO"*
+     - *"ISKE JIASA YE KOI SE BHI BADGE KAHA KHA HAI BATAO OR FIND KARKE LIST DO"*
+   - User provided 2 screenshot attachments:
+     1. Screenshot 1 showing the public website navbar logo (`QuickPress`) exploded in size, causing the fixed navbar to expand to >200px and overlap/clip the page heading `QuickPress Privacy Policy`.
+     2. Screenshot 2 showing the `DPDP Act 2023 Sec 5(3) Bilingual Notice` badge in `website/src/pages/PrivacyPolicyPage.tsx`.
+
+2. **Root Cause Analysis:**
+   - In `website/src/components/Navbar.tsx`, the `Logo` component used Tailwind class `h-8 sm:h-9.5`. In Tailwind v4, `sm:h-9.5` is an unmapped token.
+   - Combined with `website/src/index.css` global `img { max-width: 100%; height: auto; }`, the logo rendered at its raw unconstrained natural aspect ratio (`1162 x 222px`), expanding across the top of the viewport.
+   - The expanded fixed navbar overlapped and obscured the hero headings of `PrivacyPolicyPage.tsx`, `TermsPage.tsx`, `AboutPage.tsx`, and `ContactPage.tsx`.
+
+3. **Engineering Solutions Delivered:**
+   - **Fixed Website Navbar & Logo (`website/src/components/Navbar.tsx`):**
+     - Enforced strict inline style constraints: `height: 34px`, `maxHeight: 34px`, `maxWidth: 175px` (responsive for `sm`/`md`/`lg`).
+     - Constrained `<nav>` to a clean fixed `h-16 flex items-center shadow-2xs` with compact "Back to Home" pill.
+   - **Polished Privacy Policy Page (`website/src/pages/PrivacyPolicyPage.tsx`):**
+     - Adjusted top padding (`pt-16 sm:pt-20`, banner `py-10 sm:py-14`) so titles and breadcrumbs have generous breathing room.
+     - Upgraded the `DPDP Act 2023 Sec 5(3) Bilingual Notice` badge with `IconShield`, emerald border, shadow, and proper inline-flex vertical alignment.
+   - **Aligned Spacing in Other Website Pages:**
+     - Updated top paddings in `TermsPage.tsx`, `AboutPage.tsx`, `ContactPage.tsx`, and `B2BPartnerPage.tsx`.
+   - **Platform-Wide Statutory & Compliance Badge Audit:**
+     - Conducted an exhaustive inventory of all legal, compliance, and DPDP badges across `website`, `customer-frontend`, `partner-frontend`, `rider-frontend`, and `admin-frontend`.
+
+4. **Verification & Testing Results:**
+   - `website` production build: PASSED (`vite build` exit code 0, 0 errors, built in 791ms).
+   - Backend `pytest backend-python/tests/test_fcm_notifications.py`: PASSED (5 passed).
+
+---
+
 ## Session: November 14, 2026 (Part 20)
 
 ### Real-Device Firebase FCM Push Notifications Testing Engine & Console Workflow Polish

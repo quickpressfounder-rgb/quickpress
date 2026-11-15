@@ -327,9 +327,11 @@ async def send_test_push(
     total_fcm = fcm_count + direct_token_sent
     return {
         "ok": True,
+        "sentCount": total_fcm + wp_count,
         "fcmSentCount": total_fcm,
         "webpushSentCount": wp_count,
         "onesignal": os_res,
+        "user": user.id,
         "targetedUids": target_uids,
         "message": f"Push dispatched to {total_fcm} FCM device(s) and {wp_count} WebPush subscriber(s)",
     }

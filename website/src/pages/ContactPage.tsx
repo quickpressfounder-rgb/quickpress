@@ -303,7 +303,7 @@ export function ContactPage({
   };
 
   return (
-    <div className="pt-24 sm:pt-28 pb-24 bg-white text-zinc-950 font-sans selection:bg-[#22c55e] selection:text-black overflow-hidden space-y-20">
+    <div className="pt-16 sm:pt-20 pb-24 bg-white text-zinc-950 font-sans selection:bg-[#22c55e] selection:text-black overflow-hidden space-y-20">
       {/* ─── Hero Section with Animated Ambient Emerald Radiant Glow ────────── */}
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-8 pb-12">
         {/* Animated Radial Emerald Glow */}
