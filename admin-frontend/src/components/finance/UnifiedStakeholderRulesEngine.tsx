@@ -503,10 +503,51 @@ export function UnifiedStakeholderRulesEngine({
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <div className="w-56">
+              <Select value={selectedScope} onValueChange={(v) => setSelectedScope(v)}>
+                <SelectTrigger className="h-9 w-full bg-white border-zinc-300 text-xs font-bold text-zinc-900 shadow-2xs">
+                  <SelectValue placeholder="Select Area / City" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <div className="px-2 py-1 text-[10px] font-black uppercase text-zinc-400 bg-zinc-50 my-1">
+                    Operating Cities &amp; Hubs
+                  </div>
+                  {allOperationalAreas.map((item) => {
+                    const hasOverride = (editableRules?.delivery?.cityAreaPricing || []).some(
+                      (p: any) =>
+                        p.city?.toLowerCase() === item.city?.toLowerCase() &&
+                        p.area?.toLowerCase() === item.area?.toLowerCase()
+                    );
+                    return (
+                      <SelectItem key={item.key} value={item.key} className="text-xs font-medium">
+                        <div className="flex items-center justify-between w-full gap-2">
+                          <span>{item.city} – {item.area}</span>
+                          {hasOverride && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              size="sm"
+              onClick={() => setIsAddAreaModalOpen(true)}
+              className="h-9 bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs rounded-xl shadow-2xs gap-1.5 cursor-pointer"
+            >
+              <Plus className="size-3.5" />
+              <span>Add Area</span>
+            </Button>
+
             <Button
               onClick={() => setIsMatrixModalOpen(true)}
               variant="outline"
-              className="border-zinc-300 hover:bg-zinc-100 text-zinc-900 font-bold text-xs px-3.5 py-2.5 rounded-xl gap-2 shadow-2xs cursor-pointer"
+              className="border-zinc-300 hover:bg-zinc-100 text-zinc-900 font-bold text-xs px-3.5 py-2 rounded-xl gap-2 shadow-2xs cursor-pointer h-9"
             >
               <Globe className="size-4 text-zinc-600" />
               <span>All-Areas Matrix</span>
@@ -515,125 +556,11 @@ export function UnifiedStakeholderRulesEngine({
             <Button
               onClick={onSave}
               disabled={isSaving}
-              className="bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs px-5 py-2.5 rounded-xl gap-2 shadow-xs transition-all cursor-pointer"
+              className="bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs px-4 py-2 rounded-xl gap-2 shadow-xs transition-all cursor-pointer h-9"
             >
               <Save className="size-4" />
               <span>{isSaving ? "Saving Live Rules..." : "Save Live Rules"}</span>
             </Button>
-          </div>
-        </div>
-
-        {/* =========================================================================
-            PROMINENT GEOGRAPHIC SCOPE & CITY-AREA CONTROLLER
-           ========================================================================= */}
-        <div className="bg-gradient-to-r from-emerald-50/60 via-teal-50/40 to-blue-50/40 p-4 rounded-2xl border border-emerald-200/80 shadow-2xs space-y-3">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-white border border-emerald-300 flex items-center justify-center text-emerald-700 shadow-2xs shrink-0">
-                <MapPin className="size-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-black uppercase tracking-wider text-emerald-950">
-                    Active Operational Scope:
-                  </span>
-                  <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 font-black text-[10px]">
-                    📍 City &amp; Area: {currentScopeLabel}
-                  </Badge>
-                  {hasActiveAreaOverride && (
-                    <Badge className="bg-blue-100 text-blue-900 border border-blue-300 font-bold text-[10px]">
-                      Custom Rates Active
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-[11px] text-zinc-600 mt-0.5">
-                  Configuring live rates, base fees, and pricing specifically for {currentScopeLabel}. Changes affect only this zone.
-                </p>
-              </div>
-            </div>
-
-            {/* Scope Selection Dropdown & Quick Actions */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="w-64">
-                <Select value={selectedScope} onValueChange={(v) => setSelectedScope(v)}>
-                  <SelectTrigger className="h-9 w-full bg-white border-zinc-300 text-xs font-bold text-zinc-900 shadow-2xs">
-                    <SelectValue placeholder="Select Area / City" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    <div className="px-2 py-1 text-[10px] font-black uppercase text-zinc-400 bg-zinc-50 my-1">
-                      Operating Cities &amp; Hubs
-                    </div>
-                    {allOperationalAreas.map((item) => {
-                      const hasOverride = (editableRules?.delivery?.cityAreaPricing || []).some(
-                        (p: any) =>
-                          p.city?.toLowerCase() === item.city?.toLowerCase() &&
-                          p.area?.toLowerCase() === item.area?.toLowerCase()
-                      );
-                      return (
-                        <SelectItem key={item.key} value={item.key} className="text-xs font-medium">
-                          <div className="flex items-center justify-between w-full gap-2">
-                            <span>{item.city} – {item.area}</span>
-                            {hasOverride && (
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold">
-                                Active Zone
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {hasActiveAreaOverride && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleRevertToNationalMaster}
-                  className="h-9 border-zinc-300 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 text-zinc-700 font-bold text-xs rounded-xl shadow-2xs gap-1.5 cursor-pointer"
-                >
-                  <RotateCcw className="size-3.5" />
-                  <span>Reset Zone Rates</span>
-                </Button>
-              )}
-
-              <Button
-                size="sm"
-                onClick={() => setIsAddAreaModalOpen(true)}
-                className="h-9 bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs rounded-xl shadow-2xs gap-1.5 cursor-pointer"
-              >
-                <Plus className="size-3.5" />
-                <span>Add Area</span>
-              </Button>
-            </div>
-          </div>
-
-          {/* Quick Dynamic Surcharge Strip for Active Scope */}
-          <div className="flex items-center justify-between pt-2 border-t border-emerald-200/60 flex-wrap gap-2 text-xs">
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
-                <CloudRain className="size-3.5 text-blue-600" />
-                <span className="font-bold text-zinc-800">Rain Surge:</span>
-                <span className="font-black text-blue-700">+₹{effectiveRainSurge}</span>
-              </div>
-
-              <div className="flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
-                <Moon className="size-3.5 text-indigo-600" />
-                <span className="font-bold text-zinc-800">Night Surge:</span>
-                <span className="font-black text-indigo-700">+₹{effectiveNightSurge}</span>
-              </div>
-
-              <div className="flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
-                <Truck className="size-3.5 text-emerald-600" />
-                <span className="font-bold text-zinc-800">Free Delivery (Min):</span>
-                <span className="font-black text-emerald-700">₹{effectiveFreeDeliveryThreshold}</span>
-              </div>
-            </div>
-
-            <div className="text-[11px] text-zinc-500 font-medium">
-              Scope: <strong>{currentScopeLabel}</strong>
-            </div>
           </div>
         </div>
 
@@ -700,98 +627,6 @@ export function UnifiedStakeholderRulesEngine({
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-5">
-              {/* City & Area-Wise Base Pricing */}
-              <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-2xs">
-                <div className="flex items-center justify-between border-b border-zinc-100 pb-3 flex-wrap gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <span className="size-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm">
-                      📍
-                    </span>
-                    <div>
-                      <h3 className="text-sm font-black text-zinc-950">{currentScopeLabel} — City &amp; Area Base Pricing</h3>
-                      <p className="text-[11px] text-zinc-500">
-                        Base item pricing and checkout convenience configured specifically for <strong>{currentScopeLabel}</strong>
-                      </p>
-                    </div>
-                  </div>
-                  <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
-                    {isAreaScope ? `${currentScopeLabel} (City Override)` : "City Master Default"}
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="space-y-1.5 bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-200">
-                    <Label className="text-xs font-black text-emerald-950">City / Area Base Price (₹)</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={editableRules?.pricing?.universalBasePrice ?? "69"}
-                        onChange={(e) => updateField("pricing.universalBasePrice", e.target.value)}
-                        className="bg-white border-emerald-300 text-emerald-950 font-black text-sm pl-7 shadow-2xs"
-                      />
-                    </div>
-                    <p className="text-[10px] text-zinc-500">Base order charge in {currentScopeLabel}.</p>
-                  </div>
-
-                  <div className="space-y-1.5 bg-amber-50/50 p-3.5 rounded-2xl border border-amber-200">
-                    <Label className="text-xs font-black text-amber-950">City / Area Express Price (₹)</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={editableRules?.pricing?.universalExpressPrice ?? "99"}
-                        onChange={(e) => {
-                          updateField("pricing.universalExpressPrice", e.target.value);
-                          updateField("delivery.expressDeliveryFee", e.target.value);
-                        }}
-                        className="bg-white border-amber-300 text-amber-950 font-black text-sm pl-7 shadow-2xs"
-                      />
-                    </div>
-                    <p className="text-[10px] text-zinc-500">24h express fee in {currentScopeLabel}.</p>
-                  </div>
-
-                  <div className="space-y-1.5 bg-blue-50/50 p-3.5 rounded-2xl border border-blue-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-black text-blue-950">Handling Fee (₹)</Label>
-                      <Switch
-                        checked={editableRules?.fees?.handlingFeeEnabled !== false}
-                        onCheckedChange={(checked) => updateField("fees.handlingFeeEnabled", checked)}
-                      />
-                    </div>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={editableRules?.fees?.handlingFee ?? "2"}
-                        onChange={(e) => updateField("fees.handlingFee", e.target.value)}
-                        disabled={editableRules?.fees?.handlingFeeEnabled === false}
-                        className="bg-white border-blue-300 text-blue-950 font-black text-sm pl-7 shadow-2xs disabled:bg-zinc-100"
-                      />
-                    </div>
-                    <p className="text-[10px] text-zinc-500">Packaging &amp; sanitization.</p>
-                  </div>
-
-                  <div className="space-y-1.5 bg-purple-50/50 p-3.5 rounded-2xl border border-purple-200">
-                    <Label className="text-xs font-black text-purple-950">Platform Convenience (₹)</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={editableRules?.fees?.platformConvenienceFee ?? "5"}
-                        onChange={(e) => updateField("fees.platformConvenienceFee", e.target.value)}
-                        className="bg-white border-purple-300 text-purple-950 font-black text-sm pl-7 shadow-2xs"
-                      />
-                    </div>
-                    <p className="text-[10px] text-zinc-500">Cloud &amp; app infra fee.</p>
-                  </div>
-                </div>
-              </div>
-
               {/* Free Delivery & Distance Fare */}
               <div className="bg-white rounded-3xl border border-zinc-200 p-6 space-y-4 shadow-2xs">
                 <div className="flex items-center justify-between border-b border-zinc-100 pb-3">

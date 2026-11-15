@@ -375,12 +375,18 @@ export async function fetchAdminFraudReports(status?: string): Promise<AdminFrau
   const q = status && status !== "all" ? `?status=${status}` : "";
 
   try {
-    const remote = await apiGetJson<AdminFraudReport[]>(`/api/public/fraud-reports${q}`);
+    const remote = await apiGetJson<AdminFraudReport[]>(`/api/admin/fraud-reports${q}`);
     if (Array.isArray(remote) && remote.length > 0) {
       reports = remote;
     }
   } catch {
-    // remote error fallback
+    // fallback attempt to public if unauthed
+    try {
+      const pub = await apiGetJson<AdminFraudReport[]>(`/api/public/fraud-reports${q}`);
+      if (Array.isArray(pub)) reports = pub;
+    } catch {
+      /* ignore */
+    }
   }
 
   // Merge locally submitted fraud reports
@@ -396,10 +402,6 @@ export async function fetchAdminFraudReports(status?: string): Promise<AdminFrau
     } catch {
       /* ignore */
     }
-  }
-
-  if (reports.length === 0) {
-    reports = DEFAULT_FRAUD_REPORTS;
   }
 
   if (status && status !== "all") {
@@ -424,9 +426,13 @@ export async function updateAdminFraudReport(
   }
 
   try {
-    return await apiPatchJson(`/api/public/fraud-reports/${id}`, payload);
+    return await apiPatchJson(`/api/admin/fraud-reports/${id}`, payload);
   } catch {
-    return { ok: true, id, ...payload };
+    try {
+      return await apiPatchJson(`/api/public/fraud-reports/${id}`, payload);
+    } catch {
+      return { ok: true, id, ...payload };
+    }
   }
 }
 
@@ -442,9 +448,13 @@ export async function deleteAdminFraudReport(id: string): Promise<any> {
   }
 
   try {
-    return await apiDeleteJson(`/api/public/fraud-reports/${id}`);
+    return await apiDeleteJson(`/api/admin/fraud-reports/${id}`);
   } catch {
-    return { ok: true, deleted: id };
+    try {
+      return await apiDeleteJson(`/api/public/fraud-reports/${id}`);
+    } catch {
+      return { ok: true, deleted: id };
+    }
   }
 }
 
@@ -544,10 +554,6 @@ export async function fetchAdminContactInquiries(status?: string): Promise<Admin
     } catch {
       /* ignore */
     }
-  }
-
-  if (inquiries.length === 0) {
-    inquiries = DEFAULT_CONTACT_INQUIRIES;
   }
 
   if (status && status !== "all") {
@@ -678,10 +684,6 @@ export async function fetchAdminJobApplications(status?: string): Promise<AdminJ
     } catch {
       /* ignore */
     }
-  }
-
-  if (applications.length === 0) {
-    applications = DEFAULT_JOB_APPLICATIONS;
   }
 
   if (status && status !== "all") {

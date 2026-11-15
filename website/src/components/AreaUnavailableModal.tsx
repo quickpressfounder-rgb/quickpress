@@ -114,21 +114,16 @@ export function AreaUnavailableModal({
             </div>
 
             {/* Expansion & Franchise Consultation Checkbox */}
-            <label className="flex items-start gap-2 cursor-pointer select-none bg-emerald-50/70 hover:bg-emerald-50 p-2.5 rounded-xl border border-emerald-300 transition-all">
+            <label className="flex items-center gap-2 cursor-pointer select-none p-2.5 rounded-xl border border-zinc-200 hover:border-black bg-zinc-50 transition-all">
               <input
                 type="checkbox"
                 checked={isConsultation}
                 onChange={(e) => setIsConsultation(e.target.checked)}
-                className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                className="size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
               />
-              <div className="text-[11px]">
-                <span className="font-bold text-slate-900 block">
-                  🤝 Request City Franchise / Hub Partnership Consultation
-                </span>
-                <p className="text-[10px] text-slate-600 mt-0.5">
-                  Interested in bringing QuickPress to {cityName || "your city"} as a franchise partner or hub owner? Schedule a discovery call.
-                </p>
-              </div>
+              <span className="text-[11px] font-bold text-slate-900">
+                Request City Franchise / Hub Partnership Consultation
+              </span>
             </label>
 
             <p className="text-[10px] text-gray-400">

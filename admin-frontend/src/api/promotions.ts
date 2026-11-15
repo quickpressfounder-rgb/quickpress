@@ -482,14 +482,14 @@ function writeLocal<T>(key: string, items: T[]): void {
 export async function fetchAdminStories(): Promise<AdminStory[]> {
   try {
     const remote = await apiGetJson<AdminStory[]>("/api/admin/promotions/stories");
-    if (Array.isArray(remote) && remote.length > 0) {
+    if (Array.isArray(remote)) {
       writeLocal("qp_admin_stories", remote);
       return remote;
     }
   } catch {
     // fallback
   }
-  return readLocal("qp_admin_stories", DEFAULT_STORIES);
+  return readLocal("qp_admin_stories", []);
 }
 
 export async function createAdminStory(payload: Omit<AdminStory, "_id" | "id">): Promise<AdminStory> {
@@ -501,7 +501,7 @@ export async function createAdminStory(payload: Omit<AdminStory, "_id" | "id">):
     createdAt: new Date().toISOString(),
   };
 
-  const current = readLocal("qp_admin_stories", DEFAULT_STORIES);
+  const current = readLocal("qp_admin_stories", []);
   current.unshift(newStory);
   writeLocal("qp_admin_stories", current);
 
@@ -517,7 +517,7 @@ export async function updateAdminStory(
   id: string,
   payload: Partial<AdminStory>
 ): Promise<AdminStory> {
-  const current = readLocal("qp_admin_stories", DEFAULT_STORIES);
+  const current = readLocal("qp_admin_stories", []);
   const updatedList = current.map((s) => (s.id === id || s._id === id ? { ...s, ...payload } : s));
   writeLocal("qp_admin_stories", updatedList);
 
@@ -530,7 +530,7 @@ export async function updateAdminStory(
 }
 
 export async function deleteAdminStory(id: string): Promise<{ ok: boolean }> {
-  const current = readLocal("qp_admin_stories", DEFAULT_STORIES);
+  const current = readLocal("qp_admin_stories", []);
   const filtered = current.filter((s) => s.id !== id && s._id !== id);
   writeLocal("qp_admin_stories", filtered);
 
@@ -548,14 +548,14 @@ export async function deleteAdminStory(id: string): Promise<{ ok: boolean }> {
 export async function fetchAdminBanners(): Promise<AdminBanner[]> {
   try {
     const remote = await apiGetJson<AdminBanner[]>("/api/admin/promotions/banners");
-    if (Array.isArray(remote) && remote.length > 0) {
+    if (Array.isArray(remote)) {
       writeLocal("qp_admin_banners", remote);
       return remote;
     }
   } catch {
     // fallback
   }
-  return readLocal("qp_admin_banners", DEFAULT_BANNERS);
+  return readLocal("qp_admin_banners", []);
 }
 
 export async function createAdminBanner(payload: Omit<AdminBanner, "_id" | "id">): Promise<AdminBanner> {
@@ -567,7 +567,7 @@ export async function createAdminBanner(payload: Omit<AdminBanner, "_id" | "id">
     createdAt: new Date().toISOString(),
   };
 
-  const current = readLocal("qp_admin_banners", DEFAULT_BANNERS);
+  const current = readLocal("qp_admin_banners", []);
   current.unshift(newBanner);
   writeLocal("qp_admin_banners", current);
 
@@ -583,7 +583,7 @@ export async function updateAdminBanner(
   id: string,
   payload: Partial<AdminBanner>
 ): Promise<AdminBanner> {
-  const current = readLocal("qp_admin_banners", DEFAULT_BANNERS);
+  const current = readLocal("qp_admin_banners", []);
   const updatedList = current.map((b) => (b.id === id || b._id === id ? { ...b, ...payload } : b));
   writeLocal("qp_admin_banners", updatedList);
 
@@ -596,7 +596,7 @@ export async function updateAdminBanner(
 }
 
 export async function deleteAdminBanner(id: string): Promise<{ ok: boolean }> {
-  const current = readLocal("qp_admin_banners", DEFAULT_BANNERS);
+  const current = readLocal("qp_admin_banners", []);
   const filtered = current.filter((b) => b.id !== id && b._id !== id);
   writeLocal("qp_admin_banners", filtered);
 
@@ -614,14 +614,14 @@ export async function deleteAdminBanner(id: string): Promise<{ ok: boolean }> {
 export async function fetchAdminBlogs(): Promise<AdminBlog[]> {
   try {
     const remote = await apiGetJson<AdminBlog[]>("/api/admin/promotions/blogs");
-    if (Array.isArray(remote) && remote.length > 0) {
+    if (Array.isArray(remote)) {
       writeLocal("qp_admin_blogs", remote);
       return remote;
     }
   } catch {
     // fallback
   }
-  return readLocal("qp_admin_blogs", DEFAULT_BLOGS);
+  return readLocal("qp_admin_blogs", []);
 }
 
 export async function createAdminBlog(payload: Omit<AdminBlog, "_id" | "id">): Promise<AdminBlog> {
@@ -633,7 +633,7 @@ export async function createAdminBlog(payload: Omit<AdminBlog, "_id" | "id">): P
     createdAt: new Date().toISOString(),
   };
 
-  const current = readLocal("qp_admin_blogs", DEFAULT_BLOGS);
+  const current = readLocal("qp_admin_blogs", []);
   current.unshift(newBlog);
   writeLocal("qp_admin_blogs", current);
 
@@ -649,7 +649,7 @@ export async function updateAdminBlog(
   id: string,
   payload: Partial<AdminBlog>
 ): Promise<AdminBlog> {
-  const current = readLocal("qp_admin_blogs", DEFAULT_BLOGS);
+  const current = readLocal("qp_admin_blogs", []);
   const updatedList = current.map((b) => (b.id === id || b._id === id ? { ...b, ...payload } : b));
   writeLocal("qp_admin_blogs", updatedList);
 
@@ -662,7 +662,7 @@ export async function updateAdminBlog(
 }
 
 export async function deleteAdminBlog(id: string): Promise<{ ok: boolean }> {
-  const current = readLocal("qp_admin_blogs", DEFAULT_BLOGS);
+  const current = readLocal("qp_admin_blogs", []);
   const filtered = current.filter((b) => b.id !== id && b._id !== id);
   writeLocal("qp_admin_blogs", filtered);
 
@@ -687,7 +687,7 @@ export async function fetchAdminCareerJobs(): Promise<AdminCareerJob[]> {
   } catch {
     // fallback
   }
-  return readLocal("qp_admin_career_jobs", DEFAULT_CAREER_ROLES);
+  return readLocal("qp_admin_career_jobs", []);
 }
 
 export async function createAdminCareerJob(
@@ -701,7 +701,7 @@ export async function createAdminCareerJob(
     createdAt: new Date().toISOString(),
   };
 
-  const current = readLocal("qp_admin_career_jobs", DEFAULT_CAREER_ROLES);
+  const current = readLocal("qp_admin_career_jobs", []);
   current.unshift(newJob);
   writeLocal("qp_admin_career_jobs", current);
 
@@ -717,7 +717,7 @@ export async function updateAdminCareerJob(
   id: string,
   payload: Partial<AdminCareerJob>
 ): Promise<any> {
-  const current = readLocal("qp_admin_career_jobs", DEFAULT_CAREER_ROLES);
+  const current = readLocal("qp_admin_career_jobs", []);
   const updatedList = current.map((j) => (j.id === id || j._id === id ? { ...j, ...payload } : j));
   writeLocal("qp_admin_career_jobs", updatedList);
 
@@ -730,7 +730,7 @@ export async function updateAdminCareerJob(
 }
 
 export async function deleteAdminCareerJob(id: string): Promise<{ ok: boolean }> {
-  const current = readLocal("qp_admin_career_jobs", DEFAULT_CAREER_ROLES);
+  const current = readLocal("qp_admin_career_jobs", []);
   const filtered = current.filter((j) => j.id !== id && j._id !== id);
   writeLocal("qp_admin_career_jobs", filtered);
 

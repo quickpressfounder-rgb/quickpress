@@ -1,5 +1,79 @@
 # QuickPress — Engineering Work History
 
+## Session: November 16, 2026 (Part 27)
+
+### Complete Elimination of Universal Pricing Card & Scope Banner, Zero-Mock Support Desk, Minimalist Consultation Checkboxes & Promotions Sidebar Integration
+
+1. **Context & User Directives:**
+   - User directive 1: *"AB MERI BAAT SUNO ISKO HATO"* (with screenshots of "All India (National Master) — City & Area Base Pricing" card and the top green "ACTIVE OPERATIONAL SCOPE" banner). The user explicitly reiterated: QuickPress has zero Universal / National Master pricing.
+   - User directive 2: *"OR SUPPORT ME DATA MOCK AA RAHA HAI MOCK KO HATAO OR REAL FORM SE CONNECT KARO"*. The user noticed fallback dummy tickets/applicants in Support desk. All mock records must be wiped; display solely genuine submissions from the public website.
+   - User directive 3: *"OR CONSULTE ME 3D ICON NAHI OR DECRIPTION BHI NHAI"*. In all website consultation checkboxes, remove all 3D icons/emojis (`🤝`) and remove all sub-description text. Only a clean, professional, single-line checkbox with bold label.
+   - User directive 4: *"OR ADMI SLIDER MENU ME PROMOTION BALA OPTION ADD KARO"*. Add the "Promotions" / "Promotions & CMS" module into the Admin Sidebar drawer menu under Operations.
+   - User directive 5: *"CAREER OPEN NAHI HO RAHA HAI ISKE ANDER SE MOCK HATAO OR HUM PROMMTION KE ANDER JOB ADD KARGE OR USER FORM FILL KARE OR ADMIN KE JOB APPLICARION ME SHOE KARE"*. `#careers` was showing a blank white screen due to render error and mock dummy roles. Remove mock roles, connect dynamically to real backend jobs, and connect the application form directly to Admin Job Applications.
+
+2. **Engineering Solutions Delivered:**
+   - **Unified Rules Engine Universal Pricing Removal (`UnifiedStakeholderRulesEngine.tsx`):**
+     - Completely removed the top green "ACTIVE OPERATIONAL SCOPE: All India (National Master Baseline)" banner.
+     - Placed a compact, sleek City/Area selector, "+ Add Area" button, and "All-Areas Matrix" button directly inside the top command header.
+     - Completely removed the "City & Area Base Pricing" universal pricing card (Base Price ₹69, Express Price ₹99, Handling Fee ₹15, Platform Convenience ₹5). The Customer tab now begins cleanly with "Free Delivery & Distance Fare Limits".
+   - **Support Desk & Public API Zero-Mock Guarantee:**
+     - `backend-python/app/api/admin.py`:
+       - `admin_list_fraud_reports`: Removed auto-seeding of `DEFAULT_FRAUD_REPORTS`. Returns real `docs or []`.
+       - `admin_list_careers_jobs`: Removed auto-seeding of `DEFAULT_CAREER_ROLES`. Returns real `roles or []`.
+       - `admin_list_job_applications`: Removed auto-seeding of `DEFAULT_JOB_APPLICATIONS`. Returns real `docs or []`.
+       - `admin_list_contact_inquiries`: Removed auto-seeding of `DEFAULT_CONTACT_INQUIRIES`. Returns real `docs or []`.
+     - `backend-python/app/api/public.py`:
+       - `list_fraud_reports`, `list_public_careers`, `list_contact_inquiries`: Eliminated all auto-seeding mock fallbacks. Returns real `docs or []`.
+     - `backend-python/app/api/promotions.py`:
+       - `admin_list_stories`, `admin_list_banners`, `admin_list_blogs`: Eliminated auto-seeding of mock records. Returns real `docs or []`.
+     - `admin-frontend/src/api/support.ts`:
+       - Fixed `fetchAdminFraudReports`, `updateAdminFraudReport`, `deleteAdminFraudReport` to target `/api/admin/fraud-reports`.
+       - Removed all mock fallbacks (`DEFAULT_FRAUD_REPORTS`, `DEFAULT_CONTACT_INQUIRIES`, `DEFAULT_JOB_APPLICATIONS`). Returns `[]` when remote is empty.
+     - `admin-frontend/src/api/promotions.ts`:
+       - Removed all mock fallbacks (`DEFAULT_STORIES`, `DEFAULT_BANNERS`, `DEFAULT_BLOGS`, `DEFAULT_CAREER_ROLES`). Returns `[]` when remote is empty.
+   - **Minimalist Consultation Checkboxes (Purged 3D Icons & Descriptions):**
+     - Removed all `🤝` emojis and sub-description paragraphs across all website forms:
+       1. `website/src/pages/ContactPage.tsx`: Clean single-line consultation checkbox.
+       2. `website/src/pages/B2BPartnerPage.tsx`: Clean single-line consultation checkbox.
+       3. `website/src/pages/CareersPage.tsx`: Clean single-line consultation checkbox.
+       4. `website/src/pages/InvestorRelationsPage.tsx`: Clean single-line consultation checkbox.
+       5. `website/src/pages/ReportFraudPage.tsx`: Clean single-line consultation checkbox.
+       6. `website/src/components/Modals.tsx`: Clean single-line checkboxes across PartnerModal, JobApplyModal, BookingModal, and ContactModal.
+       7. `website/src/components/AreaUnavailableModal.tsx`: Clean single-line checkbox.
+   - **Careers Portal Dynamic Connection (`website/src/pages/CareersPage.tsx`):**
+     - Resolved blank white page render bug by removing hardcoded mock `ROLES` and adding null-safe property checking.
+     - Dynamically fetches roles from `/api/public/careers/jobs`.
+     - When no roles exist, displays a welcoming empty state with "Submit General Application" CTA that allows candidates to apply.
+     - Submissions flow directly to `/api/public/careers/apply` and appear in the Admin Support Desk under Job Applications.
+   - **Admin Sidebar Menu Navigation (`admin-frontend/src/components/AdminShell.tsx`):**
+     - Added `"promotions"` under the `"OPERATIONS"` navigation group.
+     - Added permission alias `promotions: ["promotions", "marketing", "banners", "blogs", "careers", "cms"]`.
+
+3. **Verification & Testing Results:**
+   - `website`: `npm run build` compiled cleanly in 1.36s (exit code 0).
+   - `admin-frontend`: `NITRO_PRESET=node-server npm run build` compiled cleanly with Nitro output (exit code 0).
+   - `backend-python`: `pytest` (6 passed in 8.70s, exit code 0).
+
+4. **Modified Files:**
+   - `admin-frontend/src/components/finance/UnifiedStakeholderRulesEngine.tsx`
+   - `admin-frontend/src/components/AdminShell.tsx`
+   - `admin-frontend/src/routes/support.tsx`
+   - `admin-frontend/src/api/support.ts`
+   - `admin-frontend/src/api/promotions.ts`
+   - `backend-python/app/api/admin.py`
+   - `backend-python/app/api/public.py`
+   - `backend-python/app/api/promotions.py`
+   - `website/src/pages/CareersPage.tsx`
+   - `website/src/pages/ContactPage.tsx`
+   - `website/src/pages/B2BPartnerPage.tsx`
+   - `website/src/pages/InvestorRelationsPage.tsx`
+   - `website/src/pages/ReportFraudPage.tsx`
+   - `website/src/components/Modals.tsx`
+   - `website/src/components/AreaUnavailableModal.tsx`
+   - `Memory/WORK_HISTORY.md`
+
+---
+
 ## Session: November 15, 2026 (Part 26)
 
 ### Admin Crash Resolution (Trash2), Universal Pricing Elimination (Strictly City-Wise), and Website Forms Consultation Integration

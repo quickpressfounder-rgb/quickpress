@@ -631,33 +631,17 @@ export function ContactPage({
                 </div>
 
                 {/* Consultation Checkbox */}
-                <div
-                  onClick={() => setIsConsultation(!isConsultation)}
-                  className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
-                    isConsultation
-                      ? "bg-emerald-50/80 border-[#22c55e] text-emerald-950"
-                      : "bg-zinc-50 border-zinc-200 text-zinc-700 hover:border-black"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-base">🤝</span>
-                    <div>
-                      <span className="text-xs font-bold block text-black">
-                        Request Expert Consultation &amp; Callback
-                      </span>
-                      <span className="text-[11px] text-zinc-500 font-mono">
-                        Our lead operations specialist will review your store or B2B volume requirements directly.
-                      </span>
-                    </div>
-                  </div>
-                  <div
-                    className={`w-5 h-5 rounded-md border flex items-center justify-center font-bold text-xs ${
-                      isConsultation ? "bg-[#22c55e] border-black text-black" : "border-zinc-300 bg-white"
-                    }`}
-                  >
-                    {isConsultation ? "✓" : ""}
-                  </div>
-                </div>
+                <label className="flex items-center gap-2.5 cursor-pointer select-none p-3 rounded-xl border border-zinc-200 hover:border-black bg-zinc-50 transition-all">
+                  <input
+                    type="checkbox"
+                    checked={isConsultation}
+                    onChange={(e) => setIsConsultation(e.target.checked)}
+                    className="size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                  />
+                  <span className="text-xs font-bold text-black">
+                    Request Expert Consultation &amp; Callback
+                  </span>
+                </label>
 
                 {/* Submit Button */}
                 <button

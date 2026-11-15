@@ -210,21 +210,16 @@ export function BookingModal({
               </div>
 
               {/* Consultation / Fabric Care Expert Checkbox */}
-              <label className="flex items-start gap-2.5 cursor-pointer select-none bg-emerald-50/70 hover:bg-emerald-50 p-3 rounded-xl border border-emerald-300 transition-all">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none p-3 rounded-xl border border-zinc-200 hover:border-black bg-zinc-50 transition-all">
                 <input
                   type="checkbox"
                   checked={isConsultation}
                   onChange={(e) => setIsConsultation(e.target.checked)}
-                  className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                  className="size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
                 />
-                <div className="text-xs">
-                  <span className="font-bold text-slate-900 block">
-                    🤝 Free Garment Care &amp; Fabric Consultation
-                  </span>
-                  <p className="text-[11px] text-slate-600 mt-0.5">
-                    Our master dhobi / textile specialist will inspect your fabrics before processing and call with care recommendations.
-                  </p>
-                </div>
+                <span className="text-xs font-bold text-slate-900">
+                  Free Garment Care &amp; Fabric Consultation
+                </span>
               </label>
 
               {/* Total & Submit */}
@@ -440,21 +435,16 @@ export function PartnerModal({
               </div>
 
               {/* Partner Consultation Checkbox */}
-              <label className="flex items-start gap-2.5 cursor-pointer select-none bg-emerald-50/70 hover:bg-emerald-50 p-3 rounded-xl border border-emerald-300 transition-all">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none p-3 rounded-xl border border-zinc-200 hover:border-black bg-zinc-50 transition-all">
                 <input
                   type="checkbox"
                   checked={isConsultation}
                   onChange={(e) => setIsConsultation(e.target.checked)}
-                  className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                  className="size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
                 />
-                <div className="text-xs">
-                  <span className="font-bold text-slate-900 block">
-                    🤝 Request Store Onboarding Consultation &amp; Growth Audit
-                  </span>
-                  <p className="text-[11px] text-slate-600 mt-0.5">
-                    Schedule a 1-on-1 strategy call with our Expansion Lead to evaluate daily volume projections and ROI.
-                  </p>
-                </div>
+                <span className="text-xs font-bold text-slate-900">
+                  Request Store Onboarding Consultation &amp; Growth Audit
+                </span>
               </label>
 
               <div className="pt-3">
@@ -763,33 +753,17 @@ export function ContactModal({
               </div>
 
               {/* Consultation Option Checkbox */}
-              <div
-                onClick={() => setIsConsultation(!isConsultation)}
-                className={`p-3 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
-                  isConsultation
-                    ? "bg-emerald-50 border-[#22c55e] text-emerald-950"
-                    : "bg-zinc-50 border-zinc-200 text-zinc-700 hover:border-black"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🤝</span>
-                  <div>
-                    <span className="text-xs font-bold block text-black">
-                      Request Expert Consultation &amp; Callback
-                    </span>
-                    <span className="text-[11px] text-zinc-500">
-                      Our specialist will schedule a 1-on-1 operational discussion.
-                    </span>
-                  </div>
-                </div>
-                <div
-                  className={`w-5 h-5 rounded-md border flex items-center justify-center font-bold text-xs ${
-                    isConsultation ? "bg-[#22c55e] border-black text-black" : "border-zinc-300 bg-white"
-                  }`}
-                >
-                  {isConsultation ? "✓" : ""}
-                </div>
-              </div>
+              <label className="flex items-center gap-2.5 cursor-pointer select-none p-3 rounded-xl border border-zinc-200 hover:border-black bg-zinc-50 transition-all">
+                <input
+                  type="checkbox"
+                  checked={isConsultation}
+                  onChange={(e) => setIsConsultation(e.target.checked)}
+                  className="size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                />
+                <span className="text-xs font-bold text-black">
+                  Request Expert Consultation &amp; Callback
+                </span>
+              </label>
 
               {/* Official Office Footer Stamp */}
               <div className="p-3 bg-gray-50 rounded-xl border border-gray-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between text-[11px] text-gray-500 gap-2">
@@ -803,21 +777,16 @@ export function ContactModal({
               </div>
 
               {/* Pre-Screening Consultation Checkbox */}
-              <label className="flex items-start gap-2.5 cursor-pointer select-none bg-emerald-50/70 hover:bg-emerald-50 p-3 rounded-xl border border-emerald-300 transition-all">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none p-3 rounded-xl border border-zinc-200 hover:border-black bg-zinc-50 transition-all">
                 <input
                   type="checkbox"
                   checked={isConsultation}
                   onChange={(e) => setIsConsultation(e.target.checked)}
-                  className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                  className="size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
                 />
-                <div className="text-xs">
-                  <span className="font-bold text-slate-900 block">
-                    🤝 Request Pre-Interview Consultation &amp; Culture Sync
-                  </span>
-                  <p className="text-[11px] text-slate-600 mt-0.5">
-                    Schedule an informal 15-minute briefing with a team lead before formal technical rounds.
-                  </p>
-                </div>
+                <span className="text-xs font-bold text-slate-900">
+                  Request Pre-Interview Consultation &amp; Culture Sync
+                </span>
               </label>
 
               <div className="pt-2">
@@ -987,21 +956,16 @@ export function JobApplyModal({
               </div>
 
               {/* Pre-Screening Consultation Checkbox */}
-              <label className="flex items-start gap-2.5 cursor-pointer select-none bg-emerald-50/70 hover:bg-emerald-50 p-3 rounded-xl border border-emerald-300 transition-all">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none p-3 rounded-xl border border-zinc-200 hover:border-black bg-zinc-50 transition-all">
                 <input
                   type="checkbox"
                   checked={isConsultation}
                   onChange={(e) => setIsConsultation(e.target.checked)}
-                  className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                  className="size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
                 />
-                <div className="text-xs">
-                  <span className="font-bold text-slate-900 block">
-                    🤝 Request Pre-Interview Consultation &amp; Culture Sync
-                  </span>
-                  <p className="text-[11px] text-slate-600 mt-0.5">
-                    Schedule an informal 15-minute briefing with a team lead before formal technical rounds.
-                  </p>
-                </div>
+                <span className="text-xs font-bold text-slate-900">
+                  Request Pre-Interview Consultation &amp; Culture Sync
+                </span>
               </label>
 
               <div className="pt-2">

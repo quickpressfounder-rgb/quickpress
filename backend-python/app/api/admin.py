@@ -2945,21 +2945,17 @@ async def admin_list_fraud_reports(
     user: User = Depends(require_roles(Role.admin)),
 ) -> List[Dict[str, Any]]:
     """Admin: List all submitted fraud incident reports."""
-    from app.api.public import DEFAULT_FRAUD_REPORTS
     try:
         query: Dict[str, Any] = {}
         if status and status.lower() != "all":
             query["status"] = status.lower()
         docs = await database.find_many("fraud_reports", query)
-        if not docs:
-            for f in DEFAULT_FRAUD_REPORTS:
-                await database.insert("fraud_reports", f)
-            docs = list(DEFAULT_FRAUD_REPORTS)
+        docs = docs or []
         docs.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
         return docs
     except Exception as err:
         logger.warning(f"Error fetching admin fraud reports: {err}")
-        return DEFAULT_FRAUD_REPORTS
+        return []
 
 
 @router.patch("/fraud-reports/{report_id}")
@@ -3002,18 +2998,12 @@ async def admin_list_careers_jobs(
     user: User = Depends(require_roles(Role.admin)),
 ) -> List[Dict[str, Any]]:
     """Admin: List all job postings."""
-    from app.api.public import DEFAULT_CAREER_ROLES
     try:
         roles = await database.find_many("careers_jobs")
-        if not roles:
-            for r in DEFAULT_CAREER_ROLES:
-                doc = {**r, "_id": r["id"]}
-                await database.insert("careers_jobs", doc)
-            roles = await database.find_many("careers_jobs")
-        return roles
+        return roles or []
     except Exception as e:
         logger.warning(f"Error fetching admin career jobs: {e}")
-        return DEFAULT_CAREER_ROLES
+        return []
 
 
 @router.post("/careers/jobs", status_code=201)
@@ -3087,21 +3077,17 @@ async def admin_list_job_applications(
     user: User = Depends(require_roles(Role.admin)),
 ) -> List[Dict[str, Any]]:
     """Admin: List candidate job applications."""
-    from app.api.public import DEFAULT_JOB_APPLICATIONS
     try:
         query: Dict[str, Any] = {}
         if status and status.lower() != "all":
             query["status"] = status.lower()
         docs = await database.find_many("job_applications", query)
-        if not docs:
-            for a in DEFAULT_JOB_APPLICATIONS:
-                await database.insert("job_applications", a)
-            docs = list(DEFAULT_JOB_APPLICATIONS)
+        docs = docs or []
         docs.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
         return docs
     except Exception as e:
         logger.warning(f"Error fetching admin job applications: {e}")
-        return DEFAULT_JOB_APPLICATIONS
+        return []
 
 
 @router.patch("/careers/applications/{app_id}")
@@ -3145,21 +3131,17 @@ async def admin_list_contact_inquiries(
     user: User = Depends(require_roles(Role.admin)),
 ) -> List[Dict[str, Any]]:
     """Admin: List all public contact inquiries and consultation requests."""
-    from app.api.public import DEFAULT_CONTACT_INQUIRIES
     try:
         query: Dict[str, Any] = {}
         if status and status.lower() != "all":
             query["status"] = status.lower()
         docs = await database.find_many("contact_inquiries", query)
-        if not docs:
-            for c in DEFAULT_CONTACT_INQUIRIES:
-                await database.insert("contact_inquiries", c)
-            docs = list(DEFAULT_CONTACT_INQUIRIES)
+        docs = docs or []
         docs.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
         return docs
     except Exception as e:
         logger.warning(f"Error fetching admin contact inquiries: {e}")
-        return DEFAULT_CONTACT_INQUIRIES
+        return []
 
 
 @router.patch("/contact-inquiries/{inquiry_id}")

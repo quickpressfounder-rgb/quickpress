@@ -302,21 +302,16 @@ export function InvestorRelationsPage({
               </div>
 
               {/* Consultation / Executive Briefing Checkbox */}
-              <label className="flex items-start gap-2.5 cursor-pointer select-none bg-emerald-50/80 hover:bg-emerald-50 p-3.5 rounded-xl border border-emerald-300 transition-all">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none p-3 rounded-xl border border-zinc-200 hover:border-black bg-zinc-50 transition-all">
                 <input
                   type="checkbox"
                   checked={isConsultation}
                   onChange={(e) => setIsConsultation(e.target.checked)}
-                  className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                  className="size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
                 />
-                <div className="text-xs">
-                  <span className="font-bold text-slate-900 block">
-                    🤝 Request 1-on-1 Founder &amp; Executive Briefing Consultation
-                  </span>
-                  <p className="text-[11px] text-slate-600 mt-0.5">
-                    Schedule a direct video call with our Founders to review unit economics, technology stack, and capital allocation roadmap.
-                  </p>
-                </div>
+                <span className="text-xs font-bold text-slate-900">
+                  Request 1-on-1 Founder &amp; Executive Briefing Consultation
+                </span>
               </label>
 
               <button

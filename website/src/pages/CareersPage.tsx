@@ -13,78 +13,7 @@ interface OpenRole {
   responsibilities: string[];
 }
 
-const ROLES: OpenRole[] = [
-  {
-    id: "eng-fullstack",
-    title: "Senior Full-Stack Engineer (React 19 + Python 3.12)",
-    department: "Engineering",
-    location: "Remote / Hybrid (Kasganj / Noida)",
-    type: "Full-Time",
-    experience: "3–6 Years",
-    desc: "Architect low-latency dispatch APIs, double-entry ledger settlement pipelines, and real-time WebSocket order tracking across our 3-app ecosystem.",
-    responsibilities: [
-      "Own core FastAPI microservices and Supabase PostgreSQL schema optimization",
-      "Scale our React 19 + TanStack Router client applications for sub-second hydration",
-      "Integrate hardware IoT Bluetooth weighing scales with captain mobile apps",
-    ],
-  },
-  {
-    id: "eng-mobile",
-    title: "Lead Mobile Architect (Android / iOS / Capacitor)",
-    department: "Engineering",
-    location: "Remote / Hybrid",
-    type: "Full-Time",
-    experience: "4+ Years",
-    desc: "Lead mobile development for the QuickPress Captain, Partner Store, and Customer applications with offline-first synchronization.",
-    responsibilities: [
-      "Design native background geo-fencing, turn-by-turn routing, and battery optimization",
-      "Implement real-time push notification audio alarms for urgent order pickups",
-      "Optimize APK size and memory footprints for low-spec Android devices in Tier 2/3 cities",
-    ],
-  },
-  {
-    id: "ops-hub-manager",
-    title: "Central Logistics Hub Manager",
-    department: "Operations",
-    location: "Kasganj, Uttar Pradesh (On-Site)",
-    type: "Full-Time",
-    experience: "2–5 Years",
-    desc: "Oversee daily laundry order throughput, captain dispatch queues, and strict garment care turnaround SLAs across our flagship Western UP hub.",
-    responsibilities: [
-      "Manage physical intake, digital weighing, and barcode tracking of thousands of daily garments",
-      "Coordinate with local laundromat partners to ensure 80°C anti-bacterial hygiene protocols",
-      "Maintain a 99.8% on-time dispatch and delivery SLA record",
-    ],
-  },
-  {
-    id: "growth-partner-onboarding",
-    title: "Merchant Hub Growth Lead (Franchise Onboarding)",
-    department: "Growth",
-    location: "Western UP (Aligarh / Agra / Kasganj)",
-    type: "Full-Time",
-    experience: "2–4 Years",
-    desc: "Onboard neighborhood dry cleaners and dhobis onto the QuickPress network, modernizing traditional workshops with Italian steam table setups.",
-    responsibilities: [
-      "Identify high-density laundry zones and build trust with local laundry shop owners",
-      "Conduct store audits, equipment inspections, and digital POS app onboarding",
-      "Drive partner retention, weekly earnings transparency, and volume scaling",
-    ],
-  },
-  {
-    id: "quality-garment-specialist",
-    title: "Master Textile & Stain Restoration Specialist",
-    department: "Quality & Care",
-    location: "Kasganj Hub (On-Site)",
-    type: "Full-Time",
-    experience: "3+ Years",
-    desc: "Champion fabric safety, delicate silk care, sneaker spa restoration, and hydrocarbon dry cleaning standards across our partner network.",
-    responsibilities: [
-      "Inspect care labels for delicate textiles (chiffon, cashmere, pure silks, wedding lehengas)",
-      "Train partner staff on German enzymatic stain removals and solvent temperature control",
-      "Resolve customer fabric grievances under our ₹5,000 Zero-Loss Guarantee",
-    ],
-  },
-];
+const ROLES: OpenRole[] = [];
 
 export function CareersPage({
   onNavigate,
@@ -93,7 +22,7 @@ export function CareersPage({
   onNavigate: (page: PageType) => void;
   onOpenModal: (type: ModalType) => void;
 }) {
-  const [roles, setRoles] = useState<OpenRole[]>(ROLES);
+  const [roles, setRoles] = useState<OpenRole[]>([]);
   const [selectedDept, setSelectedDept] = useState<string>("All");
   const [applyingRole, setApplyingRole] = useState<OpenRole | null>(null);
   const [applicantName, setApplicantName] = useState("");
@@ -108,26 +37,30 @@ export function CareersPage({
   const [applicationTicket, setApplicationTicket] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchJobs = async () => {
       try {
         const res = await fetch(apiUrl("/api/public/careers/jobs"));
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
+          if (isMounted && Array.isArray(data)) {
             setRoles(data);
           }
         }
       } catch {
-        // Fallback to default ROLES
+        // Fallback
       }
     };
     fetchJobs();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const departments = ["All", "Engineering", "Operations", "Growth", "Quality & Care"];
 
-  const filteredRoles = roles.filter(
-    (r) => selectedDept === "All" || r.department.toLowerCase() === selectedDept.toLowerCase()
+  const filteredRoles = (roles || []).filter(
+    (r) => selectedDept === "All" || (r?.department || "").toLowerCase() === selectedDept.toLowerCase()
   );
 
   const handleApplySubmit = async (e: React.FormEvent) => {
@@ -292,54 +225,86 @@ export function CareersPage({
 
         {/* Roles List */}
         <div className="space-y-4">
-          {filteredRoles.map((role) => (
-            <div
-              key={role.id}
-              className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-zinc-200 hover:border-black transition-all duration-300 hover:shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 group"
-            >
-              <div className="space-y-2 max-w-2xl">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <span className="px-3 py-1 rounded-full bg-zinc-100 text-black font-mono font-bold text-[11px] border border-zinc-200">
-                    {role.department}
-                  </span>
-                  <span className="text-[11px] font-mono text-zinc-600 inline-flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span>{role.location}</span>
-                  </span>
-                  <span className="text-[11px] font-mono text-zinc-600 inline-flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    <span>{role.type}</span>
-                  </span>
-                  <span className="text-[11px] font-mono font-bold text-[#16a34a] inline-flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5 text-[#16a34a]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                    <span>{role.experience}</span>
-                  </span>
+          {filteredRoles.length === 0 ? (
+            <div className="p-12 rounded-3xl bg-zinc-50 border-2 border-zinc-200 text-center space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto text-xl font-bold">
+                💼
+              </div>
+              <h3 className="text-xl font-black text-black">No Open Positions Currently Posted</h3>
+              <p className="text-xs text-zinc-600 max-w-md mx-auto leading-relaxed font-medium">
+                We are actively looking for exceptional talent in engineering, logistics, and store growth. Submit your profile below and we will reach out as roles open up.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setApplyingRole({
+                    id: "general-app",
+                    title: "General Profile / Future Opportunities",
+                    department: "Operations",
+                    location: "India / Remote",
+                    type: "Full-Time",
+                    experience: "Open",
+                    desc: "General application for upcoming engineering, store operations, or logistics roles.",
+                    responsibilities: [],
+                  });
+                  setApplicationSuccess(false);
+                  setApplicationTicket(null);
+                }}
+                className="px-6 py-3.5 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-xs font-mono uppercase tracking-wider transition-all shadow-md hover:scale-105 cursor-pointer inline-block"
+              >
+                Submit General Application ➔
+              </button>
+            </div>
+          ) : (
+            filteredRoles.map((role: any) => (
+              <div
+                key={role.id || role._id || role.title}
+                className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-zinc-200 hover:border-black transition-all duration-300 hover:shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 group"
+              >
+                <div className="space-y-2 max-w-2xl">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <span className="px-3 py-1 rounded-full bg-zinc-100 text-black font-mono font-bold text-[11px] border border-zinc-200">
+                      {role.department || "Operations"}
+                    </span>
+                    <span className="text-[11px] font-mono text-zinc-600 inline-flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                      <span>{role.location || "Kasganj / Noida / Remote"}</span>
+                    </span>
+                    <span className="text-[11px] font-mono text-zinc-600 inline-flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      <span>{role.type || "Full-Time"}</span>
+                    </span>
+                    <span className="text-[11px] font-mono font-bold text-[#16a34a] inline-flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-[#16a34a]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                      <span>{role.experience || "Freshers / Experienced"}</span>
+                    </span>
+                  </div>
+
+                  <h3 className="text-xl sm:text-2xl font-black text-black tracking-tight group-hover:text-[#16a34a] transition-colors">
+                    {role.title}
+                  </h3>
+
+                  <p className="text-xs text-zinc-600 leading-relaxed font-medium">
+                    {role.desc || ""}
+                  </p>
                 </div>
 
-                <h3 className="text-xl sm:text-2xl font-black text-black tracking-tight group-hover:text-[#16a34a] transition-colors">
-                  {role.title}
-                </h3>
-
-                <p className="text-xs text-zinc-600 leading-relaxed font-medium">
-                  {role.desc}
-                </p>
+                <div className="shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setApplyingRole(role);
+                      setApplicationSuccess(false);
+                      setApplicationTicket(null);
+                    }}
+                    className="w-full md:w-auto px-6 py-3.5 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-xs font-mono uppercase tracking-wider transition-all shadow-md hover:scale-105 cursor-pointer"
+                  >
+                    Apply For Role ➔
+                  </button>
+                </div>
               </div>
-
-              <div className="shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setApplyingRole(role);
-                    setApplicationSuccess(false);
-                    setApplicationTicket(null);
-                  }}
-                  className="w-full md:w-auto px-6 py-3.5 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-xs font-mono uppercase tracking-wider transition-all shadow-md hover:scale-105 cursor-pointer"
-                >
-                  Apply For Role ➔
-                </button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </section>
 
@@ -460,22 +425,17 @@ export function CareersPage({
                   />
                 </div>
 
-                {/* Consultation & Mentorship Call Checkbox */}
-                <label className="flex items-start gap-2.5 cursor-pointer select-none bg-emerald-50/80 hover:bg-emerald-50 p-3.5 rounded-xl border border-emerald-300 transition-all">
+                {/* Consultation Checkbox */}
+                <label className="flex items-center gap-2.5 cursor-pointer select-none p-3 rounded-xl border border-zinc-200 hover:border-black bg-zinc-50 transition-all">
                   <input
                     type="checkbox"
                     checked={isConsultation}
                     onChange={(e) => setIsConsultation(e.target.checked)}
-                    className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                    className="size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
                   />
-                  <div className="text-xs">
-                    <span className="font-bold text-slate-900 block">
-                      🤝 Request Pre-Interview Consultation &amp; Culture Chat
-                    </span>
-                    <p className="text-[11px] text-slate-600 mt-0.5">
-                      Schedule an informal 15-minute briefing with an engineering or operations lead to clarify expectations before interview rounds.
-                    </p>
-                  </div>
+                  <span className="text-xs font-bold text-slate-900">
+                    Request Pre-Interview Consultation &amp; Culture Chat
+                  </span>
                 </label>
 
                 <button

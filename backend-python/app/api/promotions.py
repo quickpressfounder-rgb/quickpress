@@ -413,17 +413,12 @@ async def get_public_stories(audience: Optional[str] = Query("riders")):
             query["$or"] = [{"audience": audience}, {"audience": "all"}]
 
         docs = await database.find_many("promotions_stories", query)
-        if not docs:
-            # Seed if empty
-            for s in DEFAULT_STORIES:
-                await database.insert("promotions_stories", s)
-            docs = [s for s in DEFAULT_STORIES if s.get("audience") in (audience, "all") and s.get("isActive")]
-
+        docs = docs or []
         docs.sort(key=lambda x: int(x.get("priority", 99)))
         return docs
     except Exception as err:
         logger.warning("Error fetching stories: %s", err)
-        return [s for s in DEFAULT_STORIES if s.get("audience") in (audience, "all")]
+        return []
 
 
 @router.get("/promotions/banners")
@@ -435,16 +430,12 @@ async def get_public_banners(audience: Optional[str] = Query("riders")):
             query["$or"] = [{"audience": audience}, {"audience": "all"}]
 
         docs = await database.find_many("promotions_banners", query)
-        if not docs:
-            for b in DEFAULT_BANNERS:
-                await database.insert("promotions_banners", b)
-            docs = [b for b in DEFAULT_BANNERS if b.get("audience") in (audience, "all") and b.get("isActive")]
-
+        docs = docs or []
         docs.sort(key=lambda x: int(x.get("priority", 99)))
         return docs
     except Exception as err:
         logger.warning("Error fetching banners: %s", err)
-        return [b for b in DEFAULT_BANNERS if b.get("audience") in (audience, "all")]
+        return []
 
 
 # =========================================================================
@@ -456,15 +447,12 @@ async def admin_list_stories(_user: User = Depends(require_roles(Role.admin))):
     """Admin: List all stories (active & inactive)."""
     try:
         docs = await database.find_many("promotions_stories")
-        if not docs:
-            for s in DEFAULT_STORIES:
-                await database.insert("promotions_stories", s)
-            docs = list(DEFAULT_STORIES)
+        docs = docs or []
         docs.sort(key=lambda x: int(x.get("priority", 99)))
         return docs
     except Exception as err:
         logger.warning("Admin list stories error: %s", err)
-        return DEFAULT_STORIES
+        return []
 
 
 @router.post("/admin/promotions/stories", status_code=status.HTTP_201_CREATED)
@@ -517,15 +505,12 @@ async def admin_list_banners(_user: User = Depends(require_roles(Role.admin))):
     """Admin: List all offer banners."""
     try:
         docs = await database.find_many("promotions_banners")
-        if not docs:
-            for b in DEFAULT_BANNERS:
-                await database.insert("promotions_banners", b)
-            docs = list(DEFAULT_BANNERS)
+        docs = docs or []
         docs.sort(key=lambda x: int(x.get("priority", 99)))
         return docs
     except Exception as err:
         logger.warning("Admin list banners error: %s", err)
-        return DEFAULT_BANNERS
+        return []
 
 
 @router.post("/admin/promotions/banners", status_code=status.HTTP_201_CREATED)
@@ -589,25 +574,12 @@ async def get_public_blogs(
             query["isSlider"] = isSlider
 
         docs = await database.find_many("promotions_blogs", query)
-        if not docs:
-            # Seed default blogs
-            for b in DEFAULT_BLOGS:
-                await database.insert("promotions_blogs", b)
-            docs = [
-                b for b in DEFAULT_BLOGS
-                if (not category or category.lower() == "all" or b.get("category") == category)
-                and (isSlider is None or b.get("isSlider") == isSlider)
-            ]
-
+        docs = docs or []
         docs.sort(key=lambda x: int(x.get("priority", 99)))
         return docs
     except Exception as err:
         logger.warning("Error fetching public blogs: %s", err)
-        return [
-            b for b in DEFAULT_BLOGS
-            if (not category or category.lower() == "all" or b.get("category") == category)
-            and (isSlider is None or b.get("isSlider") == isSlider)
-        ]
+        return []
 
 
 @router.get("/promotions/blogs/{blog_id_or_slug}")
@@ -646,15 +618,12 @@ async def admin_list_blogs(_user: User = Depends(require_roles(Role.admin))):
     """Admin: List all blog posts (active & inactive)."""
     try:
         docs = await database.find_many("promotions_blogs")
-        if not docs:
-            for b in DEFAULT_BLOGS:
-                await database.insert("promotions_blogs", b)
-            docs = list(DEFAULT_BLOGS)
+        docs = docs or []
         docs.sort(key=lambda x: int(x.get("priority", 99)))
         return docs
     except Exception as err:
         logger.warning("Admin list blogs error: %s", err)
-        return DEFAULT_BLOGS
+        return []
 
 
 @router.post("/admin/promotions/blogs", status_code=status.HTTP_201_CREATED)

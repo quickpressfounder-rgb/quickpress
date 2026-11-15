@@ -321,21 +321,16 @@ export function ReportFraudPage({
               </div>
 
               {/* Security Officer Consultation Checkbox */}
-              <label className="flex items-start gap-2.5 cursor-pointer select-none bg-emerald-50/80 hover:bg-emerald-50 p-3.5 rounded-2xl border border-emerald-300 transition-all">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none p-3 rounded-xl border border-zinc-200 hover:border-black bg-zinc-50 transition-all">
                 <input
                   type="checkbox"
                   checked={isConsultation}
                   onChange={(e) => setIsConsultation(e.target.checked)}
-                  className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
+                  className="size-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-400 accent-[#1A7A3C]"
                 />
-                <div className="text-xs">
-                  <span className="font-bold text-slate-900 block">
-                    🤝 Request Security &amp; Vigilance Officer Consultation Call
-                  </span>
-                  <p className="text-[11px] text-slate-600 mt-0.5">
-                    Speak directly with our cyber vigilance officer to assist with evidence preservation, FIR documentation, and bank cybercell reporting.
-                  </p>
-                </div>
+                <span className="text-xs font-bold text-slate-900">
+                  Request Security &amp; Vigilance Officer Consultation Call
+                </span>
               </label>
 
               {/* Submit Button */}

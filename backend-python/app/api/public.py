@@ -740,15 +740,12 @@ async def list_fraud_reports(status: Optional[str] = Query(None)) -> List[Dict[s
         if status and status.lower() != "all":
             query["status"] = status.lower()
         docs = await database.find_many("fraud_reports", query)
-        if not docs:
-            for f in DEFAULT_FRAUD_REPORTS:
-                await database.insert("fraud_reports", f)
-            docs = list(DEFAULT_FRAUD_REPORTS)
+        docs = docs or []
         docs.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
         return docs
     except Exception as err:
         logger.warning(f"Error fetching fraud reports: {err}")
-        return DEFAULT_FRAUD_REPORTS
+        return []
 
 
 @router.patch("/fraud-reports/{report_id}")
@@ -893,16 +890,10 @@ async def list_public_careers() -> List[Dict[str, Any]]:
     """Public: List all active open job positions at QuickPress."""
     try:
         roles = await database.find_many("careers_jobs", {"isActive": True})
-        if not roles:
-            # Seed default roles if empty
-            for r in DEFAULT_CAREER_ROLES:
-                doc = {**r, "_id": r["id"]}
-                await database.insert("careers_jobs", doc)
-            roles = [r for r in DEFAULT_CAREER_ROLES if r.get("isActive", True)]
-        return roles
+        return roles or []
     except Exception as e:
         logger.warning(f"Error fetching career roles: {e}")
-        return DEFAULT_CAREER_ROLES
+        return []
 
 
 @router.post("/careers/apply", status_code=201)
@@ -997,15 +988,12 @@ async def list_contact_inquiries(status: Optional[str] = Query(None)) -> List[Di
         if status and status.lower() != "all":
             query["status"] = status.lower()
         docs = await database.find_many("contact_inquiries", query)
-        if not docs:
-            for c in DEFAULT_CONTACT_INQUIRIES:
-                await database.insert("contact_inquiries", c)
-            docs = list(DEFAULT_CONTACT_INQUIRIES)
+        docs = docs or []
         docs.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
         return docs
     except Exception as e:
         logger.warning(f"Error fetching contact inquiries: {e}")
-        return DEFAULT_CONTACT_INQUIRIES
+        return []
 
 
 
