@@ -56,15 +56,6 @@ const IconStore = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
-const IconBike = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="18.5" cy="17.5" r="3.5" />
-    <circle cx="5.5" cy="17.5" r="3.5" />
-    <circle cx="15" cy="5" r="1" />
-    <path d="M12 17.5V14l-3-3 4-3 2 3h2" />
-  </svg>
-);
-
 const IconBuilding = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
@@ -85,61 +76,10 @@ const IconChevronDown = ({ className = "w-4 h-4" }: { className?: string }) => (
   </svg>
 );
 
-const IconExternalLink = ({ className = "w-3.5 h-3.5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-    <polyline points="15 3 21 3 21 9" />
-    <line x1="10" y1="14" x2="21" y2="3" />
-  </svg>
-);
-
-const IconGlobe = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <line x1="2" y1="12" x2="22" y2="12" />
-    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-  </svg>
-);
-
 const IconArrowRight = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="5" y1="12" x2="19" y2="12" />
     <polyline points="12 5 19 12 12 19" />
-  </svg>
-);
-
-const IconCopy = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-  </svg>
-);
-
-const IconInstagram = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-  </svg>
-);
-
-const IconFacebook = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-  </svg>
-);
-
-const IconLinkedIn = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-    <rect x="2" y="9" width="4" height="12" />
-    <circle cx="4" cy="4" r="2" />
-  </svg>
-);
-
-const IconTwitter = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
   </svg>
 );
 
@@ -163,75 +103,43 @@ const DEPARTMENT_CHANNELS: DepartmentChannel[] = [
   {
     id: "customer",
     categoryTag: "customer",
-    categoryLabel: "Customer Care & Order Desk",
+    categoryLabel: "Customer Support & Orders Desk",
     title: "Order & Garment Care Desk",
-    desc: "Instant assistance with active laundry orders, pickup time rescheduling, special fabric care instructions, barcode tracking, and billing queries.",
+    desc: "Instant assistance with active laundry pickups, live order tracking, fabric care instructions, special stain treatments, and billing queries.",
     phone: "+919258730561",
     phoneDisplay: "+91 9258730561",
     whatsapp: "919258730561",
-    email: "support@withquickpress.com",
-    secondaryEmail: "official.quickpress@gmail.com",
-    slaBadge: "Avg Response < 10 Mins",
+    email: "official.quickpress@gmail.com",
+    slaBadge: "Sub-10 Min Response",
     icon: (cls) => <IconPhone className={cls || "w-5 h-5"} />,
     actionType: "call",
+  },
+  {
+    id: "partner",
+    categoryTag: "partner",
+    categoryLabel: "Partner Stores & Franchise",
+    title: "Laundromat Partners & Hubs",
+    desc: "Equip your existing laundry store with Italian vacuum steam tables, connect to our hyper-local dispatch grid, and scale daily customer volume.",
+    phone: "+919258730561",
+    phoneDisplay: "+91 9258730561",
+    whatsapp: "919258730561",
+    email: "partner@withquickpress.com",
+    slaBadge: "24-Hour Onboarding",
+    icon: (cls) => <IconStore className={cls || "w-5 h-5"} />,
+    actionType: "modal_partner",
   },
   {
     id: "b2b",
     categoryTag: "b2b",
     categoryLabel: "B2B & Institutional Accounts",
     title: "Corporate & Enterprise Care",
-    desc: "Commercial garment care agreements for hotels, hospitals, student hostels, corporate offices, and uniform bulk care with formal monthly GST invoicing.",
+    desc: "Tailored commercial linen care agreements for hotels, hospitals, student hostels, and corporate uniforms with formal monthly GST invoicing.",
     phone: "+919258730561",
     phoneDisplay: "+91 9258730561",
-    whatsapp: "919258730561",
     email: "b2b@withquickpress.com",
-    secondaryEmail: "info@withquickpress.com",
-    slaBadge: "Dedicated Key Account Manager",
+    slaBadge: "Dedicated Account Lead",
     icon: (cls) => <IconBuilding className={cls || "w-5 h-5"} />,
     actionType: "navigate_b2b",
-  },
-  {
-    id: "partner",
-    categoryTag: "partner",
-    categoryLabel: "Partner Stores & Franchise",
-    title: "Laundromat Hub & MD Desk",
-    desc: "Equip your existing laundry store with Italian vacuum steam tables, connect to our hyper-local dispatch grid, or escalate directly to Managing Leadership.",
-    phone: "+919258730561",
-    phoneDisplay: "+91 9258730561",
-    whatsapp: "919258730561",
-    email: "partner@withquickpress.com",
-    secondaryEmail: "official.quickpress@gmail.com",
-    slaBadge: "Executive Priority Desk",
-    icon: (cls) => <IconStore className={cls || "w-5 h-5"} />,
-    actionType: "modal_partner",
-  },
-  {
-    id: "fleet",
-    categoryTag: "fleet",
-    categoryLabel: "Delivery Captain Fleet",
-    title: "Captain & Rider Logistics Hub",
-    desc: "Join our hyper-local on-demand courier fleet across Kasganj and Western UP with weekly incentive bank deposits.",
-    phone: "+919258730561",
-    phoneDisplay: "+91 9258730561",
-    whatsapp: "919258730561",
-    email: "fleet@withquickpress.com",
-    slaBadge: "Instant Joining Support",
-    icon: (cls) => <IconBike className={cls || "w-5 h-5"} />,
-    actionType: "modal_fleet",
-  },
-  {
-    id: "legal",
-    categoryTag: "legal",
-    categoryLabel: "Legal, Statutory & Nodal",
-    title: "Statutory Grievance & Legal Desk",
-    desc: "Statutory compliance under Information Technology Act 2000 and Consumer Protection (E-Commerce) Rules 2020. Guaranteed nodal resolution.",
-    phone: "+919258730561",
-    phoneDisplay: "+91 9258730561",
-    email: "legal@withquickpress.com",
-    secondaryEmail: "grievance@withquickpress.com",
-    slaBadge: "Statutory 48h Resolution",
-    icon: (cls) => <IconShieldCheck className={cls || "w-5 h-5"} />,
-    actionType: "email",
   },
 ];
 
@@ -274,7 +182,6 @@ export function ContactPage({
   const [message, setMessage] = useState<string>("");
   const [submittedTicket, setSubmittedTicket] = useState<string | null>(null);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
-  const [copiedAddress, setCopiedAddress] = useState<boolean>(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -293,13 +200,6 @@ export function ContactPage({
     setEmail("");
     setOrderId("");
     setMessage("");
-  };
-
-  const handleCopyAddress = () => {
-    const address = "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED, 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India";
-    navigator.clipboard.writeText(address);
-    setCopiedAddress(true);
-    setTimeout(() => setCopiedAddress(false), 2500);
   };
 
   return (
@@ -566,13 +466,11 @@ export function ContactPage({
                   <label className="text-xs font-mono font-bold uppercase text-zinc-600 tracking-wider block mb-2">
                     Select Inquiry Purpose *
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 font-mono">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono">
                     {[
                       { id: "customer", label: "Customer Care" },
-                      { id: "b2b", label: "B2B Bulk Laundry" },
                       { id: "partner", label: "Partner Store Hub" },
-                      { id: "fleet", label: "Rider Fleet Desk" },
-                      { id: "grievance", label: "Grievance / Legal" },
+                      { id: "b2b", label: "B2B Bulk Laundry" },
                       { id: "feedback", label: "General Feedback" },
                     ].map((item) => (
                       <button
@@ -698,155 +596,112 @@ export function ContactPage({
             )}
           </div>
 
-          {/* Right Column: Registered Corporate HQ & Logistics Network */}
+          {/* Right Column: Live Operations Support Desk & Service Assurances */}
           <div className="lg:col-span-5 space-y-6 animate-slide-right">
-            {/* Headquarters Card */}
-            <div className="p-7 sm:p-8 rounded-3xl bg-white border-2 border-zinc-200 hover:border-black shadow-xl transition-all duration-300 space-y-5">
-              <div className="flex items-center justify-between pb-4 border-b border-zinc-200">
+            <div className="p-7 sm:p-8 rounded-3xl bg-white border-2 border-zinc-200 hover:border-black shadow-xl transition-all duration-300 space-y-6 relative overflow-hidden">
+              {/* Subtle top-right ambient emerald accent */}
+              <div className="absolute -top-12 -right-12 w-44 h-44 bg-emerald-100/50 rounded-full blur-2xl pointer-events-none" />
+
+              {/* Header with Live Status Indicator */}
+              <div className="flex items-center justify-between pb-5 border-b border-zinc-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-white border-2 border-zinc-200 hover:border-black overflow-hidden flex items-center justify-center p-1.5 shadow-sm transition-all">
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-100 border border-zinc-200 overflow-hidden flex items-center justify-center p-2 shadow-xs">
                     <img src={logoLight} alt="QuickPress Logo" className="w-full h-auto object-contain" />
                   </div>
                   <div>
-                    <h3 className="text-base font-black text-black font-mono">
-                      QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
+                    <h3 className="text-base font-black text-black">
+                      Operations Support Desk
                     </h3>
-                    <span className="text-[11px] text-zinc-600 font-mono font-semibold">Kasganj Registered Headquarters</span>
+                    <p className="text-xs text-zinc-500 font-medium">QuickPress Central Control Grid</p>
                   </div>
                 </div>
-                <span className="text-xs font-mono font-bold text-zinc-500 uppercase">
-                  Est. 2024
-                </span>
-              </div>
-
-              <div className="space-y-3 text-xs font-mono">
-                <div className="flex justify-between py-1 border-b border-zinc-100">
-                  <span className="text-zinc-600 font-semibold">CIN:</span>
-                  <span className="font-mono text-black font-black text-right">U74999UP2024PTC198141</span>
-                </div>
-                <div className="flex justify-between items-center py-1 border-b border-zinc-100">
-                  <span className="text-zinc-600 font-semibold">Helpline:</span>
-                  <a
-                    href="tel:+919258730561"
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-xs transition-all cursor-pointer"
-                  >
-                    <IconPhone className="w-3.5 h-3.5" />
-                    <span>Call Helpline</span>
-                  </a>
-                </div>
-                <div className="flex justify-between py-1 border-b border-zinc-100">
-                  <span className="text-zinc-600 font-semibold">Primary Email:</span>
-                  <a href="mailto:official.quickpress@gmail.com" className="font-bold text-black hover:underline">
-                    official.quickpress@gmail.com
-                  </a>
-                </div>
-                <div className="flex justify-between py-1 border-b border-zinc-100">
-                  <span className="text-zinc-600 font-semibold">Support Hours:</span>
-                  <span className="text-black font-medium text-right">Mon – Sat, 7 AM – 10 PM IST</span>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-black text-[11px] font-mono font-bold">
+                  <span className="w-2 h-2 rounded-full bg-[#22c55e] animate-ping" />
+                  <span>Live Online</span>
                 </div>
               </div>
 
-              {/* Registered Address Block with 1-Click Copy */}
-              <div className="p-4 rounded-2xl bg-white border-2 border-zinc-200 hover:border-black transition-all space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono font-bold uppercase text-zinc-600 flex items-center gap-1.5">
-                    <IconMapPin className="w-3.5 h-3.5 text-black" />
-                    <span>Registered Address</span>
-                  </span>
+              {/* Core Operational Assurances */}
+              <div className="space-y-3.5">
+                <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-black transition-colors">
+                  <div className="w-9 h-9 rounded-xl bg-white border border-zinc-200 text-black flex items-center justify-center shrink-0 shadow-xs">
+                    <IconClock className="w-4 h-4 text-black" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-black">Sub-10 Min Response SLA</h4>
+                    <p className="text-[11px] text-zinc-600 mt-0.5 leading-relaxed font-medium">
+                      Instant routing to active dispatch coordinators for live pickup updates and modifications.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-black transition-colors">
+                  <div className="w-9 h-9 rounded-xl bg-white border border-zinc-200 text-black flex items-center justify-center shrink-0 shadow-xs">
+                    <IconShieldCheck className="w-4 h-4 text-black" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-black">₹5,000 Garment Protection Cover</h4>
+                    <p className="text-[11px] text-zinc-600 mt-0.5 leading-relaxed font-medium">
+                      Zero-loss barcode tracking with digital doorstep weighing receipt and item inspection.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-black transition-colors">
+                  <div className="w-9 h-9 rounded-xl bg-white border border-zinc-200 text-black flex items-center justify-center shrink-0 shadow-xs">
+                    <IconMapPin className="w-4 h-4 text-black" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-black">Kasganj Central Dispatch Hub</h4>
+                    <p className="text-[11px] text-zinc-600 mt-0.5 leading-relaxed font-medium">
+                      Operating 7:00 AM – 10:00 PM IST daily across active hyper-local delivery zones.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Direct Fast Actions */}
+              <div className="pt-2 border-t border-zinc-100 space-y-2.5">
+                <a
+                  href="tel:+919258730561"
+                  className="w-full py-3.5 px-4 rounded-xl bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-xs font-mono uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-md hover:scale-102 cursor-pointer"
+                >
+                  <IconPhone className="w-4 h-4 text-black" />
+                  <span>Call Operations Lead (+91 92587 30561)</span>
+                </a>
+
+                <a
+                  href="https://wa.me/919258730561?text=Hi%20QuickPress%20Support,%20I%20need%20assistance%20with%20my%20order."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3 px-4 rounded-xl bg-white border-2 border-zinc-200 hover:border-black text-black font-bold text-xs font-mono transition-all flex items-center justify-center gap-2 shadow-xs hover:scale-102 cursor-pointer"
+                >
+                  <IconMessageCircle className="w-4 h-4 text-black" />
+                  <span>Instant WhatsApp Support Desk</span>
+                </a>
+              </div>
+
+              {/* Informational micro-badge */}
+              <div className="pt-2 text-center">
+                <p className="text-[11px] text-zinc-500 font-sans font-medium">
+                  Looking for business partnerships? Visit our{" "}
                   <button
                     type="button"
-                    onClick={handleCopyAddress}
-                    className="text-[11px] font-mono font-bold text-zinc-700 hover:text-black flex items-center gap-1 cursor-pointer transition-colors"
+                    onClick={() => onNavigate("b2b-partner")}
+                    className="text-black font-black hover:underline cursor-pointer"
                   >
-                    <IconCopy className="w-3.5 h-3.5 text-black" />
-                    <span>{copiedAddress ? "Copied!" : "Copy"}</span>
+                    Partner Hub
+                  </button>{" "}
+                  or explore{" "}
+                  <button
+                    type="button"
+                    onClick={() => onOpenModal("partner")}
+                    className="text-black font-black hover:underline cursor-pointer"
+                  >
+                    Franchise Store Program
                   </button>
-                </div>
-                <p className="text-xs text-zinc-700 leading-relaxed font-sans font-medium">
-                  0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India
+                  .
                 </p>
-              </div>
-
-              {/* Official QuickPress Social Channels */}
-              <div className="pt-2 border-t border-zinc-100 flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-500">Official Social:</span>
-                <div className="flex items-center gap-3">
-                  <a
-                    href="https://www.facebook.com/with.quickpress"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-black font-bold hover:text-[#1877f2] transition-colors flex items-center gap-1"
-                    title="QuickPress on Facebook"
-                  >
-                    <IconFacebook className="w-3.5 h-3.5 text-[#1877f2]" />
-                    <span>Facebook</span>
-                  </a>
-                  <span className="text-zinc-300">•</span>
-                  <a
-                    href="https://www.instagram.com/with.quickpress"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-black font-bold hover:text-[#e1306c] transition-colors flex items-center gap-1"
-                    title="QuickPress on Instagram"
-                  >
-                    <IconInstagram className="w-3.5 h-3.5 text-[#e1306c]" />
-                    <span>Instagram</span>
-                  </a>
-                </div>
-              </div>
-
-              {/* Direct Founder Desk Handles */}
-              <div className="pt-2 border-t border-zinc-100 flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-500">Founder Desk:</span>
-                <div className="flex items-center gap-2">
-                  <a
-                    href="https://www.instagram.com/unfiltered_himanshu_._/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-black font-bold hover:text-[#e1306c] transition-colors flex items-center gap-1"
-                    title="Himanshu Pal on Instagram"
-                  >
-                    <IconInstagram className="w-3.5 h-3.5 text-[#e1306c]" />
-                    <span>Himanshu</span>
-                  </a>
-                  <span className="text-zinc-300">•</span>
-                  <a
-                    href="https://www.instagram.com/who_rishab_/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-black font-bold hover:text-[#e1306c] transition-colors flex items-center gap-1"
-                    title="Rishab Baghel on Instagram"
-                  >
-                    <IconInstagram className="w-3.5 h-3.5 text-[#e1306c]" />
-                    <span>Rishab</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            {/* Statutory Compliance & Grievance Card */}
-            <div className="p-7 rounded-3xl bg-white border-2 border-zinc-200 hover:border-black shadow-lg space-y-3 transition-all duration-300">
-              <div className="flex items-center gap-2 text-black font-bold text-xs font-mono uppercase">
-                <IconShieldCheck className="w-4 h-4 text-black" />
-                <span>Statutory Compliance & Nodal Officer</span>
-              </div>
-              <p className="text-xs text-zinc-600 leading-relaxed font-sans font-medium">
-                Under the Information Technology Act 2000 and Consumer Protection (E-Commerce) Rules:
-              </p>
-              <div className="text-xs text-zinc-800 font-mono space-y-1.5 pt-1">
-                <p><strong>Legal Entity:</strong> QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</p>
-                <p><strong>CIN:</strong> U74999UP2024PTC198141</p>
-                <p><strong>Nodal Email:</strong> <a href="mailto:legal@withquickpress.com" className="text-black font-bold hover:underline">legal@withquickpress.com</a></p>
-                <div className="flex items-center justify-between pt-1">
-                  <span><strong>Direct Helpline:</strong></span>
-                  <a
-                    href="tel:+919258730561"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-xs transition-all cursor-pointer"
-                  >
-                    <IconPhone className="w-3 h-3" />
-                    <span>Call Desk</span>
-                  </a>
-                </div>
               </div>
             </div>
           </div>
