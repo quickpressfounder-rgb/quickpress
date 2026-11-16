@@ -1,5 +1,52 @@
 # QuickPress — Engineering Work History
 
+## Session: November 16, 2026 (Part 36)
+
+### Self-Balancing Margin Protection Engine & Admin-Controlled Dynamic Delivery
+
+1. **Context & User Directives:**
+   - User directive: *"yahi to probllome solve karni hia aager order kaam ka hai to to rider ka price kaam bale or 50-55 ka profit to ho quickpress ko isk hisab se koi logic ya plan samjhao"*
+   - User directive: *"greaenty profit kahi likhna nahi hia badge etc me kahi bhi nahi or full intragtion karna hai iske ander full logic intgratiojn karna hai bo bhi real 4 penal me connect me karna hai"*
+   - User directive: *"isko rules ko hum admin penal ke finanace rules ke ander se change bhi kar ske"*
+   - Core Requirements:
+     1. Protect a guaranteed platform net profit floor of ₹50 - ₹55 on all orders, preventing subsidizing long-distance deliveries on small-ticket orders into negative territory.
+     2. Strict constraint: NO "Guaranteed Profit" badges, pills, or promotional UI anywhere — all margin math must execute silently and safely inside the backend engine.
+     3. 100% Admin Configurable: Admin can adjust `targetPlatformProfit` (e.g. ₹50, ₹60, ₹75) and toggle `marginProtectionEnabled` directly from the Admin Panel's Finance Rules (`UnifiedStakeholderRulesEngine.tsx`) with zero code changes or server restarts.
+     4. Real 4-Panel End-to-End Integration across Backend, Admin Console, Customer Checkout, and Rider Dispatch.
+
+2. **Backend Engineering (`backend-python/app/services/unified_finance_service.py`):**
+   - Added `marginProtectionEnabled: True` and `targetPlatformProfit: 50.0` to `DEFAULT_RULES["delivery"]`.
+   - Updated default `freeDeliveryThreshold` from `149.0` to `499.0` for sensible unit economics.
+   - Implemented the **Dynamic Margin Protection & Delivery Subsidy Engine** in `calculate_checkout_price`:
+     - Calculates estimated platform gross inflow: $\text{Inflow} = \text{Commission} + \text{Platform Fee} + \text{Handling Fee}$.
+     - Computes available platform delivery subsidy: $\text{Available Subsidy} = \max(0, \text{Inflow} - \text{Target Profit})$.
+     - If order is eligible for free delivery:
+       - If $\text{Available Subsidy} \ge \text{Calculated Delivery Fee}$: 100% Free Delivery granted.
+       - Else: Platform funds $\text{Available Subsidy}$ and customer pays remainder $\max(0, \text{Calculated Delivery Fee} - \text{Available Subsidy})$.
+     - If order is below free delivery threshold: Customer pays standard distance-based delivery fee.
+     - Preserves exact double-entry mathematical precision without 1 paisa of rounding discrepancy.
+
+3. **Admin Console Enhancement (`admin-frontend/src/components/finance/UnifiedStakeholderRulesEngine.tsx`):**
+   - Added live administrative controls for:
+     - `Target Platform Profit (₹)` input field (`delivery.targetPlatformProfit`, default ₹50).
+     - `Margin Protection Engine` auto-balance toggle switch (`delivery.marginProtectionEnabled`).
+   - Connected directly to `updateField` and the versioned audit-log persistence pipeline in Supabase.
+   - Updated effective fallback for `freeDeliveryThreshold` to 499.0.
+
+4. **Customer API Model Extension (`customer-frontend/src/api/customer/finance-api.ts`):**
+   - Extended `PricingCalculationResult` interface with `marginProtectionEnabled?: boolean` and `targetPlatformProfit?: number`.
+
+5. **Verification & Build:**
+   - Unit tests: `test_distance_rate_engine.py` (8 passed in 0.39s), `test_finance_rules_and_admin_pnl.py` (4 passed in 6.01s).
+   - Python simulation tests:
+     - ₹250 order at 5 km: Customer pays ₹60 delivery fee, Platform keeps ₹62.50 ($\ge$ ₹50 target).
+     - ₹500 order at 5 km: Platform subsidizes ₹50, Customer pays ₹10 delivery fee, Platform keeps ₹50.00 exact profit.
+     - ₹1000 order at 5 km: Customer receives 100% Free Delivery, Platform keeps ₹115.00 clean margin.
+   - Admin Frontend build: `NITRO_PRESET=node-server npm run build` passed with 0 errors (2,724 modules transformed).
+   - Customer Frontend build: `npm run build` passed with 0 errors (2,157 modules transformed).
+
+---
+
 ## Session: November 16, 2026 (Part 35)
 
 ### Complete Audit & Purge of Artificial Telemetry Badges & Status Pills

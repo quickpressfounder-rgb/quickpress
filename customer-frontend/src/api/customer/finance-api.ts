@@ -93,6 +93,8 @@ export interface PricingCalculationResult {
   customerDeliveryFee: number;
   deliverySubsidy: number;
   deliverySubsidySource: string | null;
+  marginProtectionEnabled?: boolean;
+  targetPlatformProfit?: number;
   platformFee: number;
   handlingFee: number;
   surgeFee?: number;

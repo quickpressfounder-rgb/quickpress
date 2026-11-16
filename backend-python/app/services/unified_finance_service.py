@@ -252,7 +252,9 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
             {"minKm": 8.0, "maxKm": 12.0, "fee": 90.0},
             {"minKm": 12.0, "maxKm": 999.0, "fee": 120.0},
         ],
-        "freeDeliveryThreshold": 149.0,
+        "freeDeliveryThreshold": 499.0,
+        "marginProtectionEnabled": True,
+        "targetPlatformProfit": 50.0,
         "subsidyFundingSource": "QUICKPRESS_FUNDED",  # QUICKPRESS_FUNDED | PARTNER_FUNDED | SHARED_FUNDED
         "nightSurge": 0.0,
         "rainSurge": 0.0,
@@ -699,15 +701,6 @@ class UnifiedFinanceService:
         # Enforce minimum delivery fee
         calculated_delivery_fee = max(calculated_delivery_fee, min_delivery_fee)
 
-        # Free Delivery check (Threshold customizable via Admin Finance Rules, default ₹149)
-        free_thresh = float(delivery_cfg.get("freeDeliveryThreshold", 149.0))
-        is_free_delivery = is_member or (gross_service_value >= free_thresh)
-        delivery_subsidy = calculated_delivery_fee if is_free_delivery else 0.0
-        customer_delivery_fee = 0.0 if is_free_delivery else calculated_delivery_fee
-        delivery_subsidy_source = (
-            delivery_cfg.get("subsidyFundingSource", "QUICKPRESS_FUNDED") if is_free_delivery else None
-        )
-
         # C. Platform & Handling & Convenience & Packaging & Express Fees
         def _calc_fee(key: str, default_val: float) -> float:
             enabled_key = f"{key}Enabled"
@@ -735,6 +728,48 @@ class UnifiedFinanceService:
         convenience_fee = _calc_fee("convenienceFee", 0.0)
         packaging_fee = _calc_fee("packagingFee", 0.0)
         service_charge = _calc_fee("serviceCharge", 0.0)
+
+        # Estimate Platform Gross Inflow from Order (Commission + Platform Fee + Handling Fee)
+        comm_cfg = rules.get("commission", {})
+        partner_payout_pct = comm_cfg.get("partnerPayoutPercent")
+        if partner_payout_pct is not None:
+            est_comm_rate = max(0.0, (100.0 - float(partner_payout_pct)) / 100.0)
+        else:
+            comm_val = comm_cfg.get("platformCommissionPercent") or comm_cfg.get("standardRate") or 15.0
+            est_comm_rate = float(comm_val) / 100.0 if float(comm_val) > 1.0 else float(comm_val)
+        est_platform_commission = round(gross_service_value * est_comm_rate, 2)
+        est_platform_inflow = round(est_platform_commission + platform_fee + handling_fee, 2)
+
+        # Free Delivery & Dynamic Margin Protection (Admin Controlled from Finance Engine)
+        free_thresh = float(delivery_cfg.get("freeDeliveryThreshold", 499.0))
+        margin_protection_enabled = bool(delivery_cfg.get("marginProtectionEnabled", True))
+        target_platform_profit = float(delivery_cfg.get("targetPlatformProfit", 50.0))
+        is_eligible_for_free = is_member or (gross_service_value >= free_thresh)
+
+        if margin_protection_enabled:
+            # Reserve target net profit floor before allocating delivery subsidy
+            available_subsidy = max(0.0, round(est_platform_inflow - target_platform_profit, 2))
+            if is_eligible_for_free:
+                if available_subsidy >= calculated_delivery_fee:
+                    is_free_delivery = True
+                    delivery_subsidy = calculated_delivery_fee
+                    customer_delivery_fee = 0.0
+                else:
+                    delivery_subsidy = round(available_subsidy, 2)
+                    customer_delivery_fee = max(0.0, round(calculated_delivery_fee - delivery_subsidy, 2))
+                    is_free_delivery = (customer_delivery_fee <= 0.0)
+            else:
+                is_free_delivery = False
+                delivery_subsidy = 0.0
+                customer_delivery_fee = calculated_delivery_fee
+        else:
+            is_free_delivery = is_eligible_for_free
+            delivery_subsidy = calculated_delivery_fee if is_free_delivery else 0.0
+            customer_delivery_fee = 0.0 if is_free_delivery else calculated_delivery_fee
+
+        delivery_subsidy_source = (
+            delivery_cfg.get("subsidyFundingSource", "QUICKPRESS_FUNDED") if delivery_subsidy > 0 else None
+        )
         # C1. Dynamic Surge Fee (Admin Configured + VIP Waiver)
         surge_cfg = rules.get("surge", {})
         surge_enabled = bool(surge_cfg.get("enabled", False))
@@ -877,6 +912,8 @@ class UnifiedFinanceService:
             "isFreeDelivery": is_free_delivery,
             "deliverySubsidy": delivery_subsidy,
             "deliverySubsidySource": delivery_subsidy_source,
+            "marginProtectionEnabled": margin_protection_enabled,
+            "targetPlatformProfit": target_platform_profit,
             "platformFee": platform_fee,
             "handlingFee": handling_fee,
             "convenienceFee": convenience_fee,

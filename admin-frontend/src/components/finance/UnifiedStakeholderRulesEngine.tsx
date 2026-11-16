@@ -761,6 +761,44 @@ export function UnifiedStakeholderRulesEngine({
                     <p className="text-[10px] text-zinc-500">Multiplier (+35%) applied for priority orders.</p>
                   </div>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-1.5 bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-200">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold text-zinc-900">Target Platform Profit (₹)</Label>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">Margin Floor</span>
+                    </div>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-500">₹</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="5"
+                        value={editableRules?.delivery?.targetPlatformProfit ?? "50"}
+                        onChange={(e) => updateField("delivery.targetPlatformProfit", e.target.value)}
+                        className="bg-white border-emerald-300 text-emerald-900 font-black text-sm pl-7 shadow-2xs"
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500">Guaranteed net margin reserved before allocating delivery subsidy.</p>
+                  </div>
+
+                  <div className="space-y-1.5 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-200">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold text-zinc-800">Margin Protection Engine</Label>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-800 font-bold">Auto-Balance</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-xs font-bold text-zinc-700">
+                        {(editableRules?.delivery?.marginProtectionEnabled ?? true) ? "Active (Self-Balancing)" : "Disabled (Unrestricted)"}
+                      </span>
+                      <Switch
+                        checked={Boolean(editableRules?.delivery?.marginProtectionEnabled ?? true)}
+                        onCheckedChange={(checked) => updateField("delivery.marginProtectionEnabled", checked)}
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500">Auto-balances customer delivery fee to protect platform profit floor.</p>
+                  </div>
+                </div>
               </div>
             </div>
 
