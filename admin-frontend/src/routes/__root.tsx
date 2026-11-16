@@ -43,25 +43,42 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
 
-    // Automatic recovery for stale bundle chunk / CDN cache mismatch errors
+    // 1. If Cloudflare Access redirected with logged_out, clear storage and reload clean root
+    if (typeof window !== "undefined" && window.location.search.includes("__cf_access_message=logged_out")) {
+      try {
+        localStorage.removeItem("admin_session");
+        sessionStorage.clear();
+      } catch {}
+      window.location.replace("/");
+      return;
+    }
+
+    // 2. Automatic recovery for stale bundle chunk / deployment mismatch errors
     if (
       errorMsg.includes("positive") ||
       errorMsg.includes("Failed to fetch dynamically imported module") ||
       errorMsg.includes("Loading chunk") ||
       errorMsg.includes("Importing a module script failed")
     ) {
-      const key = "__qp_auto_recovered_v3";
-      if (!sessionStorage.getItem(key)) {
-        sessionStorage.setItem(key, "true");
+      const key = "__qp_last_chunk_reload";
+      const now = Date.now();
+      const last = Number(sessionStorage.getItem(key) || "0");
+      if (now - last > 4000) {
+        sessionStorage.setItem(key, String(now));
         if ("caches" in window) {
           caches.keys().then((names) => {
             for (const name of names) caches.delete(name);
           });
         }
-        window.location.reload();
+        window.location.href = window.location.pathname;
       }
     }
   }, [error, errorMsg]);
+
+  // If redirecting from Cloudflare logged_out parameter, do not display error screen
+  if (typeof window !== "undefined" && window.location.search.includes("__cf_access_message=logged_out")) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 text-zinc-900">
@@ -72,31 +89,29 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <h1 className="text-xl font-black tracking-tight text-zinc-950">
           {errorMsg.includes("chunk") || errorMsg.includes("dynamically")
             ? "Updating QuickPress Admin..."
-            : "QuickPress Admin Error"}
+            : "QuickPress Admin"}
         </h1>
         <p className="mt-2 text-xs text-zinc-600 break-words">
-          {error?.message || "An unexpected error occurred. Click below to reload the latest application state."}
+          {errorMsg.includes("chunk") || errorMsg.includes("dynamically")
+            ? "A newer version of the console was deployed. Click below to load the latest console."
+            : error?.message || "Click below to reload the console."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button
-            onClick={() => reset()}
-            className="inline-flex items-center justify-center rounded-xl bg-white border border-zinc-200 px-4 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-all cursor-pointer shadow-2xs"
-          >
-            Try Again
-          </button>
-          <button
             onClick={() => {
-              if ("caches" in window) {
-                caches.keys().then((names) => {
-                  for (const name of names) caches.delete(name);
-                });
+              if (typeof window !== "undefined") {
+                if ("caches" in window) {
+                  caches.keys().then((names) => {
+                    for (const name of names) caches.delete(name);
+                  });
+                }
+                sessionStorage.clear();
+                window.location.href = "/";
               }
-              sessionStorage.clear();
-              window.location.href = window.location.pathname;
             }}
             className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-extrabold text-white transition-all hover:bg-emerald-500 active:scale-95 shadow-md shadow-emerald-600/20 cursor-pointer"
           >
-            Reload App
+            Reload Console
           </button>
         </div>
       </div>
@@ -146,6 +161,36 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en" className="bg-white" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== "undefined") {
+                if (window.location.search.includes("__cf_access_message=logged_out")) {
+                  try {
+                    localStorage.removeItem("admin_session");
+                    sessionStorage.clear();
+                  } catch (e) {}
+                  window.location.replace("/");
+                }
+                window.addEventListener("vite:preloadError", function(event) {
+                  event.preventDefault();
+                  var key = "__qp_chunk_reload";
+                  var now = Date.now();
+                  var last = parseInt(sessionStorage.getItem(key) || "0", 10);
+                  if (now - last > 4000) {
+                    sessionStorage.setItem(key, String(now));
+                    if ("caches" in window) {
+                      caches.keys().then(function(names) {
+                        for (var i = 0; i < names.length; i++) caches.delete(names[i]);
+                      });
+                    }
+                    window.location.href = window.location.pathname;
+                  }
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body className="min-h-screen bg-white text-foreground antialiased selection:bg-primary/20" suppressHydrationWarning>
         {children}

@@ -1,5 +1,27 @@
 # QuickPress — Engineering Work History
 
+## Session: November 16, 2026 (Part 30)
+
+### Auto-Recovery for Cloudflare Access Logout State & Stale Deployment Dynamic Bundle Chunks
+
+1. **Context & User Directives:**
+   - User directive: *"FIX KARO"* (with screenshot of `ops.withquickpress.com/?__cf_access_message=logged_out` displaying "Updating QuickPress Admin... Failed to fetch dynamically imported module: https://ops.withquickpress.com/assets/routes-B_ugCGrQ.js").
+   - Cause: When Cloudflare Access logged out, it appended `?__cf_access_message=logged_out`. Simultaneously, a newly deployed build changed the chunk hashes, so the user's browser (holding old HTML) requested an obsolete chunk `routes-B_ugCGrQ.js`, causing the dynamic module import failure.
+
+2. **Engineering Solutions Delivered:**
+   - **Pre-Hydration Clean Redirect (`routes/__root.tsx` RootShell):**
+     - Added an inline script in `<head>` that immediately detects `__cf_access_message=logged_out`.
+     - Purges local and session storage and performs `window.location.replace("/")`, clearing the query string so Cloudflare Access can prompt for login smoothly without broken state.
+     - Registered a global `vite:preloadError` event listener that auto-clears caches and reloads the current pathname upon stale deployment chunk hash mismatches.
+   - **Root Error Boundary Self-Healing (`routes/__root.tsx` ErrorComponent):**
+     - Automatically intercepts dynamic import / chunk errors and triggers a clean reload of the root console.
+     - Updated the error action button to "Reload Console" pointing cleanly to `/`.
+
+3. **Verification & Testing Results:**
+   - Production bundle build: `NITRO_PRESET=node-server npm run build` in `admin-frontend` succeeded with 0 errors across 2,725 transformed modules.
+
+---
+
 ## Session: November 16, 2026 (Part 29)
 
 ### Complete Elimination of Extra Auth Screens for Direct Cloudflare Email OTP Role-Based Console Access
