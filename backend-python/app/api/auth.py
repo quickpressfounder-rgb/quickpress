@@ -636,6 +636,13 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
         or request.headers.get("x-cf-access-authenticated-user-email")
         or request.headers.get("x-authenticated-user-email")
         or request.headers.get("cf_access_authenticated_user_email")
+        or request.headers.get("cf-access-user-email")
+        or request.headers.get("cf-access-user")
+        or request.headers.get("x-auth-email")
+        or request.headers.get("x-forwarded-user")
+        or request.headers.get("x-forwarded-email")
+        or request.headers.get("x-user-email")
+        or request.headers.get("x-email")
     )
 
     # If header not forwarded directly, decode JWT assertion or CF_Authorization cookie
@@ -643,12 +650,14 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
         cf_jwt = (
             request.headers.get("cf-access-jwt-assertion")
             or request.headers.get("x-cf-access-jwt-assertion")
+            or request.headers.get("cf-access-token")
             or request.cookies.get("CF_Authorization")
+            or request.cookies.get("cf_authorization")
         )
         if not cf_jwt and "cookie" in request.headers:
             for item in request.headers["cookie"].split(";"):
                 item = item.strip()
-                if item.startswith("CF_Authorization="):
+                if item.lower().startswith("cf_authorization="):
                     cf_jwt = item.split("=", 1)[1].strip()
                     break
 
@@ -662,12 +671,17 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
                     payload_b64 += "=" * ((4 - len(payload_b64) % 4) % 4)
                     payload_bytes = base64.urlsafe_b64decode(payload_b64.encode("utf-8"))
                     claims = json.loads(payload_bytes.decode("utf-8"))
-                    cf_email = (
+                    cand_email = (
                         claims.get("email")
-                        or claims.get("sub")
                         or (claims.get("identity") or {}).get("email")
+                        or claims.get("user_email")
                         or claims.get("preferred_username")
+                        or claims.get("common_name")
                     )
+                    if not cand_email and claims.get("sub") and "@" in str(claims.get("sub")):
+                        cand_email = str(claims.get("sub"))
+                    if cand_email and isinstance(cand_email, str) and "@" in cand_email:
+                        cf_email = cand_email.strip()
             except Exception:
                 pass
 
@@ -680,12 +694,16 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Cloudflare Zero Trust perimeter authentication headers not found.",
+            headers={"WWW-Authenticate": 'Bearer realm="CloudflareAccess", error="missing_perimeter_headers"'}
         )
 
     email = cf_email.strip().lower()
 
-    # 2. Check live admin_staff database directory (Dynamic Ground Truth)
-    staff_doc = await database.find_one("admin_staff", {"email": email})
+    # 2. Check live admin_staff database directory (Dynamic Ground Truth - Case-Insensitive)
+    staff_doc = await database.find_one(
+        "admin_staff",
+        {"$or": [{"email": email}, {"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}}]},
+    )
 
     # Allow bootstrap from ADMIN_EMAILS environment variable if configured
     admin_env_raw = os.getenv("ADMIN_EMAILS", os.getenv("ADMIN_EMAIL", "")).strip().lower()

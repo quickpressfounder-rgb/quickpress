@@ -105,8 +105,12 @@ if command -v docker &> /dev/null; then
     fi
 fi
 
-# 6. Reload Nginx
-echo "🌐 Testing & reloading Nginx..."
+# 6. Update & Reload Nginx
+echo "🌐 Syncing, testing & reloading Nginx..."
+if [ -f "$REPO_ROOT/scripts/quickpress_nginx.conf" ]; then
+    sudo cp "$REPO_ROOT/scripts/quickpress_nginx.conf" /etc/nginx/sites-available/quickpress.conf
+    sudo ln -sf /etc/nginx/sites-available/quickpress.conf /etc/nginx/sites-enabled/quickpress.conf 2>/dev/null || true
+fi
 sudo nginx -t && sudo systemctl reload nginx
 
 echo "========================================================"

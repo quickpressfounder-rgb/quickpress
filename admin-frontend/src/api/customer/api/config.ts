@@ -43,29 +43,35 @@ export function apiBaseUrl(): string {
     const isHttps = window.location.protocol === "https:";
     const host = window.location.hostname;
 
-    // 0. If running on Admin Console (ops.withquickpress.com or ops/admin subdomain):
-    if (host.includes("ops.") || host.includes("admin.") || host === "ops.withquickpress.com") {
-      if (custom && custom.startsWith("https://")) {
+    // 0. If running locally on localhost or private IP:
+    if (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host.startsWith("192.168.") ||
+      host.startsWith("10.") ||
+      host.startsWith("172.")
+    ) {
+      if (custom && !custom.includes("railway.app") && !custom.includes("withquickpress.com")) {
         return custom;
       }
-      return PRODUCTION_API_URL;
+      return "http://localhost:8000";
     }
 
-    // 1. If running on an HTTPS page (Vercel, Lovable, production domain):
-    // Browser strictly blocks insecure HTTP requests as Mixed Content.
+    // 1. If running on Admin Console (ops.withquickpress.com, admin.*, or ops.*):
+    // MUST use same-origin relative URL ("") so that:
+    // - Cloudflare Zero Trust perimeter authentication headers (CF-Access-Authenticated-User-Email, CF-Access-Jwt-Assertion)
+    //   and CF_Authorization cookie are forwarded seamlessly by Nginx (/api/) to FastAPI on the same host.
+    // - Eliminates cross-origin CORS overhead and cookie-blocking issues.
+    if (host.includes("ops.") || host.includes("admin.") || host === "ops.withquickpress.com") {
+      return "";
+    }
+
+    // 2. If running on an HTTPS page (production customer domain):
     if (isHttps) {
       if (custom && custom.startsWith("https://")) {
         return custom;
       }
       return PRODUCTION_API_URL;
-    }
-
-    // 2. If running locally on localhost or 127.0.0.1:
-    if (host === "localhost" || host === "127.0.0.1") {
-      if (custom && !custom.includes("railway.app")) {
-        return custom;
-      }
-      return "http://localhost:8000";
     }
 
     const globalBase = (window as any).__QUICKPRESS_CONFIG__?.API_BASE_URL;

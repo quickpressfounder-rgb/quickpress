@@ -97,6 +97,18 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             : error?.message || "Click below to reload the console."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
+          {(errorMsg.includes("Cloudflare") || errorMsg.includes("perimeter") || errorMsg.includes("headers")) && (
+            <button
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.location.href = "/cdn-cgi/access/login";
+                }
+              }}
+              className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-xs font-extrabold text-white transition-all hover:bg-zinc-800 active:scale-95 shadow-md cursor-pointer"
+            >
+              Verify Cloudflare OTP
+            </button>
+          )}
           <button
             onClick={() => {
               if (typeof window !== "undefined") {

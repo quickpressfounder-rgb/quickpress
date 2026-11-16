@@ -1,5 +1,52 @@
 # QuickPress — Engineering Work History
 
+## Session: November 16, 2026 (Part 32)
+
+### Root-Cause Fix: Cloudflare Zero Trust Same-Origin API Transport & Perimeter Auto-Recovery
+
+1. **Context & User Directives:**
+   - User directive: *"YE KYU AARHAA HAI ISKO SAMJHAO OR FINAL FIX KARO"* (with screenshot of `ops.withquickpress.com/dashboard` displaying "QuickPress Admin: Cloudflare Zero Trust perimeter authentication headers not found. [Reload Console]").
+   - Goal:
+     1. Clearly explain the exact root cause to the user.
+     2. Implement the comprehensive final fix so that operator authentication on `ops.withquickpress.com` is 100% stable, seamless, and lightning fast.
+
+2. **Root Cause Analysis (Why the error appeared):**
+   - In `admin-frontend/src/api/customer/api/config.ts`, `apiBaseUrl()` was returning `https://api.withquickpress.com` whenever running on `ops.withquickpress.com`.
+   - When the client browser on `ops.withquickpress.com` executed `authenticateCloudflareZeroTrust()`, it dispatched a cross-origin fetch to `https://api.withquickpress.com/api/auth/admin/cf-sso`.
+   - Cloudflare Zero Trust perimeter protection is configured specifically on the admin domain `ops.withquickpress.com`. Consequently:
+     - Cloudflare Access edge headers (`CF-Access-Authenticated-User-Email` and `CF-Access-Jwt-Assertion`) were NEVER attached to requests addressed to `api.withquickpress.com`.
+     - The `CF_Authorization` cookie is scoped to `ops.withquickpress.com` and was not sent cross-origin.
+   - FastAPI at `api.withquickpress.com` received no perimeter headers or cookies and responded with `401 Unauthorized ("Cloudflare Zero Trust perimeter authentication headers not found.")`.
+   - The frontend error boundary rendered the error card with "Reload Console", which redirected to `/` -> `/dashboard`, repeating the exact same failed cross-origin call in a loop.
+
+3. **Engineering Solutions Delivered:**
+   - **Same-Origin Transport Routing (`admin-frontend/src/api/customer/api/config.ts`):**
+     - Updated `apiBaseUrl()` so that when running on `ops.withquickpress.com` (or any `admin.` / `ops.` subdomain), it returns `""` (empty string / same-origin relative path).
+     - Ensured all admin API calls (`/api/auth/admin/cf-sso`, `/api/orders`, `/api/staff`, etc.) stay strictly on `https://ops.withquickpress.com/api/...`.
+     - Nginx on EC2 at `ops.withquickpress.com` directly proxies `/api/` to `http://127.0.0.1:8000/api/`, preserving and forwarding `CF-Access-Authenticated-User-Email`, `CF-Access-Jwt-Assertion`, `CF-Connecting-IP`, and `$http_cookie`.
+   - **Environment Configuration Update (`admin-frontend/.env.production`):**
+     - Set `VITE_API_BASE_URL=` to empty string so production builds do not override same-origin routing.
+   - **Perimeter Header Resilience (`backend-python/app/api/auth.py`):**
+     - Expanded header detection to encompass: `cf-access-authenticated-user-email`, `x-cf-access-authenticated-user-email`, `cf-access-user-email`, `cf-access-user`, `x-auth-email`, `x-forwarded-user`, `x-forwarded-email`, `x-user-email`.
+     - Added case-insensitive cookie splitting for `cf_authorization=`.
+     - Strengthened JWT claims parsing (`email`, `identity.email`, `user_email`, `preferred_username`, `common_name`, `sub`).
+     - Added case-insensitive regex query support for `admin_staff` lookup to prevent email casing mismatches.
+     - Added `WWW-Authenticate` response header on 401.
+   - **Perimeter Auto-Recovery Guard (`admin-frontend/src/lib/require-admin-session.ts`):**
+     - If perimeter headers are absent or cookie expired, automatically redirects the browser to `/cdn-cgi/access/login` to prompt Cloudflare Access OTP rather than stranding the user on an unhandled error card.
+   - **Enhanced Error Boundary (`admin-frontend/src/routes/__root.tsx`):**
+     - Added dedicated "Verify Cloudflare OTP" button alongside "Reload Console" if perimeter headers are ever missing.
+   - **Nginx & Server Sync (`scripts/quickpress_nginx.conf` & `scripts/update_server.sh`):**
+     - Ensured `Cookie $http_cookie` and `Set-Cookie` are explicitly forwarded in Nginx for `/api/` and `/`.
+     - Added Cloudflare headers to `api.withquickpress.com` block as well.
+     - Updated `update_server.sh` to automatically sync `/etc/nginx/sites-available/quickpress.conf` upon server updates.
+
+4. **Verification & Testing Results:**
+   - Production bundle build: `NITRO_PRESET=node-server npm run build` in `admin-frontend` succeeded with 0 errors across 2,725 modules transformed.
+   - Python test suite: `pytest backend-python/tests/test_staff_auth_rbac_engine.py` passed 7/7 tests (100%).
+
+---
+
 ## Session: November 16, 2026 (Part 31)
 
 ### Complete SSR Normalization & High-Speed Direct Cloudflare Email OTP Role-Based Console Access

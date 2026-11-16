@@ -44,6 +44,20 @@ export async function requireAdminSession(): Promise<void> {
     if (err?.status === 403 || msg.includes("Staff Directory") || msg.includes("enrolled")) {
       throw new Error(msg || "Your email is authenticated by Cloudflare Zero Trust, but is not enrolled in the QuickPress Staff Directory.");
     }
+
+    // If Cloudflare perimeter headers are missing or session expired:
+    // Prompt Cloudflare Access login challenge rather than leaving operator stranded on error screen
+    if (
+      err?.status === 401 ||
+      msg.includes("perimeter authentication") ||
+      msg.includes("headers not found")
+    ) {
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/cdn-cgi/access")) {
+        window.location.href = "/cdn-cgi/access/login";
+        return;
+      }
+    }
+
     throw new Error(msg || "Cloudflare Zero Trust perimeter authentication failed. Please refresh or verify your access.");
   }
 }
