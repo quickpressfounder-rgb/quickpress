@@ -60,7 +60,6 @@ import {
   fetchDashboardSummary,
   fetchLatestOrders,
   fetchRevenueSeries,
-  fetchSystemHealth,
 } from "../api/dashboard";
 import { adminRoutes } from "../navigation/admin-routes";
 import { adminHead } from "../lib/head";
@@ -105,7 +104,6 @@ function formatRelativeTime(isoString?: string): string {
 export function DashboardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [healthModalOpen, setHealthModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "7d" | "30d" | "this_month" | "all">("today");
   const [cityFilter, setCityFilter] = useState<string>("all");
@@ -119,7 +117,6 @@ export function DashboardPage() {
     refetchInterval: 20000,
   });
 
-  const health = useQuery({ queryKey: ["admin", "dashboard", "health"], queryFn: fetchSystemHealth, staleTime: 60000 });
   const revenue = useQuery({
     queryKey: ["admin", "dashboard", "revenue", chartPeriod, cityFilter, serviceFilter],
     queryFn: () => fetchRevenueSeries({ period: chartPeriod, city: cityFilter, service: serviceFilter }),
@@ -1453,48 +1450,6 @@ export function DashboardPage() {
         </div>
 
       </div>
-
-      {/* =========================================================================
-          SYSTEM HEALTH MODAL (LIVE SUPABASE TELEMETRY)
-      ========================================================================= */}
-      <Dialog open={healthModalOpen} onOpenChange={setHealthModalOpen}>
-        <DialogContent className="sm:max-w-md bg-white text-zinc-950 border-zinc-300">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-black text-zinc-950">
-              <Server className="size-4 text-emerald-700" />
-              <span>QuickPress Platform &amp; Supabase Health</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs font-bold text-zinc-700">
-              Live heartbeat telemetry across database, authentication, realtime, and notification engines
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-2.5 pt-3 text-xs">
-            {(health.data?.services || [
-              { name: "Supabase PostgreSQL Database", status: "HEALTHY", metric: "Indexed schema operational", icon: "database" },
-              { name: "Admin Security & 2FA Auth", status: "HEALTHY", metric: "2FA & RBAC Enforced", icon: "shield-check" },
-              { name: "Supabase Realtime Channel", status: "HEALTHY", metric: "Live order events streaming", icon: "radio" },
-              { name: "FCM Push Notification Service", status: "HEALTHY", metric: "Customer/Partner/Rider push active", icon: "bell" },
-              { name: "Socket.IO Real-Time Dispatch", status: "HEALTHY", metric: "Rider location tracking listening", icon: "server" },
-            ]).map((srv, idx) => (
-              <div key={idx} className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                <div className="flex items-center gap-2.5">
-                  <Server className="size-4 text-emerald-700" />
-                  <div>
-                    <p className="font-black text-zinc-950">{srv.name}</p>
-                    <p className="text-[11px] text-zinc-700 font-bold">{srv.metric}</p>
-                  </div>
-                </div>
-                <span className={`rounded-md px-2.5 py-0.5 text-[11px] font-black border ${
-                  srv.status === "HEALTHY" ? "bg-emerald-100 text-emerald-950 border-emerald-300" : "bg-amber-100 text-amber-950 border-amber-300"
-                }`}>
-                  {srv.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
     </AdminShell>
   );
 }
