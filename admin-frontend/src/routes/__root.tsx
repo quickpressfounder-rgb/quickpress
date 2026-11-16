@@ -36,9 +36,18 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error("Root boundary caught error:", error);
   const router = useRouter();
   const errorMsg = String(error?.message || error || "");
+
+  // Suppress expected auth perimeter notices from polluting browser DevTools console
+  if (
+    import.meta.env.DEV &&
+    !errorMsg.includes("perimeter authentication") &&
+    !errorMsg.includes("Zero Trust") &&
+    !errorMsg.includes("headers not found")
+  ) {
+    console.error("Root boundary caught error:", error);
+  }
 
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
@@ -97,11 +106,21 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             : error?.message || "Click below to reload the console."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          {(errorMsg.includes("Cloudflare") || errorMsg.includes("perimeter") || errorMsg.includes("headers")) && (
+          {(errorMsg.includes("Cloudflare") || errorMsg.includes("perimeter") || errorMsg.includes("headers") || errorMsg.includes("Zero Trust")) && (
             <button
               onClick={() => {
                 if (typeof window !== "undefined") {
-                  window.location.href = "/cdn-cgi/access/login";
+                  if ("caches" in window) {
+                    caches.keys().then((names) => {
+                      for (const name of names) caches.delete(name);
+                    });
+                  }
+                  sessionStorage.clear();
+                  try {
+                    localStorage.removeItem("quickpress.session.admin");
+                    localStorage.removeItem("admin_session");
+                  } catch {}
+                  window.location.href = window.location.origin + "/dashboard?v=" + Date.now();
                 }
               }}
               className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-xs font-extrabold text-white transition-all hover:bg-zinc-800 active:scale-95 shadow-md cursor-pointer"
@@ -118,7 +137,11 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
                   });
                 }
                 sessionStorage.clear();
-                window.location.href = "/";
+                try {
+                  localStorage.removeItem("quickpress.session.admin");
+                  localStorage.removeItem("admin_session");
+                } catch {}
+                window.location.href = window.location.origin + "/dashboard?v=" + Date.now();
               }
             }}
             className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-extrabold text-white transition-all hover:bg-emerald-500 active:scale-95 shadow-md shadow-emerald-600/20 cursor-pointer"

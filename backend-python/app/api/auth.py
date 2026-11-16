@@ -645,6 +645,20 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
         or request.headers.get("x-email")
     )
 
+    # 1b. Check Authorization Bearer header (QuickPress JWT or Cloudflare JWT)
+    auth_header = request.headers.get("authorization", "")
+    if not cf_email and auth_header.lower().startswith("bearer "):
+        bearer_tok = auth_header[7:].strip()
+        try:
+            payload = decode_token(bearer_tok)
+            token_uid = payload.get("sub")
+            if token_uid:
+                cached_user = await users.by_id(token_uid)
+                if cached_user and cached_user.email:
+                    cf_email = cached_user.email
+        except Exception:
+            pass
+
     # If header not forwarded directly, decode JWT assertion or CF_Authorization cookie
     if not cf_email:
         cf_jwt = (
@@ -654,6 +668,9 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
             or request.cookies.get("CF_Authorization")
             or request.cookies.get("cf_authorization")
         )
+        if not cf_jwt and auth_header.lower().startswith("bearer "):
+            cf_jwt = auth_header[7:].strip()
+
         if not cf_jwt and "cookie" in request.headers:
             for item in request.headers["cookie"].split(";"):
                 item = item.strip()
@@ -665,7 +682,9 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
             try:
                 import base64
                 import json
-                parts = cf_jwt.strip().split(".")
+                import urllib.parse
+                cf_jwt = urllib.parse.unquote(cf_jwt).strip().strip('"').strip("'")
+                parts = cf_jwt.split(".")
                 if len(parts) >= 2:
                     payload_b64 = parts[1]
                     payload_b64 += "=" * ((4 - len(payload_b64) % 4) % 4)
@@ -674,9 +693,11 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
                     cand_email = (
                         claims.get("email")
                         or (claims.get("identity") or {}).get("email")
+                        or (claims.get("custom") or {}).get("email")
                         or claims.get("user_email")
                         or claims.get("preferred_username")
                         or claims.get("common_name")
+                        or claims.get("upn")
                     )
                     if not cand_email and claims.get("sub") and "@" in str(claims.get("sub")):
                         cand_email = str(claims.get("sub"))
@@ -688,12 +709,12 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
     # In development mode, allow query parameter override
     settings = get_settings()
     if not cf_email and settings.app_env != "production":
-        cf_email = request.query_params.get("cf_email")
+        cf_email = request.query_params.get("cf_email") or request.query_params.get("email")
 
     if not cf_email or not cf_email.strip():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Cloudflare Zero Trust perimeter authentication headers not found.",
+            detail="Cloudflare Zero Trust perimeter authentication required. Please verify your email OTP.",
             headers={"WWW-Authenticate": 'Bearer realm="CloudflareAccess", error="missing_perimeter_headers"'}
         )
 

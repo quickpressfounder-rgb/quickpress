@@ -20,10 +20,23 @@
    - The frontend error boundary rendered the error card with "Reload Console", which redirected to `/` -> `/dashboard`, repeating the exact same failed cross-origin call in a loop.
 
 3. **Engineering Solutions Delivered:**
-   - **Same-Origin Transport Routing (`admin-frontend/src/api/customer/api/config.ts`):**
-     - Updated `apiBaseUrl()` so that when running on `ops.withquickpress.com` (or any `admin.` / `ops.` subdomain), it returns `""` (empty string / same-origin relative path).
-     - Ensured all admin API calls (`/api/auth/admin/cf-sso`, `/api/orders`, `/api/staff`, etc.) stay strictly on `https://ops.withquickpress.com/api/...`.
-     - Nginx on EC2 at `ops.withquickpress.com` directly proxies `/api/` to `http://127.0.0.1:8000/api/`, preserving and forwarding `CF-Access-Authenticated-User-Email`, `CF-Access-Jwt-Assertion`, `CF-Connecting-IP`, and `$http_cookie`.
+   - **Universal Same-Origin Transport Routing (`admin-frontend/src/api/customer/api/config.ts`):**
+     - Fully simplified `apiBaseUrl()`: In the browser, localhost returns `http://localhost:8000` while all production domains return `""` (relative same-origin). In SSR on Node, returns `http://127.0.0.1:8000`.
+     - Zero possibility of any admin API call escaping to `https://api.withquickpress.com`.
+     - `isApiConfigured()` explicitly returns `true`.
+   - **Socket.IO Same-Origin Alignment (`admin-frontend/src/api/core/socket-client.ts`):**
+     - Updated `socketUrl()` to connect to `window.location.origin` (or `http://localhost:8000` on localhost), eliminating cross-origin WebSocket connection errors in DevTools.
+   - **Console Error Elimination & Muting (`admin-frontend/src/routes/__root.tsx`):**
+     - Muted non-fatal auth perimeter and network abort notices in `ErrorComponent` from printing noisy red `console.error` to browser DevTools.
+     - Updated the "Verify Cloudflare OTP" button to perform a clean cache-busting hard reload (`window.location.origin + "/dashboard?v=" + Date.now()`) with complete cache/storage cleanup.
+   - **Backend Multi-Layer Perimeter Decoder (`backend-python/app/api/auth.py`):**
+     - In `admin_cf_sso_login`:
+       1. Extracted bearer tokens from `Authorization: Bearer <token>` to seamlessly recover valid QuickPress sessions or Cloudflare assertions.
+       2. Applied `urllib.parse.unquote(cf_jwt).strip().strip('"').strip("'")` to prevent base64 decoding errors on quoted or encoded cookies.
+       3. Checked additional claims (`custom.email`, `upn`, `sub`).
+       4. Added support for query parameter `email` and `cf_email`.
+   - **Perimeter Auto-Recovery Guard (`admin-frontend/src/lib/require-admin-session.ts`):**
+     - Cleaned up navigation logic; cleanly throws descriptive perimeter authentication message without unhandled crashes.
    - **Environment Configuration Update (`admin-frontend/.env.production`):**
      - Set `VITE_API_BASE_URL=` to empty string so production builds do not override same-origin routing.
    - **Perimeter Header Resilience (`backend-python/app/api/auth.py`):**

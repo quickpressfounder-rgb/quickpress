@@ -34,16 +34,9 @@ function readString(key: string): string {
 const PRODUCTION_API_URL = "https://api.withquickpress.com";
 
 export function apiBaseUrl(): string {
-  let custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
-  if (custom) {
-    custom = custom.replace(/-3292/g, "");
-  }
-
   if (typeof window !== "undefined") {
-    const isHttps = window.location.protocol === "https:";
     const host = window.location.hostname;
-
-    // 0. If running locally on localhost or private IP:
+    // Localhost / loopback development server:
     if (
       host === "localhost" ||
       host === "127.0.0.1" ||
@@ -51,39 +44,17 @@ export function apiBaseUrl(): string {
       host.startsWith("10.") ||
       host.startsWith("172.")
     ) {
-      if (custom && !custom.includes("railway.app") && !custom.includes("withquickpress.com")) {
-        return custom;
-      }
       return "http://localhost:8000";
     }
-
-    // 1. If running on Admin Console (ops.withquickpress.com, admin.*, or ops.*):
-    // MUST use same-origin relative URL ("") so that:
-    // - Cloudflare Zero Trust perimeter authentication headers (CF-Access-Authenticated-User-Email, CF-Access-Jwt-Assertion)
-    //   and CF_Authorization cookie are forwarded seamlessly by Nginx (/api/) to FastAPI on the same host.
-    // - Eliminates cross-origin CORS overhead and cookie-blocking issues.
-    if (host.includes("ops.") || host.includes("admin.") || host === "ops.withquickpress.com") {
-      return "";
-    }
-
-    // 2. If running on an HTTPS page (production customer domain):
-    if (isHttps) {
-      if (custom && custom.startsWith("https://")) {
-        return custom;
-      }
-      return PRODUCTION_API_URL;
-    }
-
-    const globalBase = (window as any).__QUICKPRESS_CONFIG__?.API_BASE_URL;
-    if (globalBase && typeof globalBase === "string") {
-      const cleaned = globalBase.trim().replace(/\/+$/, "");
-      return cleaned.replace("-3292", "");
-    }
+    // Production admin deployment (ops.withquickpress.com or any operational domain):
+    // Always use same-origin relative URLs ("") so:
+    // 1. Cloudflare Zero Trust headers (CF-Access-Authenticated-User-Email, CF-Access-Jwt-Assertion)
+    //    and CF_Authorization cookie are forwarded directly by Nginx to FastAPI on port 8000.
+    // 2. Zero CORS preflight errors, zero cross-origin cookie loss.
+    return "";
   }
-
-  if (custom && custom.startsWith("https://")) return custom;
-
-  return PRODUCTION_API_URL;
+  // SSR fallback in Node: reach FastAPI on localhost port 8000
+  return "http://127.0.0.1:8000";
 }
 
 export function appEnvironment(): AppEnvironment {
@@ -104,7 +75,7 @@ export function apiTimeoutMs(): number {
 
 /** True once a real backend base URL is configured for this environment. */
 export function isApiConfigured(): boolean {
-  return apiBaseUrl().length > 0;
+  return true;
 }
 
 /** Every Home Screen endpoint, in one place. */
