@@ -590,9 +590,6 @@ export function FinanceOverviewCommandCenter({ onNavigateTab }: FinanceOverviewC
               <div className="flex items-center gap-2">
                 <ReportIcon className="size-5 text-emerald-600" />
                 <h1 className="text-lg sm:text-xl font-black text-zinc-950 tracking-tight">{info.title}</h1>
-                <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 font-black text-[10px]">
-                  LIVE DATA
-                </Badge>
               </div>
               <p className="text-xs text-zinc-500 font-medium mt-0.5">{info.subtitle}</p>
             </div>

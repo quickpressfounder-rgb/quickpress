@@ -487,9 +487,6 @@ export function UnifiedStakeholderRulesEngine({
                 <h2 className="text-lg font-black tracking-tight text-zinc-950">
                   QuickPress Unified Rules &amp; Fare Engine
                 </h2>
-                <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-300 font-black text-[10px] uppercase tracking-wider">
-                  Live Engine
-                </Badge>
                 {isDirty && (
                   <Badge className="bg-amber-50 text-amber-800 border border-amber-300 font-bold text-[10px]">
                     Unsaved Changes

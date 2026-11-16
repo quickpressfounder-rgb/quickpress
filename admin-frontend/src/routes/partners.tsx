@@ -1113,11 +1113,6 @@ function PartnersPage() {
                           />
                           {profile.header.isOnline || profile.header.isOpen ? "Store Online & Open" : "Store Offline / Closed"}
                         </span>
-                        {profile.header.isLive && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
-                            LIVE DISPATCH NODE
-                          </span>
-                        )}
                         <span className="font-mono font-bold text-xs text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200 shadow-2xs">
                           STORE NODE: #{profile.header.id}
                         </span>

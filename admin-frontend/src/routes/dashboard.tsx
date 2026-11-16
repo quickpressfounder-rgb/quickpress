@@ -307,25 +307,9 @@ export function DashboardPage() {
   return (
     <AdminShell
       title="Platform Executive Command Center"
-      subtitle={`Founder Real-Time Operations Telemetry as of ${currentDateStr} · Supabase PostgreSQL Production`}
+      subtitle={`Founder Real-Time Operations Telemetry as of ${currentDateStr}`}
       actions={
         <>
-          {/* System Health Heartbeat Pill */}
-          <button
-            type="button"
-            onClick={() => setHealthModalOpen(true)}
-            className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-3.5 py-1.5 text-xs font-black text-zinc-950 transition-all hover:bg-emerald-50 active:scale-95 shadow-xs"
-          >
-            <span className="relative flex size-2.5">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-75" />
-              <span className="relative inline-flex size-2.5 rounded-full bg-emerald-600" />
-            </span>
-            <span className="font-extrabold text-zinc-950">Supabase Live</span>
-            <span className="rounded-md bg-emerald-100 px-1.5 py-0.5 text-[10px] font-black text-emerald-950">
-              99.98% SLA
-            </span>
-          </button>
-
           {/* Sync Button */}
           <button
             type="button"
@@ -430,7 +414,7 @@ export function DashboardPage() {
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="font-extrabold text-zinc-600 flex items-center gap-1.5">
                 <SlidersHorizontal className="size-3 text-emerald-600" />
-                <span>Live Supabase Filters:</span>
+                <span>Active Filters:</span>
               </span>
               <span className="rounded-lg bg-zinc-100 px-2.5 py-0.5 text-xs font-black text-zinc-900 border border-zinc-200">
                 Period: {dateFilter === "all" ? "All Time" : dateFilter.toUpperCase()}

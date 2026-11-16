@@ -289,11 +289,6 @@ export function AnalyticsPage() {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-              <Sparkles className="size-3.5 text-emerald-600 animate-pulse" />
-              <span>Real-Time Supabase Sync</span>
-            </div>
           </div>
         </SectionCard>
 

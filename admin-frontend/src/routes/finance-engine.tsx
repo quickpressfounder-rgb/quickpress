@@ -104,7 +104,6 @@ import { CustomerFinance360View } from "../components/finance/CustomerFinance360
 import { TaxComplianceCenterView } from "../components/finance/TaxComplianceCenterView";
 import { TreasuryCenterView } from "../components/finance/TreasuryCenterView";
 import { SettlementEngineControlHub } from "../components/finance/SettlementEngineControlHub";
-import { QueueTelemetryPill } from "../components/finance/QueueTelemetryPill";
 import { OfficialReportsView } from "../components/finance/OfficialReportsView";
 import { UnifiedStakeholderRulesEngine } from "../components/finance/UnifiedStakeholderRulesEngine";
 import {
@@ -1509,11 +1508,8 @@ export function FinanceEnginePage() {
               <Landmark className="size-6" />
             </div>
             <div>
-              <h1 className="text-xl font-black text-zinc-900 flex items-center gap-2">
+              <h1 className="text-xl font-black text-zinc-900">
                 Finance Engine
-                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
-                  Live v1.0
-                </span>
               </h1>
               <p className="text-xs text-zinc-500 font-medium">
                 Governing Customer Pricing, Laundry Merchant Payouts & Captain Delivery Fares
@@ -1522,8 +1518,6 @@ export function FinanceEnginePage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <QueueTelemetryPill />
-
             <Button
               variant="outline"
               size="sm"

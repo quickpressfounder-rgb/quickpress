@@ -1330,12 +1330,8 @@ function EnterpriseCrmPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-black text-zinc-950 tracking-tight uppercase">
-                        Live Territory Geo-Operations Pulse & Node Telemetry
+                        Territory Geo-Operations Pulse & Node Telemetry
                       </h3>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 border border-zinc-300 px-2 py-0.5 text-[10px] font-black text-zinc-950">
-                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        LIVE SYNC (15s)
-                      </span>
                     </div>
                     <p className="text-xs text-zinc-700 font-medium mt-0.5">
                       Real-time aggregated sales, fleet availability, and telemetry nodes for{" "}
