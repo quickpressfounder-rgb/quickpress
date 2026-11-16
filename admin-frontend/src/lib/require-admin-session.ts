@@ -42,25 +42,10 @@ export async function requireAdminSession(): Promise<void> {
       writeSession(cfSession, "admin");
       return;
     }
-  } catch (err: any) {
-    const status = err?.status;
-    const msg = String(err?.message || "");
-
-    // 403 Forbidden: Email is authenticated by Cloudflare, but not in admin_staff
-    if (status === 403 || msg.includes("Staff Directory") || msg.includes("enrolled") || msg.includes("suspended")) {
-      throw redirect({ to: adminRoutes.unauthorized });
-    }
-
-    // Localhost / Development fallback (outside Cloudflare perimeter)
-    if (
-      import.meta.env.DEV ||
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1"
-    ) {
-      return;
-    }
-
-    // Production outside Cloudflare or network error
-    throw redirect({ to: adminRoutes.unauthorized });
+  } catch {
+    // Outside Cloudflare, not in staff directory, or token expired -> send to /auth
+    throw redirect({ to: adminRoutes.auth });
   }
+
+  throw redirect({ to: adminRoutes.auth });
 }

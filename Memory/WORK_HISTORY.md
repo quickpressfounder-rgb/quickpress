@@ -1,5 +1,37 @@
 # QuickPress — Engineering Work History
 
+## Session: November 16, 2026 (Part 28)
+
+### Dynamic Staff Directory Authorization (Zero Hardcoded Emails) & Removal of Unauthorized Blocker
+
+1. **Context & User Directives:**
+   - User directive 1: *"ye kyu aa rahha hai iska pahle jisa karo ye kiya hai isko htaao"* (with screenshot of `ops.withquickpress.com/unauthorized` displaying "Perimeter Access Verified: Staff Account Not Enrolled in Directory").
+   - User directive 2: *"email code me hardcode nahiu karne hai jo staff me hai sir un email open kiya ja sake"*. The user mandated:
+     - Zero hardcoded emails in the code.
+     - Access must strictly and dynamically depend on whether the email exists in the live `admin_staff` database collection/table. Only registered active staff emails can open the admin console.
+
+2. **Engineering Solutions Delivered:**
+   - **Backend Zero-Hardcode Staff Verification (`backend-python/app/api/auth.py` & `app/core/admin_security.py`):**
+     - Purged all hardcoded personal and owner email lists (`grandleafksj@gmail.com`, `official.quickpress@gmail.com`, `quickpressfounder@gmail.com`, `prempalsingh9358@gmail.com`, etc.) from Python code.
+     - `admin_cf_sso_login`: Queries `await database.find_one("admin_staff", {"email": email})` directly.
+       - If the email is NOT in `admin_staff` (and not in `ADMIN_EMAILS` env variable), it strictly raises `403 Forbidden` ("Access Denied: Email is not enrolled in the QuickPress Staff Directory").
+       - If the email IS in `admin_staff`: checks if status is active, syncs the user with their dynamic assigned role and permissions directly from the database record, and issues an authenticated JWT session.
+     - `admin_login`: Removed hardcoded email sets; dynamically verifies against `admin_staff`.
+     - `ensure_super_admin_seed()`: Removed hardcoded email fallbacks; only seeds if `ADMIN_EMAILS` is explicitly provided in the server environment.
+   - **Frontend Blocker Removal & Dual-Mode Auth Restoration:**
+     - `admin-frontend/src/lib/require-admin-session.ts`: Removed all redirects to `/unauthorized`. If Cloudflare SSO fails or is denied, it safely routes to `/auth`.
+     - `admin-frontend/src/routes/unauthorized.tsx`: Completely decommissioned the blocking error screen. Converted into an automatic instant redirector to `/auth`.
+     - `admin-frontend/src/routes/auth.tsx`: Restored full dual-mode login flow:
+       1. Zero-latency Cloudflare Zero Trust handshake on mount: if authenticated email is in `admin_staff`, logs in immediately and navigates to `/dashboard`.
+       2. If not registered in `admin_staff` or outside Cloudflare, displays a clear, actionable notification and provides the standard credentials login card with 2FA OTP verification and password sign-in fallback.
+     - `admin-frontend/src/routes/index.tsx`: Directs authenticated sessions to `/dashboard` and unauthenticated visitors to `/auth`.
+
+3. **Verification & Testing Results:**
+   - Backend staff auth and RBAC test suite: `pytest backend-python/tests/test_staff_auth_rbac_engine.py` passed with 7/7 tests passing (100%).
+   - Frontend production build: `NITRO_PRESET=node-server npm run build` in `admin-frontend` succeeded with 0 errors across 2,724 transformed modules.
+
+---
+
 ## Session: November 16, 2026 (Part 27)
 
 ### Complete Elimination of Universal Pricing Card & Scope Banner, Zero-Mock Support Desk, Minimalist Consultation Checkboxes & Promotions Sidebar Integration

@@ -856,13 +856,12 @@ async def ensure_super_admin_seed() -> dict:
 
     admin_env_raw = os.getenv("ADMIN_EMAILS", os.getenv("ADMIN_EMAIL", "admin@quickpress.online")).strip().lower()
     seed_emails = [e.strip() for e in re.split(r"[,\s;]+", admin_env_raw) if e.strip()]
-    for fallback in ["admin@quickpress.online", "official.quickpress@gmail.com"]:
-        if fallback not in seed_emails:
-            seed_emails.append(fallback)
+    if not seed_emails:
+        return {}
 
     admin_password = os.getenv("ADMIN_PASSWORD", "Admin@QuickPress2026!")
     admin_name = os.getenv("ADMIN_NAME", "Super Admin")
-    admin_phone = os.getenv("ADMIN_PHONE", "+91 99999 99999")
+    admin_phone = os.getenv("ADMIN_PHONE", "+91 92587 30561")
     pwd_hash = hash_password(admin_password)
     now = _now_iso()
 
@@ -880,9 +879,10 @@ async def ensure_super_admin_seed() -> dict:
             "scope": "All India Hubs",
             "passwordHash": pwd_hash,
             "permissions": [
-                "all", "orders", "customers", "partners", "riders", "services",
-                "finance", "wallet", "cities", "coupons", "memberships",
-                "analytics", "notifications", "support", "staff", "settings", "b2b"
+                "all", "*", "orders", "customers", "partners", "riders", "services",
+                "finance", "finance-engine", "wallet", "cities", "coupons", "memberships",
+                "analytics", "notifications", "emails", "support", "staff", "settings",
+                "crm", "b2b", "promotions"
             ],
             "status": "Active",
             "isVerified": True,

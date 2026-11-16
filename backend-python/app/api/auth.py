@@ -509,14 +509,13 @@ async def admin_login(payload: dict, request: Request) -> dict:
     if not user:
         user = await users.by_email(email, Role.finance)
 
-    # Ensure Super Admin exists in database if logging in as configured admin
+    # Allow bootstrap from ADMIN_EMAILS environment variable if configured
     admin_env_raw = os.getenv("ADMIN_EMAILS", os.getenv("ADMIN_EMAIL", "admin@quickpress.online")).strip().lower()
     owner_emails = {e.strip() for e in re.split(r"[,\s;]+", admin_env_raw) if e.strip()}
-    owner_emails.update({"admin@quickpress.online", "admin@quickpress.in", "official.quickpress@gmail.com"})
-    if (not staff_doc or not user) and email in owner_emails:
+    if (not staff_doc or not user) and owner_emails and email in owner_emails:
         from app.core.admin_security import ensure_super_admin_seed
         staff_doc = await ensure_super_admin_seed()
-        user = await users.by_email(email, Role.admin)
+        user = await users.by_email(email, Role.admin) or await users.by_email(email, Role.super_admin)
 
     # If email does NOT exist in staff directory or admin collection -> Deny login immediately
     if not staff_doc and not user:
@@ -672,10 +671,10 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
             except Exception:
                 pass
 
-    # In development mode, allow query parameter override or default to configured owner
+    # In development mode, allow query parameter override
     settings = get_settings()
     if not cf_email and settings.app_env != "production":
-        cf_email = request.query_params.get("cf_email") or "official.quickpress@gmail.com"
+        cf_email = request.query_params.get("cf_email")
 
     if not cf_email or not cf_email.strip():
         raise HTTPException(
@@ -688,37 +687,25 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
     # 2. Check live admin_staff database directory (Dynamic Ground Truth)
     staff_doc = await database.find_one("admin_staff", {"email": email})
 
-    # Bootstrapping from configured owner & super admin emails
+    # Allow bootstrap from ADMIN_EMAILS environment variable if configured
     admin_env_raw = os.getenv("ADMIN_EMAILS", os.getenv("ADMIN_EMAIL", "")).strip().lower()
     configured_owner_emails = {e.strip() for e in re.split(r"[,\s;]+", admin_env_raw) if e.strip()}
-    for fallback in [
-        "official.quickpress@gmail.com",
-        "quickpressfounder@gmail.com",
-        "prempalsingh9358@gmail.com",
-        "admin@quickpress.online",
-        "admin@quickpress.in",
-        os.getenv("NOTIFICATION_EMAIL", "").strip().lower(),
-        os.getenv("SMTP_USER", "").strip().lower(),
-    ]:
-        if fallback:
-            configured_owner_emails.add(fallback)
 
     now = datetime.now(timezone.utc).isoformat()
-    is_owner_or_corp = email in configured_owner_emails or email.endswith("@quickpress.online") or email.endswith("@withquickpress.com")
-
-    if is_owner_or_corp:
+    if configured_owner_emails and email in configured_owner_emails:
         if not staff_doc or staff_doc.get("status") != "Active" or not staff_doc.get("permissions"):
             staff_doc = {
                 "_id": staff_doc.get("_id") if staff_doc else f"stf_owner_{uuid.uuid4().hex[:6]}",
-                "name": staff_doc.get("name") if staff_doc else "Super Admin",
+                "name": staff_doc.get("name") if staff_doc else (email.split("@")[0].replace(".", " ").title() or "Super Admin"),
                 "email": email,
-                "phone": staff_doc.get("phone") if staff_doc else os.getenv("ADMIN_PHONE", "+91 99999 99999"),
+                "phone": staff_doc.get("phone") if staff_doc else os.getenv("ADMIN_PHONE", "+91 92587 30561"),
                 "role": "Super Admin",
                 "scope": "All India Hubs",
                 "permissions": [
                     "all", "*", "orders", "customers", "partners", "riders", "services",
                     "finance", "finance-engine", "wallet", "cities", "coupons", "memberships",
-                    "analytics", "notifications", "emails", "support", "staff", "settings", "crm", "b2b"
+                    "analytics", "notifications", "emails", "support", "staff", "settings",
+                    "crm", "b2b", "promotions"
                 ],
                 "status": "Active",
                 "isVerified": True,
@@ -731,7 +718,7 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
     if not staff_doc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Access Denied: Email '{email}' is authenticated by Cloudflare Zero Trust, but is not enrolled in the QuickPress Staff Directory. Please contact your Super Admin to be assigned a staff role.",
+            detail=f"Access Denied: Email '{email}' is not enrolled in the QuickPress Staff Directory. Please contact your Super Admin to be assigned a staff role.",
         )
 
     # 3. Check active status in database
@@ -743,6 +730,8 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
         )
 
     # 4. Sync / load User model
+    staff_role_lower = str(staff_doc.get("role", "Staff")).strip().lower()
+    assigned_role = Role.super_admin if "super" in staff_role_lower else Role.admin
     user = await users.by_email(email, Role.admin)
     if not user:
         user = await users.by_email(email, Role.super_admin)
@@ -751,14 +740,14 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
         existing_any = await users.by_email(email)
         if existing_any:
             user = existing_any
-            user.role = Role.admin
+            user.role = assigned_role
             user.status = UserStatus.active
             user.is_verified = True
             user.is_onboarded = True
             await users.update(
                 user.id,
                 {
-                    "role": Role.admin.value,
+                    "role": assigned_role.value,
                     "status": UserStatus.active.value,
                     "is_verified": True,
                     "is_onboarded": True,
@@ -772,7 +761,7 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
                     email=email,
                     phone=staff_doc.get("phone", ""),
                     display_name=staff_doc.get("name", "Staff Administrator"),
-                    role=Role.admin,
+                    role=assigned_role,
                     status=UserStatus.active,
                     is_verified=True,
                     is_onboarded=True,
