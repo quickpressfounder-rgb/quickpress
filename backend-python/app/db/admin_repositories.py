@@ -6366,33 +6366,78 @@ class SupportRepository:
         category: Optional[str] = None,
         q: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
+        # High-performance parallel ticket gathering across all 4 omnichannel collections
         (
             help_tickets,
             admin_tickets,
             partner_tickets,
             rider_tickets,
+        ) = await asyncio.gather(
+            database.find_sorted("support_tickets", sort=[("created_at", -1)]),
+            database.find_sorted(self.collection, sort=[("createdAt", -1)]),
+            database.find_sorted("partner_support_tickets", sort=[("createdAt", -1)]),
+            database.find_sorted("rider_support_tickets", sort=[("createdAt", -1)]),
+        )
+
+        all_tix = (help_tickets or []) + (admin_tickets or []) + (partner_tickets or []) + (rider_tickets or [])
+        help_ids = [str(t.get("_id") or t.get("id")) for t in (help_tickets or [])]
+
+        referenced_uids = list({str(t.get("userId") or t.get("user_id")) for t in all_tix if (t.get("userId") or t.get("user_id"))})
+        referenced_oids = list({
+            str(t.get("refOrder") or t.get("orderId") or t.get("order_id") or t.get("orderCode"))
+            for t in all_tix
+            if (t.get("refOrder") or t.get("orderId") or t.get("order_id") or t.get("orderCode"))
+            and str(t.get("refOrder") or t.get("orderId") or t.get("order_id") or t.get("orderCode")) not in ("—", "", "None")
+        })
+        referenced_pids = list({str(t.get("partnerId") or t.get("partner_id")) for t in all_tix if (t.get("partnerId") or t.get("partner_id"))})
+        referenced_rids = list({str(t.get("riderId") or t.get("rider_id")) for t in all_tix if (t.get("riderId") or t.get("rider_id"))})
+
+        async def _fetch_orders():
+            if not referenced_oids:
+                return []
+            ords = await database.find_many("customer_orders", {"$or": [{"_id": {"$in": referenced_oids}}, {"id": {"$in": referenced_oids}}, {"code": {"$in": referenced_oids}}]})
+            missing = [oid for oid in referenced_oids if not any(str(o.get("_id") or o.get("id") or o.get("code")) == oid for o in (ords or []))]
+            if missing:
+                extra = await database.find_many("orders", {"$or": [{"_id": {"$in": missing}}, {"id": {"$in": missing}}, {"code": {"$in": missing}}]})
+                ords = list(ords or []) + list(extra or [])
+            return ords or []
+
+        # Single batch gather eliminating N+1 DB loops
+        (
+            all_help_msgs,
             users,
             partners,
             riders,
             memberships,
             orders,
         ) = await asyncio.gather(
-            database.find_sorted("support_tickets", sort=[("created_at", -1)]),
-            database.find_sorted(self.collection, sort=[("createdAt", -1)]),
-            database.find_sorted("partner_support_tickets", sort=[("createdAt", -1)]),
-            database.find_sorted("rider_support_tickets", sort=[("createdAt", -1)]),
-            database.find_many("users"),
-            database.find_many("partners"),
-            database.find_many("riders"),
-            database.find_many("memberships"),
-            database.find_many("customer_orders"),
+            database.find_many("support_messages", {"ticket_id": {"$in": help_ids}}) if help_ids else asyncio.sleep(0, result=[]),
+            database.find_many("users", {"_id": {"$in": referenced_uids}}) if referenced_uids else asyncio.sleep(0, result=[]),
+            database.find_many("partners", {"_id": {"$in": referenced_pids}}) if referenced_pids else asyncio.sleep(0, result=[]),
+            database.find_many("riders", {"_id": {"$in": referenced_rids}}) if referenced_rids else asyncio.sleep(0, result=[]),
+            database.find_many("memberships", {"user_id": {"$in": referenced_uids}}) if referenced_uids else asyncio.sleep(0, result=[]),
+            _fetch_orders(),
         )
+
+        msgs_by_ticket: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        for m in (all_help_msgs or []):
+            msgs_by_ticket[str(m.get("ticket_id"))].append(m)
+        for tid_key in msgs_by_ticket:
+            msgs_by_ticket[tid_key].sort(key=lambda m: str(m.get("created_at") or ""))
 
         user_map = {str(u.get("_id") or u.get("id")): u for u in (users or [])}
         partner_map = {str(p.get("_id") or p.get("id") or p.get("partner_id")): p for p in (partners or [])}
         rider_map = {str(r.get("_id") or r.get("id") or r.get("rider_id")): r for r in (riders or [])}
         mem_map = {str(m.get("user_id") or m.get("userId") or m.get("_id")): m for m in (memberships or [])}
-        order_map = {str(o.get("_id") or o.get("id")): o for o in (orders or [])}
+        
+        order_map: Dict[str, Dict[str, Any]] = {}
+        for o in (orders or []):
+            if o.get("_id"):
+                order_map[str(o["_id"])] = o
+            if o.get("id"):
+                order_map[str(o["id"])] = o
+            if o.get("code"):
+                order_map[str(o["code"])] = o
 
         results: List[Dict[str, Any]] = []
 
@@ -6459,9 +6504,7 @@ class SupportRepository:
                 raw_u_role = str(udoc.get("role") or t.get("role") or "Customer").lower()
                 ticket_role = "Rider" if "rider" in raw_u_role else ("Partner" if "partner" in raw_u_role else "Customer")
 
-                msgs = await database.find_many("support_messages", {"ticket_id": tid})
-                msgs = msgs or []
-                msgs.sort(key=lambda m: str(m.get("created_at") or ""))
+                msgs = msgs_by_ticket.get(tid, [])
 
                 replies_fmt = []
                 for m in msgs:
@@ -6747,10 +6790,134 @@ class SupportRepository:
 
         uid = str(doc.get("userId") or doc.get("user_id") or "")
         udoc = await database.find_one("users", {"_id": uid}) if uid else {}
+        if not udoc and uid:
+            udoc = await database.find_one("users", {"id": uid}) or {}
+
         ref_oid = str(doc.get("refOrder") or doc.get("orderId") or doc.get("order_id") or doc.get("orderCode") or "")
-        odoc = await database.find_one("customer_orders", {"_id": ref_oid}) if ref_oid and ref_oid != "—" else {}
+        odoc: Dict[str, Any] = {}
+        if ref_oid and ref_oid not in ("—", "None", ""):
+            odoc = await database.find_one("customer_orders", {"$or": [{"_id": ref_oid}, {"id": ref_oid}, {"code": ref_oid}]}) or {}
+            if not odoc:
+                odoc = await database.find_one("orders", {"$or": [{"_id": ref_oid}, {"id": ref_oid}, {"code": ref_oid}]}) or {}
+
+        # Parallel gather for Customer 360 & Membership
+        wallet_doc = {}
+        customer_recent_orders = []
+        mdoc = {}
+        if uid:
+            (wallet_doc, customer_recent_orders, mdoc) = await asyncio.gather(
+                database.find_one("wallets", {"$or": [{"userId": uid}, {"user_id": uid}]}),
+                database.find_sorted("customer_orders", {"$or": [{"userId": uid}, {"customerId": uid}, {"user_id": uid}]}, sort=[("createdAt", -1)], limit=5),
+                database.find_one("memberships", {"user_id": uid}),
+            )
+            if not customer_recent_orders:
+                customer_recent_orders = await database.find_sorted("orders", {"$or": [{"userId": uid}, {"customerId": uid}, {"user_id": uid}]}, sort=[("createdAt", -1)], limit=5)
+            if not mdoc:
+                mdoc = await database.find_one("memberships", {"userId": uid}) or {}
+
+        # Extract Rider & Partner details for active order
+        rider_phone = ""
+        rider_name = ""
+        partner_phone = ""
+        partner_name = ""
+        if odoc:
+            r_info = odoc.get("rider") or {}
+            rider_name = r_info.get("name") or ""
+            rider_phone = r_info.get("phone") or ""
+            r_id = str(odoc.get("riderId") or odoc.get("rider_id") or r_info.get("id") or "")
+            if (not rider_phone or not rider_name) and r_id:
+                rdoc = await database.find_one("riders", {"_id": r_id}) or await database.find_one("riders", {"id": r_id})
+                if rdoc:
+                    rider_name = rider_name or rdoc.get("name") or rdoc.get("fullName") or ""
+                    rider_phone = rider_phone or rdoc.get("phone") or ""
+
+            p_info = odoc.get("partner") or {}
+            partner_name = p_info.get("name") or ""
+            partner_phone = p_info.get("phone") or ""
+            p_id = str(odoc.get("partnerId") or odoc.get("partner_id") or p_info.get("id") or "")
+            if (not partner_phone or not partner_name) and p_id:
+                pdoc = await database.find_one("partners", {"_id": p_id}) or await database.find_one("partners", {"id": p_id})
+                if pdoc:
+                    partner_name = partner_name or pdoc.get("name") or pdoc.get("businessName") or ""
+                    partner_phone = partner_phone or pdoc.get("phone") or ""
 
         raw_role = (doc.get("role") or doc.get("source") or ("Partner" if ticket_source == "partner" else ("Rider" if ticket_source == "rider" else "Customer"))).capitalize()
+        c_name = doc.get("raisedBy") or (udoc or {}).get("name") or (udoc or {}).get("display_name") or "User"
+        c_phone = doc.get("phone") or (udoc or {}).get("phone") or ""
+        wallet_bal = float((wallet_doc or {}).get("balance") or (wallet_doc or {}).get("walletBalance") or 0.0)
+
+        customer_360 = {
+            "name": c_name,
+            "phone": c_phone,
+            "email": doc.get("email") or (udoc or {}).get("email") or "",
+            "walletBalance": wallet_bal,
+            "totalOrders": len(customer_recent_orders or []),
+            "city": doc.get("city") or (udoc or {}).get("city") or "",
+            "vipTier": mdoc.get("plan_id") or mdoc.get("planId") if (mdoc or {}).get("active") else None,
+            "address": (udoc or {}).get("address") or ((odoc.get("address") or {}).get("fullAddress") if odoc else ""),
+            "recentOrders": [
+                {
+                    "id": str(o.get("_id") or o.get("id")),
+                    "code": str(o.get("code") or o.get("orderCode") or str(o.get("_id"))[:6]),
+                    "status": str(o.get("status") or "CONFIRMED").upper(),
+                    "total": float((o.get("totals") or {}).get("grandTotal") or o.get("total") or 0.0),
+                    "itemsCount": len(o.get("items") or []),
+                    "date": (o.get("createdAt") or "")[:10],
+                }
+                for o in (customer_recent_orders or [])[:3]
+            ],
+        }
+
+        active_order_info = None
+        if odoc:
+            items_list = odoc.get("items") or []
+            active_order_info = {
+                "orderId": str(odoc.get("_id") or odoc.get("id")),
+                "orderCode": str(odoc.get("code") or odoc.get("orderCode") or str(odoc.get("_id"))[:6]),
+                "status": str(odoc.get("status") or "IN_PROGRESS").upper(),
+                "grandTotal": float((odoc.get("totals") or {}).get("grandTotal") or odoc.get("total") or 0.0),
+                "itemsCount": len(items_list),
+                "itemsSummary": f"{len(items_list)} Garments" if items_list else "Care Pack",
+                "partnerName": partner_name,
+                "partnerPhone": partner_phone,
+                "riderName": rider_name,
+                "riderPhone": rider_phone,
+                "deliverySlot": str((odoc.get("slots") or {}).get("delivery") or odoc.get("deliverySlot") or "Scheduled"),
+                "pickupSlot": str((odoc.get("slots") or {}).get("pickup") or odoc.get("pickupSlot") or "Completed"),
+                "deliveryAddress": (odoc.get("address") or {}).get("fullAddress") or (odoc.get("address") or {}).get("addressLine") or "",
+            }
+
+        ord_code = (active_order_info or {}).get("orderCode") or ref_oid or "your order"
+        r_name = rider_name or "our delivery captain"
+        p_name = partner_name or "our store hub"
+
+        dynamic_macros = [
+            {
+                "label": "Rider arriving (8-10m)",
+                "category": "delivery",
+                "text": f"Hello {c_name}! Captain {r_name} is en route with order #{ord_code} and will arrive in 8-10 minutes. Thank you!",
+            },
+            {
+                "label": "Rider at gate / Calling",
+                "category": "delivery",
+                "text": f"Hello {c_name}, captain {r_name} has arrived at your address for order #{ord_code}. Please coordinate at the entrance.",
+            },
+            {
+                "label": "Store processing update",
+                "category": "processing",
+                "text": f"Hello {c_name}, order #{ord_code} is undergoing steam press & quality inspection at {p_name}. On schedule for dispatch!",
+            },
+            {
+                "label": "Wallet refund credited",
+                "category": "refund",
+                "text": f"We sincerely apologize for the inconvenience regarding order #{ord_code}. We have credited compensation balance to your QuickPress Wallet!",
+            },
+            {
+                "label": "Garment quality assurance",
+                "category": "quality",
+                "text": f"Hello {c_name}, our supervisor at {p_name} is inspecting your garments for order #{ord_code} to ensure pristine care before dispatch.",
+            },
+        ]
 
         return {
             "_id": str(doc.get("_id") or doc.get("id")),
@@ -6758,8 +6925,8 @@ class SupportRepository:
             "ticketNumber": doc.get("ticketNumber") or doc.get("ticket_number") or doc.get("id") or f"TCK-{str(doc.get('_id') or '0000')[:4].upper()}",
             "subject": doc.get("subject") or doc.get("description") or "Support Request",
             "description": doc.get("description") or "",
-            "raisedBy": doc.get("raisedBy") or (udoc or {}).get("name") or (udoc or {}).get("display_name") or "User",
-            "phone": doc.get("phone") or (udoc or {}).get("phone") or "",
+            "raisedBy": c_name,
+            "phone": c_phone,
             "email": doc.get("email") or (udoc or {}).get("email") or "",
             "userId": uid,
             "role": raw_role,
@@ -6770,6 +6937,9 @@ class SupportRepository:
             "refOrder": ref_oid or "—",
             "order": odoc,
             "user": udoc,
+            "customer360": customer_360,
+            "activeOrderInfo": active_order_info,
+            "dynamicMacros": dynamic_macros,
             "assignee": doc.get("assignee") or "Lead Admin",
             "compensationAmount": float(doc.get("compensationAmount") or 0.0),
             "createdAt": doc.get("createdAt") or doc.get("created_at") or now_iso(),
@@ -7001,6 +7171,26 @@ class SupportRepository:
             except Exception as e:
                 logger.warning("Socket.IO support reply emission failed: %s", e)
 
+        # 5. Socket.IO Real-Time Stream to Admin Console
+        try:
+            from app.services.socket_service import sio
+            admin_chat_event = {
+                "ticketId": ticket_id,
+                "ticketNumber": clean_tnum if not is_internal and target_uid else f"TCK-{ticket_id[:4].upper()}",
+                "body": body,
+                "author": admin_name,
+                "authorName": admin_name,
+                "role": "Admin",
+                "at": now,
+                "isInternal": is_internal,
+                "createdAt": now,
+            }
+            await sio.emit("admin:support_message", admin_chat_event, room="admins")
+            await sio.emit("support:message", admin_chat_event, room="admins")
+            await sio.emit("admin:support_ticket_updated", {"ticketId": ticket_id, "status": "In progress"}, room="admins")
+        except Exception as e:
+            logger.warning("Socket.IO admin support emission failed: %s", e)
+
         return {"ok": True, "ticketId": ticket_id, "body": body, "message": new_msg}
 
     async def update_status(
@@ -7052,6 +7242,7 @@ class SupportRepository:
             if resolution_notes:
                 update_fields["resolutionNotes"] = resolution_notes
 
+        updated_record = None
         # 1. Check self.collection
         doc = await database.find_one(self.collection, {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
         if doc is not None:
@@ -7060,46 +7251,57 @@ class SupportRepository:
             replies.append(sys_msg)
             update_fields["replies"] = replies
             await database.update(self.collection, {"_id": actual_id}, update_fields)
-            return {"ok": True, "status": fmt_status, **update_fields}
+            updated_record = {"ok": True, "status": fmt_status, **update_fields}
 
         # 2. Check support_tickets
-        doc = await database.find_one("support_tickets", {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
-        if doc is not None:
-            actual_id = doc["_id"]
-            st_low = "resolved" if fmt_status.lower() == "resolved" else ("closed" if fmt_status.lower() == "closed" else "in-progress")
-            st_update = dict(update_fields)
-            st_update["status"] = st_low
-            await database.update("support_tickets", {"_id": actual_id}, st_update)
-            await database.insert("support_messages", {
-                "_id": f"msg-{uuid.uuid4().hex[:12]}",
-                "ticket_id": str(actual_id),
-                "user_id": "system",
-                "author": "system",
-                "author_name": "QuickPress Resolution Bot",
-                "body": sys_msg_body,
-                "created_at": now,
-            })
-            return {"ok": True, "status": fmt_status, **update_fields}
+        if not updated_record:
+            doc = await database.find_one("support_tickets", {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
+            if doc is not None:
+                actual_id = doc["_id"]
+                st_low = "resolved" if fmt_status.lower() == "resolved" else ("closed" if fmt_status.lower() == "closed" else "in-progress")
+                st_update = dict(update_fields)
+                st_update["status"] = st_low
+                await database.update("support_tickets", {"_id": actual_id}, st_update)
+                await database.insert("support_messages", {
+                    "_id": f"msg-{uuid.uuid4().hex[:12]}",
+                    "ticket_id": str(actual_id),
+                    "user_id": "system",
+                    "author": "system",
+                    "author_name": "QuickPress Resolution Bot",
+                    "body": sys_msg_body,
+                    "created_at": now,
+                })
+                updated_record = {"ok": True, "status": fmt_status, **update_fields}
 
         # 3. Check partner_support_tickets
-        doc = await database.find_one("partner_support_tickets", {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
-        if doc is not None:
-            actual_id = doc["_id"]
-            replies = list(doc.get("replies") or [])
-            replies.append(sys_msg)
-            update_fields["replies"] = replies
-            await database.update("partner_support_tickets", {"_id": actual_id}, update_fields)
-            return {"ok": True, "status": fmt_status, **update_fields}
+        if not updated_record:
+            doc = await database.find_one("partner_support_tickets", {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
+            if doc is not None:
+                actual_id = doc["_id"]
+                replies = list(doc.get("replies") or [])
+                replies.append(sys_msg)
+                update_fields["replies"] = replies
+                await database.update("partner_support_tickets", {"_id": actual_id}, update_fields)
+                updated_record = {"ok": True, "status": fmt_status, **update_fields}
 
         # 4. Check rider_support_tickets
-        doc = await database.find_one("rider_support_tickets", {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
-        if doc is not None:
-            actual_id = doc["_id"]
-            replies = list(doc.get("replies") or [])
-            replies.append(sys_msg)
-            update_fields["replies"] = replies
-            await database.update("rider_support_tickets", {"_id": actual_id}, update_fields)
-            return {"ok": True, "status": fmt_status, **update_fields}
+        if not updated_record:
+            doc = await database.find_one("rider_support_tickets", {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
+            if doc is not None:
+                actual_id = doc["_id"]
+                replies = list(doc.get("replies") or [])
+                replies.append(sys_msg)
+                update_fields["replies"] = replies
+                await database.update("rider_support_tickets", {"_id": actual_id}, update_fields)
+                updated_record = {"ok": True, "status": fmt_status, **update_fields}
+
+        if updated_record:
+            try:
+                from app.services.socket_service import sio
+                await sio.emit("admin:support_ticket_updated", {"ticketId": ticket_id, "status": fmt_status}, room="admins")
+            except Exception:
+                pass
+            return updated_record
 
         return None
 

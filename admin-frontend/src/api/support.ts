@@ -18,6 +18,55 @@ export type TicketRole = "Customer" | "Partner" | "Rider";
 export type TicketPriority = "Urgent" | "High" | "Medium" | "Low";
 export type TicketStatus = "Open" | "In progress" | "Awaiting customer" | "Escalated" | "Resolved" | "Closed";
 
+export type Customer360 = {
+  name: string;
+  phone: string;
+  email?: string | undefined;
+  walletBalance: number;
+  totalOrders: number;
+  city?: string | undefined;
+  vipTier?: string | null | undefined;
+  address?: string | undefined;
+  recentOrders: Array<{
+    id: string;
+    code: string;
+    status: string;
+    total: number;
+    itemsCount: number;
+    date: string;
+  }>;
+};
+
+export type ActiveOrderInfo = {
+  orderId: string;
+  orderCode: string;
+  status: string;
+  grandTotal: number;
+  itemsCount: number;
+  itemsSummary: string;
+  partnerName?: string | undefined;
+  partnerPhone?: string | undefined;
+  riderName?: string | undefined;
+  riderPhone?: string | undefined;
+  deliverySlot?: string | undefined;
+  pickupSlot?: string | undefined;
+  deliveryAddress?: string | undefined;
+};
+
+export type DynamicMacro = {
+  label: string;
+  category: string;
+  text: string;
+};
+
+export type TicketDetail = {
+  ticket: Ticket;
+  chat: ChatMessage[];
+  customer360?: Customer360 | undefined;
+  activeOrderInfo?: ActiveOrderInfo | undefined;
+  dynamicMacros?: DynamicMacro[] | undefined;
+};
+
 export type Ticket = {
   id: string;
   ticketNumber: string;
@@ -50,6 +99,9 @@ export type Ticket = {
   resolvedAt?: string | undefined;
   resolutionReason?: string | undefined;
   resolutionNotes?: string | undefined;
+  customer360?: Customer360 | undefined;
+  activeOrderInfo?: ActiveOrderInfo | undefined;
+  dynamicMacros?: DynamicMacro[] | undefined;
 };
 
 export type ChatMessage = {
@@ -126,6 +178,9 @@ type BackendTicket = {
   resolvedAt?: string | undefined;
   resolutionReason?: string | undefined;
   resolutionNotes?: string | undefined;
+  customer360?: Customer360 | undefined;
+  activeOrderInfo?: ActiveOrderInfo | undefined;
+  dynamicMacros?: DynamicMacro[] | undefined;
   replies?: Array<{
     _id?: string | undefined;
     id?: string | undefined;
@@ -200,6 +255,9 @@ function toTicket(row: BackendTicket): Ticket {
     resolvedAt: row.resolvedAt ? row.resolvedAt.slice(0, 16).replace("T", " ") : undefined,
     resolutionReason: row.resolutionReason || undefined,
     resolutionNotes: row.resolutionNotes || undefined,
+    customer360: row.customer360,
+    activeOrderInfo: row.activeOrderInfo,
+    dynamicMacros: row.dynamicMacros,
   };
 }
 
@@ -265,6 +323,36 @@ export async function fetchChat(ticketId: string): Promise<ChatMessage[]> {
     }));
   } catch {
     return [];
+  }
+}
+
+export async function fetchTicketDetail(ticketId: string): Promise<TicketDetail | null> {
+  try {
+    const data = await apiGetJson<BackendTicket>(`/api/admin/support/${ticketId}`);
+    const chat: ChatMessage[] = (data.replies || []).map((reply, index): ChatMessage => ({
+      id: reply._id || reply.id || `${ticketId}-${index}`,
+      author: reply.author || "User",
+      role: reply.role || undefined,
+      body: reply.body || "",
+      at: (reply.at || "").slice(0, 16).replace("T", " "),
+      me: Boolean(
+        reply.me ||
+        reply.role?.toLowerCase() === "admin" ||
+        reply.author?.toLowerCase().includes("support") ||
+        reply.author?.toLowerCase().includes("admin")
+      ),
+      isInternal: Boolean(reply.isInternal),
+    }));
+
+    return {
+      ticket: toTicket(data),
+      chat,
+      customer360: data.customer360,
+      activeOrderInfo: data.activeOrderInfo,
+      dynamicMacros: data.dynamicMacros,
+    };
+  } catch {
+    return null;
   }
 }
 

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Search,
@@ -37,6 +37,9 @@ import {
   Crown,
   AlertTriangle,
   Trash2,
+  MessageCircle,
+  Wallet,
+  Package,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,6 +54,7 @@ import {
   closeTicket,
   createSupportTicket,
   fetchChat,
+  fetchTicketDetail,
   fetchSupportStats,
   fetchTickets,
   replyToTicket,
@@ -67,6 +71,10 @@ import {
   updateAdminJobApplication,
   deleteAdminJobApplication,
   type Ticket,
+  type TicketDetail,
+  type Customer360,
+  type ActiveOrderInfo,
+  type DynamicMacro,
   type TicketRole,
   type TicketPriority,
   type TicketStatus,
@@ -75,6 +83,7 @@ import {
   type AdminContactInquiry,
   type AdminJobApplication,
 } from "../api/support";
+import { joinRoom, onRealtimeEvent } from "@/api/core/socket-client";
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
 
@@ -361,6 +370,58 @@ export function SupportPage() {
     enabled: Boolean(activeTicket),
   });
 
+  // Live Ticket Detail (Customer 360, Active Order, Dynamic Macros)
+  const ticketDetailQuery = useQuery({
+    queryKey: ["admin", "tickets", activeTicket?.id, "detail"],
+    queryFn: () => (activeTicket ? fetchTicketDetail(activeTicket.id) : null),
+    enabled: Boolean(activeTicket),
+  });
+
+  const detailData = ticketDetailQuery.data;
+  const customer360 = detailData?.customer360 || activeTicket?.customer360;
+  const activeOrderInfo = detailData?.activeOrderInfo || activeTicket?.activeOrderInfo;
+  const dynamicMacros =
+    detailData?.dynamicMacros && detailData.dynamicMacros.length > 0
+      ? detailData.dynamicMacros
+      : CANNED_RESPONSES.map((cr) => ({ label: cr.label, category: cr.role, text: cr.text }));
+  const chatMessages = (detailData?.chat && detailData.chat.length > 0) ? detailData.chat : (chatQuery.data || []);
+
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages.length, activeTicket?.id]);
+
+  // Real-Time Socket.IO Synchronization for Instant Messaging & Status
+  useEffect(() => {
+    const leaveAdmin = joinRoom("admins");
+
+    const unsubMsg = onRealtimeEvent("admin:support_message", (payload: any) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
+      if (activeTicket && (payload?.ticketId === activeTicket.id || !payload?.ticketId)) {
+        queryClient.invalidateQueries({ queryKey: ["admin", "tickets", activeTicket.id] });
+      }
+    });
+
+    const unsubSupportMsg = onRealtimeEvent("support:message", (payload: any) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
+      if (activeTicket && (payload?.ticketId === activeTicket.id || !payload?.ticketId)) {
+        queryClient.invalidateQueries({ queryKey: ["admin", "tickets", activeTicket.id] });
+      }
+    });
+
+    const unsubUpd = onRealtimeEvent("admin:support_ticket_updated", () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "support", "stats"] });
+    });
+
+    return () => {
+      leaveAdmin();
+      unsubMsg();
+      unsubSupportMsg();
+      unsubUpd();
+    };
+  }, [activeTicket?.id, queryClient]);
+
   // Mutations
   const sendMutation = useMutation({
     mutationFn: ({ body, isInternal }: { body: string; isInternal: boolean }) =>
@@ -368,7 +429,7 @@ export function SupportPage() {
     onSuccess: (_, vars) => {
       toast.success(vars.isInternal ? "Internal staff note saved!" : "Resolution reply sent!");
       setReplyText("");
-      queryClient.invalidateQueries({ queryKey: ["admin", "tickets", activeTicket?.id, "chat"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets", activeTicket?.id] });
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "support", "stats"] });
     },
@@ -394,7 +455,7 @@ export function SupportPage() {
       setIsResolveModalOpen(false);
       setResolutionNotes("");
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "tickets", activeTicket?.id, "chat"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets", activeTicket?.id] });
       queryClient.invalidateQueries({ queryKey: ["admin", "support", "stats"] });
     },
     onError: (err: any) => {
@@ -418,7 +479,7 @@ export function SupportPage() {
       toast.success(`₹${data.amount} credited to customer wallet!`);
       setIsCompensateModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "tickets", activeTicket?.id, "chat"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets", activeTicket?.id] });
       queryClient.invalidateQueries({ queryKey: ["admin", "support", "stats"] });
     },
     onError: (err: any) => {
@@ -450,6 +511,25 @@ export function SupportPage() {
   const handleQuickResolve = () => {
     if (!activeTicket) return;
     handleOpenResolveDialog("Resolved");
+  };
+
+  const handleQuickCompensate = (amount: number) => {
+    if (!activeTicket) return;
+    compensateMutation.mutate({
+      ticketId: activeTicket.id,
+      amount,
+      reason: `Quick resolution compensation ₹${amount} credit`,
+    });
+  };
+
+  const handleInstantResolve = () => {
+    if (!activeTicket) return;
+    statusMutation.mutate({
+      ticketId: activeTicket.id,
+      status: "Resolved",
+      reason: "Customer Query Answered & Resolved",
+      notes: "Resolved via 1-click Quick Action",
+    });
   };
 
   return (
@@ -1158,54 +1238,73 @@ export function SupportPage() {
               {activeTicket ? (
                 <div className="rounded-2xl border border-zinc-200 bg-white shadow-xs overflow-hidden flex flex-col h-[750px]">
                   {/* 1. Command Header */}
-                  <div className="p-4 border-b border-zinc-200 bg-zinc-50/60 space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="p-3.5 border-b border-zinc-200 bg-zinc-50/70 space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2.5">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-sm font-black text-zinc-900">
+                          <span className="font-mono text-sm font-black text-zinc-950">
                             #{activeTicket.ticketNumber}
                           </span>
                           <StatusPill value={activeTicket.status} />
-                          <span className="text-xs font-bold text-zinc-500">
+                          <span className="text-xs font-bold text-zinc-600">
                             Category: <strong className="text-zinc-900">{activeTicket.category}</strong>
                           </span>
                           {activeTicket.vipBadge && (
-                            <span className="rounded-full bg-amber-500 text-white px-2 py-0.5 text-[10px] font-black uppercase flex items-center gap-1 shadow-2xs">
+                            <span className="rounded-md bg-amber-500 text-white px-1.5 py-0.5 text-[10px] font-black uppercase flex items-center gap-1 shadow-2xs">
                               <Crown className="size-3" /> VIP {activeTicket.vipBadge}
                             </span>
                           )}
                         </div>
-                        <h3 className="font-extrabold text-zinc-900 text-sm mt-1">{activeTicket.subject}</h3>
+                        <h3 className="font-extrabold text-zinc-900 text-sm mt-0.5 line-clamp-1">{activeTicket.subject}</h3>
                       </div>
 
-                      {/* Quick Resolution Buttons */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setIsCompensateModalOpen(true)}
-                          className="h-8 rounded-xl border-amber-300 bg-amber-50 text-amber-900 text-xs font-bold hover:bg-amber-100 shadow-2xs"
-                        >
-                          <Gift className="size-3.5 mr-1 text-amber-700" />
-                          <span>Compensate Wallet</span>
-                        </Button>
+                      {/* Fast Action Buttons Bar */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {/* Quick Refund Preset Chips */}
+                        <div className="flex items-center gap-1 bg-white border border-amber-200 rounded-lg p-0.5">
+                          <span className="text-[10px] font-bold text-amber-800 px-1 flex items-center gap-0.5">
+                            <Wallet className="size-3 text-amber-600" /> Refund:
+                          </span>
+                          {[50, 100, 200].map((amt) => (
+                            <button
+                              key={amt}
+                              type="button"
+                              onClick={() => handleQuickCompensate(amt)}
+                              disabled={compensateMutation.isPending}
+                              className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 transition-colors cursor-pointer"
+                              title={`Instant ₹${amt} wallet credit`}
+                            >
+                              +₹{amt}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => setIsCompensateModalOpen(true)}
+                            className="px-1.5 py-0.5 rounded text-[10px] font-bold text-amber-700 hover:bg-amber-50 transition-colors cursor-pointer"
+                            title="Custom compensation amount"
+                          >
+                            Other
+                          </button>
+                        </div>
 
+                        {/* 1-Click Quick Resolve Button */}
                         {activeTicket.status !== "Resolved" && activeTicket.status !== "Closed" ? (
                           <Button
                             size="sm"
-                            onClick={handleQuickResolve}
+                            onClick={handleInstantResolve}
                             disabled={statusMutation.isPending}
-                            className="h-8 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700 shadow-xs"
+                            className="h-7.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2.5 text-xs font-bold text-white shadow-xs cursor-pointer"
+                            title="Instantly mark resolved"
                           >
                             <CheckCircle2 className="size-3.5 mr-1" />
-                            <span>Mark Resolved</span>
+                            <span>Quick Resolve</span>
                           </Button>
                         ) : activeTicket.status === "Resolved" ? (
                           <Button
                             size="sm"
                             onClick={() => handleOpenResolveDialog("Closed")}
                             disabled={statusMutation.isPending}
-                            className="h-8 rounded-xl bg-zinc-900 px-3 text-xs font-bold text-white hover:bg-zinc-800 shadow-xs"
+                            className="h-7.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 px-2.5 text-xs font-bold text-white shadow-xs cursor-pointer"
                           >
                             <Lock className="size-3.5 mr-1 text-zinc-300" />
                             <span>Close Ticket</span>
@@ -1214,96 +1313,168 @@ export function SupportPage() {
                       </div>
                     </div>
 
-                    {/* Customer Info & Status/Assign Controls Bar */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-200/70 text-xs">
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-zinc-900 flex items-center gap-1">
-                          <User className="size-3 text-zinc-400" /> {activeTicket.raisedBy}
-                        </span>
-                        <a href={`tel:${activeTicket.phone}`} className="text-emerald-700 font-bold hover:underline flex items-center gap-1">
-                          <Phone className="size-3" /> {activeTicket.phone}
-                        </a>
-                        <span className="text-zinc-400 font-medium">{activeTicket.city || "Kasganj"}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {/* Status Selector */}
-                        <select
-                          value={activeTicket.status}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === "Resolved" || val === "Closed") {
-                              handleOpenResolveDialog(val as "Resolved" | "Closed");
-                            } else {
-                              statusMutation.mutate({ ticketId: activeTicket.id, status: val });
-                            }
-                          }}
-                          aria-label="Update ticket status"
-                          className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer"
-                        >
-                          <option value="Open">Open</option>
-                          <option value="In progress">In Progress</option>
-                          <option value="Awaiting customer">Awaiting Customer</option>
-                          <option value="Escalated">Escalated</option>
-                          <option value="Resolved">Resolved</option>
-                          <option value="Closed">Closed</option>
-                        </select>
-
-                        {/* Assignee Selector */}
-                        <select
-                          value={activeTicket.assignee}
-                          onChange={(e) =>
-                            assignMutation.mutate({ ticketId: activeTicket.id, assignee: e.target.value })
-                          }
-                          aria-label="Assign ticket agent"
-                          className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer"
-                        >
-                          <option value="Lead Admin">Lead Admin</option>
-                          <option value="Pooja (Fulfillment Ops)">Pooja (Fulfillment)</option>
-                          <option value="Rahul (Rider Ops)">Rahul (Riders)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Linked Order Snapshot (If any) */}
-                    {activeTicket.refOrder && activeTicket.refOrder !== "—" && (
-                      <div className="rounded-xl bg-white border border-zinc-200 p-2.5 flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 font-bold">
-                            <Truck className="size-3.5" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-zinc-900 font-mono">Order #{activeTicket.refOrder}</p>
-                            <p className="text-[10px] text-zinc-400">
-                              {activeTicket.partnerName ? `Hub: ${activeTicket.partnerName}` : "Store Hub"} ·{" "}
-                              {activeTicket.riderName ? `Captain: ${activeTicket.riderName}` : "Rider"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          {activeTicket.orderTotal !== undefined && (
-                            <span className="font-black text-zinc-900 block">₹{activeTicket.orderTotal}</span>
-                          )}
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
-                            {activeTicket.orderStatus || "In Transit"}
+                    {/* Customer 360 Telemetry Strip (Flat, Minimal, High-Density) */}
+                    <div className="rounded-xl border border-zinc-200 bg-white p-2.5 space-y-2 text-xs">
+                      {/* Customer Row */}
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-black text-zinc-950 flex items-center gap-1">
+                            <User className="size-3.5 text-zinc-500" />
+                            <span>{customer360?.name || activeTicket.raisedBy}</span>
                           </span>
+
+                          {/* 1-Click Direct Phone & WhatsApp Web */}
+                          <div className="flex items-center gap-1">
+                            <a
+                              href={`tel:${customer360?.phone || activeTicket.phone}`}
+                              className="inline-flex items-center gap-1 rounded bg-zinc-100 hover:bg-zinc-200 px-2 py-0.5 text-[11px] font-bold text-zinc-800 border border-zinc-200 transition-colors"
+                              title="Click to dial phone"
+                            >
+                              <Phone className="size-3 text-emerald-600" />
+                              <span>{customer360?.phone || activeTicket.phone}</span>
+                            </a>
+                            <a
+                              href={`https://wa.me/91${(customer360?.phone || activeTicket.phone || "").replace(/[^0-9]/g, "").slice(-10)}?text=${encodeURIComponent(`Hello ${customer360?.name || activeTicket.raisedBy}, this is QuickPress Support regarding ticket #${activeTicket.ticketNumber}.`)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 rounded bg-emerald-600 hover:bg-emerald-700 px-2 py-0.5 text-[11px] font-bold text-white transition-colors shadow-2xs"
+                              title="1-Click WhatsApp Chat"
+                            >
+                              <MessageCircle className="size-3" />
+                              <span>WhatsApp</span>
+                            </a>
+                          </div>
+
+                          {/* Flat Badges */}
+                          <span className="inline-flex items-center gap-1 rounded bg-zinc-50 border border-zinc-200 px-2 py-0.5 text-[11px] font-bold text-zinc-800">
+                            <Wallet className="size-3 text-emerald-600" />
+                            <span>₹{(customer360?.walletBalance ?? 0).toFixed(2)}</span>
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded bg-zinc-50 border border-zinc-200 px-2 py-0.5 text-[11px] font-bold text-zinc-800">
+                            <Package className="size-3 text-zinc-500" />
+                            <span>{customer360?.totalOrders ?? 0} Orders</span>
+                          </span>
+                          {customer360?.city && (
+                            <span className="rounded bg-zinc-50 border border-zinc-200 px-2 py-0.5 text-[11px] font-medium text-zinc-600">
+                              {customer360.city}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Status & Assignee Controls */}
+                        <div className="flex items-center gap-1.5">
+                          <select
+                            value={activeTicket.status}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "Resolved" || val === "Closed") {
+                                handleOpenResolveDialog(val as "Resolved" | "Closed");
+                              } else {
+                                statusMutation.mutate({ ticketId: activeTicket.id, status: val });
+                              }
+                            }}
+                            aria-label="Update ticket status"
+                            className="rounded-lg border border-zinc-300 bg-white px-2 py-0.5 text-[11px] font-bold text-zinc-800 focus:outline-none cursor-pointer"
+                          >
+                            <option value="Open">Open</option>
+                            <option value="In progress">In Progress</option>
+                            <option value="Awaiting customer">Awaiting Customer</option>
+                            <option value="Escalated">Escalated</option>
+                            <option value="Resolved">Resolved</option>
+                            <option value="Closed">Closed</option>
+                          </select>
+
+                          <select
+                            value={activeTicket.assignee}
+                            onChange={(e) =>
+                              assignMutation.mutate({ ticketId: activeTicket.id, assignee: e.target.value })
+                            }
+                            aria-label="Assign ticket agent"
+                            className="rounded-lg border border-zinc-300 bg-white px-2 py-0.5 text-[11px] font-bold text-zinc-800 focus:outline-none cursor-pointer"
+                          >
+                            <option value="Lead Admin">Lead Admin</option>
+                            <option value="Pooja (Fulfillment Ops)">Pooja (Fulfillment)</option>
+                            <option value="Rahul (Rider Ops)">Rahul (Riders)</option>
+                          </select>
                         </div>
                       </div>
-                    )}
+
+                      {/* Active Order Telemetry Sub-Bar (If linked order exists) */}
+                      {(activeTicket.refOrder && activeTicket.refOrder !== "—") || activeOrderInfo ? (
+                        <div className="pt-2 border-t border-zinc-100 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono font-black text-zinc-950">
+                              Order #{activeOrderInfo?.orderCode || activeTicket.refOrder}
+                            </span>
+                            <span className="rounded bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 text-[10px] font-black text-emerald-800 uppercase">
+                              {activeOrderInfo?.status || activeTicket.orderStatus || "IN TRANSIT"}
+                            </span>
+                            <span className="font-mono font-bold text-zinc-900">
+                              ₹{activeOrderInfo?.grandTotal ?? activeTicket.orderTotal ?? 0}
+                            </span>
+                            <span className="text-zinc-500">
+                              ({activeOrderInfo?.itemsSummary || "Care Pack"})
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 text-zinc-700">
+                            {/* Assigned Rider */}
+                            <div className="flex items-center gap-1 font-bold">
+                              <Bike className="size-3 text-zinc-500" />
+                              <span>{activeOrderInfo?.riderName || activeTicket.riderName || "Captain"}</span>
+                              {activeOrderInfo?.riderPhone && (
+                                <>
+                                  <a
+                                    href={`tel:${activeOrderInfo.riderPhone}`}
+                                    className="text-[10px] text-emerald-700 hover:underline flex items-center gap-0.5"
+                                    title="Call Delivery Captain"
+                                  >
+                                    <Phone className="size-2.5" /> Call
+                                  </a>
+                                  <a
+                                    href={`https://wa.me/91${activeOrderInfo.riderPhone.replace(/[^0-9]/g, "").slice(-10)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[10px] text-emerald-700 hover:underline flex items-center gap-0.5"
+                                    title="WhatsApp Delivery Captain"
+                                  >
+                                    <MessageCircle className="size-2.5" /> WA
+                                  </a>
+                                </>
+                              )}
+                            </div>
+
+                            {/* Assigned Partner Store */}
+                            <div className="flex items-center gap-1 font-bold pl-2 border-l border-zinc-200">
+                              <Store className="size-3 text-zinc-500" />
+                              <span>{activeOrderInfo?.partnerName || activeTicket.partnerName || "Store Hub"}</span>
+                              {activeOrderInfo?.partnerPhone && (
+                                <a
+                                  href={`tel:${activeOrderInfo.partnerPhone}`}
+                                  className="text-[10px] text-zinc-700 hover:underline flex items-center gap-0.5"
+                                  title="Call Store Partner"
+                                >
+                                  <Phone className="size-2.5" /> Call
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
 
                     {/* Resolution & Staff Audit Details Card */}
                     {(activeTicket.status === "Resolved" || activeTicket.status === "Closed" || activeTicket.resolvedBy || activeTicket.resolutionReason) && (
-                      <div className="rounded-xl border border-emerald-300 bg-emerald-50/70 p-3 text-xs space-y-2.5 shadow-2xs">
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/80 pb-2">
+                      <div className="rounded-xl border border-emerald-300 bg-emerald-50/70 p-2.5 text-xs space-y-1.5 shadow-2xs">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/80 pb-1.5">
                           <div className="flex items-center gap-1.5">
-                            <CheckCircle2 className="size-4 text-emerald-700" />
-                            <span className="font-black text-emerald-950 uppercase tracking-wider text-[11px]">
-                              Resolution & Staff Audit Details
+                            <CheckCircle2 className="size-3.5 text-emerald-700" />
+                            <span className="font-black text-emerald-950 uppercase tracking-wider text-[10px]">
+                              Resolution Audit Details
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="rounded-md bg-emerald-700 px-2 py-0.5 text-[10px] font-black text-white uppercase tracking-wider">
+                            <span className="rounded bg-emerald-700 px-1.5 py-0.2 text-[9px] font-black text-white uppercase">
                               {activeTicket.status}
                             </span>
                             {activeTicket.resolvedAt && (
@@ -1314,48 +1485,29 @@ export function SupportPage() {
                           </div>
                         </div>
 
-                        <div className="grid gap-2 sm:grid-cols-2 text-xs">
-                          <div className="space-y-0.5">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-900/70">
-                              Resolved By Staff:
-                            </p>
-                            <p className="font-black text-zinc-950 flex items-center gap-1.5">
-                              <span>{activeTicket.resolvedBy || "Lead Admin"}</span>
-                              {activeTicket.resolvedByRole && (
-                                <span className="rounded bg-zinc-900 text-white px-1.5 py-0.2 text-[9px] font-black uppercase">
-                                  {activeTicket.resolvedByRole}
-                                </span>
-                              )}
-                            </p>
-                            {activeTicket.resolvedByEmail && (
-                              <p className="text-[10px] font-mono text-zinc-600">{activeTicket.resolvedByEmail}</p>
+                        <div className="grid gap-1 sm:grid-cols-2 text-xs">
+                          <p className="text-[11px] text-zinc-700">
+                            <strong>Resolved By:</strong> {activeTicket.resolvedBy || "Lead Admin"}
+                            {activeTicket.resolvedByRole && (
+                              <span className="ml-1 rounded bg-zinc-900 text-white px-1 py-0.2 text-[9px] font-black uppercase">
+                                {activeTicket.resolvedByRole}
+                              </span>
                             )}
-                          </div>
-
-                          <div className="space-y-0.5">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-900/70">
-                              Resolution Reason:
-                            </p>
-                            <span className="inline-block rounded-md bg-white border border-emerald-300 px-2.5 py-1 text-[11px] font-black text-emerald-900 shadow-2xs">
-                              {activeTicket.resolutionReason || "Customer Query Solved"}
-                            </span>
-                          </div>
+                          </p>
+                          <p className="text-[11px] text-zinc-700">
+                            <strong>Reason:</strong> {activeTicket.resolutionReason || "Customer Query Solved"}
+                          </p>
                         </div>
 
                         {activeTicket.resolutionNotes && (
-                          <div className="pt-2 border-t border-emerald-200/60 space-y-0.5">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-900/70">
-                              Staff Resolution Notes / Settlement Explanation:
-                            </p>
-                            <p className="font-medium text-zinc-900 leading-relaxed bg-white rounded-lg p-2.5 border border-emerald-200 shadow-2xs">
-                              {activeTicket.resolutionNotes}
-                            </p>
-                          </div>
+                          <p className="text-[11px] text-zinc-800 bg-white rounded p-1.5 border border-emerald-200">
+                            <strong>Notes:</strong> {activeTicket.resolutionNotes}
+                          </p>
                         )}
 
                         {activeTicket.compensationAmount !== undefined && activeTicket.compensationAmount > 0 && (
                           <div className="flex items-center justify-between pt-1 border-t border-emerald-200/60 text-[11px] font-bold text-emerald-950">
-                            <span>Customer Wallet Compensation Disbursed:</span>
+                            <span>Wallet Compensation Disbursed:</span>
                             <span className="font-mono text-xs font-black text-emerald-800">
                               ₹{activeTicket.compensationAmount.toFixed(2)}
                             </span>
@@ -1367,15 +1519,15 @@ export function SupportPage() {
 
                   {/* 2. Message History Thread */}
                   <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-zinc-50/30">
-                    {chatQuery.isLoading ? (
+                    {ticketDetailQuery.isLoading && chatMessages.length === 0 ? (
                       <div className="text-center py-10 text-xs text-zinc-400">Loading conversation...</div>
-                    ) : (chatQuery.data ?? []).length === 0 ? (
+                    ) : chatMessages.length === 0 ? (
                       <div className="text-center py-10 text-xs text-zinc-400">No message history yet.</div>
                     ) : (
-                      (chatQuery.data ?? []).map((msg) => {
+                      chatMessages.map((msg) => {
                         if (msg.role === "System" || msg.author.toLowerCase().includes("system") || msg.author.toLowerCase().includes("bot")) {
                           return (
-                            <div key={msg.id} className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-center text-xs text-emerald-900 font-medium">
+                            <div key={msg.id} className="rounded-xl bg-emerald-50 border border-emerald-200 p-2.5 text-center text-xs text-emerald-900 font-medium">
                               <p>{msg.body}</p>
                               <span className="text-[9px] text-emerald-600 block mt-0.5 font-bold">{msg.at}</span>
                             </div>
@@ -1384,7 +1536,7 @@ export function SupportPage() {
 
                         if (msg.isInternal) {
                           return (
-                            <div key={msg.id} className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900 space-y-1">
+                            <div key={msg.id} className="rounded-xl bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-900 space-y-1">
                               <div className="flex items-center justify-between text-[10px] font-bold text-amber-700">
                                 <span className="flex items-center gap-1">
                                   <Lock className="size-3 text-amber-600" /> Private Staff Note ({msg.author})
@@ -1407,7 +1559,7 @@ export function SupportPage() {
                               <span className="text-[9px] text-zinc-400">{msg.at}</span>
                             </div>
                             <div
-                              className={`rounded-2xl px-4 py-2.5 max-w-[80%] text-xs font-medium leading-relaxed ${isMe
+                              className={`rounded-2xl px-3.5 py-2 max-w-[80%] text-xs font-medium leading-relaxed ${isMe
                                   ? "bg-zinc-900 text-white rounded-tr-xs shadow-xs"
                                   : "bg-white text-zinc-900 border border-zinc-200 rounded-tl-xs shadow-2xs"
                                 }`}
@@ -1418,31 +1570,35 @@ export function SupportPage() {
                         );
                       })
                     )}
+                    <div ref={chatEndRef} />
                   </div>
 
-                  {/* 3. Canned Responses Bar */}
-                  <div className="px-4 py-2 bg-white border-t border-zinc-100 flex items-center gap-1.5 overflow-x-auto">
-                    <span className="text-[10px] font-bold text-zinc-400 shrink-0">Fast Reply:</span>
-                    {CANNED_RESPONSES.map((cr, idx) => (
+                  {/* 3. Smart Dynamic Canned Responses Bar */}
+                  <div className="px-3.5 py-1.5 bg-white border-t border-zinc-100 flex items-center gap-1.5 overflow-x-auto">
+                    <span className="text-[10px] font-bold text-zinc-500 shrink-0 flex items-center gap-1">
+                      <Zap className="size-3 text-emerald-600" /> Fast Macros:
+                    </span>
+                    {dynamicMacros.map((macro, idx) => (
                       <button
                         key={idx}
                         type="button"
-                        onClick={() => setReplyText(cr.text)}
-                        className="shrink-0 rounded-lg bg-zinc-100 px-2 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-200 transition-colors"
+                        onClick={() => setReplyText(macro.text)}
+                        className="shrink-0 rounded-lg bg-zinc-100 hover:bg-zinc-200 px-2 py-0.5 text-[11px] font-bold text-zinc-800 border border-zinc-200 transition-colors cursor-pointer"
+                        title={macro.text}
                       >
-                        {cr.label}
+                        {macro.label}
                       </button>
                     ))}
                   </div>
 
                   {/* 4. Reply / Internal Note Input Box */}
-                  <div className="p-4 border-t border-zinc-200 bg-white space-y-2">
+                  <div className="p-3.5 border-t border-zinc-200 bg-white space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => setIsInternalNote(false)}
-                          className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${!isInternalNote ? "bg-zinc-900 text-white shadow-xs" : "bg-zinc-100 text-zinc-600"
+                          className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${!isInternalNote ? "bg-zinc-900 text-white shadow-xs" : "bg-zinc-100 text-zinc-600"
                             }`}
                         >
                           Official Customer Reply
@@ -1450,14 +1606,14 @@ export function SupportPage() {
                         <button
                           type="button"
                           onClick={() => setIsInternalNote(true)}
-                          className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${isInternalNote ? "bg-amber-500 text-white shadow-xs" : "bg-zinc-100 text-zinc-600"
+                          className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${isInternalNote ? "bg-amber-500 text-white shadow-xs" : "bg-zinc-100 text-zinc-600"
                             }`}
                         >
                           Private Staff Note
                         </button>
                       </div>
 
-                      <span className="text-[10px] text-zinc-400">Press Enter or Send button</span>
+                      <span className="text-[10px] text-zinc-400">Press Enter to send · Shift+Enter for new line</span>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -1466,7 +1622,7 @@ export function SupportPage() {
                         placeholder={
                           isInternalNote
                             ? "Write a private internal note for other agents..."
-                            : "Type your resolution message to the user..."
+                            : "Type resolution reply or select a Fast Macro above..."
                         }
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
@@ -1482,7 +1638,7 @@ export function SupportPage() {
                       <Button
                         onClick={handleSendReply}
                         disabled={sendMutation.isPending || !replyText.trim()}
-                        className={`h-full min-h-[56px] rounded-xl px-4 font-bold text-xs ${isInternalNote
+                        className={`h-full min-h-[56px] rounded-xl px-4 font-bold text-xs cursor-pointer ${isInternalNote
                             ? "bg-amber-600 hover:bg-amber-700 text-white"
                             : "bg-emerald-600 hover:bg-emerald-700 text-white"
                           }`}
