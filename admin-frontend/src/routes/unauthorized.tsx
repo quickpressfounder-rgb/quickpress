@@ -7,12 +7,12 @@ export const Route = createFileRoute("/unauthorized")({
   component: UnauthorizedRedirector,
 });
 
-export function UnauthorizedRedirector() {
+function UnauthorizedRedirector() {
   useEffect(() => {
     if (typeof window !== "undefined") {
-      window.location.replace(adminRoutes.auth);
+      window.location.replace(adminRoutes.dashboard);
     }
   }, []);
 
-  return <Navigate to={adminRoutes.auth} replace />;
+  return <Navigate to={adminRoutes.dashboard} replace />;
 }
