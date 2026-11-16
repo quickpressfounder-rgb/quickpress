@@ -161,36 +161,6 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en" className="bg-white" suppressHydrationWarning>
       <head>
         <HeadContent />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if (typeof window !== "undefined") {
-                if (window.location.search.includes("__cf_access_message=logged_out")) {
-                  try {
-                    localStorage.removeItem("admin_session");
-                    sessionStorage.clear();
-                  } catch (e) {}
-                  window.location.replace("/");
-                }
-                window.addEventListener("vite:preloadError", function(event) {
-                  event.preventDefault();
-                  var key = "__qp_chunk_reload";
-                  var now = Date.now();
-                  var last = parseInt(sessionStorage.getItem(key) || "0", 10);
-                  if (now - last > 4000) {
-                    sessionStorage.setItem(key, String(now));
-                    if ("caches" in window) {
-                      caches.keys().then(function(names) {
-                        for (var i = 0; i < names.length; i++) caches.delete(names[i]);
-                      });
-                    }
-                    window.location.href = window.location.pathname;
-                  }
-                });
-              }
-            `,
-          }}
-        />
       </head>
       <body className="min-h-screen bg-white text-foreground antialiased selection:bg-primary/20" suppressHydrationWarning>
         {children}
@@ -210,6 +180,32 @@ function RootComponent() {
 
   useEffect(() => {
     import("@/api/core/onesignal").then((m) => m.initOneSignal()).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // 1. Clean Cloudflare logged_out parameter from URL without reloading
+    if (window.location.search.includes("__cf_access_message=logged_out") || window.location.search.includes("logged_out")) {
+      try {
+        localStorage.removeItem("admin_session");
+        sessionStorage.clear();
+      } catch {}
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // 2. Auto-reload on stale bundle chunk after deployment
+    const onPreloadError = () => {
+      const key = "__qp_chunk_reload";
+      const now = Date.now();
+      const last = parseInt(sessionStorage.getItem(key) || "0", 10);
+      if (now - last > 4000) {
+        sessionStorage.setItem(key, String(now));
+        window.location.reload();
+      }
+    };
+    window.addEventListener("vite:preloadError", onPreloadError);
+    return () => window.removeEventListener("vite:preloadError", onPreloadError);
   }, []);
 
   return (

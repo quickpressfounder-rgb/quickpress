@@ -1,18 +1,10 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { adminRoutes } from "../navigation/admin-routes";
 
 export const Route = createFileRoute("/forgot-password")({
+  beforeLoad: () => {
+    throw redirect({ to: adminRoutes.dashboard });
+  },
   ssr: false,
-  component: ForgotPasswordRedirector,
+  component: () => null,
 });
-
-function ForgotPasswordRedirector() {
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.location.replace(adminRoutes.dashboard);
-    }
-  }, []);
-
-  return <Navigate to={adminRoutes.dashboard} replace />;
-}

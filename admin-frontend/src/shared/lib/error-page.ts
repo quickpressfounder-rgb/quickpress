@@ -17,13 +17,7 @@ export function renderErrorPage(): string {
             for (var i = 0; i < regs.length; i++) regs[i].unregister();
           });
         }
-        var key = '__qp_ssrauto_v3';
-        if (!sessionStorage.getItem(key)) {
-          sessionStorage.setItem(key, 'true');
-          window.location.reload(true);
-        } else {
-          sessionStorage.removeItem(key);
-        }
+        sessionStorage.clear();
       })();
     </script>
     <style>
@@ -42,7 +36,7 @@ export function renderErrorPage(): string {
       <div class="spinner"></div>
       <h1>Loading Latest QuickPress Version...</h1>
       <p>Updating static resources from CDN edge.</p>
-      <button onclick="if('caches' in window){caches.keys().then(function(n){for(var i=0;i<n.length;i++)caches.delete(n[i]);});}sessionStorage.clear();window.location.href=window.location.pathname+'?v='+Date.now();">Reload App</button>
+      <button onclick="if('caches' in window){caches.keys().then(function(n){for(var i=0;i<n.length;i++)caches.delete(n[i]);});}sessionStorage.clear();window.location.href='/';">Reload App</button>
     </div>
   </body>
 </html>`;
