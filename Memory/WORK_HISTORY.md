@@ -1,5 +1,39 @@
 # QuickPress — Engineering Work History
 
+## Session: November 17, 2026 (Part 37)
+
+### Customer Checkout Delivery Fee Verification & Dynamic Margin Sync
+
+1. **Context & User Inquiry:**
+   - User inquiry: *"customer ke check out me auctomatic delivery fee add jaygi kiya verify karke batao"*
+   - Goal: Perform an exhaustive end-to-end audit of how delivery fees are computed, rendered, and automatically appended into the customer payable total at checkout, and persisted into the order record in Supabase.
+
+2. **Verification & Audit Findings:**
+   - **Frontend UI & Calculation (`customer-frontend/src/routes/checkout.tsx`):**
+     - Verified `grandTotal` formula (lines 359-361):
+       $$\text{grandTotal} = \text{itemsSubtotal} + \text{deliveryFee} + \text{handlingFee} + \text{packagingFee} + \text{platformFee} + \text{expressFee} + \text{surgeFee} + \text{gst} - \text{discounts}$$
+       $\rightarrow$ `deliveryFee` is **automatically added** into the customer payable amount.
+     - Verified Bill Summary (lines 1070-1082):
+       - If $\ge$ threshold (or member): Displays `<del>₹30</del> FREE`.
+       - If below threshold: Displays `Standard Doorstep Delivery: ₹{deliveryFee}` in bold black text.
+     - Verified Free Delivery Banner (lines 1040-1058):
+       - Displays: *"Add ₹X more for FREE Delivery! Free delivery on orders ₹499+ (otherwise ₹30)"*.
+     - Updated fallback `freeDeliveryThreshold` in `checkout.tsx` and `finance-api.ts` from legacy ₹149 to **₹499**, aligned with backend rules.
+     - Aligned Margin Protection subsidy math in `checkout.tsx` so client preview matches backend calculations before order submission.
+
+   - **Backend Order Creation & Persistence (`backend-python/app/db/order_repositories.py`):**
+     - Verified `order_repository.create` (lines 693-750):
+       - Computes real GPS distance between customer address lat/lng and partner store lat/lng using `haversine_km`.
+       - Passes `distance_km` to `unified_finance_service.calculate_checkout_price(...)`.
+       - Automatically saves `deliveryFee`, `actualDeliveryFee`, and `deliverySubsidy` into the order's immutable `financialSnapshot` and root document in Supabase.
+       - Locks `grandTotal = cust_payable`, enforcing exact financial settlement.
+
+3. **Build & Test Verification:**
+   - `customer-frontend`: Built cleanly with `npm run build` (Passed with 0 errors in 1.14s, 2,157 modules transformed).
+   - Zero console or runtime warnings.
+
+---
+
 ## Session: November 16, 2026 (Part 36)
 
 ### Self-Balancing Margin Protection Engine & Admin-Controlled Dynamic Delivery

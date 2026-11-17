@@ -315,10 +315,24 @@ export function CheckoutPage() {
   const memberDiscount = isEffectiveMember ? Math.round(itemsSubtotal * 0.1) : 0;
   const clubPlanPrice = (!isMember && clubAddon) ? 99 : 0;
 
-  const freeDeliveryThreshold = financeRules?.delivery?.freeDeliveryThreshold ?? 149;
-  const isFreeDelivery = itemsSubtotal >= freeDeliveryThreshold || isEffectiveMember;
+  const freeDeliveryThreshold = financeRules?.delivery?.freeDeliveryThreshold ?? 499;
+  const isEligibleForFree = itemsSubtotal >= freeDeliveryThreshold || isEffectiveMember;
   const baseDeliveryFee = financeRules?.delivery?.slabs?.[0]?.fee ?? (financeRules?.delivery?.baseFee ?? 30);
-  const deliveryFee = itemsSubtotal > 0 ? (isFreeDelivery ? 0 : baseDeliveryFee) : 0;
+  
+  // Margin Protection: Ensure platform net profit floor is respected before granting full delivery subsidy
+  const marginProtectionEnabled = (financeRules as any)?.delivery?.marginProtectionEnabled !== false;
+  const targetProfit = Number((financeRules as any)?.delivery?.targetPlatformProfit ?? 50);
+  const commRate = Number(financeRules?.commission?.platformCommissionPercent ?? 15) / 100;
+  const estPlatformInflow = (itemsSubtotal * commRate) + 25;
+  const availableSubsidy = marginProtectionEnabled ? Math.max(0, estPlatformInflow - targetProfit) : baseDeliveryFee;
+  
+  const isFreeDelivery = isEligibleForFree && (availableSubsidy >= baseDeliveryFee || !marginProtectionEnabled);
+  const customerDelCharge = isFreeDelivery
+    ? 0
+    : isEligibleForFree && marginProtectionEnabled
+    ? Math.max(0, Math.round(baseDeliveryFee - availableSubsidy))
+    : baseDeliveryFee;
+  const deliveryFee = itemsSubtotal > 0 ? customerDelCharge : 0;
   
   // Handling fee (governed by Admin Finance Rules toggle & amount)
   const isHandlingFeeEnabled = (financeRules as any)?.fees?.handlingFeeEnabled !== false;
