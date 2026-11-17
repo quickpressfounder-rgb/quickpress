@@ -124,6 +124,25 @@ class ExtendTimePayload(BaseModel):
     reason: str = "Laundry processing requires extra time"
 
 
+class WalkInOrderItem(BaseModel):
+    id: str = "item"
+    name: str = "Garment"
+    qty: int = 1
+    price: float = 0
+
+
+class WalkInOrderCreatePayload(BaseModel):
+    customerName: str
+    customerPhone: str
+    serviceTier: str = "wash_iron"
+    items: List[WalkInOrderItem] = Field(default_factory=list)
+    itemsSummary: Optional[str] = None
+    amount: float
+    paymentMode: str = "cash"
+    bagTagToken: Optional[str] = None
+    eta: Optional[str] = None
+
+
 
 class PartnerProfileResponse(BaseModel):
     partnerId: str

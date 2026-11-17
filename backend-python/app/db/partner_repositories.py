@@ -647,6 +647,116 @@ class PartnerOrderRepository:
             raise InvalidTransitionError(str(error)) from error
         return lifecycle.to_partner_order(updated)
 
+    async def create_walk_in(self, partner_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        profile = await database.find_one(PROFILES, {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
+        partner_name = (profile.get("businessName") or profile.get("name") or "Partner Store") if profile else "Partner Store"
+        partner_phone = profile.get("phone", "") if profile else ""
+        partner_city = profile.get("city", "Local") if profile else "Local"
+
+        order_uuid = uuid.uuid4().hex[:8]
+        order_id = f"ord-walk-{order_uuid}"
+        order_code = f"WALK-{random.randint(1000, 9999)}"
+        now_iso = lifecycle.now_iso()
+        tag_code = str(data.get("bagTagToken") or f"TAG-{random.randint(100, 999)}")
+
+        pay_mode = str(data.get("paymentMode", "cash")).lower()
+        is_paid = pay_mode in ("cash", "upi")
+        pay_status = "completed" if is_paid else "pending"
+        amt = float(data.get("amount", 0))
+
+        raw_items = data.get("items") or []
+        items = []
+        for it in raw_items:
+            items.append({
+                "id": it.get("id", "item"),
+                "name": it.get("name", "Garment"),
+                "qty": int(it.get("qty", 1)),
+                "price": float(it.get("price", 0)),
+                "service": data.get("serviceTier", "wash_iron"),
+            })
+
+        c_name = str(data.get("customerName", "Walk-In Customer")).strip()
+        c_phone = str(data.get("customerPhone", "")).strip()
+
+        order_doc = {
+            "_id": order_id,
+            "id": order_id,
+            "orderId": order_id,
+            "code": order_code,
+            "orderCode": order_code,
+            "partnerId": partner_id,
+            "partner_id": partner_id,
+            "partner": {
+                "id": partner_id,
+                "name": partner_name,
+                "phone": partner_phone,
+                "city": partner_city,
+            },
+            "customer": {
+                "name": c_name,
+                "phone": c_phone,
+            },
+            "customerName": c_name,
+            "customerPhone": c_phone,
+            "customerAddress": "Counter Walk-In (Store Self Pickup)",
+            "address": {
+                "label": "Counter Walk-In",
+                "line": "Store Walk-in Desk",
+                "city": partner_city,
+                "phone": c_phone,
+            },
+            "pickupAddress": "Store Walk-in Desk",
+            "deliveryAddress": "Store Walk-in Collection",
+            "serviceLabel": str(data.get("serviceTier", "wash_iron")).replace("_", " ").title(),
+            "itemsSummary": data.get("itemsSummary") or (f"{len(items)} items" if items else "Walk-in Garments"),
+            "items": items,
+            "itemCount": sum(it["qty"] for it in items) if items else 1,
+            "amount": amt,
+            "total": amt,
+            "totals": {
+                "subtotal": amt,
+                "discount": 0,
+                "tax": 0,
+                "deliveryFee": 0,
+                "pickupFee": 0,
+                "grandTotal": amt,
+            },
+            "stage": "accepted",
+            "status": "accepted",
+            "partnerStatus": "accepted",
+            "orderType": "walk_in",
+            "source": "walk_in_pos",
+            "bagTagToken": tag_code,
+            "bagTag": tag_code,
+            "eta": data.get("eta") or "Tomorrow 6:00 PM",
+            "payment": {
+                "mode": pay_mode,
+                "status": pay_status,
+                "paid": is_paid,
+                "amount": amt,
+            },
+            "paymentMode": pay_mode.upper(),
+            "paymentStatus": pay_status,
+            "timeline": [
+                {
+                    "id": f"tl-{uuid.uuid4().hex[:6]}",
+                    "label": "Walk-In Order Placed & Accepted",
+                    "time": now_iso,
+                    "note": f"Counter drop-off. Tag: {tag_code}",
+                }
+            ],
+            "placedAt": now_iso,
+            "createdAt": now_iso,
+            "updatedAt": now_iso,
+            "partnerAccepted": True,
+            "partnerAcceptedAt": now_iso,
+        }
+
+        await database.insert(lifecycle.ORDERS, order_doc)
+        canonical = lifecycle.to_partner_order(order_doc)
+        canonical["bagTagToken"] = tag_code
+        return canonical
+
     async def accept(self, partner_id: str, order_id: str, prep_time_minutes: int = 20) -> Dict[str, Any]:
         profile = await database.find_one(PROFILES, {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
         partner_name = (profile.get("businessName") or profile.get("name") or "Partner Store") if profile else "Partner Store"

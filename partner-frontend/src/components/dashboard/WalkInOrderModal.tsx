@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import type { ManagedOrder } from "../../data/partner-orders-mock";
 import { inr } from "../../lib/currency";
+import { createWalkInOrder } from "../../api/partner/partner-orders-api";
 
 interface WalkInOrderModalProps {
   onClose: () => void;
@@ -67,7 +68,7 @@ export function WalkInOrderModal({ onClose, onOrderCreated }: WalkInOrderModalPr
     }, 0)
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName.trim()) {
       toast.error("Please enter customer name");
@@ -83,39 +84,94 @@ export function WalkInOrderModal({ onClose, onOrderCreated }: WalkInOrderModalPr
     }
 
     setIsSubmitting(true);
-    const orderCode = `WALK-${Math.floor(1000 + Math.random() * 9000)}`;
     const tagCode = `TAG-${Math.floor(100 + Math.random() * 900)}`;
 
     const itemsSummary = COMMON_GARMENTS.filter((g) => (quantities[g.id] || 0) > 0)
       .map((g) => `${quantities[g.id]}x ${g.name}`)
       .join(", ");
 
-    const newOrder: ManagedOrder = {
-      id: `walkin_${Date.now()}`,
-      code: orderCode,
-      customerName: customerName.trim(),
-      customerPhone: customerPhone.trim(),
-      customerAddress: "Counter Walk-In (Store Self Pickup)",
-      itemsSummary: itemsSummary || `${totalGarments} Garments`,
-      stage: "accepted",
-      paymentStatus: paymentMode === "unpaid" ? "pending" : "completed",
-      paymentMode: paymentMode.toUpperCase(),
-      amount: computedTotal,
-      placedAt: "Just now",
-      placedAtRaw: new Date().toISOString(),
-      eta: "Tomorrow 6:00 PM",
-      pickupAddress: "Store Walk-in Desk",
-      deliveryAddress: "Store Walk-in Collection",
-      bagTagToken: tagCode,
-    };
+    const itemsList = COMMON_GARMENTS.filter((g) => (quantities[g.id] || 0) > 0).map((g) => ({
+      id: g.id,
+      name: g.name,
+      qty: quantities[g.id] || 1,
+      price: Math.round(g.price * currentMult),
+    }));
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast.success(`Walk-In Order #${orderCode} Created!`, {
+    try {
+      const created = await createWalkInOrder({
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        serviceTier: selectedService,
+        items: itemsList,
+        itemsSummary: itemsSummary || `${totalGarments} Garments`,
+        amount: computedTotal,
+        paymentMode,
+        bagTagToken: tagCode,
+        eta: "Tomorrow 6:00 PM",
+      });
+
+      const effectiveOrder: ManagedOrder = {
+        id: String(created.id || `walk_${Date.now()}`),
+        code: String(created.code || `WALK-${Math.floor(1000 + Math.random() * 9000)}`),
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        customerAddress: "Counter Walk-In (Store Self Pickup)",
+        itemsSummary: itemsSummary || `${totalGarments} Garments`,
+        stage: "accepted",
+        paymentStatus: paymentMode === "unpaid" ? "pending" : "completed",
+        paymentMode: paymentMode.toUpperCase() as any,
+        amount: computedTotal,
+        placedAt: "Just now",
+        placedAtRaw: new Date().toISOString(),
+        eta: "Tomorrow 6:00 PM",
+        pickupAddress: "Store Walk-in Desk",
+        deliveryAddress: "Store Walk-in Collection",
+        bagTagToken: tagCode,
+        customerRating: 5.0,
+        customerOrders: 1,
+        pickupTime: "Counter Drop-off",
+        pickupDay: "today",
+        deliveryEta: "Tomorrow 6:00 PM",
+        distanceKm: 0,
+        services: [selectedService],
+        itemCount: totalGarments,
+        specialInstructions: "Walk-in counter customer order",
+        items: itemsList.map((it) => ({
+          id: it.id,
+          name: it.name,
+          service: selectedService,
+          qty: it.qty,
+          price: it.price,
+        })),
+        charges: {
+          subtotal: computedTotal,
+          pickupFee: 0,
+          taxes: 0,
+          discount: 0,
+          total: computedTotal,
+        },
+        timeline: [
+          {
+            id: `tl-walkin`,
+            label: "Walk-In Order Placed & Accepted",
+            time: "Just now",
+            note: `Counter drop-off. Tag: ${tagCode}`,
+          },
+        ],
+        invoiceNo: null,
+        cancelReason: null,
+        assignedRider: null,
+      };
+
+      toast.success(`Walk-In Order #${effectiveOrder.code} Created!`, {
         description: `Thermal Tag: ${tagCode} • Total: ${inr(computedTotal)} (${paymentMode.toUpperCase()})`,
       });
-      onOrderCreated(newOrder);
-    }, 400);
+      onOrderCreated(effectiveOrder);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save walk-in order to database");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

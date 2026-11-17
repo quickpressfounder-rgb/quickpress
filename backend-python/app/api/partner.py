@@ -89,6 +89,8 @@ from app.models.partner import (
     RejectOrderPayload,
     AcceptOrderPayload,
     ExtendTimePayload,
+    WalkInOrderItem,
+    WalkInOrderCreatePayload,
     WithdrawPayload,
 )
 from app.models.user import User
@@ -1358,6 +1360,15 @@ async def list_orders(
 async def order_history(partner_id: str = Depends(_verified_partner_id)) -> List[PartnerOrderResponse]:
     docs = await partner_order_repository.history(partner_id)
     return [_order_response(doc) for doc in docs]
+
+
+@router.post("/orders/walk-in", response_model=PartnerOrderResponse, status_code=status.HTTP_201_CREATED)
+async def create_walk_in_order(
+    payload: WalkInOrderCreatePayload,
+    partner_id: str = Depends(_verified_partner_id),
+) -> PartnerOrderResponse:
+    doc = await partner_order_repository.create_walk_in(partner_id, payload.model_dump())
+    return _order_response(doc)
 
 
 @router.get("/orders/{order_id}", response_model=PartnerOrderResponse)

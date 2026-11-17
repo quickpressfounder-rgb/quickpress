@@ -64,6 +64,7 @@ import { useOrderActionHandler } from "../../hooks/use-order-action-handler";
 import type { ManagedOrder } from "../../data/partner-orders-mock";
 import { STAGE_LABEL, formatOrderPlacedTime } from "../../data/partner-orders-mock";
 import { OrderTimeline } from "../orders/OrderTimeline";
+import { QuickMerchantToolsBar } from "./QuickMerchantToolsBar";
 import {
   GarmentSummaryChips,
   OrderSlaAcceptanceTimer,
@@ -681,6 +682,19 @@ export function ZomatoHubView() {
           </div>
         )}
       </header>
+
+      {/* Quick Merchant Tools: Counter POS, Bag Tag Scanner, Rain Mode */}
+      <div className="px-4 pt-3 bg-white">
+        <QuickMerchantToolsBar
+          orders={orders}
+          onOrderCreated={() => {
+            void refreshOrders();
+          }}
+          onSelectOrder={(orderId) => {
+            navigate({ to: partnerRoutes.orderDetails, params: { orderId } });
+          }}
+        />
+      </div>
 
       {/* ========================================================================= */}
       {/* 2. MODE 1: OPERATIONAL KITCHEN / ORDER QUEUE MODE                         */}

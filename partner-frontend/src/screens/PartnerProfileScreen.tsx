@@ -1171,21 +1171,18 @@ export function PartnerProfileScreen() {
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between rounded-xl bg-zinc-50 p-3 border border-zinc-100 mt-2 opacity-80">
+                <div className="flex items-center justify-between rounded-xl bg-zinc-50 p-3 border border-zinc-200 mt-2">
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-black text-zinc-900">Auto-Accept Orders</p>
-                      <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-800">
-                        Coming Soon
-                      </span>
                     </div>
-                    <p className="text-[10px] text-zinc-500">Coming Soon: Automatically accept incoming orders within radius</p>
+                    <p className="text-[10px] text-zinc-500">Automatically accept incoming orders within serviceable radius</p>
                   </div>
                   <input
                     type="checkbox"
-                    disabled
-                    checked={false}
-                    className="size-4 accent-emerald-600 opacity-40 cursor-not-allowed"
+                    checked={Boolean(opsConfig.autoAccept)}
+                    onChange={(e) => setOpsConfig({ ...opsConfig, autoAccept: e.target.checked })}
+                    className="size-4 accent-emerald-600 cursor-pointer"
                   />
                 </div>
               </div>

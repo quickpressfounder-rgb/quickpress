@@ -425,8 +425,6 @@ function ProfileScreen() {
     }
   };
 
-  const soon = (label: string) => toast(`${label} — coming soon`);
-
   const themeLabel =
     THEME_OPTIONS.find((option) => option.id === settings.settings.theme)?.label ?? "System";
   const enabledNotifications = NOTIFICATION_ROWS.filter(
@@ -1306,7 +1304,7 @@ function ProfileScreen() {
                     label: "Report an Issue",
                     note: "Damaged, missing or delayed",
                     icon: ShieldAlert,
-                    action: () => soon("Report an issue"),
+                    action: () => navigate({ to: "/help" }),
                   },
                 ]}
               />

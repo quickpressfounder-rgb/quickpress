@@ -475,10 +475,15 @@ export function BusinessSettingsScreen() {
                     />
                   </div>
 
-                  {/* Auto-Accept Orders (Coming Soon) */}
+                  {/* Auto-Accept Orders */}
                   <div
-                    onClick={() => toast.info("Auto-Accept Orders feature is coming soon!")}
-                    className="flex items-center justify-between p-4 gap-3 bg-zinc-50/50 cursor-not-allowed opacity-80"
+                    onClick={() =>
+                      void patch(
+                        { autoAcceptOrders: !settings.autoAcceptOrders },
+                        `Auto-Accept Orders ${!settings.autoAcceptOrders ? "enabled" : "disabled"}`
+                      )
+                    }
+                    className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
@@ -487,9 +492,6 @@ export function BusinessSettingsScreen() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-black text-zinc-900">Auto-Accept Orders</p>
-                          <span className="rounded-full bg-amber-100 border border-amber-300 px-2 py-0.5 text-[9px] font-black uppercase text-amber-800">
-                            Coming Soon
-                          </span>
                         </div>
                         <p className="text-xs font-medium text-zinc-500 truncate">
                           Automatically queue incoming bookings
@@ -498,10 +500,13 @@ export function BusinessSettingsScreen() {
                     </div>
                     <SwitchToggle
                       label="Auto-Accept Orders"
-                      checked={false}
-                      disabled={true}
-                      onDisabledClick={() => toast.info("Auto-Accept Orders feature is coming soon!")}
-                      onChange={() => {}}
+                      checked={Boolean(settings.autoAcceptOrders)}
+                      onChange={(val) =>
+                        void patch(
+                          { autoAcceptOrders: val },
+                          `Auto-Accept Orders ${val ? "enabled" : "disabled"}`
+                        )
+                      }
                     />
                   </div>
 
@@ -961,8 +966,13 @@ export function BusinessSettingsScreen() {
                   </div>
 
                   <div
-                    onClick={() => toast.info("Auto-Accept Orders feature is coming soon!")}
-                    className="flex items-center justify-between p-4 rounded-2xl border border-zinc-200/80 bg-zinc-50/50 cursor-not-allowed opacity-80"
+                    onClick={() =>
+                      void patch(
+                        { autoAcceptOrders: !settings.autoAcceptOrders },
+                        `Auto-Accept Orders ${!settings.autoAcceptOrders ? "enabled" : "disabled"}`
+                      )
+                    }
+                    className="flex items-center justify-between p-4 rounded-2xl border border-zinc-200/80 bg-white hover:bg-zinc-50/60 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
                       <span className="flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
@@ -971,19 +981,19 @@ export function BusinessSettingsScreen() {
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-black text-zinc-900">Auto-Accept Orders</p>
-                          <span className="rounded-full bg-amber-100 border border-amber-300 px-2 py-0.5 text-[9px] font-black uppercase text-amber-800">
-                            Coming Soon
-                          </span>
                         </div>
                         <p className="text-xs text-zinc-500">Queue bookings without manual verification</p>
                       </div>
                     </div>
                     <SwitchToggle
                       label="Auto-Accept Orders"
-                      checked={false}
-                      disabled={true}
-                      onDisabledClick={() => toast.info("Auto-Accept Orders feature is coming soon!")}
-                      onChange={() => {}}
+                      checked={Boolean(settings.autoAcceptOrders)}
+                      onChange={(val) =>
+                        void patch(
+                          { autoAcceptOrders: val },
+                          `Auto-Accept Orders ${val ? "enabled" : "disabled"}`
+                        )
+                      }
                     />
                   </div>
 

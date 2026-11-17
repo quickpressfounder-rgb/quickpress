@@ -249,6 +249,23 @@ export interface PartnerBagIntakePayload {
   intakeStatus?: "verified" | "discrepancy";
 }
 
+export interface CreateWalkInOrderPayload {
+  customerName: string;
+  customerPhone: string;
+  serviceTier: string;
+  items: Array<{ id: string; name: string; qty: number; price: number }>;
+  itemsSummary?: string;
+  amount: number;
+  paymentMode: "cash" | "upi" | "unpaid";
+  bagTagToken?: string;
+  eta?: string;
+}
+
+/** POST /api/partner/orders/walk-in — persist counter POS walk-in order to Supabase / live DB */
+export async function createWalkInOrder(payload: CreateWalkInOrderPayload): Promise<PartnerOrder> {
+  return apiPostJson<PartnerOrder>("/api/partner/orders/walk-in", payload);
+}
+
 /** POST /api/partner/orders/{id}/verify-bag-intake — partner verifies incoming bag tag & pieces */
 export async function verifyPartnerBagIntake(
   orderId: string,

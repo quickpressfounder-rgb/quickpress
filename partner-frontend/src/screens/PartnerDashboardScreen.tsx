@@ -39,6 +39,7 @@ import { LiveDeliveryMap } from "../components/map/LiveDeliveryMap";
 import { SectionHeading } from "../components/PartnerPrimitives";
 import { PartnerLayout } from "../components/layout/PartnerLayout";
 import { ZomatoHubView } from "../components/dashboard/ZomatoHubView";
+import { QuickMerchantToolsBar } from "../components/dashboard/QuickMerchantToolsBar";
 import { playPartnerOrderChime, stopPartnerOrderAlertRing } from "../lib/partner-order-alert-sound";
 import { OrderCard } from "../components/orders/OrderCard";
 import {
@@ -805,6 +806,17 @@ export function PartnerDashboardScreen() {
                   </button>
                 </div>
               </div>
+
+              {/* Counter Walk-In POS & Quick Store Tools Bar */}
+              <QuickMerchantToolsBar
+                orders={orders}
+                onOrderCreated={() => {
+                  void refreshOrders();
+                }}
+                onSelectOrder={(orderId) => {
+                  navigate({ to: partnerRoutes.orderDetails, params: { orderId } });
+                }}
+              />
 
               {/* Today's / Period Overview Card: Exact match of Image 2 */}
               <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
