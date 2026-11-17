@@ -25,6 +25,7 @@ import {
   Sparkles,
   Tag,
   Trash2,
+  Truck,
   User,
   Wallet,
   X,
