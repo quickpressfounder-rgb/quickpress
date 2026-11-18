@@ -52,7 +52,9 @@ import {
   Table,
   LayoutGrid,
   IndianRupee,
+  Star,
 } from "lucide-react";
+import { fetchOrder360Reviews } from "../api/reviews";
 import { toast } from "sonner";
 
 import { Button } from "@/shared/ui/button";
@@ -1944,6 +1946,152 @@ export function OrdersPage() {
   );
 }
 
+function Order360ReviewsSection({ orderId }: { orderId: string }) {
+  const { data: reviews360, isLoading } = useQuery({
+    queryKey: ["admin", "order-reviews-360", orderId],
+    queryFn: () => fetchOrder360Reviews(orderId),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-xs text-xs font-bold text-zinc-500">
+        Loading 360° mutual ratings audit...
+      </div>
+    );
+  }
+
+  const hasAnyReview =
+    reviews360?.hasCustomerReview ||
+    reviews360?.hasPartnerReview ||
+    reviews360?.hasRiderReview;
+
+  return (
+    <div className="bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-xs space-y-4">
+      <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+        <div className="flex items-center gap-2">
+          <Star className="size-4 text-amber-500 fill-amber-500" />
+          <h3 className="text-sm font-bold text-zinc-900">
+            360° Mutual Quality &amp; Ratings Audit
+          </h3>
+        </div>
+        <span
+          className={`text-xs font-bold px-2 py-0.5 rounded-md border ${
+            hasAnyReview
+              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+              : "bg-zinc-50 text-zinc-500 border-zinc-200"
+          }`}
+        >
+          {hasAnyReview ? "Mutual Feedback Exchanged" : "Awaiting Feedback"}
+        </span>
+      </div>
+
+      {!hasAnyReview ? (
+        <div className="py-4 text-center text-xs text-zinc-500">
+          No mutual ratings submitted yet for this order. Once Customer, Store, or Captain submit reviews, they will display here.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          {/* Customer Rating Card */}
+          <div className="p-3.5 rounded-2xl border border-blue-200/80 bg-blue-50/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-blue-950 flex items-center gap-1.5">
+                <User className="size-3.5 text-blue-600" />
+                Customer Rated
+              </span>
+              {reviews360?.hasCustomerReview ? (
+                <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                  Submitted
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold text-zinc-400">Pending</span>
+              )}
+            </div>
+            <div className="text-xs space-y-1 font-semibold text-zinc-700">
+              <p className="flex justify-between">
+                <span>Store Quality:</span>
+                <strong className="text-amber-700">{reviews360?.mutualRatings?.customerGaveStore ?? "—"} ⭐</strong>
+              </p>
+              <p className="flex justify-between">
+                <span>Captain Delivery:</span>
+                <strong className="text-amber-700">{reviews360?.mutualRatings?.customerGaveRider ?? "—"} ⭐</strong>
+              </p>
+            </div>
+            {reviews360?.customerReview?.storeFeedback && (
+              <p className="text-[11px] italic text-zinc-600 pt-1 border-t border-blue-100">
+                "{reviews360.customerReview.storeFeedback}"
+              </p>
+            )}
+          </div>
+
+          {/* Partner Rating Card */}
+          <div className="p-3.5 rounded-2xl border border-emerald-200/80 bg-emerald-50/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                <Building2 className="size-3.5 text-emerald-600" />
+                Store Rated
+              </span>
+              {reviews360?.hasPartnerReview ? (
+                <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                  Submitted
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold text-zinc-400">Pending</span>
+              )}
+            </div>
+            <div className="text-xs space-y-1 font-semibold text-zinc-700">
+              <p className="flex justify-between">
+                <span>Captain Conduct:</span>
+                <strong className="text-amber-700">{reviews360?.mutualRatings?.partnerGaveRider ?? "—"} ⭐</strong>
+              </p>
+              <p className="flex justify-between">
+                <span>Customer Bag Ready:</span>
+                <strong className="text-amber-700">{reviews360?.mutualRatings?.partnerGaveCustomer ?? "—"} ⭐</strong>
+              </p>
+            </div>
+            {reviews360?.partnerReview?.riderFeedback && (
+              <p className="text-[11px] italic text-zinc-600 pt-1 border-t border-emerald-100">
+                "{reviews360.partnerReview.riderFeedback}"
+              </p>
+            )}
+          </div>
+
+          {/* Captain Rating Card */}
+          <div className="p-3.5 rounded-2xl border border-amber-200/80 bg-amber-50/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                <Truck className="size-3.5 text-amber-600" />
+                Captain Rated
+              </span>
+              {reviews360?.hasRiderReview ? (
+                <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                  Submitted
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold text-zinc-400">Pending</span>
+              )}
+            </div>
+            <div className="text-xs space-y-1 font-semibold text-zinc-700">
+              <p className="flex justify-between">
+                <span>Customer Etiquette:</span>
+                <strong className="text-amber-700">{reviews360?.mutualRatings?.riderGaveCustomer ?? "—"} ⭐</strong>
+              </p>
+              <p className="flex justify-between">
+                <span>Store Handover:</span>
+                <strong className="text-amber-700">{reviews360?.mutualRatings?.riderGaveStore ?? "—"} ⭐</strong>
+              </p>
+            </div>
+            {reviews360?.riderReview?.customerFeedback && (
+              <p className="text-[11px] italic text-zinc-600 pt-1 border-t border-amber-100">
+                "{reviews360.riderReview.customerFeedback}"
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* =========================================================================
     VIEW A: FULL-PAGE ORDER 360 PROFILE (POPUP REMOVED!)
 ========================================================================= */
@@ -2460,6 +2608,9 @@ function Order360FullPage({
               </div>
             </div>
           </div>
+
+          {/* 360° Mutual Quality & Ratings Audit */}
+          <Order360ReviewsSection orderId={order.id} />
 
           {/* Audit Trail & Historical Logs */}
           <div className="bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-xs space-y-3">

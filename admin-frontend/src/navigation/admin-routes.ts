@@ -20,6 +20,7 @@ import {
   Gift,
   PackageCheck,
   Briefcase,
+  Star,
 } from "lucide-react";
 
 /** Central route map for the QuickPress Admin console. */
@@ -42,6 +43,7 @@ export const adminRoutes = {
   coupons: "/coupons",
   referrals: "/referrals",
   memberships: "/memberships",
+  reviews: "/reviews",
   notifications: "/notifications",
   emails: "/emails",
   analytics: "/analytics",
@@ -56,6 +58,7 @@ export const adminNavItems = [
   { id: "crm", label: "Enterprise CRM & Geo", icon: Compass, to: adminRoutes.crm },
   { id: "promotions", label: "Promotions & Stories", icon: Sparkles, to: adminRoutes.promotions },
   { id: "orders", label: "Orders", icon: ClipboardList, to: adminRoutes.orders },
+  { id: "reviews", label: "360° Reviews", icon: Star, to: adminRoutes.reviews },
   { id: "customers", label: "Customers", icon: Users, to: adminRoutes.customers },
   { id: "partners", label: "Partners", icon: Building2, to: adminRoutes.partners },
   { id: "riders", label: "Riders", icon: Truck, to: adminRoutes.riders },

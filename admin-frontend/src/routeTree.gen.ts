@@ -28,6 +28,7 @@ import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as PromotionsRouteImport } from './routes/promotions'
 import { Route as ReferralsRouteImport } from './routes/referrals'
+import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as RidersRouteImport } from './routes/riders'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -131,6 +132,11 @@ const ReferralsRoute = ReferralsRouteImport.update({
   path: '/referrals',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReviewsRoute = ReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RidersRoute = RidersRouteImport.update({
   id: '/riders',
   path: '/riders',
@@ -187,6 +193,7 @@ export interface FileRoutesByFullPath {
   '/partners': typeof PartnersRoute
   '/promotions': typeof PromotionsRoute
   '/referrals': typeof ReferralsRoute
+  '/reviews': typeof ReviewsRoute
   '/riders': typeof RidersRoute
   '/services': typeof ServicesRoute
   '/settings': typeof SettingsRoute
@@ -215,6 +222,7 @@ export interface FileRoutesByTo {
   '/partners': typeof PartnersRoute
   '/promotions': typeof PromotionsRoute
   '/referrals': typeof ReferralsRoute
+  '/reviews': typeof ReviewsRoute
   '/riders': typeof RidersRoute
   '/services': typeof ServicesRoute
   '/settings': typeof SettingsRoute
@@ -244,6 +252,7 @@ export interface FileRoutesById {
   '/partners': typeof PartnersRoute
   '/promotions': typeof PromotionsRoute
   '/referrals': typeof ReferralsRoute
+  '/reviews': typeof ReviewsRoute
   '/riders': typeof RidersRoute
   '/services': typeof ServicesRoute
   '/settings': typeof SettingsRoute
@@ -274,6 +283,7 @@ export interface FileRouteTypes {
     | '/partners'
     | '/promotions'
     | '/referrals'
+    | '/reviews'
     | '/riders'
     | '/services'
     | '/settings'
@@ -302,6 +312,7 @@ export interface FileRouteTypes {
     | '/partners'
     | '/promotions'
     | '/referrals'
+    | '/reviews'
     | '/riders'
     | '/services'
     | '/settings'
@@ -330,6 +341,7 @@ export interface FileRouteTypes {
     | '/partners'
     | '/promotions'
     | '/referrals'
+    | '/reviews'
     | '/riders'
     | '/services'
     | '/settings'
@@ -359,6 +371,7 @@ export interface RootRouteChildren {
   PartnersRoute: typeof PartnersRoute
   PromotionsRoute: typeof PromotionsRoute
   ReferralsRoute: typeof ReferralsRoute
+  ReviewsRoute: typeof ReviewsRoute
   RidersRoute: typeof RidersRoute
   ServicesRoute: typeof ServicesRoute
   SettingsRoute: typeof SettingsRoute
@@ -503,6 +516,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReferralsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reviews': {
+      id: '/reviews'
+      path: '/reviews'
+      fullPath: '/reviews'
+      preLoaderRoute: typeof ReviewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/riders': {
       id: '/riders'
       path: '/riders'
@@ -575,6 +595,7 @@ const rootRouteChildren: RootRouteChildren = {
   PartnersRoute: PartnersRoute,
   PromotionsRoute: PromotionsRoute,
   ReferralsRoute: ReferralsRoute,
+  ReviewsRoute: ReviewsRoute,
   RidersRoute: RidersRoute,
   ServicesRoute: ServicesRoute,
   SettingsRoute: SettingsRoute,

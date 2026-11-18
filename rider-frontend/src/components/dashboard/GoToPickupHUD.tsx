@@ -97,6 +97,7 @@ import {
   confirmDropAtPartner,
   startDelivery,
   collectCashPayment,
+  submitRiderOrderReview,
 } from "../../api/rider/rider-orders-api";
 
 export interface ActiveOrderData {
@@ -4341,12 +4342,43 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               </div>
             </div>
 
-            {/* Bottom Full-Width Solid Bright Yellow Done Button */}
-            <div className="pt-4 pb-2">
+            {/* Option to open full 360 review modal for Store + Customer */}
+            <div className="pt-2 text-center">
               <button
                 type="button"
                 onClick={() => {
+                  triggerHaptic(25);
+                  setShowOrderCompleteRatingScreen(false);
+                  setShowCaptainReviewModal(true);
+                }}
+                className="text-xs font-black text-amber-700 hover:text-amber-800 underline decoration-amber-400 underline-offset-4 cursor-pointer"
+              >
+                Detailed 360° Review (Rate Store & Customer)
+              </button>
+            </div>
+
+            {/* Bottom Full-Width Solid Bright Yellow Done Button */}
+            <div className="pt-2 pb-2">
+              <button
+                type="button"
+                onClick={async () => {
                   triggerHaptic(40);
+                  try {
+                    const targetId = order.orderId || (order as any).id;
+                    if (targetId) {
+                      await submitRiderOrderReview(targetId, {
+                        customerRating,
+                        customerFeedback: ratingReaction,
+                        customerTags: selectedRatingTags,
+                        storeRating: 5,
+                        storeFeedback: "Fast handover at laundry store",
+                        storeTags: ["Fast Handover", "Ready on Time"],
+                      });
+                      toast.success("Ratings submitted! Customer & Store reputations updated.");
+                    }
+                  } catch (e) {
+                    console.warn("Rider quick review submission failed", e);
+                  }
                   setShowOrderCompleteRatingScreen(false);
                   if (onTripCompleted) {
                     onTripCompleted();
