@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { restoreCustomerSession, startCustomerAutoRefresh } from "@/api/customer/auth-api";
+import { getAeoGeoScripts } from "@/shared/seo/AeoGeoSchemas";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -38,36 +39,7 @@ export const Route = createFileRoute("/")({
     links: [
       { rel: "canonical", href: "https://withquickpress.com/" },
     ],
-    scripts: [
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "DryCleaningOrLaundry",
-          "name": "QuickPress",
-          "legalName": "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
-          "url": "https://withquickpress.com",
-          "logo": "https://withquickpress.com/quickpress-logo-yellow.jpg",
-          "telephone": "+919258730561",
-          "email": "info@withquickpress.com",
-          "priceRange": "₹29 - ₹499",
-          "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.9",
-            "reviewCount": "1280",
-            "bestRating": "5",
-            "worstRating": "1"
-          },
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "Kasganj",
-            "addressRegion": "Uttar Pradesh",
-            "postalCode": "207123",
-            "addressCountry": "IN"
-          }
-        }),
-      },
-    ],
+    scripts: getAeoGeoScripts(),
   }),
   component: SplashScreen,
 });

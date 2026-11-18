@@ -102,6 +102,7 @@ function resolvePartnerImage(img?: string | null): string {
   return store1;
 }
 import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { getAeoGeoScripts } from "@/shared/seo/AeoGeoSchemas";
 
 export const Route = createFileRoute("/home")({
   head: () => ({
@@ -119,6 +120,7 @@ export const Route = createFileRoute("/home")({
           "Book laundry pickup, dry cleaning and express delivery from premium partners near you.",
       },
     ],
+    scripts: getAeoGeoScripts(),
   }),
   component: HomeScreen,
 });

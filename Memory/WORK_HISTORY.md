@@ -1,5 +1,38 @@
 # QuickPress — Engineering Work History
 
+## Session: November 18, 2026 (Part 43)
+
+### Full AEO & GEO Engine Integration (Answer Engine Optimization & Generative Engine Optimization)
+
+1. **Context & User Request:**
+   - User requests:
+     - *"WHAT IS AEO?"* & *"YE MERE PROJECT KE HJISAB SE INTRAGTION KARNA HAI USKE LIYA KIYA KIYA KARNA HOGA MUGHE"*
+     - *"OR GEO KIYA HOTA HAI"* & *"MUIGHE AEO OR GEO DONO INTRAGTION KARNA HAI"*
+   - Objective: Deeply integrate Answer Engine Optimization (ChatGPT, Perplexity, Gemini AI Overviews) and Generative Engine Optimization (LLM semantic knowledge citations, E-E-A-T entity graph, and Kasganj hyper-local geolocation targeting) across customer frontend, static crawler entry points, and backend APIs.
+
+2. **AEO & GEO Structured Schemas (`customer-frontend/src/shared/seo/AeoGeoSchemas.ts`):**
+   - Created centralized schema generation factory providing:
+     - `QUICKPRESS_ORGANIZATION_SCHEMA`: Official Schema.org Organization linking QuickPress entities, brand identity, social profiles, and founders.
+     - `QUICKPRESS_LOCAL_BUSINESS_SCHEMA`: LocalBusiness (`DryCleaningOrLaundry`) schema with exact GeoCoordinates (Lat: `27.8083`, Lng: `78.6477`), address (Soron Gate, Kasganj, UP 207123), opening hours, and service radius.
+     - `QUICKPRESS_FAQ_AEO_SCHEMA`: High-intent Q&A semantic schema designed for direct LLM citation on high-frequency questions (pickup speed, per-kg pricing, detergent quality, live tracking, express delivery).
+     - `QUICKPRESS_SERVICES_CATALOG_SCHEMA`: OfferCatalog detailing prices (₹60/kg wash & fold, ₹120 suit dry cleaning, ₹40 steam press) with structured currencies and availability.
+   - Connected `getAeoGeoScripts()` directly into route `<head>` via TanStack Router in `customer-frontend/src/routes/index.tsx` and `customer-frontend/src/routes/home.tsx`.
+
+3. **Machine-Readable LLM Knowledge Feeds (`customer-frontend/public/`):**
+   - **`llms.txt`**: Standardized LLM entry point containing 5 structured sections: Executive Summary, Direct AEO Answer Engine Q&A blocks, GEO Location Matrix (Kasganj Hub PRT-KAS-01, Soron Gate), E-E-A-T Leadership Profiles, and Machine APIs.
+   - **`llms-full.txt`**: Complete 300+ line operational and technical manual detailing 4-way OTP security protocols, SLA guarantees, multi-console architecture, and pricing matrices.
+   - **`robots.txt`**: Configured crawler directives explicitly allowing modern AI engines: `GPTBot`, `PerplexityBot`, `ClaudeBot`, `Applebot-Extended`, `Google-Extended`, `Meta-ExternalAgent`, `Amazonbot`, `Bytespider`, and `cohere-ai`.
+
+4. **Dynamic AI Knowledge Graph & Root LLM Routes (`backend-python`):**
+   - In `backend-python/app/api/public.py`: Added endpoint `GET /api/public/ai-knowledge` returning structured JSON knowledge graph for RAG scrapers and enterprise AI bots.
+   - In `backend-python/app/main.py`: Added root text endpoints `@app.get("/llms.txt")` and `@app.get("/llms-full.txt")` using `PlainTextResponse` to serve markdown knowledge files directly from FastAPI.
+
+5. **Verification & Production Build:**
+   - Python backend syntax: `python3 -m py_compile app/api/public.py app/main.py` verified with zero errors.
+   - Frontend production build: `npm run build` in `customer-frontend` passed with zero errors (all 2,158 modules transformed, SSR & Nitro worker compiled in 3.66s).
+
+---
+
 ## Session: November 18, 2026 (Part 42)
 
 ### Comprehensive E2E Platform Test & Browser UX Defect Resolutions

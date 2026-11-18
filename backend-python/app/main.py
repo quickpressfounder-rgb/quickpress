@@ -343,6 +343,26 @@ def create_app() -> FastAPI:
         from app.api.health import health as get_health_status  # noqa: PLC0415
         return await get_health_status()
 
+    # Direct LLM discovery endpoints for AI engines (AEO / GEO standard)
+    from fastapi.responses import PlainTextResponse
+    import os
+
+    @app.get("/llms.txt", tags=["ai-discovery"], response_class=PlainTextResponse)
+    async def get_llms_txt():
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "customer-frontend", "public", "llms.txt"))
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read()
+        return "# QuickPress India\nOn-demand laundry and garment care marketplace."
+
+    @app.get("/llms-full.txt", tags=["ai-discovery"], response_class=PlainTextResponse)
+    async def get_llms_full_txt():
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "customer-frontend", "public", "llms-full.txt"))
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read()
+        return "# QuickPress India Full Knowledge\nOn-demand laundry and garment care marketplace."
+
     import re
     from fastapi.responses import JSONResponse
     from fastapi.exceptions import RequestValidationError
