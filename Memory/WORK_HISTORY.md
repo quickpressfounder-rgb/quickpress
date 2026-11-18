@@ -21,6 +21,10 @@
      - Successfully placed live Cash on Delivery (COD) orders (`QP1041` through `QP1046`) in Kasganj (Soron Gate, PIN 207123).
      - Verified live real-time order tracking with dynamic 4-digit **Pickup Verification OTP** (e.g. `1061`, `3464`) with anti-fraud badge.
      - Verified Profile "Report an Issue" routes cleanly to `/help` (Help Center & Live Support) without "coming soon" toasts.
+     - **VIP Club (Membership) & Express Perks (`/membership` & `/checkout`):**
+       - Verified 4 VIP Tiers (Silver, Gold, Platinum, Elite) and dynamic benefits calculation.
+       - Placed Express Priority VIP Booking (`#ord-QP1047`): Verified ₹0 Free Delivery waiver, 15-minute express pickup dispatch, 24-hour turnaround, 100% weather/rain surge waiver, and dynamic Pickup Verification OTP (`1857`).
+       - Admin Console (`http://localhost:8084/memberships`): Tier pricing control, complimentary VIP access modal, and MRR/ARR financial telemetry verified.
    - **Partner Console (`http://localhost:8082`):**
      - Authenticated store phone `9876543210` with developer OTP `000000`.
      - Switched master store status to **"ONLINE"** with green beacon indicator.
@@ -36,7 +40,7 @@
 
 3. **Architectural Insights & Session Artifacts:**
    - Identified 120-second Partner Acceptance SLA countdown timer in `order_timeline_engine.py` (auto-refund on timeout).
-   - Complete visual audit recorded across 87 browser session video artifacts (`recording_1.mp4` through `recording_87.mp4`).
+   - Complete visual audit recorded across 92 browser session video artifacts (`recording_1.mp4` through `recording_92.mp4`).
 
 ---
 
