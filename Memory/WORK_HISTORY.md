@@ -32,7 +32,11 @@
    - **File:** `customer-frontend/src/api/customer/membership-api.ts`
    - **Fix:** In `payMembershipWithRazorpay`, added a dev-mode fallback (`import.meta.env.DEV`) that automatically invokes `subscribeMembership(input.planId, input.billingCycle)` directly if Razorpay payment fails or checkout is unavailable in sandbox environments.
 
-6. **Production Build Verifications Across All 4 Frontend Applications:**
+6. **Checkout to Order-Success Navigation Verification & Smooth Transition:**
+   - **Verification:** Verified that upon payment completion (Razorpay, Wallet, or COD), `customer-frontend/src/routes/checkout.tsx` strictly routes to `/order-success/$orderId` (and never to `/cart`). Additionally, `/cart` automatically redirects to `/checkout`.
+   - **UX Optimization:** Replaced split-second empty cart flash with an active "Order Confirmed! Redirecting to order confirmation..." transition state while the route transition to `/order-success/$orderId` completes.
+
+7. **Production Build Verifications Across All 4 Frontend Applications:**
    - `customer-frontend`: `npm run build` PASSED (0 errors, 1.45s Nitro bundle).
    - `partner-frontend`: `npm run build` PASSED (0 errors, 0.95s Nitro bundle).
    - `rider-frontend`: `npm run build` PASSED (0 errors, 0.87s Nitro bundle).

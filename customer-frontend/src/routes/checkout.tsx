@@ -468,8 +468,6 @@ export function CheckoutPage() {
       });
 
       toast.success("Success");
-      cart.clear();
-      setCartState({ instructions: "", couponCode: null, couponDiscount: 0 });
 
       // Trigger native iOS mobile notification on iPhone
       void triggerMobileOsNotification({
@@ -486,7 +484,10 @@ export function CheckoutPage() {
       // Persist customer name and phone into profile
       void updateProfile({ name: customerName.trim(), phone: cleanPhone }).catch(() => {});
 
-      void navigate({
+      cart.clear();
+      setCartState({ instructions: "", couponCode: null, couponDiscount: 0 });
+
+      await navigate({
         to: "/order-success/$orderId",
         params: { orderId: result.orderId || `ord-${Date.now()}` },
       });
@@ -554,8 +555,6 @@ export function CheckoutPage() {
       });
 
       toast.success("Success");
-      cart.clear();
-      setCartState({ instructions: "", couponCode: null, couponDiscount: 0 });
 
       // Trigger native iOS mobile notification on iPhone
       void triggerMobileOsNotification({
@@ -572,7 +571,10 @@ export function CheckoutPage() {
       // Persist customer name and phone into profile
       void updateProfile({ name: customerName.trim(), phone: cleanPhone }).catch(() => {});
 
-      void navigate({
+      cart.clear();
+      setCartState({ instructions: "", couponCode: null, couponDiscount: 0 });
+
+      await navigate({
         to: "/order-success/$orderId",
         params: { orderId: result.orderId || `ord-${Date.now()}` },
       });
@@ -586,8 +588,22 @@ export function CheckoutPage() {
     }
   };
 
-  // When cart has no items, show friendly empty cart state
+  // When cart has no items, show friendly empty cart state (or order confirmed transition)
   if (cart.lines.length === 0) {
+    if (placingOrder || isPlacingOrderRef.current) {
+      return (
+        <main className="min-h-screen bg-white text-zinc-900 font-sans flex items-center justify-center p-4">
+          <div className="flex flex-col items-center justify-center text-center space-y-3">
+            <div className="flex size-16 items-center justify-center rounded-3xl bg-emerald-100 text-[#0c831f] shadow-sm animate-pulse">
+              <CheckCircle2 className="size-8 text-[#0c831f]" />
+            </div>
+            <h2 className="text-base font-black text-zinc-900">Order Confirmed!</h2>
+            <p className="text-xs font-semibold text-zinc-500">Redirecting to order confirmation screen...</p>
+            <Loader2 className="size-5 animate-spin text-[#0c831f] mt-1" />
+          </div>
+        </main>
+      );
+    }
     return (
       <main className="min-h-screen bg-white text-zinc-900 font-sans pb-12">
         <div className="mx-auto max-w-md">
