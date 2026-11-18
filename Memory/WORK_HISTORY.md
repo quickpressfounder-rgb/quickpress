@@ -2,27 +2,25 @@
 
 ## Session: November 18, 2026 (Part 44)
 
-### Automated AI Promotional Reel Generator Pipeline for QuickPress Marketing
+### Upgraded Motion Graphic AI Promotional Reel (Yellow Theme, Hinglish, Real Assets & Pan-India Scope)
 
 1. **Context & User Request:**
-   - User inquiry: *"https://www.instagram.com/reels/DfPZiLPgGhG/ IS VIDEO KI REAL KARE MUGHE REFRENCE KE JAISE VIDEO BANANAI HAI"* followed by *"AI SE NAHI BANBA SAKTE SAME ESSE REEL"* and selecting *"3 BUT QUICKPRESS PROMOTION VIDEO BANANI HAI"*.
-   - Objective: Build an automated, Python-powered video generator pipeline that programmatically creates Instagram Reels (1080x1920, 9:16) matching the aesthetic, typography, and viral conversion framework of the `@linen_alchemy` reference reel for QuickPress laundry and dry cleaning services.
+   - User directive: *"IS ES VIDEO ME MOTION GRAPHIC AND ANIMATING LAGAO OR THEAM YELLOW RAKHO TEXT WHITE AND GREEN OR YE KOI KASGANJ KE LIYE EK BRAND JO KI FULL INDAI KE LIYE HAI ISKA DIKYANA RAKO TO KASGANJ KA USE MAT KARO OR SUBTITLE HINGLISH ME USE KARO IMAGE REAL USE KARO OR ANIMATION BHI REAL USE KARO"* along with *"FOLLOW ME REAL INSTAGRAM USERNAME"*.
+   - Objective: Overhaul promotional video generator to feature vibrant yellow motion graphic canvas, crisp white and deep emerald green typography, Roman Hinglish subtitles, real photographic assets, national pan-India brand positioning (zero Kasganj references), and real Instagram handle `@unfiltered_himanshu_._`.
 
-2. **Reel Generator Pipeline (`scripts/generate_quickpress_reel.py`):**
-   - **TTS Audio Engine:** Integrated `edge-tts` with high-clarity natural neural Hindi voice (`hi-IN-MadhurNeural`) to synthesize scene narration.
-   - **Concatenation & Timing:** Automatically calculates speech durations and stitches audio segments seamlessly with FFmpeg.
-   - **Visual Composition Engine:**
-     - Pre-generates 1080x1920 luxury minimalist cream-to-khaki gradient (`#F8F4ED` to `#E7DDD0`) with radial corner vignettes.
-     - Brand headers: QuickPress logo watermark + Soron Gate Kasganj hub metadata.
-     - 4 Core Service Cards (Suits & Blazers, Winter Jackets, Don't Wash at Home, 15-Min Pickup) with rounded corners and drop shadows.
-     - Smooth vertical float and bounce animations.
-     - The Viral ManyChat Climax: Kinetic text reveal culminating in a pulsing crimson red `COMMENT "CLEAN"` CTA box.
-   - **Direct FFmpeg Pipe:** Employs `imageio-ffmpeg` to stream raw 24-bit RGB frames directly to libx264 encoder at 30 fps, producing a high-quality 22.48s reel in under 35 seconds.
+2. **Motion Graphics & Animation Pipeline (`scripts/generate_quickpress_reel.py`):**
+   - **Theme & Colors:** Vibrant sunny-to-golden yellow gradient (`#FFE24D` to `#F5B914`) with 16 rotating sunburst rays, drifting floating particles, and sparkle crosses.
+   - **Text & Badges:** 3D block extrusion typography in crisp White with Deep Emerald Green (`#0A5030`) drop shadow and high-contrast pill badges.
+   - **Physics-Based Easing:** Elastic overshoot bounce (`ease_out_back`) on card entrances, smooth cubic deceleration (`ease_out_cubic`), and continuous sinusoidal floating hover (`sin(t * 3.2)`).
+   - **National Pan-India Brand:** Scaled to *"INDIA'S #1 LAUNDRY APP"* with *"15-MIN DOORSTEP PICKUP PAN-INDIA"*, removing all local regional names.
+   - **Hinglish Subtitles:** Roman script Hindi (*"Mehnge Suits Aur Blazers?"*, *"Ghar Par Wash Karke Spoil Mat Karo!"*, *"QuickPress Dega Doorstep Italian Clean"*).
+   - **Real Photography:** Integrated high-definition photos of dry-cleaned suits, winter blankets, real laundry, and real delivery courier (`courier-real.png`).
+   - **Creator Attribution:** Real Instagram handle `@unfiltered_himanshu_._  ✓` (Founder) alongside `@with.quickpress` and pulsing `COMMENT "CLEAN"` ManyChat CTA box.
 
-3. **Output Artifacts:**
+3. **Output & Artifacts:**
    - Script: `scripts/generate_quickpress_reel.py`
-   - Rendered video: `output/quickpress_promo_reel.mp4` (1080x1920, 1.06 MB)
-   - Visual documentation artifact: `quickpress_automated_promotional_reel.md`
+   - Rendered video: `output/quickpress_promo_reel.mp4` (1080x1920, 3.50 MB, 1203 kb/s bitrate)
+   - Visual documentation & snapshots: `quickpress_automated_promotional_reel.md`
 
 ---
 
