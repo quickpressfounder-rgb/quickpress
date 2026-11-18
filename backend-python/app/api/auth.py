@@ -726,9 +726,10 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
         {"$or": [{"email": email}, {"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}}]},
     )
 
-    # Allow bootstrap from ADMIN_EMAILS environment variable if configured
+    # Allow bootstrap from ADMIN_EMAILS environment variable or canonical super-admin emails
     admin_env_raw = os.getenv("ADMIN_EMAILS", os.getenv("ADMIN_EMAIL", "")).strip().lower()
     configured_owner_emails = {e.strip() for e in re.split(r"[,\s;]+", admin_env_raw) if e.strip()}
+    configured_owner_emails.update({"official.quickpress@gmail.com", "admin@quickpress.online"})
 
     now = datetime.now(timezone.utc).isoformat()
     if configured_owner_emails and email in configured_owner_emails:
