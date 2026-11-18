@@ -38,8 +38,9 @@
      - Fleet Governance: Rider approval pipeline verified.
      - Finance Engine (`/finance-engine?tab=rules`): Target Profit Margin Floor (₹50), Self-Balancing Margin Protection Engine, Customer Delivery Rules, Rider Pay Structure, and interactive Live Cart Simulator verified.
 
-3. **Architectural Insights & Session Artifacts:**
+3. **Architectural Insights & Polish Fixes:**
    - Identified 120-second Partner Acceptance SLA countdown timer in `order_timeline_engine.py` (auto-refund on timeout).
+   - **Fixed SLA Countdown Timer NaN Glitch (`customer-frontend/src/routes/track.$orderId.tsx`):** Added safe `Number.isFinite` date parsing and finite numeric fallback guards so countdown clock displays proper `03:00` / `02:00` formatted times instead of transient `NaN:NaN`.
    - Complete visual audit recorded across 92 browser session video artifacts (`recording_1.mp4` through `recording_92.mp4`).
 
 ---

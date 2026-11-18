@@ -90,17 +90,24 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
     const computeDiff = () => {
       const now = Date.now();
       if (isPartnerPending) {
-        const base = detail?.placedAt || detail?.createdAt ? new Date(detail.placedAt || detail.createdAt).getTime() : now;
-        const target = detail?.partnerAcceptDeadline ? new Date(detail.partnerAcceptDeadline).getTime() : base + 3 * 60 * 1000;
-        return Math.max(0, Math.floor((target - now) / 1000));
+        const rawPlaced = detail?.placedAt || detail?.createdAt;
+        const parsedBase = rawPlaced ? new Date(rawPlaced).getTime() : now;
+        const base = Number.isFinite(parsedBase) ? parsedBase : now;
+        const rawDeadline = detail?.partnerAcceptDeadline;
+        const parsedDeadline = rawDeadline ? new Date(rawDeadline).getTime() : NaN;
+        const target = Number.isFinite(parsedDeadline) ? parsedDeadline : base + 3 * 60 * 1000;
+        const diff = Math.floor((target - now) / 1000);
+        return Number.isFinite(diff) ? Math.max(0, diff) : 0;
       }
       if (isRiderPending) {
-        const base =
-          detail?.partnerAcceptedAt || detail?.riderDispatchStartedAt || detail?.updatedAt
-            ? new Date(detail.partnerAcceptedAt || detail.riderDispatchStartedAt || detail.updatedAt).getTime()
-            : now;
-        const target = detail?.riderAcceptDeadline ? new Date(detail.riderAcceptDeadline).getTime() : base + 2 * 60 * 1000;
-        return Math.max(0, Math.floor((target - now) / 1000));
+        const rawBase = detail?.partnerAcceptedAt || detail?.riderDispatchStartedAt || detail?.updatedAt;
+        const parsedBase = rawBase ? new Date(rawBase).getTime() : now;
+        const base = Number.isFinite(parsedBase) ? parsedBase : now;
+        const rawDeadline = detail?.riderAcceptDeadline;
+        const parsedDeadline = rawDeadline ? new Date(rawDeadline).getTime() : NaN;
+        const target = Number.isFinite(parsedDeadline) ? parsedDeadline : base + 2 * 60 * 1000;
+        const diff = Math.floor((target - now) / 1000);
+        return Number.isFinite(diff) ? Math.max(0, diff) : 0;
       }
       return 0;
     };
@@ -144,10 +151,11 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
   }
 
   if (isPartnerPending) {
-    const mins = Math.floor(remaining / 60);
-    const secs = remaining % 60;
+    const safeRemaining = Number.isFinite(remaining) && remaining > 0 ? remaining : 0;
+    const mins = Math.floor(safeRemaining / 60);
+    const secs = safeRemaining % 60;
     const formatted = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-    const isUrgent = remaining <= 60;
+    const isUrgent = safeRemaining <= 60;
 
     return (
       <div
@@ -178,10 +186,11 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
   }
 
   if (isRiderPending) {
-    const mins = Math.floor(remaining / 60);
-    const secs = remaining % 60;
+    const safeRemaining = Number.isFinite(remaining) && remaining > 0 ? remaining : 0;
+    const mins = Math.floor(safeRemaining / 60);
+    const secs = safeRemaining % 60;
     const formatted = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-    const isUrgent = remaining <= 30;
+    const isUrgent = safeRemaining <= 30;
 
     return (
       <div
