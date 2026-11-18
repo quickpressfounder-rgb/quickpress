@@ -1,5 +1,31 @@
 # QuickPress — Engineering Work History
 
+## Session: November 18, 2026 (Part 44)
+
+### Automated AI Promotional Reel Generator Pipeline for QuickPress Marketing
+
+1. **Context & User Request:**
+   - User inquiry: *"https://www.instagram.com/reels/DfPZiLPgGhG/ IS VIDEO KI REAL KARE MUGHE REFRENCE KE JAISE VIDEO BANANAI HAI"* followed by *"AI SE NAHI BANBA SAKTE SAME ESSE REEL"* and selecting *"3 BUT QUICKPRESS PROMOTION VIDEO BANANI HAI"*.
+   - Objective: Build an automated, Python-powered video generator pipeline that programmatically creates Instagram Reels (1080x1920, 9:16) matching the aesthetic, typography, and viral conversion framework of the `@linen_alchemy` reference reel for QuickPress laundry and dry cleaning services.
+
+2. **Reel Generator Pipeline (`scripts/generate_quickpress_reel.py`):**
+   - **TTS Audio Engine:** Integrated `edge-tts` with high-clarity natural neural Hindi voice (`hi-IN-MadhurNeural`) to synthesize scene narration.
+   - **Concatenation & Timing:** Automatically calculates speech durations and stitches audio segments seamlessly with FFmpeg.
+   - **Visual Composition Engine:**
+     - Pre-generates 1080x1920 luxury minimalist cream-to-khaki gradient (`#F8F4ED` to `#E7DDD0`) with radial corner vignettes.
+     - Brand headers: QuickPress logo watermark + Soron Gate Kasganj hub metadata.
+     - 4 Core Service Cards (Suits & Blazers, Winter Jackets, Don't Wash at Home, 15-Min Pickup) with rounded corners and drop shadows.
+     - Smooth vertical float and bounce animations.
+     - The Viral ManyChat Climax: Kinetic text reveal culminating in a pulsing crimson red `COMMENT "CLEAN"` CTA box.
+   - **Direct FFmpeg Pipe:** Employs `imageio-ffmpeg` to stream raw 24-bit RGB frames directly to libx264 encoder at 30 fps, producing a high-quality 22.48s reel in under 35 seconds.
+
+3. **Output Artifacts:**
+   - Script: `scripts/generate_quickpress_reel.py`
+   - Rendered video: `output/quickpress_promo_reel.mp4` (1080x1920, 1.06 MB)
+   - Visual documentation artifact: `quickpress_automated_promotional_reel.md`
+
+---
+
 ## Session: November 18, 2026 (Part 43)
 
 ### Full AEO & GEO Engine Integration (Answer Engine Optimization & Generative Engine Optimization)

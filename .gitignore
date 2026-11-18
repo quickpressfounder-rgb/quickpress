@@ -102,5 +102,6 @@ AUDIT/
 *.swp
 *.swo
 scratch/
+output/
 .vercel
 .env*
