@@ -239,8 +239,9 @@ export function ZomatoPaymentSheet({
   };
 
   const formatTimer = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const safeSecs = Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0;
+    const mins = Math.floor(safeSecs / 60);
+    const secs = safeSecs % 60;
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 

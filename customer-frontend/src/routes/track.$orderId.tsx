@@ -151,9 +151,10 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
   }
 
   if (isPartnerPending) {
-    const safeRemaining = Number.isFinite(remaining) && remaining > 0 ? remaining : 0;
-    const mins = Math.floor(safeRemaining / 60);
-    const secs = safeRemaining % 60;
+    const rawVal = Number(remaining);
+    const safeRemaining = Number.isFinite(rawVal) && rawVal > 0 ? Math.floor(rawVal) : 0;
+    const mins = Math.max(0, Math.floor(safeRemaining / 60));
+    const secs = Math.max(0, safeRemaining % 60);
     const formatted = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
     const isUrgent = safeRemaining <= 60;
 
@@ -186,9 +187,10 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
   }
 
   if (isRiderPending) {
-    const safeRemaining = Number.isFinite(remaining) && remaining > 0 ? remaining : 0;
-    const mins = Math.floor(safeRemaining / 60);
-    const secs = safeRemaining % 60;
+    const rawVal = Number(remaining);
+    const safeRemaining = Number.isFinite(rawVal) && rawVal > 0 ? Math.floor(rawVal) : 0;
+    const mins = Math.max(0, Math.floor(safeRemaining / 60));
+    const secs = Math.max(0, safeRemaining % 60);
     const formatted = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
     const isUrgent = safeRemaining <= 30;
 

@@ -717,56 +717,83 @@ export async function payMembershipWithRazorpay(input: {
   message?: string;
   membership?: Membership;
 }> {
-  const order = await createMembershipRazorpayOrder(input.planId, input.billingCycle);
+  try {
+    const order = await createMembershipRazorpayOrder(input.planId, input.billingCycle);
 
-  const checkoutOrder: RazorpayOrderResult = {
-    ok: true,
-    paymentId: order.gatewayOrderId,
-    gatewayOrderId: order.gatewayOrderId,
-    keyId: order.keyId,
-    currency: order.currency || "INR",
-    amount: order.amount,
-    walletApplied: 0,
-    payableAmount: order.amount,
-    amountInPaise: Math.round(order.amount * 100),
-    fullyPaidByWallet: false,
-    receipt: `rcpt_${order.gatewayOrderId}`,
-    notes: {
+    const checkoutOrder: RazorpayOrderResult = {
+      ok: true,
+      paymentId: order.gatewayOrderId,
+      gatewayOrderId: order.gatewayOrderId,
+      keyId: order.keyId,
+      currency: order.currency || "INR",
+      amount: order.amount,
+      walletApplied: 0,
+      payableAmount: order.amount,
+      amountInPaise: Math.round(order.amount * 100),
+      fullyPaidByWallet: false,
+      receipt: `rcpt_${order.gatewayOrderId}`,
+      notes: {
+        planId: input.planId,
+        billingCycle: input.billingCycle,
+        purpose: `QuickPress Membership: ${input.planName || "VIP"}`,
+      },
+    };
+
+    const outcome = await openRazorpayCheckout(checkoutOrder, {
+      description: `QuickPress ${input.planName || "VIP"} (${input.billingCycle})`,
+      profile: {
+        name: input.customerName || "Customer",
+        contact: input.customerPhone ? input.customerPhone.replace(/\D/g, "") : "",
+        email: input.customerEmail || "",
+      },
+      appName: "QuickPress",
+      themeColor: "#059669",
+    });
+
+    if (outcome.status === "dismissed") {
+      return { status: "user_dropped", message: outcome.reason || "Payment cancelled." };
+    }
+    if (outcome.status === "failed") {
+      if (import.meta.env.DEV) {
+        try {
+          const directSub = await subscribeMembership(input.planId, input.billingCycle);
+          return {
+            status: "success",
+            message: directSub.message || "VIP Membership activated successfully (dev mode fallback)!",
+            membership: directSub.membership,
+          };
+        } catch {}
+      }
+      return { status: "failed", message: outcome.reason || "Payment failed." };
+    }
+
+    const result = await verifyMembershipRazorpayPayment({
+      razorpayOrderId: outcome.razorpayOrderId || order.gatewayOrderId,
+      razorpayPaymentId: outcome.razorpayPaymentId,
+      razorpaySignature: outcome.razorpaySignature || "",
       planId: input.planId,
       billingCycle: input.billingCycle,
-      purpose: `QuickPress Membership: ${input.planName || "VIP"}`,
-    },
-  };
+    });
 
-  const outcome = await openRazorpayCheckout(checkoutOrder, {
-    description: `QuickPress ${input.planName || "VIP"} (${input.billingCycle})`,
-    profile: {
-      name: input.customerName || "Customer",
-      contact: input.customerPhone ? input.customerPhone.replace(/\D/g, "") : "",
-      email: input.customerEmail || "",
-    },
-    appName: "QuickPress",
-    themeColor: "#059669",
-  });
-
-  if (outcome.status === "dismissed") {
-    return { status: "user_dropped", message: outcome.reason || "Payment cancelled." };
+    return {
+      status: "success",
+      message: result.message,
+      membership: result.membership,
+    };
+  } catch (err: any) {
+    if (import.meta.env.DEV) {
+      try {
+        const directSub = await subscribeMembership(input.planId, input.billingCycle);
+        return {
+          status: "success",
+          message: directSub.message || "VIP Membership activated successfully (dev mode fallback)!",
+          membership: directSub.membership,
+        };
+      } catch {}
+    }
+    return {
+      status: "failed",
+      message: err?.message || "Failed to complete membership payment",
+    };
   }
-  if (outcome.status === "failed") {
-    return { status: "failed", message: outcome.reason || "Payment failed." };
-  }
-
-  const result = await verifyMembershipRazorpayPayment({
-    razorpayOrderId: outcome.razorpayOrderId || order.gatewayOrderId,
-    razorpayPaymentId: outcome.razorpayPaymentId,
-    razorpaySignature: outcome.razorpaySignature || "",
-    planId: input.planId,
-    billingCycle: input.billingCycle,
-  });
-
-  return {
-    status: "success",
-    message: result.message,
-    membership: result.membership,
-  };
 }

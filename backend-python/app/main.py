@@ -93,7 +93,7 @@ async def lifespan(app: FastAPI):
     if report:
         logger.info("Identity index migrations complete: %s", report)
     await database.ensure_indexes()
-    # Background Routine: Preserve Super Admin Access
+    # Background Routine: Preserve Super Admin Access & Operational Seed
     async def _run_startup_seeds() -> None:
         try:
             from app.core.admin_security import ensure_super_admin_seed
@@ -101,6 +101,13 @@ async def lifespan(app: FastAPI):
             logger.info("Super Admin authentication initialized successfully.")
         except Exception as err:
             logger.warning("Startup routine warning: %s", err)
+
+        try:
+            from app.db.admin_seed import ensure_admin_operational_seed
+            await ensure_admin_operational_seed()
+            logger.info("Admin operational seeds & Kasganj partner initialized successfully.")
+        except Exception as err:
+            logger.warning("Operational seed warning: %s", err)
 
     await _run_startup_seeds()
 

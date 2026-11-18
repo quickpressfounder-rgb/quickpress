@@ -38,12 +38,12 @@ async def ensure_admin_operational_seed() -> None:
 
     # 1. Operating Cities
     cities = [
-        {"_id": "city_kasganj", "id": "city_kasganj", "name": "Kasganj", "state": "Uttar Pradesh", "status": "Active", "hubsCount": 12, "ridersCount": 18, "isDefault": True, "lat": 27.8083, "lng": 78.6477, "createdAt": _iso(now - timedelta(days=60))},
-        {"_id": "city_aligarh", "id": "city_aligarh", "name": "Aligarh", "state": "Uttar Pradesh", "status": "Active", "hubsCount": 24, "ridersCount": 35, "isDefault": False, "lat": 27.8974, "lng": 78.0880, "createdAt": _iso(now - timedelta(days=60))},
-        {"_id": "city_mathura", "id": "city_mathura", "name": "Mathura", "state": "Uttar Pradesh", "status": "Active", "hubsCount": 10, "ridersCount": 15, "isDefault": False, "lat": 27.4924, "lng": 77.6737, "createdAt": _iso(now - timedelta(days=45))},
-        {"_id": "city_agra", "id": "city_agra", "name": "Agra", "state": "Uttar Pradesh", "status": "Active", "hubsCount": 30, "ridersCount": 42, "isDefault": False, "lat": 27.1767, "lng": 78.0081, "createdAt": _iso(now - timedelta(days=45))},
-        {"_id": "city_noida", "id": "city_noida", "name": "Noida / Greater Noida", "state": "Uttar Pradesh", "status": "Active", "hubsCount": 45, "ridersCount": 60, "isDefault": False, "lat": 28.5355, "lng": 77.3910, "createdAt": _iso(now - timedelta(days=30))},
-        {"_id": "city_delhi", "id": "city_delhi", "name": "Delhi NCR", "state": "Delhi", "status": "Active", "hubsCount": 80, "ridersCount": 110, "isDefault": False, "lat": 28.7041, "lng": 77.1025, "createdAt": _iso(now - timedelta(days=30))},
+        {"_id": "city_kasganj", "id": "city_kasganj", "name": "Kasganj", "city": "Kasganj", "state": "Uttar Pradesh", "status": "Live", "hubsCount": 12, "ridersCount": 18, "isDefault": True, "lat": 27.8083, "lng": 78.6477, "pincodes": ["207123"], "createdAt": _iso(now - timedelta(days=60))},
+        {"_id": "city_aligarh", "id": "city_aligarh", "name": "Aligarh", "city": "Aligarh", "state": "Uttar Pradesh", "status": "Live", "hubsCount": 24, "ridersCount": 35, "isDefault": False, "lat": 27.8974, "lng": 78.0880, "pincodes": ["202001"], "createdAt": _iso(now - timedelta(days=60))},
+        {"_id": "city_mathura", "id": "city_mathura", "name": "Mathura", "city": "Mathura", "state": "Uttar Pradesh", "status": "Live", "hubsCount": 10, "ridersCount": 15, "isDefault": False, "lat": 27.4924, "lng": 77.6737, "pincodes": ["281001"], "createdAt": _iso(now - timedelta(days=45))},
+        {"_id": "city_agra", "id": "city_agra", "name": "Agra", "city": "Agra", "state": "Uttar Pradesh", "status": "Live", "hubsCount": 30, "ridersCount": 42, "isDefault": False, "lat": 27.1767, "lng": 78.0081, "pincodes": ["282001"], "createdAt": _iso(now - timedelta(days=45))},
+        {"_id": "city_noida", "id": "city_noida", "name": "Noida / Greater Noida", "city": "Noida", "state": "Uttar Pradesh", "status": "Live", "hubsCount": 45, "ridersCount": 60, "isDefault": False, "lat": 28.5355, "lng": 77.3910, "pincodes": ["201301"], "createdAt": _iso(now - timedelta(days=30))},
+        {"_id": "city_delhi", "id": "city_delhi", "name": "Delhi NCR", "city": "Delhi NCR", "state": "Delhi", "status": "Live", "hubsCount": 80, "ridersCount": 110, "isDefault": False, "lat": 28.7041, "lng": 77.1025, "pincodes": ["110001"], "createdAt": _iso(now - timedelta(days=30))},
     ]
     for c in cities:
         await database.update_one("admin_cities", {"_id": c["_id"]}, {"$set": c}, upsert=True)
@@ -81,4 +81,61 @@ async def ensure_admin_operational_seed() -> None:
     for c in coupon_docs:
         await database.update_one("admin_coupons", {"_id": c["_id"]}, {"$set": c}, upsert=True)
 
-    logger.info("Admin master catalog, cities, and promo coupons successfully verified and initialized.")
+    # 4. Default Verified Kasganj Partner Store (QuickPress Express Cleaners)
+    kasganj_partner_id = "PRT-KAS-01"
+    kasganj_partner_doc = {
+        "_id": kasganj_partner_id,
+        "id": kasganj_partner_id,
+        "partnerId": kasganj_partner_id,
+        "businessName": "QuickPress Express Cleaners",
+        "name": "QuickPress Express Cleaners",
+        "ownerName": "Kasganj Express Hub",
+        "phone": "9876543211",
+        "ownerPhone": "9876543211",
+        "email": "kasganj.partner@quickpress.online",
+        "city": "Kasganj",
+        "area": "Soron Gate",
+        "address": "Soron Gate, Near Clock Tower, Kasganj",
+        "pincode": "207123",
+        "status": "active",
+        "isVerified": True,
+        "isApproved": True,
+        "isOnboarded": True,
+        "isOpen": True,
+        "isOnline": True,
+        "rating": 4.9,
+        "reviews": "4.9 (38)",
+        "reviewsCount": 38,
+        "totalOrders": 154,
+        "logo": "store-1",
+        "image": "store-1",
+        "cover": "store-1",
+        "tagline": "Express Laundry & Garment Care Hub",
+        "pickupMinutes": 20,
+        "distanceKm": 1.2,
+        "minPrice": 15,
+        "minOrderValue": 99,
+        "services": ["Wash & Fold", "Steam Ironing", "Dry Cleaning", "Shoe Care"],
+        "servicesCount": 4,
+        "offerLabel": "20% OFF",
+        "joinedDaysAgo": 45,
+        "tier": "Gold",
+        "onTimeRate": 99.2,
+        "createdAt": _iso(now - timedelta(days=45)),
+        "updatedAt": _iso(now),
+    }
+    await database.update_one("partner_profiles", {"_id": kasganj_partner_id}, {"$set": kasganj_partner_doc}, upsert=True)
+    await database.update_one("admin_partners", {"_id": kasganj_partner_id}, {"$set": kasganj_partner_doc}, upsert=True)
+    await database.update_one("catalog_partners", {"_id": kasganj_partner_id}, {"$set": kasganj_partner_doc}, upsert=True)
+
+    # Seed services for PRT-KAS-01
+    kasganj_services = [
+        {"_id": "srv_kas_1", "partnerId": kasganj_partner_id, "name": "Wash & Fold", "category": "Wash & Fold", "price": 60, "unit": "per kg", "active": True, "available": True},
+        {"_id": "srv_kas_2", "partnerId": kasganj_partner_id, "name": "Steam Ironing", "category": "Steam Ironing", "price": 15, "unit": "per piece", "active": True, "available": True},
+        {"_id": "srv_kas_3", "partnerId": kasganj_partner_id, "name": "Dry Cleaning", "category": "Dry Cleaning", "price": 350, "unit": "per suit", "active": True, "available": True},
+        {"_id": "srv_kas_4", "partnerId": kasganj_partner_id, "name": "Shoe Care", "category": "Shoe Care", "price": 299, "unit": "per pair", "active": True, "available": True},
+    ]
+    for s in kasganj_services:
+        await database.update_one("partner_services", {"_id": s["_id"]}, {"$set": s}, upsert=True)
+
+    logger.info("Admin master catalog, cities, promo coupons, and Kasganj partner store successfully initialized.")

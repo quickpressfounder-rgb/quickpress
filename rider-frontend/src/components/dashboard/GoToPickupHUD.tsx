@@ -466,8 +466,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       order.expectedReadyAt ||
       (order as any).processingTimeline?.expectedReadyAt;
     if (readyAt) {
-      const diff = Math.floor((new Date(readyAt).getTime() - Date.now()) / 1000);
-      return Math.max(0, diff);
+      const parsed = new Date(readyAt).getTime();
+      if (Number.isFinite(parsed)) {
+        const diff = Math.floor((parsed - Date.now()) / 1000);
+        return Number.isFinite(diff) ? Math.max(0, diff) : 0;
+      }
     }
     return null;
   }, [order.estimatedReadyAt, order.expectedReadyAt, (order as any).processingTimeline?.expectedReadyAt]);
@@ -478,8 +481,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       order.expectedReadyAt ||
       (order as any).processingTimeline?.expectedReadyAt;
     if (readyAt) {
-      const diff = Math.floor((new Date(readyAt).getTime() - Date.now()) / 1000);
-      return Math.max(0, diff);
+      const parsed = new Date(readyAt).getTime();
+      if (Number.isFinite(parsed)) {
+        const diff = Math.floor((parsed - Date.now()) / 1000);
+        return Number.isFinite(diff) ? Math.max(0, diff) : 0;
+      }
     }
     const mins = order.processingEstimateMinutes || 120;
     return mins * 60;
@@ -612,9 +618,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
   // Format HH:MM:SS for countdown timer
   const formatCountdown = (totalSecs: number) => {
-    const hrs = Math.floor(totalSecs / 3600);
-    const mins = Math.floor((totalSecs % 3600) / 60);
-    const secs = totalSecs % 60;
+    const s = Number.isFinite(totalSecs) && totalSecs > 0 ? Math.floor(totalSecs) : 0;
+    const hrs = Math.floor(s / 3600);
+    const mins = Math.floor((s % 3600) / 60);
+    const secs = s % 60;
     if (hrs > 0) {
       return `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
     }

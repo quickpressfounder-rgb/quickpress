@@ -59,14 +59,19 @@ export function PartnerIncomingOrderAlertModal({
     const now = Date.now();
     const rawDeadline = (order as any).partnerAcceptDeadline;
     if (rawDeadline) {
-      const diff = Math.floor((new Date(rawDeadline).getTime() - now) / 1000);
-      return Math.max(0, diff > 0 ? diff : PARTNER_SLA_SECONDS);
+      const parsedDeadline = new Date(rawDeadline).getTime();
+      if (Number.isFinite(parsedDeadline)) {
+        const diff = Math.floor((parsedDeadline - now) / 1000);
+        return Number.isFinite(diff) ? Math.max(0, diff > 0 ? diff : PARTNER_SLA_SECONDS) : PARTNER_SLA_SECONDS;
+      }
     }
     const rawPlaced = (order as any).placedAt || (order as any).placedAtRaw;
     if (rawPlaced) {
       const placed = new Date(rawPlaced).getTime();
-      const diff = Math.floor((placed + PARTNER_SLA_SECONDS * 1000 - now) / 1000);
-      return Math.max(0, diff > 0 ? diff : PARTNER_SLA_SECONDS);
+      if (Number.isFinite(placed)) {
+        const diff = Math.floor((placed + PARTNER_SLA_SECONDS * 1000 - now) / 1000);
+        return Number.isFinite(diff) ? Math.max(0, diff > 0 ? diff : PARTNER_SLA_SECONDS) : PARTNER_SLA_SECONDS;
+      }
     }
     return PARTNER_SLA_SECONDS;
   };
@@ -149,10 +154,11 @@ export function PartnerIncomingOrderAlertModal({
     if (onClose) onClose();
   };
 
-  const mins = Math.floor(countdown / 60);
-  const secs = countdown % 60;
+  const safeCountdown = Number.isFinite(countdown) && countdown > 0 ? countdown : 0;
+  const mins = Math.floor(safeCountdown / 60);
+  const secs = safeCountdown % 60;
   const formattedCountdown = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-  const progressPercent = Math.min(100, Math.max(0, (countdown / PARTNER_SLA_SECONDS) * 100));
+  const progressPercent = Math.min(100, Math.max(0, (safeCountdown / PARTNER_SLA_SECONDS) * 100));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">

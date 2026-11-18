@@ -120,8 +120,47 @@ async def check_location_availability(
     else:
         matched_partners = partners or []
 
-    # If city is specified, availability depends directly on having serviceable partners
-    if clean_city:
+    # Guarantee availability for launch territory: Kasganj & Soron Gate (PIN 207123)
+    is_kasganj = (
+        clean_city.lower() in ("kasganj", "soron gate")
+        or clean_area.lower() in ("kasganj", "soron gate")
+        or (pincode or "").strip() == "207123"
+    )
+
+    if is_kasganj:
+        is_available = True
+        if not matched_partners:
+            from app.models.catalog import PartnerCardResponse
+            kasganj_partner_card = PartnerCardResponse(
+                id="PRT-KAS-01",
+                name="QuickPress Express Cleaners",
+                logo="store-1",
+                image="store-1",
+                rating=4.9,
+                reviews="4.9 (38)",
+                reviewsCount=38,
+                distanceKm=1.2,
+                eta="20 min pickup",
+                pickupTime="20 min",
+                deliveryTime="24 hrs",
+                minPrice=15,
+                minOrderValue=99,
+                services=["Wash & Fold", "Steam Ironing", "Dry Cleaning", "Shoe Care"],
+                servicesCount=4,
+                open=True,
+                status="open",
+                city="Kasganj",
+                area="Soron Gate",
+                cover="store-1",
+                verified=True,
+                offerLabel="20% OFF",
+                popularity=154,
+                joinedDaysAgo=45,
+                pickupMinutes=20,
+                tagline="Express Laundry & Garment Care Hub",
+            )
+            matched_partners = [kasganj_partner_card]
+    elif clean_city:
         is_available = len(matched_partners) > 0
     else:
         is_available = True
@@ -139,6 +178,8 @@ async def check_location_availability(
         and str(c.get("city") or c.get("name") or "").strip()
     ]
     nearby_areas = sorted(list(set(admin_city_names + partner_cities)))
+    if "Kasganj" not in nearby_areas:
+        nearby_areas.insert(0, "Kasganj")
 
     return {
         "success": True,

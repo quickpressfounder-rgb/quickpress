@@ -40,22 +40,31 @@ export function OrderSlaCountdown({
     Boolean(isReassigned) ||
     Boolean(reassignmentPool && reassignmentPool > 0);
 
+  const parseSafeTime = (dateStr?: string): number | null => {
+    if (!dateStr) return null;
+    const parsed = new Date(dateStr).getTime();
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
   const [remainingSec, setRemainingSec] = useState<number>(() => {
     const now = Date.now();
     if (isNew) {
-      const baseTime = placedAt ? new Date(placedAt).getTime() : now;
-      const targetTime = deadline ? new Date(deadline).getTime() : baseTime + 5 * 60 * 1000;
-      return Math.max(0, Math.floor((targetTime - now) / 1000));
+      const baseTime = parseSafeTime(placedAt) ?? now;
+      const targetTime = parseSafeTime(deadline) ?? (baseTime + 5 * 60 * 1000);
+      const diff = Math.floor((targetTime - now) / 1000);
+      return Number.isFinite(diff) ? Math.max(0, diff) : 0;
     }
     if (isSearchingRider) {
-      const baseTime = acceptedAt ? new Date(acceptedAt).getTime() : now;
-      const targetTime = deadline ? new Date(deadline).getTime() : baseTime + 2 * 60 * 1000;
-      return Math.max(0, Math.floor((targetTime - now) / 1000));
+      const baseTime = parseSafeTime(acceptedAt) ?? now;
+      const targetTime = parseSafeTime(deadline) ?? (baseTime + 2 * 60 * 1000);
+      const diff = Math.floor((targetTime - now) / 1000);
+      return Number.isFinite(diff) ? Math.max(0, diff) : 0;
     }
     if (isDeliveryWaiting) {
-      const baseTime = deliveryAssignedAt || readyAt ? new Date(deliveryAssignedAt || readyAt!).getTime() : now;
-      const targetTime = deadline ? new Date(deadline).getTime() : baseTime + 2 * 60 * 1000;
-      return Math.max(0, Math.floor((targetTime - now) / 1000));
+      const baseTime = parseSafeTime(deliveryAssignedAt) ?? parseSafeTime(readyAt) ?? now;
+      const targetTime = parseSafeTime(deadline) ?? (baseTime + 2 * 60 * 1000);
+      const diff = Math.floor((targetTime - now) / 1000);
+      return Number.isFinite(diff) ? Math.max(0, diff) : 0;
     }
     return 0;
   });
@@ -67,17 +76,20 @@ export function OrderSlaCountdown({
       const now = Date.now();
       let diff = 0;
       if (isNew) {
-        const baseTime = placedAt ? new Date(placedAt).getTime() : now;
-        const targetTime = deadline ? new Date(deadline).getTime() : baseTime + 5 * 60 * 1000;
-        diff = Math.max(0, Math.floor((targetTime - now) / 1000));
+        const baseTime = parseSafeTime(placedAt) ?? now;
+        const targetTime = parseSafeTime(deadline) ?? (baseTime + 5 * 60 * 1000);
+        const rawDiff = Math.floor((targetTime - now) / 1000);
+        diff = Number.isFinite(rawDiff) ? Math.max(0, rawDiff) : 0;
       } else if (isSearchingRider) {
-        const baseTime = acceptedAt ? new Date(acceptedAt).getTime() : now;
-        const targetTime = deadline ? new Date(deadline).getTime() : baseTime + 2 * 60 * 1000;
-        diff = Math.max(0, Math.floor((targetTime - now) / 1000));
+        const baseTime = parseSafeTime(acceptedAt) ?? now;
+        const targetTime = parseSafeTime(deadline) ?? (baseTime + 2 * 60 * 1000);
+        const rawDiff = Math.floor((targetTime - now) / 1000);
+        diff = Number.isFinite(rawDiff) ? Math.max(0, rawDiff) : 0;
       } else if (isDeliveryWaiting) {
-        const baseTime = deliveryAssignedAt || readyAt ? new Date(deliveryAssignedAt || readyAt!).getTime() : now;
-        const targetTime = deadline ? new Date(deadline).getTime() : baseTime + 2 * 60 * 1000;
-        diff = Math.max(0, Math.floor((targetTime - now) / 1000));
+        const baseTime = parseSafeTime(deliveryAssignedAt) ?? parseSafeTime(readyAt) ?? now;
+        const targetTime = parseSafeTime(deadline) ?? (baseTime + 2 * 60 * 1000);
+        const rawDiff = Math.floor((targetTime - now) / 1000);
+        diff = Number.isFinite(rawDiff) ? Math.max(0, rawDiff) : 0;
       }
       setRemainingSec((prev) => (prev === diff ? prev : diff));
       if (diff === 0) {
@@ -114,10 +126,11 @@ export function OrderSlaCountdown({
 
   if (!isNew && !isSearchingRider && !isDeliveryWaiting) return null;
 
-  const mins = Math.floor(remainingSec / 60);
-  const secs = remainingSec % 60;
+  const safeSec = Number.isFinite(remainingSec) && remainingSec > 0 ? remainingSec : 0;
+  const mins = Math.floor(safeSec / 60);
+  const secs = safeSec % 60;
   const formatted = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-  const isUrgent = remainingSec <= 45;
+  const isUrgent = safeSec <= 45;
 
   if (isNew) {
     return (
