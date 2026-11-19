@@ -364,12 +364,12 @@ export async function getCurrentDeviceLocation(
       navigator.geolocation.getCurrentPosition(
         (p) => handleSuccess(p, false),
         handleError,
-        { enableHighAccuracy: false, timeout: 2000, maximumAge: 60000 },
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 },
       );
     } catch {}
 
     // 2. Hardware GPS (Fused provider)
-    const gpsTimeout = options.timeoutMs ?? 3200;
+    const gpsTimeout = options.timeoutMs ?? 10000;
     try {
       navigator.geolocation.getCurrentPosition(
         (p) => handleSuccess(p, true),
@@ -383,8 +383,8 @@ export async function getCurrentDeviceLocation(
       );
     } catch {}
 
-    // Overall hard timeout cutoff (default 3200ms)
-    const maxWait = Math.min(gpsTimeout, 4000);
+    // Overall hard timeout cutoff (generous to allow browser permission prompt)
+    const maxWait = Math.max(gpsTimeout, 8000);
     setTimeout(() => {
       if (!settled) {
         settled = true;
@@ -419,13 +419,15 @@ export async function detectIpLocation(): Promise<SavedLocation | null> {
       const city = (data.city || data.locality || data.principalSubdivision || "").trim();
       const state = (data.principalSubdivision || "").trim();
       const area = (data.locality || city || state || "").trim();
-      if (city || state) {
+      const lat = typeof data.latitude === "number" ? data.latitude : parseFloat(data.latitude) || undefined;
+      const lng = typeof data.longitude === "number" ? data.longitude : parseFloat(data.longitude) || undefined;
+      if (city || state || (lat && lng)) {
         return {
           area: area || city,
           city,
           state,
-          latitude: typeof data.latitude === "number" ? data.latitude : undefined,
-          longitude: typeof data.longitude === "number" ? data.longitude : undefined,
+          latitude: lat,
+          longitude: lng,
         };
       }
     }
@@ -441,13 +443,15 @@ export async function detectIpLocation(): Promise<SavedLocation | null> {
       const data = await res.json();
       const city = (data.city || "").trim();
       const state = (data.region || "").trim();
-      if (city || state) {
+      const lat = typeof data.latitude === "number" ? data.latitude : parseFloat(data.latitude) || undefined;
+      const lng = typeof data.longitude === "number" ? data.longitude : parseFloat(data.longitude) || undefined;
+      if (city || state || (lat && lng)) {
         return {
           area: city || state,
           city,
           state,
-          latitude: typeof data.latitude === "number" ? data.latitude : undefined,
-          longitude: typeof data.longitude === "number" ? data.longitude : undefined,
+          latitude: lat,
+          longitude: lng,
         };
       }
     }
@@ -464,8 +468,9 @@ export async function detectIpLocation(): Promise<SavedLocation | null> {
 export async function detectDeviceLocation(
   options: { allowFallback?: boolean; timeoutMs?: number } = {},
 ): Promise<SavedLocation> {
+  const timeoutMs = options.timeoutMs ?? 9000;
   try {
-    const fix = await getCurrentDeviceLocation({ timeoutMs: options.timeoutMs ?? 3200 });
+    const fix = await getCurrentDeviceLocation({ timeoutMs });
     const location = await reverseGeocode(fix.latitude, fix.longitude);
     saveLocation(location);
     return location;
@@ -475,6 +480,10 @@ export async function detectDeviceLocation(
       if (ipLoc) {
         saveLocation(ipLoc);
         return ipLoc;
+      }
+      const saved = readLocation();
+      if (saved && (saved.city || saved.area)) {
+        return saved;
       }
     }
     throw err;

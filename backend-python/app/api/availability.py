@@ -120,20 +120,25 @@ async def check_location_availability(
     else:
         matched_partners = partners or []
 
-    # Guarantee availability for launch territory: Kasganj & Soron Gate (PIN 207123)
+    # Guarantee availability for launch territory: Kasganj & Soron Gate (PIN 207123) and Admin Approved Live Cities
     is_kasganj = (
         clean_city.lower() in ("kasganj", "soron gate")
         or clean_area.lower() in ("kasganj", "soron gate")
         or (pincode or "").strip() == "207123"
     )
+    is_live_city = any(
+        ac in clean_city.lower() or clean_city.lower() in ac
+        for ac in approved_live_cities
+    ) if clean_city else False
 
-    if is_kasganj:
+    if is_kasganj or is_live_city:
         is_available = True
         if not matched_partners:
             from app.models.catalog import PartnerCardResponse
+            display_city = clean_city.title() if clean_city else "Kasganj"
             kasganj_partner_card = PartnerCardResponse(
-                id="PRT-KAS-01",
-                name="QuickPress Express Cleaners",
+                id=f"PRT-{(clean_city[:3].upper() if clean_city else 'KAS')}-01",
+                name=f"QuickPress Express Cleaners ({display_city})",
                 logo="store-1",
                 image="store-1",
                 rating=4.9,
@@ -149,8 +154,8 @@ async def check_location_availability(
                 servicesCount=4,
                 open=True,
                 status="open",
-                city="Kasganj",
-                area="Soron Gate",
+                city=display_city,
+                area=clean_area or "Central Hub",
                 cover="store-1",
                 verified=True,
                 offerLabel="20% OFF",

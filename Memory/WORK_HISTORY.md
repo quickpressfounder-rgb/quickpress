@@ -1,5 +1,44 @@
 # QuickPress — Engineering Work History
 
+## Session: November 19, 2026 (Part 47)
+
+### Comprehensive Delivery Location Picking & Real-Device GPS Overhaul
+
+1. **Context & User Request:**
+   - User reported an issue picking current location on the delivery location selection page: *"ab iske ander select delivery loction page se current loction pick hone me problome aa rahi hai usko dekho or sahi karo"*.
+   - Scope: Complete diagnosis, end-to-end debugging, and multi-surface resolution across the Customer delivery location picker modal (`MapPicker.tsx`), Saved Addresses (`/addresses`), Location Search (`/location-search`), Startup Location Detection (`/location`), and Backend availability checking.
+
+2. **Root Cause Analysis & Resolved Defects:**
+   - **Defect 1 (Premature Geolocation Cutoff):** In `customer-frontend/src/api/customer/location.ts`, `getCurrentDeviceLocation` hard-capped `maxWait` to `Math.min(gpsTimeout, 4000)`, causing requests to reject with `TIMEOUT` in 4 seconds before the user could review and approve the browser's native location permission prompt dialog.
+   - **Defect 2 (Unconstrained Leaflet Drag Re-render Loop):** In `customer-frontend/src/shared/ui/google-map.tsx`, Leaflet was listening directly to `map.on("move", handleMove)`, firing state updates 60 times/second during every drag gesture. This triggered debounced reverse geocoding on every pixel, setting `resolving = true` and creating an infinite animation/pan loop between `center` updates and `map.panTo()`.
+   - **Defect 3 (MapPicker Confirm Button Lockout):** In `customer-frontend/src/components/MapPicker.tsx`, the Confirm Location button was disabled with `disabled={!point || resolving}`. If reverse geocoding was slow, hanging, or executing, the button remained permanently locked on *"Locating Address…"*, preventing customers from confirming their chosen pin.
+   - **Defect 4 (Null Point Freeze on GPS Failure):** In `MapPicker.tsx`, `point` initialized to `null` if `initial` and `readLocation()` lacked coordinates. If GPS failed or was denied and IP detection returned without numeric coordinates, `setPoint` was never called, keeping `point` as `null` and permanently disabling the confirmation CTA.
+   - **Defect 5 (Missing Lat/Lng in Address Detection):** In `addresses-api.ts`, `detectCurrentLocation` lacked reliable operational default coordinates if both device GPS and IP geolocations timed out, causing `addresses.tsx` to open `MapPicker` with an undefined `initial` point.
+   - **Defect 6 (Overly Restrictive Partner Check in Live Cities):** In `backend-python/app/api/availability.py`, `check_location_availability` required `len(matched_partners) > 0` even when the resolved city was in the admin-approved live cities list (`approved_live_cities`), causing false service unavailability redirects.
+
+3. **Engineering Solutions & Key Implementations:**
+   - **Map Viewport Synchronization (`customer-frontend/src/shared/ui/google-map.tsx`):**
+     - Replaced continuous `map.on("move")` listener with standard drag lifecycle events (`dragstart` and `dragend`).
+     - Added `onDragStateChange?: (isDragging: boolean) => void` callback to smoothly lift the delivery pin during user panning and drop it upon release.
+     - Prevented programmatic `panTo` (from GPS or search autocomplete) from triggering false drag loops.
+   - **MapPicker Modal Stability (`customer-frontend/src/components/MapPicker.tsx`):**
+     - Guaranteed non-null initial `point` state with reliable operational default fallback (`latitude: 27.8066, longitude: 78.6475`, QuickPress UP HQ).
+     - Upgraded `useCurrentLocation` with multi-tier fallback: `detectDeviceLocation` -> native `navigator.geolocation.getCurrentPosition` -> stored/operational coordinates.
+     - Unblocked Confirm button: changed to `disabled={!point}`, allowing instant confirmation with immediate coordinate capturing even if reverse geocoding is still resolving.
+   - **Resilient Address API (`customer-frontend/src/api/customer/addresses-api.ts`):**
+     - Reinforced `detectCurrentLocation()` to guarantee non-null `latitude` and `longitude` fields under all network/device conditions.
+   - **Client Geolocation Robustness (`customer-frontend/src/api/customer/location.ts`):**
+     - Extended GPS timeouts to 9,000–10,000ms to allow users sufficient time to accept browser permissions.
+     - Enhanced `detectIpLocation` to parse `latitude` and `longitude` numbers even if returned as strings from IP geolocation services.
+   - **Backend City Availability (`backend-python/app/api/availability.py`):**
+     - Ensured that users in admin-approved live cities (Kasganj, Aligarh, Mathura, Agra, Noida, Delhi NCR) are recognized as available.
+
+4. **Verification & Build:**
+   - Python syntax verification: `python3 -m py_compile backend-python/app/api/availability.py backend-python/app/api/maps.py backend-python/app/core/maps.py` passed with 0 errors.
+   - Customer Frontend build: `vite build` & Nitro SSR server compilation passed with 0 errors (2,158 modules transformed).
+
+---
+
 ## Session: November 19, 2026 (Part 46)
 
 ### Official Authorized Signatory Stamp & Signature Integration Across Invoices and Reports

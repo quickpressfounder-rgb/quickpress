@@ -36,7 +36,7 @@ export async function detectAndVerifyLiveLocation(options: {
 
   try {
     location = await detectDeviceLocation({
-      timeoutMs: options.timeoutMs ?? 3500,
+      timeoutMs: options.timeoutMs ?? 9000,
       allowFallback: true,
     });
   } catch (err: any) {

@@ -35,6 +35,8 @@ export type GoogleMapViewProps = {
   onPick?: ((point: { latitude: number; longitude: number }) => void) | undefined;
   /** Fires when map center moves / is dragged */
   onCenterChange?: ((point: { latitude: number; longitude: number }) => void) | undefined;
+  /** Fires when user starts or stops dragging the map */
+  onDragStateChange?: ((isDragging: boolean) => void) | undefined;
   fallback?: ReactNode | undefined;
   /** Prefer crisp Google Roadmap tiles via Leaflet to avoid JS SDK billing errors/watermarks */
   preferLeaflet?: boolean | undefined;
@@ -59,6 +61,7 @@ export function GoogleMapView({
   interactive = true,
   onPick,
   onCenterChange,
+  onDragStateChange,
   fallback = null,
   preferLeaflet = true,
 }: GoogleMapViewProps) {
@@ -206,15 +209,20 @@ export function GoogleMapView({
 
       const dragStartListener = map.addListener("dragstart", () => {
         isDraggingRef.current = true;
+        onDragStateChange?.(true);
       });
 
       const idleListener = map.addListener("idle", () => {
-        if (!onCenterChange || !isDraggingRef.current) return;
-        const c = map.getCenter();
-        if (c) {
-          onCenterChange({ latitude: c.lat(), longitude: c.lng() });
+        if (isDraggingRef.current) {
+          isDraggingRef.current = false;
+          onDragStateChange?.(false);
+          if (onCenterChange) {
+            const c = map.getCenter();
+            if (c) {
+              onCenterChange({ latitude: c.lat(), longitude: c.lng() });
+            }
+          }
         }
-        isDraggingRef.current = false;
       });
 
       return () => {
@@ -231,7 +239,15 @@ export function GoogleMapView({
         }
       };
 
-      const handleMove = () => {
+      const handleDragStart = () => {
+        isDraggingRef.current = true;
+        onDragStateChange?.(true);
+      };
+
+      const handleDragEnd = () => {
+        if (!isDraggingRef.current) return;
+        isDraggingRef.current = false;
+        onDragStateChange?.(false);
         if (onCenterChange) {
           const c = map.getCenter();
           if (c) {
@@ -241,18 +257,18 @@ export function GoogleMapView({
       };
 
       map.on("click", handleClick);
-      map.on("move", handleMove);
-      map.on("moveend", handleMove);
+      map.on("dragstart", handleDragStart);
+      map.on("dragend", handleDragEnd);
 
       return () => {
         map.off("click", handleClick);
-        map.off("move", handleMove);
-        map.off("moveend", handleMove);
+        map.off("dragstart", handleDragStart);
+        map.off("dragend", handleDragEnd);
       };
     }
 
     return undefined;
-  }, [ready, engine, onPick, onCenterChange]);
+  }, [ready, engine, onPick, onCenterChange, onDragStateChange]);
 
   // 4. Redraw markers, polyline and radius whenever inputs change
   useEffect(() => {

@@ -2,7 +2,7 @@
 
 import { apiDeleteJson, apiGetJson, apiPostJson, apiRequest } from "../core/transport";
 import { reverseGeocodeCoords } from "../core/maps-api";
-import { getCurrentDeviceLocation } from "./location";
+import { detectDeviceLocation, getCurrentDeviceLocation, readLocation, GeoError } from "./location";
 import type { AddressEntity } from "@/shared/types";
 import { CACHE_KEYS, readStaleCache, writeCache } from "./api/cache";
 
@@ -114,15 +114,55 @@ export function validateAddress(draft: AddressDraft): AddressErrors {
  * customer's default address.
  */
 export async function detectCurrentLocation(): Promise<Partial<AddressDraft>> {
-  const fix = await getCurrentDeviceLocation();
-  const place = await reverseGeocodeCoords(fix.latitude, fix.longitude);
-  return {
-    street: place.formattedAddress.split(",")[0]?.trim() ?? "",
-    area: place.area,
-    city: place.city,
-    state: place.state,
-    pincode: place.pincode,
-    latitude: fix.latitude,
-    longitude: fix.longitude,
-  };
+  try {
+    const loc = await detectDeviceLocation({ allowFallback: true, timeoutMs: 9000 });
+    let lat = loc.latitude;
+    let lng = loc.longitude;
+
+    if (lat == null || lng == null) {
+      const saved = readLocation();
+      if (saved?.latitude != null && saved?.longitude != null) {
+        lat = saved.latitude;
+        lng = saved.longitude;
+      } else {
+        lat = 27.8066;
+        lng = 78.6475;
+      }
+    }
+
+    let street = "";
+    let pincode = "";
+    if (lat != null && lng != null) {
+      try {
+        const place = await reverseGeocodeCoords(lat, lng);
+        if (place) {
+          street = place.formattedAddress?.split(",")?.[0]?.trim() ?? "";
+          pincode = place.pincode || "";
+        }
+      } catch {}
+    }
+
+    return {
+      street: street || loc.area || "Current Location",
+      area: loc.area || loc.city || "Selected Area",
+      city: loc.city || "Kasganj",
+      state: loc.state || "Uttar Pradesh",
+      pincode: pincode || "",
+      latitude: lat,
+      longitude: lng,
+    };
+  } catch {
+    const saved = readLocation();
+    const lat = saved?.latitude ?? 27.8066;
+    const lng = saved?.longitude ?? 78.6475;
+    return {
+      street: saved?.area || "",
+      area: saved?.area || saved?.city || "Selected Area",
+      city: saved?.city || "Kasganj",
+      state: saved?.state || "Uttar Pradesh",
+      pincode: "",
+      latitude: lat,
+      longitude: lng,
+    };
+  }
 }

@@ -61,7 +61,7 @@ function LocationScreen() {
     try {
       const res = await detectAndVerifyLiveLocation({
         onProgress: setProgressState,
-        timeoutMs: 3500,
+        timeoutMs: 9000,
       });
 
       setIsLocating(false);

@@ -37,7 +37,7 @@ import {
   type GeocodeResult,
   type PlaceSuggestion,
 } from "@/api/core/maps-api";
-import { getCurrentDeviceLocation, GeoError } from "@/api/customer/location";
+import { detectDeviceLocation, readLocation, GeoError } from "@/api/customer/location";
 
 export type PickedLocation = {
   latitude: number;
@@ -58,9 +58,17 @@ export function MapPicker({
   onConfirm: (picked: PickedLocation) => void;
   onClose: () => void;
 }) {
-  const [point, setPoint] = useState<{ latitude: number; longitude: number } | null>(
-    initial ?? null,
-  );
+  const [point, setPoint] = useState<{ latitude: number; longitude: number }>(() => {
+    if (initial?.latitude != null && initial?.longitude != null) {
+      return initial;
+    }
+    const saved = readLocation();
+    if (saved?.latitude != null && saved?.longitude != null) {
+      return { latitude: saved.latitude, longitude: saved.longitude };
+    }
+    // High-confidence operational center fallback (Kasganj / UP HQ) so map & pin are ALWAYS active
+    return { latitude: 27.8066, longitude: 78.6475 };
+  });
   const [zoomLevel, setZoomLevel] = useState(16);
   const [details, setDetails] = useState<GeocodeResult | null>(null);
   const [resolving, setResolving] = useState(false);
@@ -76,7 +84,6 @@ export function MapPicker({
 
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reverseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Lock background scroll while modal is open
   useEffect(() => {
@@ -100,7 +107,7 @@ export function MapPicker({
     reverseTimeoutRef.current = setTimeout(() => {
       void reverseGeocodeCoords(point.latitude, point.longitude)
         .then((result) => {
-          if (alive) {
+          if (alive && result) {
             setDetails(result);
           }
         })
@@ -128,27 +135,71 @@ export function MapPicker({
       alive = false;
       if (reverseTimeoutRef.current) clearTimeout(reverseTimeoutRef.current);
     };
-  }, [point?.latitude, point?.longitude]);
+  }, [point.latitude, point.longitude]);
 
-  // Current GPS device detection
+  // Current GPS device detection with multi-tier fallback
   const useCurrentLocation = useCallback(async () => {
     if (locating) return;
     setLocating(true);
     setError(null);
     try {
-      const fix = await getCurrentDeviceLocation({ timeoutMs: 3500, enableHighAccuracy: true });
-      setPoint({ latitude: fix.latitude, longitude: fix.longitude });
-      setZoomLevel(17);
+      const loc = await detectDeviceLocation({ allowFallback: true, timeoutMs: 8000 });
+      if (loc && loc.latitude != null && loc.longitude != null) {
+        setPoint({ latitude: loc.latitude, longitude: loc.longitude });
+        setZoomLevel(17);
+        setDetails({
+          formattedAddress: [loc.area, loc.city, loc.state].filter(Boolean).join(", "),
+          placeId: `pin_${loc.latitude}_${loc.longitude}`,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          area: loc.area || loc.city || "Current Location",
+          city: loc.city || "",
+          state: loc.state || "",
+          pincode: "",
+          country: "India",
+        });
+        return;
+      }
+      // Direct browser fallback if loc coordinates were empty
+      if (typeof navigator !== "undefined" && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setPoint({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+            setZoomLevel(17);
+          },
+          () => {
+            setError("Location access was not granted. You can drag the map or search your area.");
+          },
+          { enableHighAccuracy: true, timeout: 6000 },
+        );
+      }
     } catch (cause) {
-      setError(
-        cause instanceof GeoError
-          ? cause.message
-          : "Unable to detect GPS position. You can search or tap on the map.",
-      );
+      if (typeof navigator !== "undefined" && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setPoint({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+            setZoomLevel(17);
+          },
+          () => {
+            setError(
+              cause instanceof GeoError
+                ? cause.message
+                : "Unable to detect GPS position. You can search or tap on the map.",
+            );
+          },
+          { enableHighAccuracy: true, timeout: 6000 },
+        );
+      } else {
+        setError(
+          cause instanceof GeoError
+            ? cause.message
+            : "Unable to detect GPS position. You can search or tap on the map.",
+        );
+      }
     } finally {
       setLocating(false);
     }
-  }, [locating, point]);
+  }, [locating]);
 
   // Initial load: GPS detection if no starting coordinates
   useEffect(() => {
@@ -225,11 +276,6 @@ export function MapPicker({
 
   const handleCenterChange = (next: { latitude: number; longitude: number }) => {
     setPoint(next);
-    setIsDragging(true);
-    if (dragTimeoutRef.current) clearTimeout(dragTimeoutRef.current);
-    dragTimeoutRef.current = setTimeout(() => {
-      setIsDragging(false);
-    }, 350);
   };
 
   const handleConfirm = () => {
@@ -353,12 +399,13 @@ export function MapPicker({
       <div className="relative flex-1 overflow-hidden">
         <GoogleMapView
           className="size-full h-full"
-          center={point ?? undefined}
+          center={point}
           zoom={zoomLevel}
           interactive={true}
           preferLeaflet={true}
           onPick={(next) => setPoint(next)}
           onCenterChange={handleCenterChange}
+          onDragStateChange={(dragging) => setIsDragging(dragging)}
           fallback={
             <div className="flex size-full flex-col items-center justify-center gap-3 bg-muted/40 px-6 text-center">
               <div className="flex size-14 items-center justify-center rounded-3xl bg-emerald-600/10 text-emerald-600 animate-pulse">
@@ -493,7 +540,7 @@ export function MapPicker({
         {/* Confirm Location CTA Button */}
         <button
           type="button"
-          disabled={!point || resolving}
+          disabled={!point}
           onClick={handleConfirm}
           className="mt-4 flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-emerald-600 text-base font-extrabold text-white shadow-lg shadow-emerald-600/30 transition-all duration-200 active:scale-[0.98] hover:bg-emerald-500 disabled:opacity-50 disabled:shadow-none cursor-pointer"
         >

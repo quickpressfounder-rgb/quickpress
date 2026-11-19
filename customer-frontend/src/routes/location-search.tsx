@@ -235,7 +235,7 @@ function LocationSearchScreen() {
     try {
       const res = await detectAndVerifyLiveLocation({
         onProgress: (state) => setDetectingModal({ active: true, ...state }),
-        timeoutMs: 3500,
+        timeoutMs: 9000,
       });
 
       if (!res.success || !res.location) {
