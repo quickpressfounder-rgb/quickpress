@@ -54,7 +54,7 @@ optional_bearer = HTTPBearer(auto_error=False)
 
 GUEST_PROFILE = ProfileResponse(name="Guest", initials="G", unreadNotifications=0)
 DEFAULT_LOCATION = LocationResponse(
-    area="Kasganj Central",
+    area="Kasganj",
     city="Kasganj",
     state="Uttar Pradesh",
     latitude=27.8083,

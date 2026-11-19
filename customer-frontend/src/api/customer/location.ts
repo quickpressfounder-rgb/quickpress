@@ -53,17 +53,17 @@ export function readLocation(): SavedLocation | null {
 }
 
 /**
- * Platform default location: Kasganj Central Flagship Hub.
- * Used as a graceful baseline when GPS is unavailable or disabled.
+ * Platform default location: Kasganj Operational City Baseline.
+ * Used only as a fallback when device GPS is off or permission is pending.
+ * Never overrides user's live GPS or Google Maps detected coordinates.
  */
 export function getDefaultLocation(): SavedLocation {
   return {
-    area: "Nagla Baini",
-    street: "Jail Road",
+    area: "Kasganj",
     city: "Kasganj",
     state: "Uttar Pradesh",
     pincode: "207123",
-    formattedAddress: "Nagla Baini, Jail Road, Kasganj, Uttar Pradesh 207123",
+    formattedAddress: "Kasganj, Uttar Pradesh 207123",
     latitude: 27.8083,
     longitude: 78.6477,
   };
