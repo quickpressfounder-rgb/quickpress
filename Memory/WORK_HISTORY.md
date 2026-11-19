@@ -16,12 +16,12 @@
    - **Backend Geocoding Engine (`backend-python/app/core/maps.py` & `backend-python/app/models/maps.py`):**
      - Enhanced `GeocodeResult` model with `street: str = ""` and `landmark: str = ""`.
      - In `_map_geocode_result`: Prioritized granular locality hierarchy (`premise` -> `sublocality_level_2` -> `sublocality_level_1` -> `neighborhood` -> `route`). Extracted rich colony strings (e.g. *"Nagla Baini, Jail Road"*) rather than broad city names.
-     - In `backend-python/app/api/home.py`: Set `DEFAULT_LOCATION` to `Kasganj Central` (`latitude: 27.8083, longitude: 78.6477`).
+     - In `backend-python/app/api/home.py`: Set `DEFAULT_LOCATION` to generic Kasganj city (`area: "Kasganj", city: "Kasganj", state: "Uttar Pradesh", latitude: 27.8083, longitude: 78.6477`).
    - **Frontend Location Model & Cache (`customer-frontend/src/api/customer/location.ts`):**
      - Extended `SavedLocation` type to store `street`, `landmark`, `pincode`, and `formattedAddress`.
      - Increased backend Google Maps reverse-geocoding timeout from 1,500ms to 3,500ms to allow Google Cloud API sufficient time to return complete address components without falling back to coarse OpenStreetMap city entries.
-     - Updated `getDefaultLocation()` to return complete Kasganj HQ address (`Nagla Baini, Jail Road, Kasganj, Uttar Pradesh 207123`).
-     - Connected `location-service.ts` to automatically fall back to `getDefaultLocation()` when device GPS and IP geolocation fail.
+     - Updated `getDefaultLocation()` to return generic Kasganj operational city baseline without hardcoding any specific street or colony.
+     - Ensured all live GPS, map picks, and autocomplete searches are 100% dynamic from Google Maps API without any hardcoded overrides.
    - **Blinkit-Style Two-Line Header (`customer-frontend/src/routes/home.tsx`):**
      - Transformed generic single-word header into a rich two-line location widget:
        - **Line 1 (Bold 13.5px with Chevron):** Specific Colony / Mohalla / Landmark (e.g., **Nagla Baini, Jail Road**).
