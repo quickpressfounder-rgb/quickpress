@@ -303,11 +303,12 @@ function InvoiceDetailScreen() {
                 <div className="flex items-end justify-between gap-3">
                   <div className="space-y-1">
                     <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Authorized Signatory</p>
-                    <p className="text-xs font-bold text-foreground">QUICKPRESS TECHNOLOGIES PVT. LTD.</p>
-                    <p className="text-[11px] text-muted-foreground">Director / Founder · Himanshu Pal</p>
+                    <p className="text-xs font-bold text-foreground">QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</p>
+                    <p className="text-[11px] text-muted-foreground">CIN: U96010UW2026PTC259787 · PAN: AABCQ3390H · TAN: AGRQ10114G</p>
+                    <p className="text-[10.5px] text-muted-foreground">C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, UP - 207123</p>
                     <div className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 pt-0.5">
                       <CheckCircle2 className="size-3" />
-                      <span>Digitally Signed &amp; GST Compliant</span>
+                      <span>Digitally Signed &amp; GST Compliant · Helpline: +91 9258730561</span>
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
@@ -316,6 +317,7 @@ function InvoiceDetailScreen() {
                       alt="Authorized Signature"
                       className="h-10 w-auto object-contain opacity-95 dark:invert"
                     />
+                    <p className="text-[9.5px] font-medium text-muted-foreground mt-0.5">Himanshu Pal (Director)</p>
                   </div>
                 </div>
               </section>

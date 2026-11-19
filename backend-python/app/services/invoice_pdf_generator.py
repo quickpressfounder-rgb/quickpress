@@ -53,9 +53,11 @@ COMPANY_LEGAL_NAME = os.getenv("COMPANY_LEGAL_NAME", "QUICKPRESS TECHNOLOGIES PR
 COMPANY_TRADE_NAME = "QuickPress"
 COMPANY_CIN = os.getenv("COMPANY_CIN", "U96010UW2026PTC259787")
 COMPANY_PAN = os.getenv("COMPANY_PAN", "AABCQ3390H")
+COMPANY_TAN = os.getenv("COMPANY_TAN", "AGRQ10114G")
 COMPANY_GSTIN = os.getenv("COMPANY_GSTIN", "09AABCQ3390H1ZA")
 COMPANY_ADDRESS = os.getenv("COMPANY_ADDRESS", "C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Kasganj, Etah - 207123, Uttar Pradesh, India")
 COMPANY_EMAIL = os.getenv("COMPANY_EMAIL", "official.quickpress@gmail.com")
+COMPANY_PHONE = os.getenv("COMPANY_PHONE", "+91 9258730561")
 COMPANY_STATE = os.getenv("COMPANY_STATE", "Uttar Pradesh")
 COMPANY_STATE_CODE = os.getenv("COMPANY_STATE_CODE", "09")
 
@@ -67,9 +69,11 @@ def get_live_company_profile(override: Optional[Dict[str, Any]] = None) -> Dict[
         "trade_name": COMPANY_TRADE_NAME,
         "cin": COMPANY_CIN or "—",
         "pan": COMPANY_PAN or "—",
+        "tan": COMPANY_TAN or "—",
         "gstin": COMPANY_GSTIN or "—",
         "address": COMPANY_ADDRESS or "—",
         "email": COMPANY_EMAIL,
+        "phone": COMPANY_PHONE,
         "state": COMPANY_STATE,
         "state_code": COMPANY_STATE_CODE,
     }
@@ -85,12 +89,16 @@ def get_live_company_profile(override: Optional[Dict[str, Any]] = None) -> Dict[
                 profile["cin"] = comp["cin"]
             if comp.get("pan"):
                 profile["pan"] = comp["pan"]
+            if comp.get("tan"):
+                profile["tan"] = comp["tan"]
             if comp.get("gstin"):
                 profile["gstin"] = comp["gstin"]
             if comp.get("registeredAddress"):
                 profile["address"] = comp["registeredAddress"]
             if comp.get("supportEmail") or comp.get("corporateEmail"):
                 profile["email"] = comp.get("supportEmail") or comp.get("corporateEmail")
+            if comp.get("supportPhone") or comp.get("phone"):
+                profile["phone"] = comp.get("supportPhone") or comp.get("phone")
             if comp.get("state"):
                 profile["state"] = comp["state"]
             if comp.get("stateCode"):
@@ -481,15 +489,16 @@ def generate_invoice_pdf(data: Dict[str, Any], output_target: Any = None) -> byt
 
     # Facilitator Block & Signature (Page 1 Footer)
     company_pan = data.get("company_pan") or COMPANY_PAN
+    company_tan = data.get("company_tan") or COMPANY_TAN
     company_cin = data.get("company_cin") or COMPANY_CIN
     company_gst = data.get("company_gst") or COMPANY_GSTIN
     company_legal = data.get("company_legal_name") or COMPANY_LEGAL_NAME
 
     facilitator_info = f"""<b>For {company_legal} (AS MARKETPLACE FACILITATOR)</b><br/><br/>
-QuickPress PAN : {company_pan}<br/>
+QuickPress PAN : {company_pan} &nbsp;|&nbsp; TAN : {company_tan}<br/>
 QuickPress CIN : {company_cin}<br/>
 QuickPress GST : {company_gst}<br/>
-QuickPress Support : {COMPANY_EMAIL}"""
+QuickPress Helpline : {COMPANY_PHONE} &nbsp;|&nbsp; {COMPANY_EMAIL}"""
 
     sig_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "authorized_signature.png")
     if os.path.exists(sig_path):
@@ -565,14 +574,14 @@ QuickPress Support : {COMPANY_EMAIL}"""
         ],
         [
             Paragraph(f"<b>Address:</b> {COMPANY_ADDRESS}", table_cell),
-            Paragraph(f"<b>PAN:</b> {company_pan}", table_cell),
+            Paragraph(f"<b>PAN / TAN:</b> {company_pan} / {company_tan}", table_cell),
         ],
         [
-            Paragraph(f"<b>State:</b> {COMPANY_STATE}", table_cell),
+            Paragraph(f"<b>State:</b> {COMPANY_STATE} (Code: 09)", table_cell),
             Paragraph(f"<b>CIN:</b> {company_cin}", table_cell),
         ],
         [
-            Paragraph(f"<b>Email ID:</b> {COMPANY_EMAIL}", table_cell),
+            Paragraph(f"<b>Helpline:</b> {COMPANY_PHONE} &nbsp;|&nbsp; {COMPANY_EMAIL}", table_cell),
             Paragraph(f"<b>GSTIN:</b> {company_gst}", table_cell),
         ],
         [

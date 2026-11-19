@@ -1,5 +1,39 @@
 # QuickPress — Engineering Work History
 
+## Session: November 19, 2026 (Part 50)
+
+### Official Incorporation & GST Certification Integration, Clean Signature Engine, & Zero-Fallback Delivery Resolution
+
+1. **Context & User Input:**
+   - User uploaded official corporate incorporation documents, GST registration certificate (Form GST REG-06), physical authorized signature, and a screenshot referencing earlier fallback text:
+     - Certificate of Incorporation: *QUICKPRESS TECHNOLOGIES PRIVATE LIMITED*, CIN: `U96010UW2026PTC259787`, PAN: `AABCQ3390H`, TAN: `AGRQ10114G`, Registered Address: `C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Kasganj, Etah - 207123, Uttar Pradesh`.
+     - GST Certificate: GSTIN: `09AABCQ3390H1ZA`, Principal Place of Business: `Ground Floor, Nagla Baini, Kasganj, UP - 207123`.
+     - Signature: Director / Authorised Signatory signature on plain white paper.
+     - Clarified that registered corporate office must NOT be confused with customer delivery location. Location detection must strictly require GPS without artificial coordinate fallbacks.
+     - User directive: *"helpline number me 9258730561 dpo mail hato baki sab sahi hai ap jo mene data diya hai uskehisab se data ready phir me approval dunga ab intragtion kana hai"*.
+
+2. **Key Implementations & Corporate Data Sync:**
+   - **Signature Image Processing (`backend-python/app/assets/authorized_signature.png` & `customer-frontend/public/images/authorized_signature.png`):**
+     - Converted physical signature image to an anti-aliased, high-contrast transparent PNG (276x97) removing white paper background for crisp display on both light and dark backgrounds.
+   - **Backend Invoice PDF Generator (`backend-python/app/services/invoice_pdf_generator.py`):**
+     - Updated `get_live_company_profile()` and defaults with `COMPANY_TAN = "AGRQ10114G"`, `COMPANY_PHONE = "+91 9258730561"`, CIN, PAN, GSTIN, and full registered address.
+     - Enhanced Page 1 Facilitator Block and Page 2 Platform Tax Invoice with PAN, TAN, CIN, GSTIN, State Code (09), and official signature.
+     - Verified ReportLab PDF generation in Python 3.12 venv (82,328 bytes generated cleanly).
+   - **Public Corporate API (`backend-python/app/api/public.py`):**
+     - Added `tan: "AGRQ10114G"` to `/api/public/company-legal-profile` and synced registered and operating addresses.
+   - **Delivery Area Resolution Engine (`backend-python/app/api/maps.py`):**
+     - Purged coordinate fallback (`lat = body.latitude or 27.8083`). If coordinates are missing, returns `serviceable=False` with guidance to enable device GPS, preventing any silent default assumptions.
+   - **Frontend Invoice Detail Screen (`customer-frontend/src/routes/invoices.$invoiceId.tsx`):**
+     - Embedded authorized signatory section with legal company name (`QUICKPRESS TECHNOLOGIES PRIVATE LIMITED`), CIN, PAN, TAN, registered address, Helpline (+91 9258730561), and signature badge.
+   - **Compliance & Profile (`customer-frontend/src/components/profile/AboutPage.tsx`):**
+     - Purged "DPO" wording and replaced with "privacy notice".
+
+3. **Build & Test Verification:**
+   - Backend: Python 3.12 syntax check and ReportLab test invoice generation passed with 0 errors.
+   - Frontend: `npm run build` passed with 0 errors (client + SSR Nitro build).
+
+---
+
 ## Session: November 19, 2026 (Part 49)
 
 ### Zero Mock Location Policy: Complete Purge of Hardcoded Fallbacks & Strict Live GPS Retry Engine

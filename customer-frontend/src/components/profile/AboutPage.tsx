@@ -64,7 +64,7 @@ export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-foreground">Privacy Policy (DPDP 2023)</p>
-                    <p className="text-[10.5px] text-muted-foreground">Data rights, consent & DPO notice</p>
+                    <p className="text-[10.5px] text-muted-foreground">Data rights, consent & privacy notice</p>
                   </div>
                 </div>
                 <ChevronRight className="size-4 text-muted-foreground" />

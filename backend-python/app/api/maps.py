@@ -222,12 +222,26 @@ async def delivery_area(body: DeliveryAreaRequest) -> DeliveryAreaResponse:
         )
 
     # 2. Coordinates-based resolution
+    if body.latitude is None or body.longitude is None:
+        return DeliveryAreaResponse(
+            serviceable=False,
+            radiusKm=radius,
+            partnersInRange=0,
+            nearest=None,
+            pincode=req_pincode or "",
+            cityName="",
+            stateName="",
+            baseDeliveryFee=0.0,
+            estimatedSlaMinutes=0,
+            message="Location coordinates not provided. Please turn on GPS or select a delivery location.",
+        )
+
     if body.partnerId:
         partners = [p for p in partners if p.get("_id") == body.partnerId or p.get("id") == body.partnerId]
 
     scored = []
-    lat = body.latitude or 27.8083
-    lng = body.longitude or 78.6473
+    lat = float(body.latitude)
+    lng = float(body.longitude)
 
     for partner in partners:
         latitude, longitude = partner.get("latitude"), partner.get("longitude")
