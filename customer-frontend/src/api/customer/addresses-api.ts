@@ -114,55 +114,43 @@ export function validateAddress(draft: AddressDraft): AddressErrors {
  * customer's default address.
  */
 export async function detectCurrentLocation(): Promise<Partial<AddressDraft>> {
-  try {
-    const loc = await detectDeviceLocation({ allowFallback: true, timeoutMs: 9000 });
-    let lat = loc.latitude;
-    let lng = loc.longitude;
+  const loc = await detectDeviceLocation({ allowFallback: true, timeoutMs: 9000 });
+  const lat = loc.latitude;
+  const lng = loc.longitude;
 
-    if (lat == null || lng == null) {
-      const saved = readLocation();
-      if (saved?.latitude != null && saved?.longitude != null) {
-        lat = saved.latitude;
-        lng = saved.longitude;
-      } else {
-        lat = 27.8066;
-        lng = 78.6475;
-      }
-    }
-
-    let street = "";
-    let pincode = "";
-    if (lat != null && lng != null) {
-      try {
-        const place = await reverseGeocodeCoords(lat, lng);
-        if (place) {
-          street = place.formattedAddress?.split(",")?.[0]?.trim() ?? "";
-          pincode = place.pincode || "";
-        }
-      } catch {}
-    }
-
-    return {
-      street: street || loc.area || "Current Location",
-      area: loc.area || loc.city || "Selected Area",
-      city: loc.city || "Kasganj",
-      state: loc.state || "Uttar Pradesh",
-      pincode: pincode || "",
-      latitude: lat,
-      longitude: lng,
-    };
-  } catch {
+  if (lat == null || lng == null) {
     const saved = readLocation();
-    const lat = saved?.latitude ?? 27.8066;
-    const lng = saved?.longitude ?? 78.6475;
-    return {
-      street: saved?.area || "",
-      area: saved?.area || saved?.city || "Selected Area",
-      city: saved?.city || "Kasganj",
-      state: saved?.state || "Uttar Pradesh",
-      pincode: "",
-      latitude: lat,
-      longitude: lng,
-    };
+    if (saved?.latitude != null && saved?.longitude != null) {
+      return {
+        street: saved.street || saved.area || "",
+        area: saved.area || "",
+        city: saved.city || "",
+        state: saved.state || "",
+        pincode: saved.pincode || "",
+        latitude: saved.latitude,
+        longitude: saved.longitude,
+      };
+    }
+    throw new GeoError("POSITION_UNAVAILABLE");
   }
+
+  let street = loc.street || "";
+  let pincode = loc.pincode || "";
+  try {
+    const place = await reverseGeocodeCoords(lat, lng);
+    if (place) {
+      street = place.street || place.formattedAddress?.split(",")?.[0]?.trim() || street;
+      pincode = place.pincode || pincode;
+    }
+  } catch {}
+
+  return {
+    street: street || loc.area || "Current Location",
+    area: loc.area || loc.city || "",
+    city: loc.city || "",
+    state: loc.state || "",
+    pincode: pincode || "",
+    latitude: lat,
+    longitude: lng,
+  };
 }

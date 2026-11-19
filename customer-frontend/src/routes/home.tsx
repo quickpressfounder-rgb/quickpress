@@ -275,10 +275,11 @@ function HomeScreen() {
   }, [isServicesUnavailable, location, navigate]);
 
   const displayLocation = useMemo(() => {
-    if (!location) {
+    if (!location || !location.city) {
       return {
-        primary: "Detecting live location…",
-        secondary: "Finding verified laundry partners",
+        primary: "Enable Location Access",
+        secondary: "Tap to retry & detect your live GPS location",
+        isPrompt: true,
       };
     }
     const area = (location.area || "").trim();
@@ -304,7 +305,7 @@ function HomeScreen() {
       }
     }
     if (!primary) {
-      primary = city || "Kasganj";
+      primary = city || "Your Location";
     }
 
     // 2. Secondary Line: Detailed address, City, State, PIN (e.g., "Kasganj, Uttar Pradesh • PIN 207123")
@@ -319,7 +320,7 @@ function HomeScreen() {
       secondary = [city, state, pin ? `PIN ${pin}` : ""].filter(Boolean).join(", ");
     }
 
-    return { primary, secondary };
+    return { primary, secondary, isPrompt: false };
   }, [location]);
 
   // Header badge stays live: the notifications screen broadcasts every
@@ -427,7 +428,7 @@ function HomeScreen() {
               <div className="min-w-0 flex-1">
                 <button
                   type="button"
-                  onClick={() => navigate({ to: "/location-search" })}
+                  onClick={() => navigate({ to: displayLocation.isPrompt ? "/location" : "/location-search" })}
                   className="group flex max-w-full items-start gap-2.5 rounded-2xl bg-transparent py-1 pl-1 pr-2 text-left transition-all duration-200 active:scale-[0.98]"
                 >
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 group-hover:scale-105 transition-transform mt-0.5">

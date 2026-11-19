@@ -53,20 +53,12 @@ export function readLocation(): SavedLocation | null {
 }
 
 /**
- * Platform default location: Kasganj Operational City Baseline.
- * Used only as a fallback when device GPS is off or permission is pending.
- * Never overrides user's live GPS or Google Maps detected coordinates.
+ * Platform default location.
+ * Returns null: QuickPress NEVER mocks or hardcodes an assumed city.
+ * When GPS is off or unavailable, the UI cleanly prompts the user to enable GPS or retry.
  */
-export function getDefaultLocation(): SavedLocation {
-  return {
-    area: "Kasganj",
-    city: "Kasganj",
-    state: "Uttar Pradesh",
-    pincode: "207123",
-    formattedAddress: "Kasganj, Uttar Pradesh 207123",
-    latitude: 27.8083,
-    longitude: 78.6477,
-  };
+export function getDefaultLocation(): SavedLocation | null {
+  return null;
 }
 
 /**

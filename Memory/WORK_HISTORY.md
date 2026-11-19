@@ -1,5 +1,41 @@
 # QuickPress — Engineering Work History
 
+## Session: November 19, 2026 (Part 49)
+
+### Zero Mock Location Policy: Complete Purge of Hardcoded Fallbacks & Strict Live GPS Retry Engine
+
+1. **Context & User Directives:**
+   - User directive: *"Fallback Area: Kasganj, Fallback City: Kasganj, Fallback State: Uttar Pradesh. sab hatao aager loction on ya fatch nahi ho rahi to retry karo jab fatchhogi to wahi adress aye waha ?"*.
+   - Objective:
+     1. Completely purge any assumed or hardcoded city fallbacks (Kasganj or any other city) from backend, frontend models, address detection, and map picker.
+     2. Strict adherence to Core Principle #2 (Real Data Integration: Zero mock/fake data).
+     3. If location is off or permission is pending, show an unambiguous "Enable Location Access" prompt with 1-tap live GPS retry.
+     4. Only when live coordinates are legitimately acquired from hardware GPS / Google Maps, display that real, accurate address.
+
+2. **Purged Fallbacks & Upgraded Retry Architecture:**
+   - **Frontend Location Model (`customer-frontend/src/api/customer/location.ts`):**
+     - Reset `getDefaultLocation()` to strictly return `null`. Zero fake/mock location objects generated.
+   - **Location Service (`customer-frontend/src/api/customer/services/location-service.ts`):**
+     - Removed `getDefaultLocation()` fallback from `fetchLocation()`. If device GPS and IP geolocation do not resolve, returns `null` cleanly so the UI prompts the user to enable location.
+   - **Backend API (`backend-python/app/api/home.py`):**
+     - Reset `DEFAULT_LOCATION` to empty strings (`area="", city="", state=""`).
+   - **Address Detection API (`customer-frontend/src/api/customer/addresses-api.ts`):**
+     - Removed all hardcoded coordinates and city names (`27.8066, 78.6475`, `Kasganj`, `Uttar Pradesh`). If device GPS fails and no saved address exists, throws `GeoError("POSITION_UNAVAILABLE")` to trigger standard retry.
+   - **MapPicker Modal (`customer-frontend/src/components/MapPicker.tsx`):**
+     - Removed hardcoded fallback coordinates from initial state. Relies entirely on `initial`, saved address, or live GPS detection upon opening.
+   - **Home Screen Two-Line Header & Prompt Banner (`customer-frontend/src/routes/home.tsx`):**
+     - If location is not enabled:
+       - Header displays: **"Enable Location Access"** • *Tap to retry & detect your live GPS location*.
+       - Clicking header redirects to `/location` to immediately trigger the radar GPS detection and retry flow.
+       - Displays amber action banner: *"Device location is off. Turn on GPS to see services near you."* with 1-tap **"Enable GPS / Retry"** CTA.
+     - Once location is fetched: Displays the exact, authentic Google Maps address dynamically.
+
+3. **Verification & Build:**
+   - Python syntax check: `python3 -m py_compile backend-python/app/api/home.py` passed with 0 errors.
+   - Customer Frontend build: `vite build` & Nitro SSR server compilation passed with 0 errors (2,158 modules).
+
+---
+
 ## Session: November 19, 2026 (Part 48)
 
 ### Google Maps Deep Locality Integration & Blinkit-Style Two-Line Rich Location Header

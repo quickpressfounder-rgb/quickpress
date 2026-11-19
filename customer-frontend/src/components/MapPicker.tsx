@@ -58,7 +58,7 @@ export function MapPicker({
   onConfirm: (picked: PickedLocation) => void;
   onClose: () => void;
 }) {
-  const [point, setPoint] = useState<{ latitude: number; longitude: number }>(() => {
+  const [point, setPoint] = useState<{ latitude: number; longitude: number } | null>(() => {
     if (initial?.latitude != null && initial?.longitude != null) {
       return initial;
     }
@@ -66,8 +66,7 @@ export function MapPicker({
     if (saved?.latitude != null && saved?.longitude != null) {
       return { latitude: saved.latitude, longitude: saved.longitude };
     }
-    // High-confidence operational center fallback (Kasganj / UP HQ) so map & pin are ALWAYS active
-    return { latitude: 27.8066, longitude: 78.6475 };
+    return null;
   });
   const [zoomLevel, setZoomLevel] = useState(16);
   const [details, setDetails] = useState<GeocodeResult | null>(null);

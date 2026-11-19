@@ -64,13 +64,7 @@ export async function fetchLocation(options: { forceRefresh?: boolean | undefine
     return ipLoc;
   }
 
-  // 4. Graceful default baseline (Kasganj Central)
-  const def = getDefaultLocation();
-  if (def) {
-    changeLocation(def);
-    return def;
-  }
-
+  // Zero mock/fake location: Return null so the UI prompts the user to enable location or retry.
   return null;
 }
 
