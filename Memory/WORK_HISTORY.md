@@ -1,5 +1,47 @@
 # QuickPress — Engineering Work History
 
+## Session: November 19, 2026 (Part 51)
+
+### Complete Platform Mobile APK & Google Play AAB Release Automation
+
+1. **Context & User Request:**
+   - User directive: *"apk relese karo"*
+   - Objective: Generate fresh, production-ready Android APKs and Google Play Store AAB bundles for all 3 QuickPress mobile platforms (**Customer App**, **Partner App**, **Captain / Rider App**), incorporating all recent location, legal, GST, invoice, and signature updates.
+
+2. **Build Toolchain Alignment & Java 17 Compatibility:**
+   - **Root Cause & Fix:**
+     - Capacitor Android plugins declared `JavaVersion.VERSION_21` and `jvmToolchain(21)`, conflicting with macOS Java 17 LTS runtime.
+     - Configured explicit Java 17 toolchain override and compile options in `build.gradle` and `capacitor.build.gradle` across `customer-frontend`, `partner-frontend`, and `rider-frontend`:
+       ```groovy
+       subprojects {
+           plugins.withId('org.jetbrains.kotlin.android') { kotlin { jvmToolchain(17) } }
+           plugins.withId('kotlin-android') { kotlin { jvmToolchain(17) } }
+           afterEvaluate { project ->
+               if (project.hasProperty("android")) {
+                   project.android {
+                       compileOptions {
+                           sourceCompatibility JavaVersion.VERSION_17
+                           targetCompatibility JavaVersion.VERSION_17
+                       }
+                   }
+               }
+           }
+       }
+       ```
+     - Updated `build_all_apks.py` with active conversation artifact directory sync.
+
+3. **Compiled Output Artifacts:**
+   - Successfully built and verified all 3 Android APKs and 3 Play Store AABs:
+     - **QuickPress Customer App:** `QuickPress-Customer.apk` (20 MB), `QuickPress-Customer.aab` (19 MB)
+     - **QuickPress Partner Hub App:** `QuickPress-Partner.apk` (18 MB), `QuickPress-Partner.aab` (17 MB)
+     - **QuickPress Captain Fleet App:** `QuickPress-Captain.apk` (18 MB), `QuickPress-Captain.aab` (18 MB)
+   - Synchronized all artifacts to:
+     - Local release directory: `apks/`
+     - Website public download hub: `website/public/apks/`
+     - Conversation artifacts: `<appDataDir>/brain/05c3991a-4437-4fdf-9278-c9fe73a12ca7/`
+
+---
+
 ## Session: November 19, 2026 (Part 50)
 
 ### Official Incorporation & GST Certification Integration, Clean Signature Engine, & Zero-Fallback Delivery Resolution

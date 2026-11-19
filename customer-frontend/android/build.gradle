@@ -29,7 +29,24 @@ allprojects {
 }
 
 subprojects {
+    plugins.withId('org.jetbrains.kotlin.android') {
+        kotlin {
+            jvmToolchain(17)
+        }
+    }
+    plugins.withId('kotlin-android') {
+        kotlin {
+            jvmToolchain(17)
+        }
+    }
     afterEvaluate { project ->
+        if (project.plugins.hasPlugin("org.jetbrains.kotlin.android") || project.plugins.hasPlugin("kotlin-android")) {
+            try {
+                project.kotlin {
+                    jvmToolchain(17)
+                }
+            } catch (Exception ignored) {}
+        }
         if (project.hasProperty("android")) {
             project.android {
                 compileOptions {
