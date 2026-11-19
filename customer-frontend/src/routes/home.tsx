@@ -274,24 +274,52 @@ function HomeScreen() {
     }
   }, [isServicesUnavailable, location, navigate]);
 
-  const displayLocationName = useMemo(() => {
-    if (!location) return "Detecting live location…";
+  const displayLocation = useMemo(() => {
+    if (!location) {
+      return {
+        primary: "Detecting live location…",
+        secondary: "Finding verified laundry partners",
+      };
+    }
     const area = (location.area || "").trim();
     const city = (location.city || "").trim();
+    const state = (location.state || "").trim();
+    const pin = (location.pincode || "").trim();
+    const formatted = (location.formattedAddress || "").trim();
+    const street = (location.street || "").trim();
 
-    if (!city && (!area || area.toLowerCase() === "current location")) {
-      return "Detecting live location…";
+    // 1. Primary Line: Specific Colony, Mohalla, or Landmark (e.g., "Nagla Baini", "Jail Road", "Soron Gate")
+    let primary = "";
+    if (area && area.toLowerCase() !== "current location" && area.toLowerCase() !== city.toLowerCase()) {
+      primary = area;
+    } else if (street && street.toLowerCase() !== city.toLowerCase()) {
+      primary = street;
+    } else if (formatted) {
+      const parts = formatted.split(",").map((s) => s.trim()).filter(Boolean);
+      if (parts.length > 0 && parts[0].toLowerCase() !== city.toLowerCase()) {
+        primary = parts[0];
+        if (parts.length > 1 && parts[1].toLowerCase() !== city.toLowerCase() && !parts[1].toLowerCase().includes("pradesh")) {
+          primary = `${parts[0]}, ${parts[1]}`;
+        }
+      }
     }
-    if (!area || area.toLowerCase() === "current location") {
-      return city || "Detecting live location…";
+    if (!primary) {
+      primary = city || "Kasganj";
     }
-    if (!city || area.toLowerCase() === city.toLowerCase()) {
-      return area;
+
+    // 2. Secondary Line: Detailed address, City, State, PIN (e.g., "Kasganj, Uttar Pradesh • PIN 207123")
+    let secondary = "";
+    if (formatted) {
+      let rest = formatted;
+      if (primary && rest.toLowerCase().startsWith(primary.toLowerCase())) {
+        rest = rest.slice(primary.length).replace(/^[,\s-]+/, "").trim();
+      }
+      secondary = rest || [city, state, pin ? `PIN ${pin}` : ""].filter(Boolean).join(", ");
+    } else {
+      secondary = [city, state, pin ? `PIN ${pin}` : ""].filter(Boolean).join(", ");
     }
-    if (area.toLowerCase().endsWith(city.toLowerCase())) {
-      return area;
-    }
-    return `${area}, ${city}`;
+
+    return { primary, secondary };
   }, [location]);
 
   // Header badge stays live: the notifications screen broadcasts every
@@ -396,24 +424,26 @@ function HomeScreen() {
 
             {/* Header — GET /api/profile, GET /api/location */}
             <header className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <button
                   type="button"
                   onClick={() => navigate({ to: "/location-search" })}
-                  className="flex max-w-full items-center gap-2 rounded-full bg-transparent py-1.5 pl-2 pr-3 text-left transition-all duration-300 active:scale-[0.97] active:opacity-80"
+                  className="group flex max-w-full items-start gap-2.5 rounded-2xl bg-transparent py-1 pl-1 pr-2 text-left transition-all duration-200 active:scale-[0.98]"
                 >
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-green/15 text-brand-green">
-                    <MapPin className="size-3.5" />
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 group-hover:scale-105 transition-transform mt-0.5">
+                    <MapPin className="size-4.5 stroke-[2.5]" />
                   </span>
-                  <span className="min-w-0">
-                    <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                      Current Location
-                    </span>
-                    <span className="block truncate text-xs font-bold text-foreground">
-                      {displayLocationName}
-                    </span>
-                  </span>
-                  <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate text-[13.5px] font-black text-foreground tracking-tight group-hover:text-emerald-600 transition-colors">
+                        {displayLocation.primary}
+                      </span>
+                      <ChevronDown className="size-3.5 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors stroke-[2.5]" />
+                    </div>
+                    <p className="truncate text-[11px] font-semibold text-muted-foreground leading-tight mt-0.5">
+                      {displayLocation.secondary}
+                    </p>
+                  </div>
                 </button>
               </div>
 

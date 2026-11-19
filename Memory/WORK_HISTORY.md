@@ -1,5 +1,39 @@
 # QuickPress — Engineering Work History
 
+## Session: November 19, 2026 (Part 48)
+
+### Google Maps Deep Locality Integration & Blinkit-Style Two-Line Rich Location Header
+
+1. **Context & User Request:**
+   - User noted that the Home screen header displayed generic single-word "Kasganj" instead of granular locality details: *"ye ho hame page ka haeder me loction aati hai ye kasganj kyu aati hai jabki meri loction kasganj ke ander or kasganj to bada hai yaha jo addres fach kar raha hai wo google map ke hisab se kare jo jisse ki addres bada or detaile meayye"*.
+   - Objective:
+     1. Upgrade geocoding extraction to capture deep colonies, mohallas, landmarks, streets, and PIN codes from Google Maps.
+     2. Expand frontend `SavedLocation` and backend models to persist complete `formattedAddress`, `street`, `landmark`, and `pincode`.
+     3. Redesign the Home screen header into a high-density, Blinkit/Swiggy-style two-line rich location widget.
+     4. Set Kasganj Central (`Nagla Baini, Jail Road, Kasganj, UP 207123`) as the official platform default baseline when GPS is unavailable.
+
+2. **Key Implementations & Architecture:**
+   - **Backend Geocoding Engine (`backend-python/app/core/maps.py` & `backend-python/app/models/maps.py`):**
+     - Enhanced `GeocodeResult` model with `street: str = ""` and `landmark: str = ""`.
+     - In `_map_geocode_result`: Prioritized granular locality hierarchy (`premise` -> `sublocality_level_2` -> `sublocality_level_1` -> `neighborhood` -> `route`). Extracted rich colony strings (e.g. *"Nagla Baini, Jail Road"*) rather than broad city names.
+     - In `backend-python/app/api/home.py`: Set `DEFAULT_LOCATION` to `Kasganj Central` (`latitude: 27.8083, longitude: 78.6477`).
+   - **Frontend Location Model & Cache (`customer-frontend/src/api/customer/location.ts`):**
+     - Extended `SavedLocation` type to store `street`, `landmark`, `pincode`, and `formattedAddress`.
+     - Increased backend Google Maps reverse-geocoding timeout from 1,500ms to 3,500ms to allow Google Cloud API sufficient time to return complete address components without falling back to coarse OpenStreetMap city entries.
+     - Updated `getDefaultLocation()` to return complete Kasganj HQ address (`Nagla Baini, Jail Road, Kasganj, Uttar Pradesh 207123`).
+     - Connected `location-service.ts` to automatically fall back to `getDefaultLocation()` when device GPS and IP geolocation fail.
+   - **Blinkit-Style Two-Line Header (`customer-frontend/src/routes/home.tsx`):**
+     - Transformed generic single-word header into a rich two-line location widget:
+       - **Line 1 (Bold 13.5px with Chevron):** Specific Colony / Mohalla / Landmark (e.g., **Nagla Baini, Jail Road**).
+       - **Line 2 (Muted 11px):** Detailed city, state, and PIN code (e.g., *Kasganj, Uttar Pradesh • PIN 207123*).
+     - Upgraded click target to open `/location-search` seamlessly.
+
+3. **Verification & Build:**
+   - Backend syntax check: `python3 -m py_compile` passed (0 errors across `maps.py`, `home.py`, `models/maps.py`).
+   - Customer Frontend build: `vite build` & Nitro SSR server compilation passed with 0 errors (2,158 modules transformed).
+
+---
+
 ## Session: November 19, 2026 (Part 47)
 
 ### Comprehensive Delivery Location Picking & Real-Device GPS Overhaul

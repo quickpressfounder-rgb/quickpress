@@ -36,6 +36,8 @@ export type GeocodeResult = {
   latitude: number;
   longitude: number;
   area: string;
+  street?: string;
+  landmark?: string;
   city: string;
   state: string;
   pincode: string;

@@ -1,10 +1,13 @@
 import { reverseGeocodeCoords } from "../core/maps-api";
 
 export type SavedLocation = {
-
   area: string;
   city: string;
   state: string;
+  street?: string;
+  landmark?: string;
+  pincode?: string;
+  formattedAddress?: string;
   latitude?: number;
   longitude?: number;
 };
@@ -50,11 +53,20 @@ export function readLocation(): SavedLocation | null {
 }
 
 /**
- * Platform default location. Returns null so the app never forces
- * an arbitrary hardcoded city (like Kasganj) on users in other states.
+ * Platform default location: Kasganj Central Flagship Hub.
+ * Used as a graceful baseline when GPS is unavailable or disabled.
  */
-export function getDefaultLocation(): SavedLocation | null {
-  return null;
+export function getDefaultLocation(): SavedLocation {
+  return {
+    area: "Nagla Baini",
+    street: "Jail Road",
+    city: "Kasganj",
+    state: "Uttar Pradesh",
+    pincode: "207123",
+    formattedAddress: "Nagla Baini, Jail Road, Kasganj, Uttar Pradesh 207123",
+    latitude: 27.8083,
+    longitude: 78.6477,
+  };
 }
 
 /**
@@ -98,10 +110,10 @@ export async function reverseGeocode(
     }
   }
 
-  // Tier 1: Backend Google Maps / Nominatim proxy (strict 1500ms timeout)
+  // Tier 1: Backend Google Maps / Nominatim proxy (generous 3500ms timeout for accurate detail)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500);
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
     const result = await Promise.race([
       reverseGeocodeCoords(latitude, longitude),
       new Promise<null>((_, reject) => {
@@ -120,6 +132,10 @@ export async function reverseGeocode(
         area: area || city || "Current Location",
         city: city || "",
         state: result.state ?? "",
+        street: result.street || "",
+        landmark: result.landmark || "",
+        pincode: result.pincode || "",
+        formattedAddress: result.formattedAddress || "",
         latitude,
         longitude,
       };
@@ -139,7 +155,7 @@ export async function reverseGeocode(
   // Tier 2: Client-side OpenStreetMap / BigDataCloud reverse geocode fallback with deep colony parsing
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500);
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
 
     // 2a. OpenStreetMap Nominatim with deep locality breakdown
     const osmRes = await fetch(
@@ -164,11 +180,16 @@ export async function reverseGeocode(
         "";
       const city = addr.city || addr.town || addr.county || addr.state_district || "";
       const state = addr.state || "";
+      const pincode = addr.postcode || "";
       const area = deepColony || city || "Current Location";
+      const formatted = data.display_name || [area, city, state, pincode].filter(Boolean).join(", ");
       const resolved: SavedLocation = {
         area,
         city: city || state,
         state,
+        street: addr.road || deepColony || "",
+        pincode,
+        formattedAddress: formatted,
         latitude,
         longitude,
       };
@@ -197,10 +218,14 @@ export async function reverseGeocode(
       const area = deepName || data.locality || data.city || "Current Location";
       const city = data.city || data.principalSubdivision || "";
       const state = data.principalSubdivision || "";
+      const pincode = data.postcode || "";
+      const formatted = [area, city, state, pincode].filter(Boolean).join(", ");
       const resolved: SavedLocation = {
         area,
         city: city || state,
         state,
+        pincode,
+        formattedAddress: formatted,
         latitude,
         longitude,
       };
@@ -215,6 +240,7 @@ export async function reverseGeocode(
     area: "Current Location",
     city: "",
     state: "",
+    formattedAddress: `Selected Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`,
     latitude,
     longitude,
   };

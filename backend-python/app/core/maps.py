@@ -111,26 +111,48 @@ def _component(components: List[Dict[str, Any]], *types: str) -> str:
 def _map_geocode_result(result: Dict[str, Any]) -> Dict[str, Any]:
     components = result.get("address_components", [])
     location = result.get("geometry", {}).get("location", {})
+
+    premise = _component(components, "premise", "subpremise", "building")
+    sublocality_2 = _component(components, "sublocality_level_2")
+    sublocality_1 = _component(components, "sublocality_level_1")
+    neighborhood = _component(components, "neighborhood", "sublocality")
+    route = _component(components, "route", "street_address")
+    poi = _component(components, "point_of_interest", "establishment", "landmark")
+
+    # Construct rich, detailed locality (e.g., "Nagla Baini, Jail Road")
+    deep_locality = [p for p in [premise, sublocality_2, sublocality_1, neighborhood] if p]
+    if deep_locality:
+        area = ", ".join(deep_locality)
+        if route and route not in area:
+            area = f"{area}, {route}"
+    elif route:
+        area = f"{poi}, {route}" if poi else route
+    else:
+        area = poi or ""
+
+    formatted = result.get("formatted_address", "")
+    if not area and formatted:
+        # Fallback to the first non-country segment
+        first_part = formatted.split(",")[0].strip()
+        area = first_part
+
+    city = _component(components, "locality", "administrative_area_level_3", "administrative_area_level_2")
+    state = _component(components, "administrative_area_level_1")
+    pincode = _component(components, "postal_code")
+    country = _component(components, "country")
+
     return {
-        "formattedAddress": result.get("formatted_address", ""),
+        "formattedAddress": formatted,
         "placeId": result.get("place_id", ""),
         "latitude": location.get("lat", 0.0),
         "longitude": location.get("lng", 0.0),
-        "area": _component(
-            components,
-            "sublocality_level_2",
-            "sublocality_level_1",
-            "neighborhood",
-            "sublocality",
-            "point_of_interest",
-            "premise",
-            "subpremise",
-            "route",
-        ),
-        "city": _component(components, "locality", "administrative_area_level_3", "administrative_area_level_2"),
-        "state": _component(components, "administrative_area_level_1"),
-        "pincode": _component(components, "postal_code"),
-        "country": _component(components, "country"),
+        "area": area or city or "Current Location",
+        "street": route or premise or "",
+        "landmark": poi or premise or "",
+        "city": city,
+        "state": state,
+        "pincode": pincode,
+        "country": country,
     }
 
 

@@ -18,6 +18,8 @@ class GeocodeResult(BaseModel):
     latitude: float = 0.0
     longitude: float = 0.0
     area: str = ""
+    street: str = ""
+    landmark: str = ""
     city: str = ""
     state: str = ""
     pincode: str = ""
