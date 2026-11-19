@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import { Download, Loader2, Share2, WifiOff } from "lucide-react";
+import { CheckCircle2, Download, Loader2, Share2, WifiOff } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -296,6 +296,28 @@ function InvoiceDetailScreen() {
                 {invoice.notes ? (
                   <p className="mt-3 text-[11px] text-muted-foreground">{invoice.notes}</p>
                 ) : null}
+              </section>
+
+              {/* Authorized Signatory */}
+              <section className="card-soft mt-4 border border-border p-4 bg-slate-50/60 dark:bg-zinc-900/40">
+                <div className="flex items-end justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Authorized Signatory</p>
+                    <p className="text-xs font-bold text-foreground">QUICKPRESS TECHNOLOGIES PVT. LTD.</p>
+                    <p className="text-[11px] text-muted-foreground">Director / Founder · Himanshu Pal</p>
+                    <div className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 pt-0.5">
+                      <CheckCircle2 className="size-3" />
+                      <span>Digitally Signed &amp; GST Compliant</span>
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <img
+                      src="/images/authorized_signature.png"
+                      alt="Authorized Signature"
+                      className="h-10 w-auto object-contain opacity-95 dark:invert"
+                    />
+                  </div>
+                </div>
               </section>
 
               {/* Actions */}

@@ -491,14 +491,23 @@ QuickPress CIN : {company_cin}<br/>
 QuickPress GST : {company_gst}<br/>
 QuickPress Support : {COMPANY_EMAIL}"""
 
-    sig_markup = """<font size="14" color="#059669"><i>QuickPress</i></font><br/>
+    sig_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "authorized_signature.png")
+    if os.path.exists(sig_path):
+        sig_cell: Any = [
+            RLImage(sig_path, width=72, height=36),
+            Spacer(1, 2),
+            Paragraph('<font size="8" color="#0f172a"><b>Authorised Signatory</b></font>', ParagraphStyle("P1Sig", parent=text_reg, alignment=2)),
+        ]
+    else:
+        sig_markup = """<font size="14" color="#059669"><i>QuickPress</i></font><br/>
 <font size="8" color="#0f172a"><b>Authorised Signatory</b></font>"""
+        sig_cell = Paragraph(sig_markup, ParagraphStyle("P1Sig", parent=text_reg, alignment=2))
 
     p1_footer_table = Table(
         [
             [
                 Paragraph(facilitator_info, text_reg),
-                Paragraph(sig_markup, ParagraphStyle("P1Sig", parent=text_reg, alignment=2)),
+                sig_cell,
             ]
         ],
         colWidths=[360, 163],
@@ -720,10 +729,31 @@ QuickPress Support : {COMPANY_EMAIL}"""
     story.append(Spacer(1, 60))
 
     # Page 2 Footer Signatory
-    p2_sig_block = f"""<b>For {company_legal}</b><br/><br/>
+    if os.path.exists(sig_path):
+        p2_for_p = Paragraph(f"<b>For {company_legal}</b>", ParagraphStyle("P2For", parent=text_reg, alignment=2))
+        p2_auth_p = Paragraph("<b>Authorised Signatory</b>", ParagraphStyle("P2Sig", parent=text_reg, alignment=2))
+        p2_sig_inner = Table([[p2_for_p], [RLImage(sig_path, width=76, height=38)], [p2_auth_p]], colWidths=[200])
+        p2_sig_inner.setStyle(TableStyle([
+            ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 1),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+        ]))
+        p2_sig_table = Table([[Paragraph("", text_reg), p2_sig_inner]], colWidths=[323, 200])
+        p2_sig_table.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "BOTTOM"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        story.append(p2_sig_table)
+    else:
+        p2_sig_block = f"""<b>For {company_legal}</b><br/><br/>
 <font size="14" color="#059669"><i>QuickPress</i></font><br/>
 <b>Authorised Signatory</b>"""
-    story.append(Paragraph(p2_sig_block, ParagraphStyle("P2Sig", parent=text_reg, alignment=2)))
+        story.append(Paragraph(p2_sig_block, ParagraphStyle("P2Sig", parent=text_reg, alignment=2)))
     story.append(Spacer(1, 20))
 
     # Bottom Legal communication address & terms URL
@@ -928,6 +958,7 @@ def generate_commission_invoice_pdf(data: Dict[str, Any]) -> bytes:
     period = data.get("period", "September 2026")
     partner_name = data.get("partner_name", "Partner Store")
     partner_id = data.get("partner_id", "")
+    partner_city = data.get("partner_city", "Uttar Pradesh, India")
     partner_gst = data.get("partner_gst", "Unregistered / Composition")
     comp = get_live_company_profile(data.get("company_profile"))
 
@@ -1022,10 +1053,22 @@ def generate_commission_invoice_pdf(data: Dict[str, Any]) -> bytes:
     story.append(Spacer(1, 24))
 
     # Digital Signature Badge
+    sig_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "authorized_signature.png")
+    if os.path.exists(sig_path):
+        sig_col: Any = [
+            Paragraph("<b>For QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</b>", body_style),
+            Spacer(1, 2),
+            RLImage(sig_path, width=72, height=36),
+            Spacer(1, 2),
+            Paragraph("<i>Authorised Signatory</i><br/>Himanshu Pal (Founder & Director)", body_style),
+        ]
+    else:
+        sig_col = Paragraph("<b>For QuickPress Technologies Pvt. Ltd.</b><br/><br/><i>Digitally signed & authorized</i><br/>Finance & Compliance Controller", body_style)
+
     sig_data = [
         [
-            Paragraph("<b>For QuickPress Technologies Pvt. Ltd.</b><br/><br/><i>Digitally signed & authorized</i><br/>Finance & Compliance Controller", body_style),
-            Paragraph("<b>Verification & Security</b><br/>Hash: SHA256 Verified<br/>Status: Active on GSTN Portal<br/>Query Desk: billing@quickpress.online", body_style),
+            sig_col,
+            Paragraph("<b>Verification & Security</b><br/>Hash: SHA256 Verified<br/>Status: Active on GSTN Portal<br/>Query Desk: official.quickpress@gmail.com", body_style),
         ]
     ]
     sig_table = Table(sig_data, colWidths=[260, 260])
@@ -1429,6 +1472,7 @@ def generate_commission_invoice_csv(data: Dict[str, Any]) -> str:
     period = data.get("period", "September 2026")
     partner_name = data.get("partner_name", "Partner Store")
     partner_id = data.get("partner_id", "")
+    partner_city = data.get("partner_city", "Uttar Pradesh, India")
     partner_gst = data.get("partner_gst", "Unregistered / Composition")
     partner_city = data.get("partner_city", "")
 

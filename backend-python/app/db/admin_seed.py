@@ -158,6 +158,7 @@ async def ensure_admin_operational_seed() -> None:
         "grievanceOfficerPhone": "+91 9258730561",
         "authorizedSignatoryName": "Himanshu Pal",
         "authorizedSignatoryDesignation": "Founder & Director",
+        "digitalSignatureUrl": "/images/authorized_signature.png",
         "state": "Uttar Pradesh",
         "stateCode": "09",
         "websiteUrl": "https://withquickpress.com",

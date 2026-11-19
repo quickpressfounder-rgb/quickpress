@@ -96,7 +96,7 @@ export function SettingsPage() {
         grievanceOfficerPhone: "+91 9258730561",
         authorizedSignatoryName: "Himanshu Pal",
         authorizedSignatoryDesignation: "Director / Founder",
-        digitalSignatureUrl: "",
+        digitalSignatureUrl: "/images/authorized_signature.png",
         companySealUrl: "",
         state: "Uttar Pradesh",
         stateCode: "09",

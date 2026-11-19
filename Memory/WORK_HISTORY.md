@@ -1,5 +1,41 @@
 # QuickPress — Engineering Work History
 
+## Session: November 19, 2026 (Part 46)
+
+### Official Authorized Signatory Stamp & Signature Integration Across Invoices and Reports
+
+1. **Context & User Request:**
+   - User provided a photograph of the official hand-written signature (*"invoice me ye use karo"*).
+   - Objective: Extract a clean, high-resolution, anti-aliased transparent PNG of the official signature, eliminate paper background and photo shadows, and integrate the signature across automated PDF tax invoices, web invoice views, printable corporate reports, and company settings.
+
+2. **Image Processing & Transparent Signature Assets:**
+   - Generated clean alpha-transparent signature asset (`authorized_signature.png`, 146x74) in authentic deep royal indigo pen ink (`#162662`), cropped tightly with anti-aliasing.
+   - Synchronized asset to all platform roots:
+     - `backend-python/app/assets/authorized_signature.png`
+     - `customer-frontend/public/images/authorized_signature.png`
+     - `admin-frontend/public/images/authorized_signature.png`
+     - `website/public/images/authorized_signature.png`
+
+3. **Multi-Surface Invoice & Financial Integration:**
+   - **Backend Automated PDF Tax Invoice (`backend-python/app/services/invoice_pdf_generator.py`):**
+     - Page 1 Footer: Rendered real authorized signature image above *"Authorised Signatory"* in marketplace facilitator block.
+     - Page 2 Footer: Embedded corporate signatory block with legal entity name `QUICKPRESS TECHNOLOGIES PRIVATE LIMITED`, signature image, and *"Authorised Signatory"*.
+     - Page 3 / Commission Invoice: Embedded signature in the statutory compliance & ITC verification table alongside SHA-256 validation badge.
+     - Resolved `partner_city` missing parameter fallback in Commission Tax Invoice generator.
+   - **Customer Web App (`customer-frontend/src/routes/invoices.$invoiceId.tsx`):**
+     - Added dedicated *"Authorized Signatory"* card displaying `QUICKPRESS TECHNOLOGIES PVT. LTD.`, Founder & Director `Himanshu Pal`, `CheckCircle2` GST Compliant badge, and the official signature image.
+   - **Admin Printable Corporate Reports (`admin-frontend/src/components/finance/OfficialReportsView.tsx`):**
+     - Replaced italic placeholder text with the actual authorized signature image and signatory credentials in the formal statutory audit seal.
+   - **Database Seeds & Settings (`admin_repositories.py`, `admin_seed.py`, `settings.tsx`):**
+     - Configured `digitalSignatureUrl: "/images/authorized_signature.png"` across global company profile defaults.
+
+4. **Verification & Testing:**
+   - Python PDF generation tested: Verified `generate_invoice_pdf` (69,971 bytes) and `generate_commission_invoice_pdf` (37,175 bytes) with embedded signature.
+   - `customer-frontend`: Production build passed (`vite build` & Nitro SSR).
+   - `admin-frontend`: Production build passed (`vite build` & Nitro SSR).
+
+---
+
 ## Session: November 19, 2026 (Part 45)
 
 ### Official Corporate Identity & Statutory Regulatory Integration (MCA Certificate of Incorporation & GST REG-06)

@@ -1164,12 +1164,14 @@ export function OfficialReportsView() {
             </div>
 
             <div style={{ textAlign: "center", width: "200px" }}>
-              <div style={{ fontStyle: "italic", fontWeight: "bold", fontSize: "14px", marginBottom: "4px" }}>
-                QuickPress Treasury
-              </div>
+              <img
+                src="/images/authorized_signature.png"
+                alt="Authorized Signatory"
+                style={{ height: "42px", width: "auto", margin: "0 auto 2px auto", display: "block" }}
+              />
               <div style={{ borderTop: "1px solid #000", paddingTop: "4px" }}>
                 <div style={{ fontSize: "11px", fontWeight: "bold", textTransform: "uppercase" }}>Authorized Signatory</div>
-                <div style={{ fontSize: "9px" }}>Chief Financial Officer &amp; Auditor</div>
+                <div style={{ fontSize: "9px" }}>Himanshu Pal · Director / Founder</div>
               </div>
             </div>
           </div>

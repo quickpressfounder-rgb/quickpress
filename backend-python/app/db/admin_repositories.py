@@ -4202,7 +4202,7 @@ class AdminSettingsRepository:
             "grievanceOfficerPhone": "+91 9258730561",
             "authorizedSignatoryName": "Himanshu Pal",
             "authorizedSignatoryDesignation": "Founder & Director",
-            "digitalSignatureUrl": "",
+            "digitalSignatureUrl": "/images/authorized_signature.png",
             "companySealUrl": "",
             "state": "Uttar Pradesh",
             "stateCode": "09",
