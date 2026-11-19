@@ -78,7 +78,7 @@ export function OfficialReportsView() {
   }, [selectedHub]);
 
   const hubGstin = useMemo(() => {
-    return selectedHub === "DELHI" ? "07AABCQ1234F1Z5 (Delhi State)" : "09AAACK1234M1Z5 (Uttar Pradesh State)";
+    return selectedHub === "DELHI" ? "07AABCQ3390H1ZA (Delhi State)" : "09AABCQ3390H1ZA (Uttar Pradesh State)";
   }, [selectedHub]);
 
   // Query: Accounting Statements (P&L, Balance Sheet, Cash Flow)
@@ -200,7 +200,7 @@ export function OfficialReportsView() {
     try {
       let csvContent = `data:text/csv;charset=utf-8,`;
       csvContent += `QUICKPRESS TECHNOLOGIES PRIVATE LIMITED\n`;
-      csvContent += `CIN: U74999DL2024PTC398201 | GSTIN: ${hubGstin}\n`;
+      csvContent += `CIN: U96010UW2026PTC259787 | GSTIN: ${hubGstin}\n`;
       csvContent += `Operational Hub: ${hubLabel}\n`;
       csvContent += `Official Financial Statement: ${reportTitleName}\n`;
       csvContent += `Period: ${selectedPeriod} | Scope: ${selectedHub === "ALL" ? "Consolidated" : selectedHub} | Generated At: ${currentDateFormatted}\n\n`;
@@ -519,10 +519,10 @@ export function OfficialReportsView() {
                 QuickPress Technologies Private Limited
               </h1>
               <div style={{ fontSize: "11px", lineHeight: "1.4", margin: "0" }}>
-                CIN: U74999DL2024PTC398201 | PAN: AABCQ1234F | GSTIN: {hubGstin}
+                CIN: U96010UW2026PTC259787 | PAN: AABCQ3390H | GSTIN: {hubGstin}
               </div>
               <div style={{ fontSize: "10px", lineHeight: "1.4", color: "#333", margin: "2px 0 0 0" }}>
-                Registered Office: QuickPress Central Operations Hub, Connaught Place, New Delhi - 110001, India
+                Registered Office: C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Kasganj, Etah - 207123, Uttar Pradesh, India
               </div>
               <div style={{ fontSize: "10px", lineHeight: "1.4", color: "#000", fontWeight: "bold", margin: "2px 0 0 0" }}>
                 Operational Hub: {hubLabel.toUpperCase()}
@@ -1102,7 +1102,7 @@ export function OfficialReportsView() {
                 </p>
               </div>
               <Badge className="bg-purple-50 text-purple-800 border border-purple-300 font-bold text-xs">
-                GSTIN: 07AABCQ1234F1Z5
+                GSTIN: 09AABCQ3390H1ZA
               </Badge>
             </div>
 

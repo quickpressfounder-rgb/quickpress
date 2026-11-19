@@ -138,4 +138,46 @@ async def ensure_admin_operational_seed() -> None:
     for s in kasganj_services:
         await database.update_one("partner_services", {"_id": s["_id"]}, {"$set": s}, upsert=True)
 
-    logger.info("Admin master catalog, cities, promo coupons, and Kasganj partner store successfully initialized.")
+    # 5. Master Corporate Legal Identity Seed (Single Source of Truth)
+    official_company_profile = {
+        "brandName": "QuickPress",
+        "tagline": "Hyperlocal On-Demand Laundry & Garment Care Platform",
+        "legalName": "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
+        "cin": "U96010UW2026PTC259787",
+        "pan": "AABCQ3390H",
+        "gstin": "09AABCQ3390H1ZA",
+        "tan": "AGRQ10114G",
+        "registeredAddress": "C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Kasganj, Etah - 207123, Uttar Pradesh, India",
+        "operatingAddress": "Ground Floor, Nagla Baini, Kasganj, Uttar Pradesh - 207123, India",
+        "supportEmail": "official.quickpress@gmail.com",
+        "corporateEmail": "info@withquickpress.com",
+        "legalEmail": "official.quickpress@gmail.com",
+        "supportPhone": "+91 9258730561",
+        "tollFreePhone": "+91 9258730561",
+        "grievanceOfficerName": "Himanshu Pal",
+        "grievanceOfficerPhone": "+91 9258730561",
+        "authorizedSignatoryName": "Himanshu Pal",
+        "authorizedSignatoryDesignation": "Founder & Director",
+        "state": "Uttar Pradesh",
+        "stateCode": "09",
+        "websiteUrl": "https://withquickpress.com",
+        "privacyPolicyUrl": "https://withquickpress.com/legal/privacy-policy",
+        "termsUrl": "https://withquickpress.com/legal/terms-of-service",
+        "grievanceUrl": "https://withquickpress.com/legal/grievance-redressal",
+        "refundPolicyUrl": "https://withquickpress.com/legal/cancellation-refund-policy",
+    }
+    await database.update_one(
+        "admin_settings",
+        {"_id": "global"},
+        {
+            "$set": {
+                "company": official_company_profile,
+                "supportEmail": "official.quickpress@gmail.com",
+                "supportPhone": "+91 9258730561",
+                "updatedAt": _iso(now),
+            }
+        },
+        upsert=True
+    )
+
+    logger.info("Admin master catalog, cities, promo coupons, partner store, and statutory company legal profile successfully initialized.")

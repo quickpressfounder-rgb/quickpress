@@ -3327,8 +3327,9 @@ function FullPageDossierView({
                     generatedAt: new Date().toISOString(),
                     dataFiduciary: {
                       name: "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
-                      cin: "U74999UP2024PTC198141",
-                      dpoContact: "dpo@withquickpress.com",
+                      cin: "U96010UW2026PTC259787",
+                      officialEmail: "official.quickpress@gmail.com",
+                      supportPhone: "+91 9258730561",
                     },
                     dataPrincipal: {
                       id: pId,

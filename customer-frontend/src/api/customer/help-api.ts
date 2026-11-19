@@ -149,10 +149,10 @@ export const HELP_TOPICS: HelpTopic[] = [
 ];
 
 export const SUPPORT_CONTACT: SupportContact = {
-  phone: "+918000123456",
-  phoneLabel: "—",
-  whatsapp: "918000123456",
-  email: "support@quickpress.in",
+  phone: "+91 9258730561",
+  phoneLabel: "+91 9258730561",
+  whatsapp: "919258730561",
+  email: "official.quickpress@gmail.com",
   appVersion: "2.11.0",
   responseTime: "under 5 minutes",
 };

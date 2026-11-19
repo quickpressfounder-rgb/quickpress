@@ -49,12 +49,12 @@ except Exception:
 
 
 # Company Legal Defaults (Configured by Administrator in Admin Settings)
-COMPANY_LEGAL_NAME = os.getenv("COMPANY_LEGAL_NAME", "")
+COMPANY_LEGAL_NAME = os.getenv("COMPANY_LEGAL_NAME", "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED")
 COMPANY_TRADE_NAME = "QuickPress"
-COMPANY_CIN = os.getenv("COMPANY_CIN", "")
-COMPANY_PAN = os.getenv("COMPANY_PAN", "")
-COMPANY_GSTIN = os.getenv("COMPANY_GSTIN", "")
-COMPANY_ADDRESS = os.getenv("COMPANY_ADDRESS", "")
+COMPANY_CIN = os.getenv("COMPANY_CIN", "U96010UW2026PTC259787")
+COMPANY_PAN = os.getenv("COMPANY_PAN", "AABCQ3390H")
+COMPANY_GSTIN = os.getenv("COMPANY_GSTIN", "09AABCQ3390H1ZA")
+COMPANY_ADDRESS = os.getenv("COMPANY_ADDRESS", "C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Kasganj, Etah - 207123, Uttar Pradesh, India")
 COMPANY_EMAIL = os.getenv("COMPANY_EMAIL", "official.quickpress@gmail.com")
 COMPANY_STATE = os.getenv("COMPANY_STATE", "Uttar Pradesh")
 COMPANY_STATE_CODE = os.getenv("COMPANY_STATE_CODE", "09")

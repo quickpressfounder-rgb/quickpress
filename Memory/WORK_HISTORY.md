@@ -1,5 +1,55 @@
 # QuickPress — Engineering Work History
 
+## Session: November 19, 2026 (Part 45)
+
+### Official Corporate Identity & Statutory Regulatory Integration (MCA Certificate of Incorporation & GST REG-06)
+
+1. **Context & User Request:**
+   - User requested an audit of all legal details across the platform (*"ab ike aner legal detail kaha kaha hai batao or cin gst director ,mob email ,whatapp helpline,etc etc kiya kiyahai batao ?"*).
+   - User provided official government documents:
+     - **MCA Certificate of Incorporation:** `QUICKPRESS TECHNOLOGIES PRIVATE LIMITED`, CIN: `U96010UW2026PTC259787`, PAN: `AABCQ3390H`, TAN: `AGRQ10114G`, Incorporated: `06/10/2026`, Registered Office: `C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Kasganj, Etah - 207123, Uttar Pradesh, India`.
+     - **GST Registration Certificate (Form GST REG-06):** GSTIN: `09AABCQ3390H1ZA` (Uttar Pradesh State 09), Principal Place: `Ground Floor, Nagla Baini, Kasganj, Uttar Pradesh - 207123, India`.
+   - Specific user constraints & directives:
+     - Helpline phone: `+91 9258730561`
+     - WhatsApp: `919258730561`
+     - Purge `dpo@` email (`dpo@withquickpress.com`) and route all inquiries & statutory grievances through `official.quickpress@gmail.com`.
+     - User confirmed proposal with *"Proceed"*.
+
+2. **System-Wide Legal & Regulatory Implementation:**
+   - **Backend Core & Database Seeds (`backend-python`):**
+     - `app/db/admin_repositories.py`: Updated `default_settings["company"]` with legal name, official CIN, PAN, TAN, GSTIN, registered & operating Kasganj addresses, support phone `+91 9258730561`, official email, and grievance officer (`Himanshu Pal`).
+     - `app/db/admin_seed.py`: Added Step 5 to `ensure_admin_operational_seed` upserting `admin_settings` collection (`_id: "global"`) with official company profile upon backend startup.
+     - `app/services/invoice_pdf_generator.py`: Updated fallback environment values for company name, CIN, PAN, GSTIN, and registered office in statutory PDF tax invoices.
+   - **Admin Management Console (`admin-frontend`):**
+     - `src/components/finance/OfficialReportsView.tsx`: Updated corporate letterhead, CSV export, and tax schedule with official CIN (`U96010UW2026PTC259787`), PAN (`AABCQ3390H`), GSTIN (`09AABCQ3390H1ZA`), and Kasganj registered office.
+     - `src/routes/crm.tsx`: Updated statutory DPDP export dossier Data Fiduciary profile with CIN `U96010UW2026PTC259787`, replaced DPO email with `official.quickpress@gmail.com` and support phone `+91 9258730561`.
+     - `src/routes/settings.tsx`: Updated company default draft memo state with official corporate identity parameters.
+   - **Customer Portal & SEO/AEO/GEO Schemas (`customer-frontend`):**
+     - `src/api/customer/help-api.ts`: Updated `SUPPORT_CONTACT` with phone `+91 9258730561`, whatsapp `919258730561`, and `official.quickpress@gmail.com`.
+     - `src/routes/contact.tsx`: Updated direct contact channels to helpline `+91 9258730561` and WhatsApp support `919258730561`.
+     - `src/routes/profile.tsx`: Purged `dpo@withquickpress.com` from personal data download bundle and DPDP grievance redressal notices; mapped to `official.quickpress@gmail.com` and `+91 9258730561`.
+     - `src/shared/seo/AeoGeoSchemas.ts`: Integrated official CIN `identifier`, `taxID: 09AABCQ3390H1ZA`, and updated street address in Schema.org LocalBusiness & Organization JSON-LD.
+     - `public/llms.txt` & `public/llms-full.txt`: Documented official corporate registration details (CIN, PAN, TAN, GSTIN, incorporation date, and registered address) for direct LLM knowledge citation.
+   - **Delivery Captain Console (`rider-frontend`):**
+     - `src/api/rider/rider-support-api.ts`: Populated `CAPTAIN_HELPLINE_PHONE` with `+91 9258730561`, set WhatsApp URL to `https://wa.me/919258730561`, and updated hub address.
+     - `src/screens/CaptainHelpScreen.tsx`: Updated live support contacts with official helpline and WhatsApp channel.
+   - **Public Website (`website`):**
+     - `src/components/Footer.tsx`: Updated copyright line with official CIN and GSTIN.
+     - `src/pages/InvestorRelationsPage.tsx`: Updated statutory entity profile with CIN `U96010UW2026PTC259787` and incorporation year `2026`.
+     - `src/pages/PrivacyPolicyPage.tsx`: Replaced placeholder CIN and DPO emails with official MCA address, GSTIN, PAN, and `official.quickpress@gmail.com`.
+     - `src/pages/TermsPage.tsx`: Updated corporate entity bar, binding party definitions, and Tier 2 Grievance Officer notices with verified details.
+
+3. **Build & Quality Verification:**
+   - Verified Python syntax: `python3 -m py_compile` passed with 0 errors.
+   - Production Vite / TanStack Start builds:
+     - `customer-frontend`: Built cleanly (`vite build` & Nitro SSR).
+     - `admin-frontend`: Built cleanly (`vite build` & Nitro SSR).
+     - `rider-frontend`: Built cleanly (`vite build` & Nitro SSR).
+     - `partner-frontend`: Built cleanly (`vite build` & Nitro SSR).
+   - Scanned entire workspace for any remaining placeholder CINs (`U74999`) or `dpo@` emails — 100% eliminated.
+
+---
+
 ## Session: November 18, 2026 (Part 44)
 
 ### Upgraded Motion Graphic AI Promotional Reel (Yellow Theme, Hinglish, Real Assets & Pan-India Scope)

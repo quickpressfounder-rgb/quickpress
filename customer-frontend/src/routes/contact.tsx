@@ -120,41 +120,30 @@ function ContactScreen() {
 
               <div className="space-y-4 text-xs">
                 <a
-                  href="tel:+919258730561"
+                  href={`tel:${companyProfile?.supportPhone || "+919258730561"}`}
                   className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
                 >
                   <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
                     <Phone className="size-4" />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 text-sm">+91 9258730561</p>
-                    <p className="text-slate-500 mt-0.5">Quickpress Helpdesk (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
+                    <p className="font-bold text-slate-900 text-sm">{companyProfile?.supportPhone || "+91 9258730561"}</p>
+                    <p className="text-slate-500 mt-0.5">QuickPress Helpdesk & Helpline (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
                   </div>
                 </a>
 
                 <a
-                  href={`tel:${companyProfile?.tollFreePhone || "18000123456"}`}
+                  href="https://wa.me/919258730561"
+                  target="_blank"
+                  rel="noreferrer"
                   className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
                 >
                   <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
-                    <Phone className="size-4" />
+                    <MessageSquare className="size-4" />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 text-sm">{companyProfile?.tollFreePhone || "—"}</p>
-                    <p className="text-slate-500 mt-0.5">QuickPress Helpdesk (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
-                  </div>
-                </a>
-
-                <a
-                  href={`tel:${companyProfile?.supportPhone || "+919000000000"}`}
-                  className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
-                >
-                  <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
-                    <Phone className="size-4" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900 text-sm">{companyProfile?.supportPhone || "+91 90000 00000"}</p>
-                    <p className="text-slate-500 mt-0.5">Grievance & Operations Desk ({companyProfile?.grievanceOfficerName || "Himanshu Pal"})</p>
+                    <p className="font-bold text-slate-900 text-sm">+91 9258730561 (WhatsApp Support)</p>
+                    <p className="text-slate-500 mt-0.5">Direct Chat with Operations & Support</p>
                   </div>
                 </a>
 

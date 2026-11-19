@@ -89,10 +89,10 @@ export const CaptainHelpScreen: React.FC<CaptainHelpScreenProps> = ({
     ok: true,
     helplinePhone: CAPTAIN_HELPLINE_PHONE,
     supportEmail: CAPTAIN_SUPPORT_EMAIL,
-    whatsappUrl: "https://wa.me/917906998218?text=Hello%20QuickPress%20Support,%20I%20am%20a%20Captain%20and%20need%20help",
+    whatsappUrl: "https://wa.me/919258730561?text=Hello%20QuickPress%20Support,%20I%20am%20a%20Captain%20and%20need%20help",
     emergencySosNumber: CAPTAIN_EMERGENCY_SOS,
     workingHours: "24 Hours · 7 Days a Week (24/7)",
-    hubAddress: "QuickPress Express Hub, Kasganj, Uttar Pradesh 207123",
+    hubAddress: "Ground Floor, Nagla Baini, Kasganj, Uttar Pradesh 207123",
   });
 
   // Recent Orders State for Order Picker

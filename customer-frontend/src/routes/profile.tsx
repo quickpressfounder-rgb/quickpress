@@ -600,9 +600,10 @@ function ProfileScreen() {
           })),
         },
         dataProtectionOfficer: {
-          title: "Grievance & Data Protection Officer (DPO)",
+          title: "Grievance & Compliance Desk",
           corporateEntity: "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
-          email: "dpo@withquickpress.com",
+          email: "official.quickpress@gmail.com",
+          supportPhone: "+91 9258730561",
           grievanceRedressalSla: "48 hours response, 30 days resolution",
         },
       };
@@ -1641,9 +1642,9 @@ function ProfileScreen() {
 
             {/* 4. Grievance Officer Notice */}
             <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200/80 dark:border-emerald-900/50 text-[10.5px] space-y-1">
-              <p className="font-black text-emerald-950 dark:text-emerald-200">Grievance &amp; Data Protection Officer (DPO)</p>
+              <p className="font-black text-emerald-950 dark:text-emerald-200">Grievance &amp; Compliance Redressal Desk</p>
               <p className="text-emerald-900/80 dark:text-emerald-400">
-                Official Desk: <a href="mailto:dpo@withquickpress.com" className="underline font-bold">dpo@withquickpress.com</a> • QuickPress Technologies Pvt. Ltd. (Kasganj / Delhi NCR). Resolution within 30 days as per DPDP Act.
+                Official Desk: <a href="mailto:official.quickpress@gmail.com" className="underline font-bold">official.quickpress@gmail.com</a> • Helpline: <a href="tel:+919258730561" className="underline font-bold">+91 9258730561</a> • QuickPress Technologies Pvt. Ltd. Resolution within 30 days as per DPDP Act.
               </p>
             </div>
 

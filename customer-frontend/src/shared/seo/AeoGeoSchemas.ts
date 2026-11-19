@@ -31,6 +31,8 @@ export const QUICKPRESS_ORGANIZATION_SCHEMA = {
   "@type": "Organization",
   name: "QuickPress",
   legalName: "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
+  identifier: "U96010UW2026PTC259787",
+  taxID: "09AABCQ3390H1ZA",
   url: "https://withquickpress.com",
   logo: "https://withquickpress.com/quickpress-logo-yellow.jpg",
   contactPoint: {
@@ -78,7 +80,7 @@ export const QUICKPRESS_LOCAL_BUSINESS_SCHEMA = {
   ],
   address: {
     "@type": "PostalAddress",
-    streetAddress: "Soron Gate, Near Clock Tower, Kaliyanpur",
+    streetAddress: "Ground Floor, Nagla Baini",
     addressLocality: "Kasganj",
     addressRegion: "Uttar Pradesh",
     postalCode: "207123",

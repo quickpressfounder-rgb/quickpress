@@ -98,11 +98,11 @@ export function InvestorRelationsPage({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-xs font-mono">
             <div>
               <span className="text-zinc-500 block mb-1">Corporate Identity (CIN):</span>
-              <span className="font-black text-black text-sm">U74999UP2024PTC198141</span>
+              <span className="font-black text-black text-sm">U96010UW2026PTC259787</span>
             </div>
             <div>
               <span className="text-zinc-500 block mb-1">Year of Incorporation:</span>
-              <span className="font-black text-black text-sm">2024</span>
+              <span className="font-black text-black text-sm">2026</span>
             </div>
             <div>
               <span className="text-zinc-500 block mb-1">Registered Headquarters:</span>
