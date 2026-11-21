@@ -1,5 +1,48 @@
 # QuickPress — Engineering Work History
 
+## Session: November 21, 2026 (Part 53)
+
+### Rider & Partner Registration Polish: Badge Alignment, Live City & PIN GPS Auto-Detection, Floating-Label Segmented DOB, Subtitle Removal Across All Steps, Courier-Only Delivery Kit with 5 Items, & Sticky Header Fix
+
+1. **Context & User Directives:**
+   - **Fix Email Badge Alignment:** Green "Verified ✓" badge was overlapping long email text inside the input box. Relocate to the label header.
+   - **Live City & PIN Code Auto-Detection:** Automatically detect and populate the applicant's real live operating city and PIN code via browser GPS and Google Maps reverse geocoding proxy instead of hardcoding or forcing static fallback defaults.
+   - **DOB Selector Redesign:** Replace standard date input with a modern floating-label segmented selector (DD, MM, YYYY dropdowns) ensuring 18+ eligibility.
+   - **Strip All Subtitle Descriptions:** Remove verbose subtitle paragraphs and helper texts across all registration steps in both Rider and Partner portals.
+   - **Eliminate City Hub Pickup:** Remove the "City Hub Pickup" option completely. All delivery kits are strictly dispatched via courier Home Delivery with recipient details.
+   - **5 Official Kit Contents Preview:** Provide an official breakdown showing the 5 items: 2x Dry-Fit T-Shirts, 1x Reflective Raincoat, 1x Waterproof Insulated Bag, 1x RFID/QR ID Card with Lanyard, and 1x Stainless Steel Water Bottle (750ml).
+   - **Live Razorpay & Auto-Redirect:** Connect "Proceed to Payment" to real Razorpay live key (`rzp_live_TjoBvXbaXHYmxE`). Upon successful payment verification, automatically redirect applicant to Step 7 (Partner Agreement).
+   - **Sticky Header Fix:** Resolve scrolling issue by replacing `overflow-x-hidden` on root containers with `overflow-x-clip` to restore native `sticky top-0 z-50` behavior.
+
+2. **Full-Stack Engineering Solutions Delivered:**
+   - **Sticky Header Fix (`rider-frontend/src/routes/__root.tsx`, `partner-frontend/src/routes/__root.tsx`):**
+     - Replaced `overflow-x-hidden` on `<body>` and root layout wrappers with `overflow-x-clip` to eliminate scroll-container trapping that broke CSS `position: sticky`.
+   - **Rider Registration Screen (`rider-frontend/src/screens/RiderRegistrationScreen.tsx`):**
+     - Fixed Email Verified badge by placing it cleanly in the label row (`flex items-center justify-between mb-1`) and removing overlapping absolute badges from inside the input.
+     - Implemented floating-label segmented DOB selector with separate Day (`01-31`), Month (`01-12`), and Year (`1960-2008`) selectors.
+     - Configured `detectLiveLocation()` to automatically fetch live browser GPS and reverse-geocode to actual live city and pincode on mount. Added one-click `[ 📍 Detect Live City ]` trigger.
+     - Converted Operating Pincode to a direct 6-digit text input that auto-fills from GPS and accepts manual edits.
+     - Stripped descriptions across all steps: Step 1 personal blurb & referral blurb, Step 2 KYC selfie blurb, Step 3 vehicle subtitle, Step 4 DL subtitle, Step 5 bank payout subtitle & IFSC help link, Step 7 agreement blurb & admin review footer.
+     - In `DocumentUploadSlot`: Removed sublabel text and secondary "Saved to secure cloud" blurb for clean attached state.
+   - **Delivery Kit Selection (`rider-frontend/src/components/registration/DeliveryKitSelectionStep.tsx`):**
+     - Removed black starter kit marketing banner and yellow policy notice callout.
+     - Added official 5-item kit preview: 2x Dry-Fit T-Shirts, 1x Raincoat, 1x Delivery Bag, 1x ID Card with Lanyard, and 1x Water Bottle.
+     - Removed City Hub Pickup completely; enforced Home Delivery with full recipient form (Recipient Name, Mobile, Complete Address, Landmark, City, PIN Code).
+     - Configured clean EMI installment plans (2, 3, or 4 weeks) with English copy and bundled metadata for admin desk tracking.
+     - Connected "Proceed to Payment" to live Razorpay key (`rzp_live_TjoBvXbaXHYmxE`) and configured `onPaymentSuccess` to immediately advance to Step 7.
+   - **Partner Registration (`partner-frontend/src/screens/BusinessRegistrationScreen.tsx`):**
+     - Moved Email Verified badge from inside input into the label row.
+     - Removed subtitle descriptions across Step 1, Step 3, Step 4, Step 5, and Step 6.
+     - Removed owner photo subtitle blurb.
+   - **Backend Delivery Kit API (`backend-python/app/api/rider_delivery_kit.py`):**
+     - Updated default kit items list to match the 5 official items.
+     - Updated `verify_kit_payment` to seamlessly support `emiWeekly` or `emiWeeklyAmount` keys in shipping metadata.
+
+3. **Verification & Build Results:**
+   - `rider-frontend`: Production build passed (`npm run build` exit code 0).
+   - `partner-frontend`: Production build passed (`npm run build` exit code 0).
+   - FastAPI Backend: Running and verified on port 8000.
+
 ## Session: November 21, 2026 (Part 52)
 
 ### Rider & Partner Registration Redesign, Document Scanner Viewfinder, Delivery Kit Recipient Form & Customized EMI Integration

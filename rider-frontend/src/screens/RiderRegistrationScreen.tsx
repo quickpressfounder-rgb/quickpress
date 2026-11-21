@@ -22,6 +22,7 @@ import {
   Loader2,
   Mail,
   MapPin,
+  Navigation,
   Package,
   PenTool,
   RefreshCw,
@@ -47,6 +48,7 @@ import {
   sendRiderAgreementOtp,
   verifyRiderAgreementOtp,
 } from "../api/rider/rider-auth-api";
+import { reverseGeocodeCoords } from "../api/core/maps-api";
 import { apiGetJson, apiPostJson } from "../api/core/transport";
 import { readSession, writeSession } from "../api/core/session-store";
 import { QuickPressLogo } from "../components/common/QuickPressLogo";
@@ -318,9 +320,6 @@ function DocumentUploadSlot({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-neutral-900 truncate">{label}</p>
-            <p className="text-[10px] text-neutral-500 truncate">
-              {value.startsWith("http") ? "Saved to secure cloud" : "Document attached"}
-            </p>
           </div>
           <button
             type="button"
@@ -363,9 +362,6 @@ function DocumentUploadSlot({
               <div>
                 <p className={`text-xs font-bold ${error ? "text-red-800" : "text-neutral-800"}`}>
                   {isUploading ? "Uploading..." : `Scan or Upload ${label}`}
-                </p>
-                <p className="text-[10px] text-neutral-500">
-                  {sublabel || "Clear photo with 4 corners visible"}
                 </p>
               </div>
             </div>
@@ -461,6 +457,7 @@ export function RiderRegistrationScreen() {
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [pincode, setPincode] = useState<string>("");
   const [customPincodeMode, setCustomPincodeMode] = useState<boolean>(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState<boolean>(false);
   const [emergencyPhone, setEmergencyPhone] = useState<string>("");
   const [referralCode, setReferralCode] = useState<string>(() => {
     if (typeof window !== "undefined") {
@@ -962,6 +959,73 @@ export function RiderRegistrationScreen() {
       active = false;
     };
   }, []);
+
+  // Auto-detect live city and pincode from GPS
+  const detectLiveLocation = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) return;
+    setIsDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const res = await reverseGeocodeCoords(lat, lng);
+          if (res) {
+            const detectedCity = res.city || res.area || "";
+            const detectedPin = res.pincode || "";
+            if (detectedCity) {
+              setSelectedCity(detectedCity);
+              clearFieldError("selectedCity");
+              setLiveCities((prev) => {
+                if (!prev.some((c) => (c.city || c.name)?.toLowerCase() === detectedCity.toLowerCase())) {
+                  return [{ city: detectedCity, name: detectedCity, state: res.state || "Uttar Pradesh", active: true }, ...prev];
+                }
+                return prev;
+              });
+            }
+            if (detectedPin) {
+              setPincode(detectedPin);
+              setCustomPincodeMode(true);
+              clearFieldError("pincode");
+            }
+            toast.success(`Live Location: ${detectedCity}${detectedPin ? ` (${detectedPin})` : ""}`);
+          }
+        } catch {
+          /* ignore */
+        } finally {
+          setIsDetectingLocation(false);
+        }
+      },
+      () => {
+        setIsDetectingLocation(false);
+      },
+      { timeout: 8000, enableHighAccuracy: true }
+    );
+  };
+
+  // Auto-detect live city and pincode from GPS on mount
+  useEffect(() => {
+    detectLiveLocation();
+  }, []);
+
+  // Segmented DOB values for custom picker
+  const dobParts = dob ? dob.split("-") : ["", "", ""];
+  const dobYear = dobParts[0] || "";
+  const dobMonth = dobParts[1] || "";
+  const dobDay = dobParts[2] || "";
+
+  const handleDobChange = (part: "year" | "month" | "day", val: string) => {
+    const y = part === "year" ? val : dobYear;
+    const m = part === "month" ? val : dobMonth;
+    const d = part === "day" ? val : dobDay;
+    if (y && m && d) {
+      setDob(`${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`);
+      clearFieldError("dob");
+    } else if (y || m || d) {
+      setDob(`${y || "2000"}-${(m || "01").padStart(2, "0")}-${(d || "01").padStart(2, "0")}`);
+      clearFieldError("dob");
+    }
+  };
 
   // Selfie upload from gallery handler
   const handleSelfieFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1763,9 +1827,6 @@ export function RiderRegistrationScreen() {
             <div className="p-4 bg-white border border-neutral-200 rounded-2xl space-y-3.5 shadow-xs">
               <div className="pb-2 border-b border-neutral-100">
                 <h3 className="text-sm font-bold text-neutral-900">Step 1: Personal Details</h3>
-                <p className="text-[11px] text-neutral-500">
-                  Enter your official profile information matching your government ID
-                </p>
               </div>
 
               {/* Full Name */}
@@ -1800,9 +1861,17 @@ export function RiderRegistrationScreen() {
 
               {/* Official Email Address & Live OTP Verification */}
               <div>
-                <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
-                  Official Email Address <span className="text-red-500 font-black">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide">
+                    Official Email Address <span className="text-red-500 font-black">*</span>
+                  </label>
+                  {isEmailVerified && (
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      <Check className="w-3 h-3 text-[#00C853] stroke-[3]" />
+                      Verified
+                    </span>
+                  )}
+                </div>
                 <div className="relative flex items-center gap-2">
                   <div className="relative flex-1">
                     <input
@@ -1819,18 +1888,12 @@ export function RiderRegistrationScreen() {
                       }}
                       className={`w-full h-11 px-3.5 bg-white border rounded-xl text-xs font-bold text-neutral-900 transition-all ${
                         isEmailVerified
-                          ? "bg-emerald-50/50 border-emerald-300 text-emerald-950 font-black"
+                          ? "bg-emerald-50/30 border-emerald-300 text-emerald-950 font-semibold"
                           : fieldErrors["email"]
                           ? "border-red-500 ring-2 ring-red-400/20 bg-red-50/10 focus:border-red-500"
                           : "border-neutral-200 focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/15"
                       }`}
                     />
-                    {isEmailVerified && (
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] font-black text-emerald-600 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                        <span>Verified ✓</span>
-                      </span>
-                    )}
                   </div>
 
                   {!isEmailVerified && (
@@ -1955,25 +2018,72 @@ export function RiderRegistrationScreen() {
                 )}
               </div>
 
-              {/* Date of Birth */}
+              {/* Date of Birth (Segmented Modern Selector) */}
               <div>
-                <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
-                  Date of Birth (DOB) <span className="text-red-500 font-black">*</span>
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={dob}
-                  onChange={(e) => {
-                    setDob(e.target.value);
-                    clearFieldError("dob");
-                  }}
-                  className={`w-full h-11 px-3.5 bg-white border rounded-xl text-xs font-bold text-neutral-900 transition-all ${
-                    fieldErrors["dob"]
-                      ? "border-red-500 ring-2 ring-red-400/20 bg-red-50/10 focus:border-red-500"
-                      : "border-neutral-200 focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/15"
-                  }`}
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide">
+                    Date of Birth (DOB) <span className="text-red-500 font-black">*</span>
+                  </label>
+                  {dob && (
+                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      {dob}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1.5 text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Day</span>
+                    <select
+                      value={dobDay}
+                      onChange={(e) => handleDobChange("day", e.target.value)}
+                      className="w-full h-12 pt-4 pb-1 px-2.5 bg-neutral-50/70 hover:bg-neutral-50 border border-neutral-200 focus:border-[#00C853] focus:bg-white rounded-xl text-xs font-bold text-neutral-900 focus:outline-none transition-all cursor-pointer"
+                    >
+                      <option value="">DD</option>
+                      {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0")).map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1.5 text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Month</span>
+                    <select
+                      value={dobMonth}
+                      onChange={(e) => handleDobChange("month", e.target.value)}
+                      className="w-full h-12 pt-4 pb-1 px-2.5 bg-neutral-50/70 hover:bg-neutral-50 border border-neutral-200 focus:border-[#00C853] focus:bg-white rounded-xl text-xs font-bold text-neutral-900 focus:outline-none transition-all cursor-pointer"
+                    >
+                      <option value="">MM</option>
+                      {[
+                        { num: "01", name: "Jan" },
+                        { num: "02", name: "Feb" },
+                        { num: "03", name: "Mar" },
+                        { num: "04", name: "Apr" },
+                        { num: "05", name: "May" },
+                        { num: "06", name: "Jun" },
+                        { num: "07", name: "Jul" },
+                        { num: "08", name: "Aug" },
+                        { num: "09", name: "Sep" },
+                        { num: "10", name: "Oct" },
+                        { num: "11", name: "Nov" },
+                        { num: "12", name: "Dec" },
+                      ].map((m) => (
+                        <option key={m.num} value={m.num}>{m.num} - {m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1.5 text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Year</span>
+                    <select
+                      value={dobYear}
+                      onChange={(e) => handleDobChange("year", e.target.value)}
+                      className="w-full h-12 pt-4 pb-1 px-2.5 bg-neutral-50/70 hover:bg-neutral-50 border border-neutral-200 focus:border-[#00C853] focus:bg-white rounded-xl text-xs font-bold text-neutral-900 focus:outline-none transition-all cursor-pointer"
+                    >
+                      <option value="">YYYY</option>
+                      {Array.from({ length: 48 }, (_, i) => String(2008 - i)).map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
                 {fieldErrors["dob"] && (
                   <p className="mt-1 text-[11px] font-bold text-red-600 flex items-center gap-1">
                     <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
@@ -1984,9 +2094,20 @@ export function RiderRegistrationScreen() {
 
               {/* Operating City */}
               <div>
-                <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
-                  Operating City <span className="text-red-500 font-black">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide">
+                    Operating City <span className="text-red-500 font-black">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={detectLiveLocation}
+                    disabled={isDetectingLocation}
+                    className="text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Navigation className={`w-3 h-3 text-[#00C853] ${isDetectingLocation ? "animate-spin" : ""}`} />
+                    <span>{isDetectingLocation ? "Detecting..." : "Detect Live City"}</span>
+                  </button>
+                </div>
                 <select
                   value={selectedCity}
                   onChange={(e) => {
@@ -2017,60 +2138,24 @@ export function RiderRegistrationScreen() {
 
               {/* Operating Pincode */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide">
-                    Operating Pincode <span className="text-red-500 font-black">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomPincodeMode(!customPincodeMode);
-                      setPincode("");
-                    }}
-                    className="text-[10px] font-bold text-neutral-600 hover:underline flex items-center gap-0.5"
-                  >
-                    <Edit3 className="w-3 h-3" />
-                    <span>{customPincodeMode ? "Select from list" : "Type custom pincode"}</span>
-                  </button>
-                </div>
-
-                {customPincodeMode || cityPincodes.length === 0 ? (
-                  <input
-                    type="tel"
-                    maxLength={6}
-                    placeholder="Enter 6-digit pin code"
-                    value={pincode}
-                    onChange={(e) => {
-                      setPincode(e.target.value.replace(/\D/g, ""));
-                      clearFieldError("pincode");
-                    }}
-                    className={`w-full h-11 px-3.5 bg-white border rounded-xl text-xs font-bold text-neutral-900 transition-all ${
-                      fieldErrors["pincode"]
-                        ? "border-red-500 ring-2 ring-red-400/20 bg-red-50/10 focus:border-red-500"
-                        : "border-neutral-200 focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/15"
-                    }`}
-                  />
-                ) : (
-                  <select
-                    value={pincode}
-                    onChange={(e) => {
-                      setPincode(e.target.value);
-                      clearFieldError("pincode");
-                    }}
-                    className={`w-full h-11 px-3 bg-white border rounded-xl text-xs font-bold text-neutral-900 transition-all ${
-                      fieldErrors["pincode"]
-                        ? "border-red-500 ring-2 ring-red-400/20 bg-red-50/10 focus:border-red-500"
-                        : "border-neutral-200 focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/15"
-                    }`}
-                  >
-                    <option value="">-- Select Pin Code --</option>
-                    {cityPincodes.map((pin) => (
-                      <option key={pin} value={pin}>
-                        {pin}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
+                  Operating Pincode <span className="text-red-500 font-black">*</span>
+                </label>
+                <input
+                  type="tel"
+                  maxLength={6}
+                  placeholder="Enter 6-digit pin code"
+                  value={pincode}
+                  onChange={(e) => {
+                    setPincode(e.target.value.replace(/\D/g, ""));
+                    clearFieldError("pincode");
+                  }}
+                  className={`w-full h-11 px-3.5 bg-white border rounded-xl text-xs font-bold text-neutral-900 transition-all ${
+                    fieldErrors["pincode"]
+                      ? "border-red-500 ring-2 ring-red-400/20 bg-red-50/10 focus:border-red-500"
+                      : "border-neutral-200 focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/15"
+                  }`}
+                />
                 {fieldErrors["pincode"] && (
                   <p className="mt-1 text-[11px] font-bold text-red-600 flex items-center gap-1">
                     <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
@@ -2113,9 +2198,6 @@ export function RiderRegistrationScreen() {
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-[10px] text-neutral-500">
-                  Enter your colleague captain's referral code to unlock milestone bonuses.
-                </p>
               </div>
 
               {/* Registered Phone Badge */}
@@ -2140,7 +2222,6 @@ export function RiderRegistrationScreen() {
               <div className="pb-2 border-b border-neutral-100 flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-bold text-neutral-900">Step 2: Identity & Rider Photo</h3>
-                  <p className="text-[11px] text-neutral-500">Government identity verification and profile photo</p>
                 </div>
 
                 {/* ID Mode Switcher */}
@@ -2349,10 +2430,6 @@ export function RiderRegistrationScreen() {
                   )}
                 </div>
 
-                <p className="text-[11px] text-neutral-500">
-                  Apni saaf photo upload karein ya direct mobile/webcam camera se live photo click karein
-                </p>
-
                 {/* Hidden File Input for Gallery */}
                 <input
                   type="file"
@@ -2440,9 +2517,6 @@ export function RiderRegistrationScreen() {
             <div className="p-4 bg-white border border-neutral-200 rounded-2xl space-y-3.5 shadow-xs">
               <div className="pb-2 border-b border-neutral-100">
                 <h3 className="text-sm font-bold text-neutral-900">Step 3: Vehicle & RC Details</h3>
-                <p className="text-[11px] text-neutral-500">
-                  Vehicle plate number, vehicle photo and RC documents
-                </p>
               </div>
 
               {/* Vehicle Number Plate */}
@@ -2701,9 +2775,6 @@ export function RiderRegistrationScreen() {
             <div className="p-4 bg-white border border-neutral-200 rounded-2xl space-y-3.5 shadow-xs">
               <div className="pb-2 border-b border-neutral-100">
                 <h3 className="text-sm font-bold text-neutral-900">Step 4: Driving Licence (DL)</h3>
-                <p className="text-[11px] text-neutral-500">
-                  Driving Licence details and front/back photo
-                </p>
               </div>
 
               {/* DL Number */}
@@ -2804,9 +2875,6 @@ export function RiderRegistrationScreen() {
             <div className="p-4 bg-white border border-neutral-200 rounded-2xl space-y-3.5 shadow-xs">
               <div className="pb-2 border-b border-neutral-100">
                 <h3 className="text-sm font-bold text-neutral-900">Step 5: Bank Payout Account</h3>
-                <p className="text-[11px] text-neutral-500">
-                  Select your bank, find IFSC and confirm account number for 0% commission direct payouts
-                </p>
               </div>
 
               {/* Bank Name Selector */}
@@ -2877,20 +2945,9 @@ export function RiderRegistrationScreen() {
 
               {/* IFSC Code & "Find / Verify IFSC" */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide">
-                    Bank IFSC Code <span className="text-red-500 font-black">*</span>
-                  </label>
-                  <a
-                    href="https://rbi.org.in"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[10px] font-bold text-neutral-500 hover:text-neutral-800 flex items-center gap-0.5"
-                  >
-                    <span>Need help finding IFSC?</span>
-                    <ExternalLink className="w-2.5 h-2.5" />
-                  </a>
-                </div>
+                <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
+                  Bank IFSC Code <span className="text-red-500 font-black">*</span>
+                </label>
                 <div className="relative">
                   <input
                     type="text"
@@ -3148,9 +3205,6 @@ export function RiderRegistrationScreen() {
                     <Scale className="w-4 h-4 text-[#00C853]" />
                     <span>Step 7: Delivery Partner Agreement & E-Sign</span>
                   </h3>
-                  <p className="text-[11px] text-neutral-500">
-                    Service level agreement, legal terms, and mandatory digital signature
-                  </p>
                 </div>
                 <a
                   href="/legal/rider-agreement"
@@ -3558,10 +3612,6 @@ export function RiderRegistrationScreen() {
               >
                 ← Back to Delivery Kit Gear
               </button>
-
-              <p className="text-[10px] text-center text-neutral-500 font-medium">
-                Your application will be reviewed and activated by the QuickPress Admin team.
-              </p>
             </div>
           </form>
         )}

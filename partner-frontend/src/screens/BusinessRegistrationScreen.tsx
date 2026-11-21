@@ -1578,9 +1578,6 @@ export function BusinessRegistrationScreen() {
               <div className="pb-3 border-b border-neutral-100 flex items-start justify-between">
                 <div>
                   <h3 className="text-sm font-black text-neutral-900">Step 1: Personal Details</h3>
-                  <p className="text-[11px] text-neutral-500 font-medium">
-                    Enter the authorized store owner / proprietor information
-                  </p>
                 </div>
                 <div className="p-2 rounded-2xl bg-emerald-50 text-emerald-700">
                   <UserRound className="w-5 h-5" />
@@ -1648,9 +1645,16 @@ export function BusinessRegistrationScreen() {
               {/* Email Address (with OTP Verification) */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold text-neutral-700">
-                    Official Email Address <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center gap-2">
+                    <label className="block text-xs font-bold text-neutral-700">
+                      Official Email Address <span className="text-red-500">*</span>
+                    </label>
+                    {isEmailVerified && (
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1">
+                        <Check className="w-3 h-3 text-[#00C853] stroke-[3]" /> Verified
+                      </span>
+                    )}
+                  </div>
                   {isEmailVerified && (
                     <button
                       type="button"
@@ -1677,7 +1681,7 @@ export function BusinessRegistrationScreen() {
                       setShowEmailOtpBox(false);
                     }}
                     placeholder="official.laundry@gmail.com"
-                    className={`w-full pl-3.5 pr-28 py-2.5 rounded-xl border text-xs font-semibold focus:outline-hidden focus:ring-2 transition ${
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-semibold focus:outline-hidden focus:ring-2 transition ${
                       isEmailVerified
                         ? "border-emerald-300 bg-emerald-50/20 text-emerald-950 font-bold"
                         : fieldErrors["email"]
@@ -1686,11 +1690,7 @@ export function BusinessRegistrationScreen() {
                     }`}
                   />
 
-                  {isEmailVerified ? (
-                    <span className="absolute right-2.5 text-[10px] font-bold text-emerald-700 bg-emerald-100/90 px-2.5 py-1 rounded-lg border border-emerald-300 flex items-center gap-1 shadow-2xs">
-                      <Check className="w-3 h-3 text-emerald-600 stroke-[3]" /> Email Verified ✓
-                    </span>
-                  ) : (
+                  {!isEmailVerified && (
                     <button
                       type="button"
                       disabled={isSendingEmailOtp || !email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())}
@@ -2006,7 +2006,6 @@ export function BusinessRegistrationScreen() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-neutral-900">Owner Live Photo Captured</p>
-                    <p className="text-[10px] text-neutral-500">Verified official representative portrait</p>
                   </div>
                   <button
                     type="button"
@@ -2056,9 +2055,6 @@ export function BusinessRegistrationScreen() {
               <div className="pb-3 border-b border-neutral-100 flex items-start justify-between">
                 <div>
                   <h3 className="text-sm font-black text-neutral-900">Step 3: Business &amp; Store Details</h3>
-                  <p className="text-[11px] text-neutral-500 font-medium">
-                    Store information, location, operating hours, and storefront photos
-                  </p>
                 </div>
                 <div className="p-2 rounded-2xl bg-emerald-50 text-emerald-700">
                   <Store className="w-5 h-5" />
@@ -2350,9 +2346,6 @@ export function BusinessRegistrationScreen() {
               <div className="pb-3 border-b border-neutral-100 flex items-start justify-between">
                 <div>
                   <h3 className="text-sm font-black text-neutral-900">Step 4: Services &amp; Rate Card</h3>
-                  <p className="text-[11px] text-neutral-500 font-medium">
-                    Select services offered, customize rates and turnaround time
-                  </p>
                 </div>
                 <div className="p-2 rounded-2xl bg-emerald-50 text-emerald-700">
                   <Sparkles className="w-5 h-5" />
@@ -2548,9 +2541,6 @@ export function BusinessRegistrationScreen() {
               <div className="pb-3 border-b border-neutral-100 flex items-start justify-between">
                 <div>
                   <h3 className="text-sm font-black text-neutral-900">{t("Bank Details", "Step 5: Bank Account & Payouts")}</h3>
-                  <p className="text-[11px] text-neutral-500 font-medium">
-                    {t("Automated daily earnings settlement via RBI/NPCI", "Direct settlement account for daily payouts and earnings")}
-                  </p>
                 </div>
                 <div className="p-2 rounded-2xl bg-emerald-50 text-emerald-700">
                   <Landmark className="w-5 h-5" />
@@ -2755,9 +2745,6 @@ export function BusinessRegistrationScreen() {
               <div className="pb-2 border-b border-neutral-100 flex items-start justify-between">
                 <div>
                   <h3 className="text-sm font-black text-neutral-900">Master Merchant SLA &amp; E-Signature</h3>
-                  <p className="text-[11px] text-neutral-500 font-medium">
-                    Read agreement terms and draw your authorized signature
-                  </p>
                 </div>
                 <div className="p-2 rounded-2xl bg-emerald-50 text-emerald-700">
                   <FileCheck2 className="w-5 h-5" />

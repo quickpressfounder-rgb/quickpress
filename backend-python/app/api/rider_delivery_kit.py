@@ -94,10 +94,11 @@ async def get_delivery_kit_config() -> Dict[str, Any]:
     }
 
     items = kit_cfg.get("items") or [
-        "QuickPress Heavy-Duty Waterproof Delivery Bag (Hot/Cold Insulated)",
         "2x QuickPress Premium Dry-Fit Captain T-Shirts",
-        "Official RFID / QR Captain ID Card with Lanyard",
-        "High-Visibility Reflective Rain Jacket",
+        "1x High-Visibility Reflective Raincoat",
+        "1x Heavy-Duty Waterproof Delivery Bag (Hot/Cold Insulated)",
+        "1x Official RFID / QR Captain ID Card with Lanyard",
+        "1x Stainless Steel QuickPress Water Bottle (750ml)",
     ]
 
     return {
@@ -214,7 +215,7 @@ async def verify_kit_payment(payload: VerifyKitPaymentPayload) -> Dict[str, Any]
     is_part_payment = payload.paymentType.upper() in ("PART_PAYMENT", "PART", "INSTALLMENT")
 
     ship_data = payload.shippingAddress or {}
-    custom_weekly = ship_data.get("emiWeeklyAmount")
+    custom_weekly = ship_data.get("emiWeekly") or ship_data.get("emiWeeklyAmount")
     custom_weeks = ship_data.get("emiWeeks")
     custom_balance = ship_data.get("emiBalance")
 

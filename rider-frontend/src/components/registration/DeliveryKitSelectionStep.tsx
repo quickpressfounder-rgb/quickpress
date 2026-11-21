@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from "react";
 import {
   Package,
-  CheckCircle2,
   Check,
   CreditCard,
   Truck,
-  Building2,
   Loader2,
-  Calendar,
   ArrowRight,
   Shirt,
   MapPin,
   Phone,
   User,
+  ShieldCheck,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { triggerHaptic } from "../../lib/captain-audio";
@@ -51,18 +51,18 @@ export function DeliveryKitSelectionStep({
   // Selected options
   const [selectedPlan, setSelectedPlan] = useState<"FULL_PAYMENT" | "PART_PAYMENT">("PART_PAYMENT");
   const [selectedSize, setSelectedSize] = useState<string>("L");
-  const [deliveryPreference, setDeliveryPreference] = useState<"home_delivery" | "hub_pickup">("home_delivery");
+  const [showKitDetails, setShowKitDetails] = useState<boolean>(true);
 
   // Customized EMI installment tenure (weeks)
   const [emiWeeks, setEmiWeeks] = useState<number>(3);
 
-  // Delivery Address Fields (when home delivery is selected)
+  // Delivery Address Fields (Home Delivery via Courier Only)
   const [receiverName, setReceiverName] = useState<string>(riderName || "");
   const [receiverPhone, setReceiverPhone] = useState<string>(riderPhone || "");
   const [addressLine, setAddressLine] = useState<string>(shippingAddress?.addressLine || "");
   const [landmark, setLandmark] = useState<string>(shippingAddress?.landmark || "");
   const [pincode, setPincode] = useState<string>(shippingAddress?.pincode || "");
-  const [deliveryCity, setDeliveryCity] = useState<string>(city || shippingAddress?.city || "Kasganj");
+  const [deliveryCity, setDeliveryCity] = useState<string>(city || shippingAddress?.city || "");
 
   // Payment process state
   const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
@@ -98,7 +98,6 @@ export function DeliveryKitSelectionStep({
             setPaymentCompleted(true);
             setVerifiedKitOrder(ko);
             if (ko.tshirtSize) setSelectedSize(ko.tshirtSize);
-            if (ko.deliveryPreference) setDeliveryPreference(ko.deliveryPreference);
             if (ko.pricing?.paymentType) setSelectedPlan(ko.pricing.paymentType);
             onPaymentSuccess(ko);
           }
@@ -121,7 +120,9 @@ export function DeliveryKitSelectionStep({
     if (riderName && !receiverName) setReceiverName(riderName);
     if (riderPhone && !receiverPhone) setReceiverPhone(riderPhone);
     if (city && !deliveryCity) setDeliveryCity(city);
-  }, [riderName, riderPhone, city]);
+    if (shippingAddress?.pincode && !pincode) setPincode(shippingAddress.pincode);
+    if (shippingAddress?.addressLine && !addressLine) setAddressLine(shippingAddress.addressLine);
+  }, [riderName, riderPhone, city, shippingAddress]);
 
   // Pricing constants fallback
   const standardKit: DeliveryKitPackage = config?.standardKit || {
@@ -141,9 +142,9 @@ export function DeliveryKitSelectionStep({
   const getEmiDetails = () => {
     if (emiWeeks === 2) {
       return {
-        upfront: 600.0,
-        balance: 600.0,
-        weekly: 300.0,
+        upfront: 300.0,
+        balance: 900.0,
+        weekly: 450.0,
         weeks: 2,
         total: 1200.0,
       };
@@ -172,6 +173,14 @@ export function DeliveryKitSelectionStep({
 
   const sizes = ["M", "L", "XL", "XXL"];
 
+  const kitContentsList = [
+    { title: "2x QuickPress Premium Dry-Fit Captain T-Shirts", subtitle: "Comfortable breathable branded uniforms" },
+    { title: "1x High-Visibility Reflective Raincoat", subtitle: "Waterproof all-weather night safety gear" },
+    { title: "1x Heavy-Duty Waterproof Delivery Bag", subtitle: "Hot/Cold insulated with reinforced straps" },
+    { title: "1x Official RFID / QR Captain ID Card", subtitle: "With QuickPress branded lanyard" },
+    { title: "1x Insulated Stainless Steel Water Bottle", subtitle: "750ml durable hydration bottle" },
+  ];
+
   // Handle Razorpay checkout trigger
   const handleProceedToPayment = async () => {
     if (isProcessingPayment || paymentCompleted) return;
@@ -182,44 +191,36 @@ export function DeliveryKitSelectionStep({
       return;
     }
 
-    // Validate Home Delivery address if selected
-    if (deliveryPreference === "home_delivery") {
-      if (!receiverName.trim()) {
-        toast.error("Please enter the recipient person's name.");
-        return;
-      }
-      if (!receiverPhone.trim() || receiverPhone.trim().replace(/\D/g, "").length < 10) {
-        toast.error("Please enter a valid 10-digit recipient mobile number.");
-        return;
-      }
-      if (!addressLine.trim()) {
-        toast.error("Please enter complete delivery address (House/Street/Colony).");
-        return;
-      }
-      if (!pincode.trim() || pincode.trim().length < 6) {
-        toast.error("Please enter a valid 6-digit delivery PIN code.");
-        return;
-      }
+    if (!receiverName.trim()) {
+      toast.error("Please enter the recipient person's name.");
+      return;
+    }
+    if (!receiverPhone.trim() || receiverPhone.trim().replace(/\D/g, "").length < 10) {
+      toast.error("Please enter a valid 10-digit recipient mobile number.");
+      return;
+    }
+    if (!addressLine.trim()) {
+      toast.error("Please enter complete delivery address (House/Street/Area).");
+      return;
+    }
+    if (!pincode.trim() || pincode.trim().length < 6) {
+      toast.error("Please enter a valid 6-digit delivery PIN code.");
+      return;
     }
 
-    const compiledAddress =
-      deliveryPreference === "home_delivery"
-        ? {
-            receiverName: receiverName.trim() || riderName,
-            receiverPhone: receiverPhone.trim() || riderPhone,
-            addressLine: addressLine.trim(),
-            landmark: landmark.trim(),
-            city: deliveryCity.trim() || city,
-            state: "Uttar Pradesh",
-            pincode: pincode.trim(),
-            deliveryPreference: "home_delivery",
-          }
-        : {
-            receiverName: riderName,
-            receiverPhone: riderPhone,
-            city: city || "Kasganj",
-            deliveryPreference: "hub_pickup",
-          };
+    const compiledAddress = {
+      receiverName: receiverName.trim() || riderName,
+      receiverPhone: receiverPhone.trim() || riderPhone,
+      addressLine: addressLine.trim(),
+      landmark: landmark.trim(),
+      city: deliveryCity.trim() || city,
+      state: "Uttar Pradesh",
+      pincode: pincode.trim(),
+      deliveryPreference: "home_delivery",
+      emiWeeks: selectedPlan === "PART_PAYMENT" ? emiCalc.weeks : 0,
+      emiWeekly: selectedPlan === "PART_PAYMENT" ? emiCalc.weekly : 0,
+      emiBalance: selectedPlan === "PART_PAYMENT" ? emiCalc.balance : 0,
+    };
 
     setIsProcessingPayment(true);
     try {
@@ -227,30 +228,25 @@ export function DeliveryKitSelectionStep({
       const orderRes = await createDeliveryKitOrder({
         riderPhone,
         riderName: riderName || "Captain",
-        city: city || "Kasganj",
+        city: deliveryCity.trim() || city,
         kitId: standardKit.id,
         paymentType: selectedPlan,
         tshirtSize: selectedSize,
-        deliveryPreference,
-        shippingAddress: {
-          ...compiledAddress,
-          emiWeeks: selectedPlan === "PART_PAYMENT" ? emiCalc.weeks : 0,
-          emiWeekly: selectedPlan === "PART_PAYMENT" ? emiCalc.weekly : 0,
-          emiBalance: selectedPlan === "PART_PAYMENT" ? emiCalc.balance : 0,
-        },
+        deliveryPreference: "home_delivery",
+        shippingAddress: compiledAddress,
       });
 
       if (!orderRes.ok || !orderRes.razorpayOrderId) {
         throw new Error("Unable to create order. Please try again.");
       }
 
-      // 2. Open official Razorpay modal
+      // 2. Open official live Razorpay modal
       const checkoutResult = await openRazorpayCheckout(
         {
           orderId: orderRes.razorpayOrderId,
           amount: chargeAmount,
           currency: "INR",
-          keyId: orderRes.keyId || config?.keyId,
+          keyId: orderRes.keyId || config?.keyId || "rzp_live_TjoBvXbaXHYmxE",
         },
         {
           description:
@@ -283,20 +279,15 @@ export function DeliveryKitSelectionStep({
       const verifyRes = await verifyDeliveryKitPayment({
         riderPhone,
         riderName: riderName || "Captain",
-        city: city || "Kasganj",
+        city: deliveryCity.trim() || city,
         razorpayOrderId: rzpPayload.razorpay_order_id,
         razorpayPaymentId: rzpPayload.razorpay_payment_id,
         razorpaySignature: rzpPayload.razorpay_signature,
         paymentType: selectedPlan,
         kitId: standardKit.id,
         tshirtSize: selectedSize,
-        deliveryPreference,
-        shippingAddress: {
-          ...compiledAddress,
-          emiWeeks: selectedPlan === "PART_PAYMENT" ? emiCalc.weeks : 0,
-          emiWeekly: selectedPlan === "PART_PAYMENT" ? emiCalc.weekly : 0,
-          emiBalance: selectedPlan === "PART_PAYMENT" ? emiCalc.balance : 0,
-        },
+        deliveryPreference: "home_delivery",
+        shippingAddress: compiledAddress,
       });
 
       if (verifyRes.ok) {
@@ -326,7 +317,7 @@ export function DeliveryKitSelectionStep({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5">
       {/* 1. Success Card if Already Paid */}
       {paymentCompleted && (
         <div className="p-4 bg-emerald-50 border border-[#00C853] rounded-2xl shadow-xs space-y-2">
@@ -351,19 +342,60 @@ export function DeliveryKitSelectionStep({
 
           <div className="pt-2 border-t border-emerald-200/60 flex items-center justify-between text-[11px] text-emerald-900">
             <span>Size: <strong>{verifiedKitOrder?.tshirtSize || selectedSize}</strong></span>
-            <span>Delivery: <strong>{verifiedKitOrder?.deliveryPreference === "hub_pickup" ? "Hub Pickup" : "Home Delivery"}</strong></span>
+            <span>Delivery: <strong>Home Courier</strong></span>
             <span>Order ID: <code className="font-mono text-[10px]">{verifiedKitOrder?.id?.slice(-8) || "VERIFIED"}</code></span>
           </div>
         </div>
       )}
 
-      {/* 2. T-Shirt Size Selector */}
+      {/* 2. Official Kit Contents Card */}
+      <div className="bg-white border border-neutral-200 rounded-2xl p-4 shadow-xs">
+        <div
+          onClick={() => setShowKitDetails(!showKitDetails)}
+          className="flex items-center justify-between cursor-pointer select-none"
+        >
+          <div className="flex items-center gap-2">
+            <Package className="w-4 h-4 text-[#00C853]" />
+            <h3 className="text-xs font-bold text-neutral-900">Official Captain Delivery Kit</h3>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+              5 Items Included
+            </span>
+            {showKitDetails ? (
+              <ChevronUp className="w-4 h-4 text-neutral-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-neutral-400" />
+            )}
+          </div>
+        </div>
+
+        {showKitDetails && (
+          <div className="mt-3 pt-3 border-t border-neutral-100 space-y-2">
+            {kitContentsList.map((item, idx) => (
+              <div
+                key={idx}
+                className="flex items-start gap-2.5 p-2 rounded-xl bg-neutral-50/80 border border-neutral-100"
+              >
+                <div className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5">
+                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-neutral-800 leading-snug">{item.title}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 3. T-Shirt Size Selector */}
       {!paymentCompleted && (
         <div className="p-4 bg-white border border-neutral-200 rounded-2xl space-y-3 shadow-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Shirt className="w-4 h-4 text-[#00C853]" />
-              <label className="text-xs font-bold text-neutral-900">Select T-Shirt Size *</label>
+              <label className="text-xs font-bold text-neutral-900">T-Shirt Size *</label>
             </div>
             <span className="text-[10px] text-neutral-500 font-medium">Standard Fit</span>
           </div>
@@ -378,7 +410,7 @@ export function DeliveryKitSelectionStep({
                     triggerHaptic();
                     setSelectedSize(s);
                   }}
-                  className={`py-2 text-xs font-bold rounded-xl border transition-all text-center ${
+                  className={`py-2 text-xs font-bold rounded-xl border transition-all text-center cursor-pointer ${
                     isSelected
                       ? "bg-neutral-900 text-white border-neutral-900 shadow-xs"
                       : "bg-white text-neutral-700 border-neutral-200 hover:border-neutral-400"
@@ -392,169 +424,117 @@ export function DeliveryKitSelectionStep({
         </div>
       )}
 
-      {/* 3. Delivery Method Selection */}
+      {/* 4. Recipient Details & Delivery Address Form (Courier Home Delivery Only) */}
       {!paymentCompleted && (
         <div className="p-4 bg-white border border-neutral-200 rounded-2xl space-y-3 shadow-xs">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pb-2 border-b border-neutral-100">
             <Truck className="w-4 h-4 text-[#00C853]" />
-            <label className="text-xs font-bold text-neutral-900">Delivery Method *</label>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic();
-                setDeliveryPreference("home_delivery");
-              }}
-              className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
-                deliveryPreference === "home_delivery"
-                  ? "bg-emerald-50/60 border-[#00C853] ring-1 ring-emerald-300"
-                  : "bg-white border-neutral-200 hover:border-neutral-300"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <Truck className={`w-4 h-4 ${deliveryPreference === "home_delivery" ? "text-[#00C853]" : "text-neutral-500"}`} />
-                {deliveryPreference === "home_delivery" && (
-                  <CheckCircle2 className="w-4 h-4 text-[#00C853]" />
-                )}
-              </div>
-              <div className="mt-2">
-                <p className="text-xs font-bold text-neutral-900">Home Delivery</p>
-                <p className="text-[10px] text-neutral-500 mt-0.5">3–5 Days by Courier</p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic();
-                setDeliveryPreference("hub_pickup");
-              }}
-              className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
-                deliveryPreference === "hub_pickup"
-                  ? "bg-emerald-50/60 border-[#00C853] ring-1 ring-emerald-300"
-                  : "bg-white border-neutral-200 hover:border-neutral-300"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <Building2 className={`w-4 h-4 ${deliveryPreference === "hub_pickup" ? "text-[#00C853]" : "text-neutral-500"}`} />
-                {deliveryPreference === "hub_pickup" && (
-                  <CheckCircle2 className="w-4 h-4 text-[#00C853]" />
-                )}
-              </div>
-              <div className="mt-2">
-                <p className="text-xs font-bold text-neutral-900">City Hub Pickup</p>
-                <p className="text-[10px] text-neutral-500 mt-0.5">Direct pickup from hub</p>
-              </div>
-            </button>
+            <h3 className="text-xs font-bold text-neutral-900">Shipping Address (Courier Delivery)</h3>
           </div>
 
-          {/* Recipient Details & Delivery Address Form (when Home Delivery is selected) */}
-          {deliveryPreference === "home_delivery" && (
-            <div className="pt-3 border-t border-neutral-100 space-y-2.5">
-              <p className="text-[11px] font-bold text-neutral-800 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-[#00C853]" />
-                <span>Recipient & Shipping Address</span>
-              </p>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] font-semibold text-neutral-600 mb-1">
-                    Receiver Name *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={receiverName}
-                      onChange={(e) => setReceiverName(e.target.value)}
-                      placeholder="Full Name"
-                      className="w-full h-9 px-2.5 pl-7 bg-white border border-neutral-200 rounded-lg text-xs font-medium text-neutral-900 focus:outline-none focus:border-[#00C853]"
-                    />
-                    <User className="w-3.5 h-3.5 text-neutral-400 absolute left-2 top-2.5" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-semibold text-neutral-600 mb-1">
-                    Receiver Phone *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="tel"
-                      maxLength={10}
-                      value={receiverPhone}
-                      onChange={(e) => setReceiverPhone(e.target.value.replace(/\D/g, ""))}
-                      placeholder="10-digit mobile"
-                      className="w-full h-9 px-2.5 pl-7 bg-white border border-neutral-200 rounded-lg text-xs font-medium text-neutral-900 focus:outline-none focus:border-[#00C853]"
-                    />
-                    <Phone className="w-3.5 h-3.5 text-neutral-400 absolute left-2 top-2.5" />
-                  </div>
+          <div className="space-y-2.5">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
+                  Recipient Name *
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={receiverName}
+                    onChange={(e) => setReceiverName(e.target.value)}
+                    placeholder="Recipient Person Name"
+                    className="w-full h-10 px-3 pl-8 bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 focus:outline-none focus:border-[#00C853]"
+                  />
+                  <User className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 top-3" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold text-neutral-600 mb-1">
-                  House / Flat / Street Address *
+                <label className="block text-[10px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
+                  Recipient Phone *
                 </label>
-                <input
-                  type="text"
-                  value={addressLine}
-                  onChange={(e) => setAddressLine(e.target.value)}
-                  placeholder="House/Flat No., Street, Colony"
-                  className="w-full h-9 px-2.5 bg-white border border-neutral-200 rounded-lg text-xs font-medium text-neutral-900 focus:outline-none focus:border-[#00C853]"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-1">
-                  <label className="block text-[10px] font-semibold text-neutral-600 mb-1">
-                    PIN Code *
-                  </label>
+                <div className="relative">
                   <input
-                    type="text"
-                    maxLength={6}
-                    value={pincode}
-                    onChange={(e) => setPincode(e.target.value.replace(/\D/g, ""))}
-                    placeholder="207123"
-                    className="w-full h-9 px-2.5 bg-white border border-neutral-200 rounded-lg text-xs font-medium text-neutral-900 focus:outline-none focus:border-[#00C853]"
+                    type="tel"
+                    required
+                    maxLength={10}
+                    value={receiverPhone}
+                    onChange={(e) => setReceiverPhone(e.target.value.replace(/\D/g, ""))}
+                    placeholder="10-digit mobile"
+                    className="w-full h-10 px-3 pl-8 bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 focus:outline-none focus:border-[#00C853]"
                   />
-                </div>
-
-                <div className="col-span-1">
-                  <label className="block text-[10px] font-semibold text-neutral-600 mb-1">
-                    Landmark
-                  </label>
-                  <input
-                    type="text"
-                    value={landmark}
-                    onChange={(e) => setLandmark(e.target.value)}
-                    placeholder="Near temple/bank"
-                    className="w-full h-9 px-2.5 bg-white border border-neutral-200 rounded-lg text-xs font-medium text-neutral-900 focus:outline-none focus:border-[#00C853]"
-                  />
-                </div>
-
-                <div className="col-span-1">
-                  <label className="block text-[10px] font-semibold text-neutral-600 mb-1">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    value={deliveryCity}
-                    onChange={(e) => setDeliveryCity(e.target.value)}
-                    placeholder="Kasganj"
-                    className="w-full h-9 px-2.5 bg-white border border-neutral-200 rounded-lg text-xs font-medium text-neutral-900 focus:outline-none focus:border-[#00C853]"
-                  />
+                  <Phone className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 top-3" />
                 </div>
               </div>
             </div>
-          )}
+
+            <div>
+              <label className="block text-[10px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
+                House / Flat / Street / Area Address *
+              </label>
+              <input
+                type="text"
+                required
+                value={addressLine}
+                onChange={(e) => setAddressLine(e.target.value)}
+                placeholder="House/Flat No., Building, Street, Colony"
+                className="w-full h-10 px-3 bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 focus:outline-none focus:border-[#00C853]"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
+                  PIN Code *
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  value={pincode}
+                  onChange={(e) => setPincode(e.target.value.replace(/\D/g, ""))}
+                  placeholder="PIN Code"
+                  className="w-full h-10 px-3 bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 focus:outline-none focus:border-[#00C853]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
+                  City *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={deliveryCity}
+                  onChange={(e) => setDeliveryCity(e.target.value)}
+                  placeholder="Delivery City"
+                  className="w-full h-10 px-3 bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 focus:outline-none focus:border-[#00C853]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
+                  Landmark
+                </label>
+                <input
+                  type="text"
+                  value={landmark}
+                  onChange={(e) => setLandmark(e.target.value)}
+                  placeholder="Near landmark"
+                  className="w-full h-10 px-3 bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 focus:outline-none focus:border-[#00C853]"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* 4. Payment Plan Selection */}
+      {/* 5. Payment Plan Selection */}
       {!paymentCompleted && (
         <div className="space-y-2.5">
-          <label className="text-xs font-bold text-neutral-900 px-1">
+          <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide px-1">
             Payment Option *
           </label>
 
@@ -583,7 +563,7 @@ export function DeliveryKitSelectionStep({
 
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-neutral-900">Part Payment (Installments)</h4>
+                  <h4 className="text-xs font-bold text-neutral-900">Part Payment (Easy Installments)</h4>
                   <span className="text-[10px] font-semibold text-neutral-500">
                     Total: ₹{emiCalc.total.toFixed(0)}
                   </span>
@@ -596,7 +576,7 @@ export function DeliveryKitSelectionStep({
                 </div>
 
                 <div className="mt-2 text-[11px] text-neutral-600">
-                  Remaining balance: ₹{emiCalc.balance.toFixed(0)} deducted from weekly payouts (₹{emiCalc.weekly.toFixed(0)}/week for {emiCalc.weeks} weeks).
+                  Remaining balance of ₹{emiCalc.balance.toFixed(0)} deducted from weekly payouts (₹{emiCalc.weekly.toFixed(0)}/week for {emiCalc.weeks} weeks).
                 </div>
 
                 {/* Customized EMI Tenure Selector */}
@@ -617,7 +597,7 @@ export function DeliveryKitSelectionStep({
                             triggerHaptic();
                             setEmiWeeks(p.weeks);
                           }}
-                          className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-colors ${
+                          className={`px-2.5 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${
                             emiWeeks === p.weeks
                               ? "bg-neutral-900 text-white border-neutral-900"
                               : "bg-white text-neutral-700 border-neutral-200 hover:border-neutral-300"
@@ -659,7 +639,7 @@ export function DeliveryKitSelectionStep({
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold text-neutral-900">Full Payment (One-Time)</h4>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
                     Save ₹{(standardKit.partPaymentTotalPrice - standardKit.totalPrice).toFixed(0)}
                   </span>
                 </div>
@@ -680,13 +660,13 @@ export function DeliveryKitSelectionStep({
         </div>
       )}
 
-      {/* 5. Primary Action Button: Proceed to Payment */}
+      {/* 6. Primary Action Button: Proceed to Payment */}
       {!paymentCompleted ? (
         <button
           type="button"
           disabled={isProcessingPayment}
           onClick={handleProceedToPayment}
-          className="w-full h-12 bg-[#00C853] hover:bg-[#00B548] active:scale-[0.99] text-black font-bold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full h-12 bg-[#00C853] hover:bg-[#00B548] active:scale-[0.99] text-black font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
         >
           {isProcessingPayment ? (
             <>
@@ -705,12 +685,12 @@ export function DeliveryKitSelectionStep({
           type="button"
           onClick={() => {
             if (onPaymentSuccess) {
-              onPaymentSuccess(existingKitOrder || { pricing: { paymentType: selectedPlan } });
+              onPaymentSuccess(verifiedKitOrder || existingKitOrder || { pricing: { paymentType: selectedPlan } });
             }
           }}
-          className="w-full h-12 bg-[#00C853] hover:bg-[#00B548] active:scale-[0.99] text-black font-bold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
+          className="w-full h-12 bg-[#00C853] hover:bg-[#00B548] active:scale-[0.99] text-black font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
         >
-          <span>Continue to Partner Agreement</span>
+          <span>Continue to Step 7 (Partner Agreement)</span>
           <ArrowRight className="w-4 h-4 text-black ml-1" />
         </button>
       )}
