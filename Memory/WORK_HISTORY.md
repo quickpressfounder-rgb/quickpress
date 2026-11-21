@@ -1,5 +1,51 @@
 # QuickPress — Engineering Work History
 
+## Session: November 21, 2026 (Part 54)
+
+### Registration Polish: Missing Fields Banner Removal, 100% Professional English (Zero Hinglish), Segmented DL Expiry Picker, Resilient Live Razorpay Integration & Zero Mock Fallbacks
+
+1. **Context & User Directives:**
+   - **Remove Missing Fields Alert Banners Across All Pages:** Eliminate the red alert banner ("Kripya bachi hui jaankari bharein...") across all steps in both Rider and Partner portals.
+   - **100% Clean English (Zero Hinglish):** Convert all validation error messages, toasts, field prompts, and copy across the entire registration flows to clean, professional English (e.g., "Kripya email address ko OTP se verify karein" -> "Please verify your email address with OTP.").
+   - **Segmented DL Expiry Date Selector:** Replace standard date input for Driving Licence expiry with the segmented floating-label Day (`01-31`), Month (`01-12`), and Year (`2025-2050`) dropdown selector, matching the DOB selector.
+   - **Resilient Payment Button & Razorpay Integration:** Fix the payment failure on "Proceed to Payment" by accepting `orderId`, `gatewayOrderId`, or `razorpayOrderId` and `amount` or `amountInPaise` in `openRazorpayCheckout`. Provide resilient phone fallback (`cleanRiderPhone` / `cleanReceiverPhone` / default) so order generation never fails on missing auth session during testing.
+   - **Payment Button UX:** Simplify button text to strictly "Proceed to Payment" (without confusing agreement text), provide a "Previous" button to navigate back to Step 5, and automatically redirect to Step 7 (Partner Agreement) upon payment verification.
+   - **Zero Dummy / Mock Fallbacks:** Remove fake verification catch fallbacks in PAN, RC, DL, and Bank account validation routines (`set...Verified(false)` and show live service error toast instead of spoofing verified status).
+   - **5 Official Kit Items:** Ensure default financial rules in `unified_finance_service.py` include all 5 official kit gear items including the 750ml stainless steel water bottle.
+
+2. **Full-Stack Engineering Changes Implemented:**
+   - **`rider-frontend/src/api/core/razorpay.ts` & `partner-frontend/src/api/core/razorpay.ts`:**
+     - Upgraded `openRazorpayCheckout` to accept `orderId`, `gatewayOrderId`, or `razorpayOrderId`.
+     - Added automatic rupees-to-paise conversion (`amountInPaise ?? Math.round(order.amount * 100)`).
+     - Guarded `order.notes?.['purpose']` and provided fallback key `rzp_live_TjoBvXbaXHYmxE`.
+   - **`rider-frontend/src/screens/RiderRegistrationScreen.tsx`:**
+     - Disabled `MissingFieldsAlert` (returns `null`), removing all red alert banners across all 7 steps.
+     - Replaced native date input for DL Expiry with segmented Day (`01-31`), Month (`01-12`), and Year (`2025-2050`) dropdowns using `handleDlExpiryChange`.
+     - Converted all validation error messages and toasts in `handleNextStep` (Steps 1 to 6) and `handleFinalSubmit` (Step 7) from Hinglish to standard professional English.
+     - Converted live camera and gallery selfie buttons from Hinglish to "Capture Live Photo" and "Upload Photo from Device".
+     - Removed mock catch fallbacks for PAN, RC, DL, and Bank Account verifications (`set...Verified(false)` on error).
+     - Added `onBack={handlePrevStep}` to `DeliveryKitSelectionStep`.
+   - **`rider-frontend/src/components/registration/DeliveryKitSelectionStep.tsx`:**
+     - Added `onBack?: () => void;` prop to support seamless return to Step 5 (Bank Account).
+     - Replaced button text with strictly "Proceed to Payment" (and "Processing Payment..." while loading).
+     - Enhanced `handleProceedToPayment` with resilient phone resolution (`cleanRiderPhone` or `cleanReceiverPhone` or fallback) so payment order creation never halts on empty session state.
+     - Kept automatic redirect to Step 7 (Partner Agreement) upon successful Razorpay verification.
+   - **`partner-frontend/src/screens/BusinessRegistrationScreen.tsx`:**
+     - Disabled `MissingFieldsAlert` (returns `null`), ensuring clean UI without missing-fields banners.
+     - Removed `<MissingFieldsAlert missingList={missingSummary} />` call.
+   - **`backend-python/app/services/unified_finance_service.py`:**
+     - Updated standard delivery kit items in default financial rules to all 5 items:
+       1. 2x QuickPress Premium Dry-Fit Captain T-Shirts
+       2. 1x High-Visibility Reflective Raincoat
+       3. 1x Heavy-Duty Waterproof Delivery Bag (Hot/Cold Insulated)
+       4. 1x Official RFID / QR Captain ID Card with Lanyard
+       5. 1x Stainless Steel QuickPress Water Bottle (750ml)
+
+3. **Build & Quality Assurance:**
+   - `rider-frontend`: Built successfully (`npm run build` exit code 0).
+   - `partner-frontend`: Built successfully (`npm run build` exit code 0).
+   - Live backend endpoints tested and verified (`GET /api/rider/delivery-kit/config` -> 200 OK, `POST /api/rider/delivery-kit/create-order` -> 200 OK with Razorpay order ID).
+
 ## Session: November 21, 2026 (Part 53)
 
 ### Rider & Partner Registration Polish: Badge Alignment, Live City & PIN GPS Auto-Detection, Floating-Label Segmented DOB, Subtitle Removal Across All Steps, Courier-Only Delivery Kit with 5 Items, & Sticky Header Fix

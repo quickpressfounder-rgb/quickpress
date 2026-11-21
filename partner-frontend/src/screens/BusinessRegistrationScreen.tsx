@@ -406,34 +406,9 @@ function DocumentUploadSlot({
   );
 }
 
-/** Missing Fields Summary Alert Banner */
+/** Missing Fields Summary Alert Banner (Disabled for clean UI) */
 function MissingFieldsAlert({ missingList }: { missingList: string[] }) {
-  if (!missingList || missingList.length === 0) return null;
-  return (
-    <div
-      id="missing-fields-banner"
-      className="p-3.5 mb-3 bg-red-50 border-2 border-red-400/80 rounded-2xl shadow-xs transition-all"
-    >
-      <div className="flex items-start gap-2.5">
-        <div className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
-          <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="text-xs font-bold text-red-950">
-            Please fill the remaining details ({missingList.length} items):
-          </h4>
-          <ul className="mt-1.5 space-y-1">
-            {missingList.map((item, idx) => (
-              <li key={idx} className="text-[11px] font-medium text-red-800 flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-red-500 shrink-0" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </div>
-  );
+  return null;
 }
 
 /* ----------------------------- Main Component ----------------------------- */
@@ -1566,8 +1541,6 @@ export function BusinessRegistrationScreen() {
             <span className="font-bold">Editing &amp; Updating Submitted Partner Application Details</span>
           </div>
         )}
-
-        <MissingFieldsAlert missingList={missingSummary} />
 
         {/* ========================================================
             STEP 1: PERSONAL DETAILS

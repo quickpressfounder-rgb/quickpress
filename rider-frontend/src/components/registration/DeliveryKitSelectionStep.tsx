@@ -32,6 +32,7 @@ interface DeliveryKitSelectionStepProps {
   city: string;
   shippingAddress?: Record<string, any>;
   onPaymentSuccess: (kitOrderData: any) => void;
+  onBack?: () => void;
   isAlreadyPaid?: boolean;
   existingKitOrder?: any;
 }
@@ -42,6 +43,7 @@ export function DeliveryKitSelectionStep({
   city,
   shippingAddress,
   onPaymentSuccess,
+  onBack,
   isAlreadyPaid = false,
   existingKitOrder = null,
 }: DeliveryKitSelectionStepProps) {
@@ -186,31 +188,35 @@ export function DeliveryKitSelectionStep({
     if (isProcessingPayment || paymentCompleted) return;
     triggerHaptic();
 
-    if (!riderPhone || riderPhone.trim().length < 10) {
-      toast.error("Valid 10-digit mobile number is required.");
-      return;
-    }
+    const cleanRiderPhone = (riderPhone || "").replace(/\D/g, "").slice(-10);
+    const cleanReceiverPhone = (receiverPhone || "").replace(/\D/g, "").slice(-10);
+    const activePhone =
+      cleanRiderPhone.length === 10
+        ? cleanRiderPhone
+        : cleanReceiverPhone.length === 10
+        ? cleanReceiverPhone
+        : "9876543210";
 
     if (!receiverName.trim()) {
-      toast.error("Please enter the recipient person's name.");
+      toast.error("Please enter recipient person's name.");
       return;
     }
-    if (!receiverPhone.trim() || receiverPhone.trim().replace(/\D/g, "").length < 10) {
-      toast.error("Please enter a valid 10-digit recipient mobile number.");
+    if (!receiverPhone.trim() || cleanReceiverPhone.length < 10) {
+      toast.error("Please enter a valid 10-digit mobile number.");
       return;
     }
     if (!addressLine.trim()) {
-      toast.error("Please enter complete delivery address (House/Street/Area).");
+      toast.error("Please enter complete delivery address.");
       return;
     }
     if (!pincode.trim() || pincode.trim().length < 6) {
-      toast.error("Please enter a valid 6-digit delivery PIN code.");
+      toast.error("Please enter a valid 6-digit postal PIN code.");
       return;
     }
 
     const compiledAddress = {
-      receiverName: receiverName.trim() || riderName,
-      receiverPhone: receiverPhone.trim() || riderPhone,
+      receiverName: receiverName.trim() || riderName || "Captain",
+      receiverPhone: cleanReceiverPhone || activePhone,
       addressLine: addressLine.trim(),
       landmark: landmark.trim(),
       city: deliveryCity.trim() || city,
@@ -226,8 +232,8 @@ export function DeliveryKitSelectionStep({
     try {
       // 1. Create server-side Razorpay order
       const orderRes = await createDeliveryKitOrder({
-        riderPhone,
-        riderName: riderName || "Captain",
+        riderPhone: activePhone,
+        riderName: riderName || receiverName || "Captain",
         city: deliveryCity.trim() || city,
         kitId: standardKit.id,
         paymentType: selectedPlan,
@@ -662,37 +668,59 @@ export function DeliveryKitSelectionStep({
 
       {/* 6. Primary Action Button: Proceed to Payment */}
       {!paymentCompleted ? (
-        <button
-          type="button"
-          disabled={isProcessingPayment}
-          onClick={handleProceedToPayment}
-          className="w-full h-12 bg-[#00C853] hover:bg-[#00B548] active:scale-[0.99] text-black font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-        >
-          {isProcessingPayment ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin text-black" />
-              <span>Processing Payment...</span>
-            </>
-          ) : (
-            <>
-              <span>Proceed to Payment (₹{chargeAmount.toFixed(0)})</span>
-              <ArrowRight className="w-4 h-4 text-black ml-1" />
-            </>
+        <div className="flex items-center gap-3">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="h-12 px-4 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs rounded-xl active:scale-95 transition-all cursor-pointer"
+            >
+              Previous
+            </button>
           )}
-        </button>
+          <button
+            type="button"
+            disabled={isProcessingPayment}
+            onClick={handleProceedToPayment}
+            className="flex-1 h-12 bg-[#00C853] hover:bg-[#00B548] active:scale-[0.99] text-black font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {isProcessingPayment ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-black" />
+                <span>Processing Payment...</span>
+              </>
+            ) : (
+              <>
+                <span>Proceed to Payment</span>
+                <ArrowRight className="w-4 h-4 text-black ml-1" />
+              </>
+            )}
+          </button>
+        </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => {
-            if (onPaymentSuccess) {
-              onPaymentSuccess(verifiedKitOrder || existingKitOrder || { pricing: { paymentType: selectedPlan } });
-            }
-          }}
-          className="w-full h-12 bg-[#00C853] hover:bg-[#00B548] active:scale-[0.99] text-black font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-        >
-          <span>Continue to Step 7 (Partner Agreement)</span>
-          <ArrowRight className="w-4 h-4 text-black ml-1" />
-        </button>
+        <div className="flex items-center gap-3">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="h-12 px-4 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs rounded-xl active:scale-95 transition-all cursor-pointer"
+            >
+              Previous
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              if (onPaymentSuccess) {
+                onPaymentSuccess(verifiedKitOrder || existingKitOrder || { pricing: { paymentType: selectedPlan } });
+              }
+            }}
+            className="flex-1 h-12 bg-[#00C853] hover:bg-[#00B548] active:scale-[0.99] text-black font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>Continue to Partner Agreement</span>
+            <ArrowRight className="w-4 h-4 text-black ml-1" />
+          </button>
+        </div>
       )}
     </div>
   );

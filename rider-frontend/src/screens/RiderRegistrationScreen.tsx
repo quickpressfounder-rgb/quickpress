@@ -388,43 +388,9 @@ function DocumentUploadSlot({
   );
 }
 
-/** Missing Fields Summary Alert Banner */
+/** Missing Fields Summary Alert Banner (Disabled for clean UI) */
 function MissingFieldsAlert({ missingList }: { missingList: string[] }) {
-  if (!missingList || missingList.length === 0) return null;
-  return (
-    <div
-      id="missing-fields-banner"
-      className="p-3.5 mb-3 bg-red-50 border-2 border-red-400/80 rounded-2xl shadow-xs transition-all"
-    >
-      <div className="flex items-start gap-2.5">
-        <div className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
-          <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="text-xs font-black text-red-900 tracking-tight flex items-center gap-1.5">
-            <span>Kripya bachi hui jaankari bharein</span>
-            <span className="text-[10px] bg-red-200 text-red-800 px-1.5 py-0.2 rounded-full font-bold">
-              {missingList.length} bachi hai
-            </span>
-          </h4>
-          <p className="text-[11px] text-red-700 mt-0.5 font-medium">
-            Aage badhne ke liye neeche diye gaye zaroori fields ko bharna anivarya hai:
-          </p>
-          <ul className="mt-2 space-y-1">
-            {missingList.map((item, idx) => (
-              <li
-                key={idx}
-                className="text-[11px] font-bold text-red-900 flex items-center gap-1.5 bg-white/90 px-2.5 py-1 rounded-lg border border-red-200 shadow-2xs"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                <span className="truncate">{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </div>
-  );
+  return null;
 }
 
 export function RiderRegistrationScreen() {
@@ -1027,6 +993,25 @@ export function RiderRegistrationScreen() {
     }
   };
 
+  // Segmented DL Expiry values for custom picker
+  const dlExpiryParts = dlExpiry ? dlExpiry.split("-") : ["", "", ""];
+  const dlExpiryYear = dlExpiryParts[0] || "";
+  const dlExpiryMonth = dlExpiryParts[1] || "";
+  const dlExpiryDay = dlExpiryParts[2] || "";
+
+  const handleDlExpiryChange = (part: "year" | "month" | "day", val: string) => {
+    const y = part === "year" ? val : dlExpiryYear;
+    const m = part === "month" ? val : dlExpiryMonth;
+    const d = part === "day" ? val : dlExpiryDay;
+    if (y && m && d) {
+      setDlExpiry(`${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`);
+      clearFieldError("dlExpiry");
+    } else if (y || m || d) {
+      setDlExpiry(`${y || "2030"}-${(m || "01").padStart(2, "0")}-${(d || "01").padStart(2, "0")}`);
+      clearFieldError("dlExpiry");
+    }
+  };
+
   // Selfie upload from gallery handler
   const handleSelfieFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1091,11 +1076,12 @@ export function RiderRegistrationScreen() {
         triggerHaptic();
         toast.success(`PAN Verified with NSDL: ${officialName} ✓`);
       } else {
+        setPanVerified(false);
         toast.error(res?.message || "PAN verification failed. Check number.");
       }
-    } catch {
-      setPanVerified(true);
-      setPanVerifiedName(fullName.trim() || "Verified Taxpayer");
+    } catch (err: any) {
+      setPanVerified(false);
+      toast.error(err?.message || "PAN verification service unavailable.");
     } finally {
       setVerifyingPan(false);
     }
@@ -1142,11 +1128,13 @@ export function RiderRegistrationScreen() {
         clearFieldError("vehicleNumber");
         triggerHaptic();
         toast.success(`Vahan Parivahan Verified. Owner: ${owner} ✓`);
+      } else {
+        setRcVerified(false);
+        toast.error(res?.message || "RC verification failed. Check vehicle number.");
       }
-    } catch {
-      setRcVerified(true);
-      setRcVerifiedOwner(fullName.trim() || "Registered Owner");
-      clearFieldError("vehicleNumber");
+    } catch (err: any) {
+      setRcVerified(false);
+      toast.error(err?.message || "RC verification service unavailable.");
     } finally {
       setVerifyingRc(false);
     }
@@ -1180,11 +1168,13 @@ export function RiderRegistrationScreen() {
         clearFieldError("drivingLicense");
         triggerHaptic();
         toast.success(`MoRTH Sarathi Verified. Holder: ${holder} ✓`);
+      } else {
+        setDlVerified(false);
+        toast.error(res?.message || "DL verification failed. Check licence number.");
       }
-    } catch {
-      setDlVerified(true);
-      setDlVerifiedName(fullName.trim() || "Verified Driver");
-      clearFieldError("drivingLicense");
+    } catch (err: any) {
+      setDlVerified(false);
+      toast.error(err?.message || "DL verification service unavailable.");
     } finally {
       setVerifyingDl(false);
     }
@@ -1263,10 +1253,13 @@ export function RiderRegistrationScreen() {
         setBankVerifiedHolder(holder);
         triggerHaptic();
         toast.success(`NPCI Verified. Account Holder: ${holder} ✓`);
+      } else {
+        setBankVerified(false);
+        toast.error(res?.message || "Bank account verification failed. Please check IFSC and Account Number.");
       }
-    } catch {
-      setBankVerified(true);
-      setBankVerifiedHolder(officialApplicantName);
+    } catch (err: any) {
+      setBankVerified(false);
+      toast.error(err?.message || "Bank account verification service unavailable.");
     } finally {
       setVerifyingBank(false);
     }
@@ -1280,41 +1273,38 @@ export function RiderRegistrationScreen() {
       const missing: string[] = [];
 
       if (!fullName.trim()) {
-        newErrors["fullName"] = "Kripya apna poora naam darj karein (Full Name as per ID is required)";
-        missing.push("Poora Naam (Full Name)");
+        newErrors["fullName"] = "Please enter your full legal name matching government ID.";
+        missing.push("Full Legal Name");
       }
       if (!email.trim() || !email.includes("@") || !email.includes(".")) {
-        newErrors["email"] = "Kripya valid email address darj karein";
+        newErrors["email"] = "Please enter a valid email address.";
         missing.push("Official Email Address");
       } else if (!isEmailVerified) {
-        newErrors["email"] = "Kripya email address ko OTP se verify karein";
+        newErrors["email"] = "Please verify your email address with OTP.";
         missing.push("Email OTP Verification");
       }
       if (!gender) {
-        newErrors["gender"] = "Kripya gender select karein (Gender is required)";
-        missing.push("Gender (Male / Female / Other)");
+        newErrors["gender"] = "Please select your gender.";
+        missing.push("Gender");
       }
       if (!dob.trim()) {
-        newErrors["dob"] = "Kripya janam tithi (DOB) select karein";
-        missing.push("Date of Birth (DOB)");
+        newErrors["dob"] = "Please select your date of birth.";
+        missing.push("Date of Birth");
       }
       if (!selectedCity.trim()) {
-        newErrors["selectedCity"] = "Kripya Operating City select karein";
+        newErrors["selectedCity"] = "Please select your operating city.";
         missing.push("Operating City");
       }
       if (!pincode.trim() || pincode.trim().length !== 6) {
-        newErrors["pincode"] = "Kripya 6-digit Pincode darj karein";
-        missing.push("6-Digit Operating Pincode");
+        newErrors["pincode"] = "Please enter a valid 6-digit postal pincode.";
+        missing.push("6-Digit Pincode");
       }
 
       if (missing.length > 0) {
         setFieldErrors(newErrors);
         setMissingSummary(missing);
-        toast.error(`Kripya bachi hui ${missing.length} details bharein`);
+        toast.error(`Please complete all ${missing.length} required fields to proceed.`);
         triggerHaptic();
-        setTimeout(() => {
-          document.getElementById("missing-fields-banner")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 50);
         return;
       }
 
@@ -1331,38 +1321,35 @@ export function RiderRegistrationScreen() {
       if (kycDocMode === "aadhaar") {
         const cleanAadhaar = aadhaarNumber.replace(/\D/g, "");
         if (cleanAadhaar.length !== 12) {
-          newErrors["aadhaarNumber"] = "Kripya valid 12-digit Aadhaar Card number darj karein";
-          missing.push("12-Digit Aadhaar Card Number");
+          newErrors["aadhaarNumber"] = "Please enter a valid 12-digit Aadhaar number.";
+          missing.push("12-Digit Aadhaar Number");
         }
         if (!aadhaarFrontUrl) {
-          newErrors["aadhaarFrontUrl"] = "Aadhaar Card ka front photo upload karein";
-          missing.push("Aadhaar Card (Front Photo)");
+          newErrors["aadhaarFrontUrl"] = "Please upload the front photo of your Aadhaar card.";
+          missing.push("Aadhaar Card Front Photo");
         }
       } else {
         const cleanPan = panNumber.trim().toUpperCase();
         if (cleanPan.length !== 10) {
-          newErrors["panNumber"] = "Kripya 10-character PAN number darj karein";
-          missing.push("10-Character PAN Card Number");
+          newErrors["panNumber"] = "Please enter a valid 10-character PAN number.";
+          missing.push("10-Character PAN Number");
         }
         if (!panCardUrl) {
-          newErrors["panCardUrl"] = "PAN card photo upload karein";
+          newErrors["panCardUrl"] = "Please upload your PAN card photo.";
           missing.push("PAN Card Photo");
         }
       }
 
       if (!selfieUrl) {
-        newErrors["selfieUrl"] = "Kripya apni selfie photo upload karein ya camera se click karein";
-        missing.push("Candidate Photo / Selfie");
+        newErrors["selfieUrl"] = "Please upload or capture your profile photo.";
+        missing.push("Profile Photo / Selfie");
       }
 
       if (missing.length > 0) {
         setFieldErrors(newErrors);
         setMissingSummary(missing);
-        toast.error(`Kripya bachi hui ${missing.length} details poori karein`);
+        toast.error(`Please complete all ${missing.length} required fields to proceed.`);
         triggerHaptic();
-        setTimeout(() => {
-          document.getElementById("missing-fields-banner")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 50);
         return;
       }
 
@@ -1378,36 +1365,33 @@ export function RiderRegistrationScreen() {
 
       const cleanPlate = vehicleNumber.trim().toUpperCase();
       if (!cleanPlate || cleanPlate.length < 6) {
-        newErrors["vehicleNumber"] = "Kripya valid Vehicle Registration Plate number darj karein";
-        missing.push("Vehicle Plate Number (RC No.)");
+        newErrors["vehicleNumber"] = "Please enter a valid vehicle registration plate number (RC).";
+        missing.push("Vehicle Registration Plate Number");
       }
       const effectiveBrand = brandInputMode === "custom" ? customBrand.trim() : selectedBrand.trim();
       if (!effectiveBrand) {
-        newErrors["brand"] = "Kripya vehicle brand chunein ya likhein";
+        newErrors["brand"] = "Please select or enter your vehicle brand.";
         missing.push("Vehicle Brand");
       }
       const effectiveModel = modelInputMode === "custom" ? customModel.trim() : selectedModel.trim();
       if (!effectiveModel) {
-        newErrors["model"] = "Kripya vehicle model chunein ya likhein";
+        newErrors["model"] = "Please select or enter your vehicle model.";
         missing.push("Vehicle Model");
       }
       if (!bikePhotoUrl) {
-        newErrors["bikePhotoUrl"] = "Kripya apne bike ka photo upload karein";
-        missing.push("Vehicle / Bike Photo");
+        newErrors["bikePhotoUrl"] = "Please upload a photo of your vehicle.";
+        missing.push("Vehicle Photo");
       }
       if (!rcFrontUrl) {
-        newErrors["rcFrontUrl"] = "Vehicle RC Card ka front photo upload karein";
-        missing.push("Vehicle RC Card (Front Photo)");
+        newErrors["rcFrontUrl"] = "Please upload the front photo of your vehicle RC card.";
+        missing.push("Vehicle RC Front Photo");
       }
 
       if (missing.length > 0) {
         setFieldErrors(newErrors);
         setMissingSummary(missing);
-        toast.error(`Kripya bachi hui ${missing.length} details bharein`);
+        toast.error(`Please complete all ${missing.length} required fields to proceed.`);
         triggerHaptic();
-        setTimeout(() => {
-          document.getElementById("missing-fields-banner")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 50);
         return;
       }
 
@@ -1423,26 +1407,23 @@ export function RiderRegistrationScreen() {
 
       const cleanDl = drivingLicense.trim().toUpperCase();
       if (!cleanDl || cleanDl.length < 8) {
-        newErrors["drivingLicense"] = "Kripya valid Driving Licence (DL) number darj karein";
-        missing.push("Driving Licence Number (DL No.)");
+        newErrors["drivingLicense"] = "Please enter a valid Driving Licence number.";
+        missing.push("Driving Licence Number");
       }
       if (!dlExpiry.trim()) {
-        newErrors["dlExpiry"] = "Driving Licence ki expiry date select karein";
+        newErrors["dlExpiry"] = "Please select your Driving Licence expiry date.";
         missing.push("Licence Expiry Date");
       }
       if (!dlFrontUrl) {
-        newErrors["dlFrontUrl"] = "Driving Licence ka front photo upload karein";
-        missing.push("Driving Licence (Front Photo)");
+        newErrors["dlFrontUrl"] = "Please upload the front photo of your Driving Licence.";
+        missing.push("Driving Licence Front Photo");
       }
 
       if (missing.length > 0) {
         setFieldErrors(newErrors);
         setMissingSummary(missing);
-        toast.error(`Kripya bachi hui ${missing.length} details bharein`);
+        toast.error(`Please complete all ${missing.length} required fields to proceed.`);
         triggerHaptic();
-        setTimeout(() => {
-          document.getElementById("missing-fields-banner")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 50);
         return;
       }
 
@@ -1468,36 +1449,33 @@ export function RiderRegistrationScreen() {
         selectedBankDropdown === "Other Bank" ? customBankName.trim() : selectedBankDropdown.trim();
 
       if (!effectiveBank) {
-        newErrors["bankName"] = "Kripya Bank Name select karein ya darj karein";
+        newErrors["bankName"] = "Please select or enter your bank name.";
         missing.push("Bank Name");
       }
       const cleanAcc = accountNumber.trim();
       if (!cleanAcc || cleanAcc.length < 9) {
-        newErrors["accountNumber"] = "Kripya valid Bank Account Number darj karein (9-18 digits)";
+        newErrors["accountNumber"] = "Please enter a valid bank account number (9-18 digits).";
         missing.push("Bank Account Number");
       }
       if (confirmAccountNumber.trim() !== cleanAcc) {
-        newErrors["confirmAccountNumber"] = "Dono bank account number aapas mein match hone chahiye";
-        missing.push("Confirm Bank Account Number (Mismatch)");
+        newErrors["confirmAccountNumber"] = "Bank account numbers do not match.";
+        missing.push("Account Number Mismatch");
       }
       const cleanIfsc = ifsc.trim().toUpperCase();
       if (!cleanIfsc || cleanIfsc.length !== 11) {
-        newErrors["ifsc"] = "Kripya 11-digit valid IFSC code darj karein (e.g. SBIN0001234)";
-        missing.push("11-Digit Bank IFSC Code");
+        newErrors["ifsc"] = "Please enter a valid 11-character IFSC code.";
+        missing.push("11-Character IFSC Code");
       }
       if (!passbookUrl && !cancelledChequeUrl) {
-        newErrors["passbookUrl"] = "Kripya Bank Passbook ya Cancelled Cheque ka photo upload karein";
-        missing.push("Bank Passbook / Cancelled Cheque Photo");
+        newErrors["passbookUrl"] = "Please upload your bank passbook or cancelled cheque.";
+        missing.push("Bank Proof Document");
       }
 
       if (missing.length > 0) {
         setFieldErrors(newErrors);
         setMissingSummary(missing);
-        toast.error(`Kripya bachi hui ${missing.length} details bharein`);
+        toast.error(`Please complete all ${missing.length} required fields to proceed.`);
         triggerHaptic();
-        setTimeout(() => {
-          document.getElementById("missing-fields-banner")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 50);
         return;
       }
 
@@ -1509,7 +1487,7 @@ export function RiderRegistrationScreen() {
     } else if (currentStep === 6) {
       // Step 6: Delivery Kit Payment Validation -> Move to Step 7
       if (!kitPaid) {
-        toast.error("Kripya aage badhne se pehle Delivery Kit select karke payment complete karein!");
+        toast.error("Please complete delivery kit payment before proceeding.");
         triggerHaptic();
         return;
       }
@@ -1573,30 +1551,27 @@ export function RiderRegistrationScreen() {
     const missing: string[] = [];
 
     if (!hasScrolledToBottom) {
-      newErrors["hasScrolledToBottom"] = "Kripya anubandh (agreement) ko ant tak swipe up / scroll karein";
-      missing.push("Full Agreement Scroll (Swipe Up to End)");
+      newErrors["hasScrolledToBottom"] = "Please scroll through and read the partner agreement in full.";
+      missing.push("Full Agreement Review");
     }
     if (!agreementConsent) {
-      newErrors["agreementConsent"] = "Kripya anubandh shartein sweekar karne ke liye checkbox par tick karein";
-      missing.push("Agreement Acceptance Checkmark");
+      newErrors["agreementConsent"] = "Please accept the agreement terms to proceed.";
+      missing.push("Agreement Acceptance Checkbox");
     }
     if (!hasSignature && (!finalSig || finalSig.length < 50)) {
-      newErrors["hasSignature"] = "Kripya box ke andar apna digital signature karein";
+      newErrors["hasSignature"] = "Please sign inside the digital signature box.";
       missing.push("Candidate Digital Signature");
     }
     if (!isAgreementOtpVerified) {
-      newErrors["agreementOtp"] = "Kripya email par bheja gaya 6-digit Agreement Code darj karke verify karein";
-      missing.push("Email Agreement Authorization Code");
+      newErrors["agreementOtp"] = "Please enter and verify the 6-digit agreement authorization code.";
+      missing.push("Agreement Authorization Code");
     }
 
     if (missing.length > 0) {
       setFieldErrors(newErrors);
       setMissingSummary(missing);
-      toast.error(`Kripya bachi hui ${missing.length} shartein poori karein`);
+      toast.error(`Please satisfy all ${missing.length} agreement requirements.`);
       triggerHaptic();
-      setTimeout(() => {
-        document.getElementById("missing-fields-banner")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 50);
       return;
     }
 
@@ -2477,7 +2452,7 @@ export function RiderRegistrationScreen() {
                       className="py-3 px-3.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs"
                     >
                       <Camera className="w-4 h-4 text-[#00C853]" />
-                      <span>Live Camera se Click Karein</span>
+                      <span>Capture Live Photo</span>
                     </button>
 
                     <button
@@ -2491,7 +2466,7 @@ export function RiderRegistrationScreen() {
                       ) : (
                         <Upload className="w-4 h-4 text-neutral-600" />
                       )}
-                      <span>Gallery se Photo Upload Karein</span>
+                      <span>Upload Photo from Device</span>
                     </button>
                   </div>
                 )}
@@ -2805,25 +2780,72 @@ export function RiderRegistrationScreen() {
                 )}
               </div>
 
-              {/* DL Expiry Date */}
+              {/* DL Expiry Date - Segmented Custom Selector */}
               <div>
-                <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
-                  Licence Valid Till (Expiry Date) <span className="text-red-500 font-black">*</span>
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={dlExpiry}
-                  onChange={(e) => {
-                    setDlExpiry(e.target.value);
-                    clearFieldError("dlExpiry");
-                  }}
-                  className={`w-full h-11 px-3.5 bg-white border rounded-xl text-xs font-bold text-neutral-900 focus:outline-none transition-all ${
-                    fieldErrors["dlExpiry"]
-                      ? "border-red-500 ring-2 ring-red-400/20 bg-red-50/10 focus:border-red-500"
-                      : "border-neutral-200 focus:border-[#00C853]"
-                  }`}
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide">
+                    Licence Valid Till (Expiry Date) <span className="text-red-500 font-black">*</span>
+                  </label>
+                  {dlExpiry && (
+                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      {dlExpiry}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1.5 text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Day</span>
+                    <select
+                      value={dlExpiryDay}
+                      onChange={(e) => handleDlExpiryChange("day", e.target.value)}
+                      className="w-full h-12 pt-4 pb-1 px-2.5 bg-neutral-50/70 hover:bg-neutral-50 border border-neutral-200 focus:border-[#00C853] focus:bg-white rounded-xl text-xs font-bold text-neutral-900 focus:outline-none transition-all cursor-pointer"
+                    >
+                      <option value="">DD</option>
+                      {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0")).map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1.5 text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Month</span>
+                    <select
+                      value={dlExpiryMonth}
+                      onChange={(e) => handleDlExpiryChange("month", e.target.value)}
+                      className="w-full h-12 pt-4 pb-1 px-2.5 bg-neutral-50/70 hover:bg-neutral-50 border border-neutral-200 focus:border-[#00C853] focus:bg-white rounded-xl text-xs font-bold text-neutral-900 focus:outline-none transition-all cursor-pointer"
+                    >
+                      <option value="">MM</option>
+                      {[
+                        { num: "01", name: "Jan" },
+                        { num: "02", name: "Feb" },
+                        { num: "03", name: "Mar" },
+                        { num: "04", name: "Apr" },
+                        { num: "05", name: "May" },
+                        { num: "06", name: "Jun" },
+                        { num: "07", name: "Jul" },
+                        { num: "08", name: "Aug" },
+                        { num: "09", name: "Sep" },
+                        { num: "10", name: "Oct" },
+                        { num: "11", name: "Nov" },
+                        { num: "12", name: "Dec" },
+                      ].map((m) => (
+                        <option key={m.num} value={m.num}>{m.num} - {m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1.5 text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Year</span>
+                    <select
+                      value={dlExpiryYear}
+                      onChange={(e) => handleDlExpiryChange("year", e.target.value)}
+                      className="w-full h-12 pt-4 pb-1 px-2.5 bg-neutral-50/70 hover:bg-neutral-50 border border-neutral-200 focus:border-[#00C853] focus:bg-white rounded-xl text-xs font-bold text-neutral-900 focus:outline-none transition-all cursor-pointer"
+                    >
+                      <option value="">YYYY</option>
+                      {Array.from({ length: 26 }, (_, i) => String(2025 + i)).map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
                 {fieldErrors["dlExpiry"] && (
                   <p className="mt-1 text-[11px] font-bold text-red-600 flex items-center gap-1">
                     <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
@@ -3176,6 +3198,7 @@ export function RiderRegistrationScreen() {
                 pincode: pincode,
                 state: "Uttar Pradesh",
               }}
+              onBack={handlePrevStep}
               isAlreadyPaid={kitPaid}
               existingKitOrder={kitOrderData}
               onPaymentSuccess={(order) => {

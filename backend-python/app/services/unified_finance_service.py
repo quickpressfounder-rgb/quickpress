@@ -400,10 +400,11 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
         "enabled": True,
         "mandatoryForOnboarding": True,
         "items": [
-            "QuickPress Heavy-Duty Waterproof Delivery Bag (Hot/Cold Insulated)",
             "2x QuickPress Premium Dry-Fit Captain T-Shirts",
-            "Official RFID / QR Captain ID Card with Lanyard",
-            "High-Visibility Reflective Rain Jacket",
+            "1x High-Visibility Reflective Raincoat",
+            "1x Heavy-Duty Waterproof Delivery Bag (Hot/Cold Insulated)",
+            "1x Official RFID / QR Captain ID Card with Lanyard",
+            "1x Stainless Steel QuickPress Water Bottle (750ml)",
         ],
         "standardKit": {
             "id": "kit_standard",
