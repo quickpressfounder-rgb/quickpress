@@ -319,7 +319,7 @@ function DocumentUploadSlot({
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-neutral-900 truncate">{label}</p>
             <p className="text-[10px] text-neutral-500 truncate">
-              {value.startsWith("http") ? "Saved to secure cloud" : "Document photo attached"}
+              {value.startsWith("http") ? "Saved to secure cloud" : "Document attached"}
             </p>
           </div>
           <button
@@ -332,38 +332,53 @@ function DocumentUploadSlot({
           </button>
         </div>
       ) : (
+        /* Document Scanner Viewfinder Frame */
         <div
           onClick={() => {
             if (!isUploading) fileInputRef.current?.click();
           }}
-          className={`flex items-center justify-between p-3.5 border-2 rounded-xl cursor-pointer transition-all ${
+          className={`relative group p-4 border rounded-xl cursor-pointer transition-all ${
             error
               ? "border-red-400 bg-red-50/20 ring-2 ring-red-400/20"
               : isUploading
               ? "bg-neutral-100 border-neutral-300 cursor-not-allowed"
-              : "border-dashed bg-neutral-50 border-neutral-300 hover:border-emerald-500 hover:bg-emerald-50/20"
+              : "border-neutral-200 bg-neutral-50/80 hover:bg-emerald-50/20 hover:border-emerald-500"
           }`}
         >
-          <div className="flex items-center gap-2.5">
-            {isUploading ? (
-              <Loader2 className="w-4 h-4 text-[#00C853] animate-spin shrink-0" />
-            ) : (
-              <Icon className={`w-4 h-4 shrink-0 ${error ? "text-red-500" : "text-neutral-400"}`} />
-            )}
-            <div>
-              <p className={`text-xs font-bold ${error ? "text-red-800" : "text-neutral-800"}`}>
-                {isUploading ? "Uploading..." : label}
-              </p>
-              <p className="text-[10px] text-neutral-500">
-                {sublabel || "Tap to take photo or choose file"}
-              </p>
+          {/* Scanner Viewfinder 4 Corner Brackets */}
+          <span className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-neutral-400 group-hover:border-emerald-600 rounded-tl-sm transition-colors" />
+          <span className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-neutral-400 group-hover:border-emerald-600 rounded-tr-sm transition-colors" />
+          <span className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-neutral-400 group-hover:border-emerald-600 rounded-bl-sm transition-colors" />
+          <span className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-neutral-400 group-hover:border-emerald-600 rounded-br-sm transition-colors" />
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-white border border-neutral-200 flex items-center justify-center shrink-0 group-hover:border-emerald-300 transition-colors">
+                {isUploading ? (
+                  <Loader2 className="w-4 h-4 text-[#00C853] animate-spin" />
+                ) : (
+                  <Camera className={`w-4 h-4 ${error ? "text-red-500" : "text-neutral-500 group-hover:text-emerald-600"}`} />
+                )}
+              </div>
+              <div>
+                <p className={`text-xs font-bold ${error ? "text-red-800" : "text-neutral-800"}`}>
+                  {isUploading ? "Uploading..." : `Scan or Upload ${label}`}
+                </p>
+                <p className="text-[10px] text-neutral-500">
+                  {sublabel || "Clear photo with 4 corners visible"}
+                </p>
+              </div>
             </div>
+            <span
+              className={`text-xs font-bold px-2.5 py-1 rounded-md shrink-0 border ${
+                error
+                  ? "text-red-700 bg-red-100/50 border-red-300"
+                  : "text-neutral-700 bg-white border-neutral-200 group-hover:border-emerald-300"
+              }`}
+            >
+              {isUploading ? "Wait..." : "Scan"}
+            </span>
           </div>
-          <span className={`text-xs font-bold px-2.5 py-1 rounded-md shrink-0 border ${
-            error ? "text-red-700 bg-red-100/50 border-red-300" : "text-neutral-700 bg-white border-neutral-200"
-          }`}>
-            {isUploading ? "Wait..." : "Upload"}
-          </span>
         </div>
       )}
 
@@ -649,7 +664,7 @@ export function RiderRegistrationScreen() {
         setHasScrolledToBottom(true);
         clearFieldError("hasScrolledToBottom");
         triggerHaptic();
-        toast.success("✓ आपने पूरा अनुबंध पढ़ लिया है! अब चेकबॉक्स अनलॉक हो गया है।");
+        toast.success("✓ You have read the entire agreement. Agreement consent is now unlocked.");
       }
     }
   };
@@ -664,7 +679,7 @@ export function RiderRegistrationScreen() {
         setHasScrolledToBottom(true);
         clearFieldError("hasScrolledToBottom");
         triggerHaptic();
-        toast.success("✓ आपने पूरा अनुबंध पढ़ लिया है! अब चेकबॉक्स अनलॉक हो गया है।");
+        toast.success("✓ You have read the entire agreement. Agreement consent is now unlocked.");
       }, 300);
     }
   };
@@ -1677,76 +1692,44 @@ export function RiderRegistrationScreen() {
         onCapture={handleLiveSelfieCaptured}
       />
 
-      {/* 1. Header Bar (Back button removed to prevent exiting to auth/otp) */}
-      <header
-        className="sticky top-0 z-40 flex items-center justify-between px-4 pb-3 bg-white border-b border-neutral-200"
-        style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 8px, 12px)" }}
-      >
-        <div className="flex items-center gap-2 text-xs font-bold text-neutral-900">
-          <div className="w-8 h-8 rounded-full bg-[#00C853]/10 flex items-center justify-center">
-            <ShieldCheck className="w-4.5 h-4.5 text-[#00C853]" />
+      {/* 1. Sticky Header & Clean Stepper Container */}
+      <div className="sticky top-0 z-40 bg-white border-b border-neutral-200 shadow-xs">
+        <header
+          className="flex items-center justify-between px-4 pb-2"
+          style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 8px, 12px)" }}
+        >
+          <div className="flex items-center gap-2 text-xs font-bold text-neutral-900">
+            <div className="w-8 h-8 rounded-full bg-[#00C853]/10 flex items-center justify-center">
+              <ShieldCheck className="w-4.5 h-4.5 text-[#00C853]" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-neutral-900 leading-tight">QuickPress Captain</p>
+              <p className="text-[10px] text-neutral-500 font-medium">Partner Registration</p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-black text-neutral-900 leading-tight">QuickPress Captain</p>
-            <p className="text-[10px] text-neutral-500 font-medium">Official Partner Registration</p>
-          </div>
-        </div>
 
-        <span className="text-[11px] font-bold px-2.5 py-1 bg-neutral-100 border border-neutral-200 text-neutral-700 rounded-md">
-          Step {currentStep} of 7
-        </span>
-      </header>
-
-      {/* 2. Step Progress Tracker (Clean Real Mobility App Style) */}
-      <div className="bg-white px-4 pt-3 pb-3 border-b border-neutral-200">
-        <div className="flex items-center justify-between mb-2">
-          <QuickPressLogo size="sm" showSubtitle={false} />
-          <span className="text-xs font-bold text-neutral-600">
-            {stepTitles[currentStep - 1]?.title}
+          <span className="text-[11px] font-bold px-2.5 py-1 bg-neutral-100 border border-neutral-200 text-neutral-700 rounded-md">
+            Step {currentStep} of 7
           </span>
-        </div>
+        </header>
 
-        {/* Progress Line */}
-        <div className="w-full h-1 bg-neutral-100 rounded-full overflow-hidden mb-3">
-          <div
-            className="h-full bg-[#00C853] transition-all duration-300"
-            style={{ width: `${(currentStep / 7) * 100}%` }}
-          />
-        </div>
+        {/* Sleek Step Progress Line (Replaced 7-circle icons with clean progress) */}
+        <div className="px-4 pb-2.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-bold text-neutral-800">
+              {stepTitles[currentStep - 1]?.title}
+            </span>
+            <span className="text-[11px] font-bold text-[#00C853]">
+              {Math.round((currentStep / 7) * 100)}% Completed
+            </span>
+          </div>
 
-        {/* 7 Step Indicator Tabs */}
-        <div className="grid grid-cols-7 gap-1 text-center">
-          {stepTitles.map((st) => {
-            const isDone = currentStep > st.num;
-            const isCurrent = currentStep === st.num;
-            const Icon = st.icon;
-
-            return (
-              <div
-                key={st.num}
-                className={`flex flex-col items-center gap-1 ${
-                  isCurrent
-                    ? "text-[#00C853] font-bold"
-                    : isDone
-                    ? "text-neutral-700 font-medium"
-                    : "text-neutral-400 font-normal"
-                }`}
-              >
-                <div
-                  className={`flex items-center justify-center w-7 h-7 rounded-full border text-xs transition-all ${
-                    isDone
-                      ? "bg-[#00C853] border-[#00C853] text-white"
-                      : isCurrent
-                      ? "bg-white border-[#00C853] text-[#00C853] ring-2 ring-emerald-100"
-                      : "bg-white border-neutral-200 text-neutral-400"
-                  }`}
-                >
-                  {isDone ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Icon className="w-3.5 h-3.5" />}
-                </div>
-                <span className="text-[10px] truncate max-w-full">{st.short}</span>
-              </div>
-            );
-          })}
+          <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#00C853] transition-all duration-300"
+              style={{ width: `${(currentStep / 7) * 100}%` }}
+            />
+          </div>
         </div>
       </div>
 
@@ -2878,30 +2861,18 @@ export function RiderRegistrationScreen() {
                 )}
               </div>
 
-              {/* Account Holder Name: STRICTLY LOCKED / READ-ONLY */}
+              {/* Account Holder Name: READ-ONLY (Clean minimal styling, no lock icons or verbose descriptions) */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide">
-                    Account Holder Name (Locked) <span className="text-red-500 font-black">*</span>
-                  </label>
-                  <span className="text-[10px] font-bold text-neutral-500 flex items-center gap-1">
-                    <Lock className="w-3 h-3 text-neutral-400" />
-                    Read-Only
-                  </span>
-                </div>
-                <div className="relative">
-                  <input
-                    type="text"
-                    readOnly
-                    disabled
-                    value={officialApplicantName}
-                    className="w-full h-11 px-3.5 bg-neutral-100 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-700 cursor-not-allowed"
-                  />
-                  <Lock className="absolute right-3.5 top-3.5 w-4 h-4 text-neutral-400" />
-                </div>
-                <p className="text-[10px] text-neutral-500 mt-1">
-                  Account holder name cannot be edited. It is permanently locked to your verified applicant name to prevent fraud.
-                </p>
+                <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
+                  Account Holder Name <span className="text-red-500 font-black">*</span>
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  disabled
+                  value={officialApplicantName}
+                  className="w-full h-11 px-3.5 bg-neutral-100 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-700 cursor-not-allowed select-none"
+                />
               </div>
 
               {/* IFSC Code & "Find / Verify IFSC" */}
@@ -3156,6 +3127,8 @@ export function RiderRegistrationScreen() {
                 if (order?.pricing?.paymentType) {
                   setSelectedKitPlan(order.pricing.paymentType);
                 }
+                setCurrentStep(7);
+                window.scrollTo({ top: 0, behavior: "smooth" });
               }}
             />
           </div>
@@ -3219,23 +3192,23 @@ export function RiderRegistrationScreen() {
 
               {/* Scroll / Swipe Up Instruction Banner */}
               {!hasScrolledToBottom ? (
-                <div className="flex items-center justify-between p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs shadow-2xs">
+                <div className="flex items-center justify-between p-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-neutral-800 text-xs shadow-2xs">
                   <span className="flex items-center gap-1.5 font-bold">
-                    <ArrowDown className="w-4 h-4 text-amber-600 animate-bounce" />
-                    <span>नीचे तक स्क्रॉल (Swipe Up) करें — पढ़ना अनिवार्य है</span>
+                    <ArrowDown className="w-4 h-4 text-emerald-600 animate-bounce" />
+                    <span>Please scroll to the bottom of the agreement</span>
                   </span>
                   <button
                     type="button"
                     onClick={jumpToEndOfAgreement}
-                    className="text-[11px] font-bold text-amber-900 underline bg-amber-200/80 hover:bg-amber-300 px-2 py-0.5 rounded-md active:scale-95 transition-all"
+                    className="text-[11px] font-bold text-emerald-800 underline bg-emerald-100 hover:bg-emerald-200 px-2.5 py-1 rounded-md active:scale-95 transition-all"
                   >
-                    नीचे जाएं ↓
+                    Scroll to End ↓
                   </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-900 text-xs font-bold shadow-2xs">
                   <CheckCircle2 className="w-4 h-4 text-[#00C853] shrink-0" />
-                  <span>आपने पूरा अनुबंध पढ़ लिया है। चेकबॉक्स व हस्ताक्षर अनलॉक हो गए हैं। ✓</span>
+                  <span>Agreement read in full. Checkbox and signature are now unlocked. ✓</span>
                 </div>
               )}
 
@@ -3261,63 +3234,63 @@ export function RiderRegistrationScreen() {
                 ) : (
                   <>
                     <div className="space-y-1">
-                      <p className="font-bold text-neutral-900">1. स्वतंत्र डिलीवरी पार्टनर का दर्जा (Independent Contractor Status):</p>
+                      <p className="font-bold text-neutral-900">1. Independent Contractor Status:</p>
                       <p>
-                        डिलीवरी पार्टनर (&quot;कैप्टन&quot;) QuickPress प्लेटफ़ॉर्म पर एक स्वतंत्र सेवा प्रदाता (Independent Contractor) के रूप में कार्य करता है। यह अनुबंध किसी भी प्रकार के रोजगार, साझेदारी या संयुक्त उद्यम (Employer-Employee / Partnership) का निर्माण नहीं करता है। कैप्टन अपनी सुविधानुसार कार्य के घंटे और स्थान चुनने के लिए स्वतंत्र है।
+                        The Delivery Partner (&quot;Captain&quot;) operates on the QuickPress platform as an independent contractor. This agreement does not create an employer-employee, partnership, or joint venture relationship. The Captain remains free to choose their operating hours and zones.
                       </p>
                     </div>
 
                     <div className="space-y-1">
-                      <p className="font-bold text-neutral-900">2. सेवा की गुणवत्ता एवं समयबद्धता (Service Quality &amp; Timeliness):</p>
+                      <p className="font-bold text-neutral-900">2. Service Quality &amp; Timeliness:</p>
                       <p>
-                        कैप्टन स्टोर से आर्डर पिकअप करने तथा ग्राहक के निर्धारित पते तक सुरक्षित व समय पर पहुंचाने हेतु पूरी जिम्मेदारी लेगा। सामान को किसी प्रकार का नुकसान न हो, पार्सल या कपड़े सील-बंद स्थिति में ही ग्राहक को सौंपा जाए।
+                        The Captain takes full responsibility for picking up orders from partner laundromats and safely delivering them to customers within the scheduled service windows in sealed, tamper-proof packaging.
                       </p>
                     </div>
 
                     <div className="space-y-1">
-                      <p className="font-bold text-neutral-900">3. यातायात नियम, हेलमेट एवं वैध लाइसेंस (Traffic &amp; Road Safety Compliance):</p>
+                      <p className="font-bold text-neutral-900">3. Traffic Safety &amp; Legal Compliance:</p>
                       <p>
-                        सड़क पर वाहन चलाते समय हेलमेट पहनना अनिवार्य है। कैप्टन प्रमाणित करता है कि उसके पास वैध ड्राइविंग लाइसेंस (DL), वाहन पंजीकरण (RC), तथा वैध वाहन बीमा (Third-Party Insurance) है। किसी भी यातायात उल्लंघन अथवा चालान की जिम्मेदारी स्वयं कैप्टन की होगी।
+                        Wearing a safety helmet while operating a two-wheeler is strictly mandatory. The Captain confirms holding a valid driving license (DL), active vehicle registration (RC), and active third-party vehicle insurance.
                       </p>
                     </div>
 
                     <div className="space-y-1">
-                      <p className="font-bold text-neutral-900">4. भुगतान एवं शून्य धोखाधड़ी नीति (Payouts &amp; Zero Cash Fraud):</p>
+                      <p className="font-bold text-neutral-900">4. Payouts &amp; Zero Cash Fraud Policy:</p>
                       <p>
-                        प्रत्येक सफल डिलीवरी का पारिश्रमिक सीधे कैप्टन के सत्यापित बैंक खाते में तय समय पर ट्रांसफर किया जाएगा। कैश-ऑन-डिलीवरी (COD) से एकत्रित राशि को तुरंत सिस्टम में दर्ज करना अनिवार्य है। किसी भी फर्जी डिलीवरी या हेराफेरी पर खाता तत्काल ब्लॉक कर कानूनी कार्रवाई की जाएगी।
+                        Earnings from all completed deliveries are settled directly into the verified bank account. Any cash collected via Cash-on-Delivery (COD) must be remitted or updated in the platform ledger in real-time. Fraudulent activity will result in immediate termination and legal action.
                       </p>
                     </div>
 
                     <div className="space-y-1">
-                      <p className="font-bold text-neutral-900">5. ग्राहक गोपनीयता व शिष्टाचार (Customer Privacy &amp; Courtesy):</p>
+                      <p className="font-bold text-neutral-900">5. Customer Privacy &amp; Professional Conduct:</p>
                       <p>
-                        ग्राहक का नाम, पता व फोन नंबर केवल डिलीवरी कार्य हेतु है। डिलीवरी के बाद ग्राहक से संपर्क करना, नंबर साझा करना अथवा अनुचित व्यवहार करना सख्त वर्जित है।
+                        Customer contact details and addresses are strictly confidential and solely for delivery fulfillment. Retaining or misusing customer information for personal contact is strictly prohibited.
                       </p>
                     </div>
 
                     <div className="space-y-1">
-                      <p className="font-bold text-neutral-900">6. डिजिटल हस्ताक्षर की वैधता (Digital Signature Legal Validity):</p>
+                      <p className="font-bold text-neutral-900">6. Digital Signature Legal Validity:</p>
                       <p>
-                        सूचना प्रौद्योगिकी अधिनियम, 2000 (Information Technology Act, 2000) के तहत इस स्क्रीन पर किया गया आपका इलेक्ट्रॉनिक हस्ताक्षर (E-Signature) कानूनी रूप से भौतिक हस्ताक्षर के समान वैध व बाध्यकारी है।
+                        Pursuant to Section 10A of the Information Technology Act, 2000, your digital signature executed on this electronic document is legally binding and carries full parity with a handwritten physical signature.
                       </p>
                     </div>
                   </>
                 )}
 
                 {selectedKitPlan === "PART_PAYMENT" && (
-                  <div className="space-y-1 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-950">
-                    <p className="font-bold text-amber-900 flex items-center gap-1.5">
-                      <Package className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                      <span>14. डिलीवरी किट किस्त एवं शेष राशि कटौती (Delivery Kit Installment & Balance Settlement):</span>
+                  <div className="space-y-1 p-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800">
+                    <p className="font-bold text-neutral-900 flex items-center gap-1.5">
+                      <Package className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Clause 14: Delivery Kit Installment & Balance Settlement</span>
                     </p>
-                    <p className="text-[10px] leading-relaxed text-amber-900">
-                      कैप्टन द्वारा QuickPress डिलीवरी किट का पार्ट-पेमेंट विकल्प (₹300 अग्रिम भुगतान) चुना गया है। कैप्टन इसके द्वारा QuickPress लॉजिस्टिक्स को शेष राशि ₹900 की वसूली हेतु कैप्टन के साप्ताहिक भुगतान (Weekly Payout) से लगातार 3 हफ्तों तक ₹300 प्रति सप्ताह की स्वचालित कटौती (Automated Weekly Deduction) करने के लिए स्पष्ट व कानूनी सहमति (Legal Consent) प्रदान करता है।
+                    <p className="text-[10px] leading-relaxed text-neutral-600">
+                      The Captain has opted for the installment payment option (₹300 advance). The Captain authorizes QuickPress to automatically deduct the remaining balance of ₹900 from weekly payouts over the scheduled weeks.
                     </p>
                   </div>
                 )}
 
                 <div className="pt-2 text-center border-t border-dashed border-neutral-300 text-neutral-500 font-bold text-[10px]">
-                  [ *** END OF CONTRACT / अनुबंध का समापन *** ]
+                  [ *** END OF CONTRACT *** ]
                 </div>
               </div>
 
@@ -3325,7 +3298,7 @@ export function RiderRegistrationScreen() {
               <div
                 onClick={() => {
                   if (!hasScrolledToBottom) {
-                    toast.warning("Kripya pehle agreement ko poora neeche tak scroll (swipe up) karein!");
+                    toast.warning("Please scroll down to the bottom of the agreement first.");
                     jumpToEndOfAgreement();
                   }
                 }}
@@ -3359,7 +3332,7 @@ export function RiderRegistrationScreen() {
                       !hasScrolledToBottom ? "text-neutral-500 cursor-not-allowed" : "text-neutral-900 cursor-pointer"
                     }`}
                   >
-                    मैंने QuickPress डिलीवरी पार्टनर अनुबंध की सभी शर्तें व नियम पढ़ लिए हैं और मैं पूर्ण सहमति देता हूँ। *
+                    I have read, understood, and accept all the terms of the QuickPress Delivery Partner Agreement. *
                   </label>
                   <p className="text-[10px] text-neutral-500 mt-0.5">
                     I declare that all information is truthful, and I accept the terms of the{" "}
@@ -3382,9 +3355,9 @@ export function RiderRegistrationScreen() {
                     </a>.
                   </p>
                   {!hasScrolledToBottom && (
-                    <p className="text-[10px] font-bold text-amber-700 mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
-                      <span>यह चेकबॉक्स अनुबंध को अंत तक स्क्रॉल करने के बाद ही टिक होगा।</span>
+                    <p className="text-[10px] font-bold text-neutral-500 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3 text-neutral-400 shrink-0" />
+                      <span>This checkbox will unlock after scrolling through the agreement.</span>
                     </p>
                   )}
                   {fieldErrors["agreementConsent"] && (
@@ -3401,7 +3374,7 @@ export function RiderRegistrationScreen() {
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide flex items-center gap-1">
                     <PenTool className="w-3.5 h-3.5 text-[#00C853]" />
-                    <span>Candidate Digital Signature (हस्ताक्षर)</span>
+                    <span>Candidate Digital Signature</span>
                     <span className="text-red-500 font-black">*</span>
                   </label>
                   {hasSignature && (
@@ -3411,7 +3384,7 @@ export function RiderRegistrationScreen() {
                       className="text-[11px] font-bold text-red-600 hover:text-red-700 flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-red-50 transition-colors"
                     >
                       <Eraser className="w-3 h-3" />
-                      <span>Clear / दोबारा करें</span>
+                      <span>Clear Signature</span>
                     </button>
                   )}
                 </div>
@@ -3441,8 +3414,8 @@ export function RiderRegistrationScreen() {
                   {!hasSignature && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-neutral-400 select-none">
                       <PenTool className="w-5 h-5 mb-1 text-neutral-300 stroke-[1.5]" />
-                      <p className="text-xs font-bold">यहाँ अपनी उंगली से हस्ताक्षर (Sign) करें</p>
-                      <p className="text-[10px]">Draw your signature with finger or stylus inside box</p>
+                      <p className="text-xs font-bold">Draw your signature inside this box</p>
+                      <p className="text-[10px]">Use finger or stylus</p>
                     </div>
                   )}
 
@@ -3461,7 +3434,7 @@ export function RiderRegistrationScreen() {
                   <div className="mt-1.5 p-2 bg-neutral-50 rounded-lg text-[10px] text-neutral-600 flex items-center justify-between border border-neutral-200">
                     <span className="font-bold flex items-center gap-1 text-emerald-800">
                       <CheckCircle2 className="w-3 h-3 text-[#00C853]" />
-                      <span>हस्ताक्षर दर्ज: {officialApplicantName}</span>
+                      <span>Signature Captured: {officialApplicantName}</span>
                     </span>
                     <span className="font-mono text-neutral-500">{new Date().toLocaleDateString("en-IN")}</span>
                   </div>
@@ -3594,8 +3567,8 @@ export function RiderRegistrationScreen() {
         )}
       </div>
 
-      {/* 4. Bottom Navigation Action Bar (Steps 1 to 6) */}
-      {currentStep < 7 && (
+      {/* 4. Bottom Navigation Action Bar (Steps 1 to 5 only - Step 6 uses Delivery Kit payment button) */}
+      {currentStep < 6 && (
         <div
           className="sticky bottom-0 z-40 px-4 pt-3 bg-white border-t border-neutral-200 flex items-center justify-between gap-3 shadow-md"
           style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 12px, 16px)" }}
@@ -3620,8 +3593,6 @@ export function RiderRegistrationScreen() {
             <span>
               {currentStep === 5
                 ? "Continue to Step 6 (Delivery Kit)"
-                : currentStep === 6
-                ? "Continue to Step 7 (Partner Agreement)"
                 : `Continue to Step ${currentStep + 1}`}
             </span>
             <ArrowRight className="w-4 h-4 stroke-[2.5]" />

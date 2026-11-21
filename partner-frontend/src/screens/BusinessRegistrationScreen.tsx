@@ -333,7 +333,7 @@ function DocumentUploadSlot({
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-neutral-900 truncate">{label}</p>
             <p className="text-[10px] text-neutral-500 truncate">
-              {value.startsWith("http") ? "Saved to secure cloud" : "Document photo attached"}
+              {value.startsWith("http") ? "Saved to secure cloud" : "Document attached"}
             </p>
           </div>
           <button
@@ -346,40 +346,53 @@ function DocumentUploadSlot({
           </button>
         </div>
       ) : (
+        /* Document Scanner Viewfinder Frame */
         <div
           onClick={() => {
             if (!isUploading) fileInputRef.current?.click();
           }}
-          className={`flex items-center justify-between p-3.5 border-2 rounded-xl cursor-pointer transition-all ${
+          className={`relative group p-4 border rounded-xl cursor-pointer transition-all ${
             error
               ? "border-red-400 bg-red-50/20 ring-2 ring-red-400/20"
               : isUploading
               ? "bg-neutral-100 border-neutral-300 cursor-not-allowed"
-              : "border-dashed bg-neutral-50/70 border-neutral-300 hover:border-emerald-500 hover:bg-emerald-50/20"
+              : "border-neutral-200 bg-neutral-50/80 hover:bg-emerald-50/20 hover:border-emerald-500"
           }`}
         >
-          <div className="flex items-center gap-2.5">
-            {isUploading ? (
-              <Loader2 className="w-4 h-4 text-[#00C853] animate-spin shrink-0" />
-            ) : (
-              <Icon className={`w-4 h-4 shrink-0 ${error ? "text-red-500" : "text-neutral-400"}`} />
-            )}
-            <div>
-              <p className={`text-xs font-bold ${error ? "text-red-800" : "text-neutral-800"}`}>
-                {isUploading ? "Uploading..." : label}
-              </p>
-              <p className="text-[10px] text-neutral-500">
-                {sublabel || "Tap to take photo or choose file"}
-              </p>
+          {/* Scanner Viewfinder 4 Corner Brackets */}
+          <span className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-neutral-400 group-hover:border-emerald-600 rounded-tl-sm transition-colors" />
+          <span className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-neutral-400 group-hover:border-emerald-600 rounded-tr-sm transition-colors" />
+          <span className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-neutral-400 group-hover:border-emerald-600 rounded-bl-sm transition-colors" />
+          <span className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-neutral-400 group-hover:border-emerald-600 rounded-br-sm transition-colors" />
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-white border border-neutral-200 flex items-center justify-center shrink-0 group-hover:border-emerald-300 transition-colors">
+                {isUploading ? (
+                  <Loader2 className="w-4 h-4 text-[#00C853] animate-spin" />
+                ) : (
+                  <Camera className={`w-4 h-4 ${error ? "text-red-500" : "text-neutral-500 group-hover:text-emerald-600"}`} />
+                )}
+              </div>
+              <div>
+                <p className={`text-xs font-bold ${error ? "text-red-800" : "text-neutral-800"}`}>
+                  {isUploading ? "Uploading..." : `Scan or Upload ${label}`}
+                </p>
+                <p className="text-[10px] text-neutral-500">
+                  {sublabel || "Clear photo with 4 corners visible"}
+                </p>
+              </div>
             </div>
+            <span
+              className={`text-xs font-bold px-2.5 py-1 rounded-md shrink-0 border ${
+                error
+                  ? "text-red-700 bg-red-100/50 border-red-300"
+                  : "text-neutral-700 bg-white border-neutral-200 group-hover:border-emerald-300 shadow-2xs"
+              }`}
+            >
+              {isUploading ? "Wait..." : "Scan"}
+            </span>
           </div>
-          <span
-            className={`text-xs font-bold px-2.5 py-1 rounded-md shrink-0 border ${
-              error ? "text-red-700 bg-red-100/50 border-red-300" : "text-neutral-700 bg-white border-neutral-200 shadow-2xs"
-            }`}
-          >
-            {isUploading ? "Wait..." : "Upload"}
-          </span>
         </div>
       )}
 
@@ -1466,108 +1479,68 @@ export function BusinessRegistrationScreen() {
     <div className="min-h-screen bg-neutral-100 flex flex-col font-sans pb-28">
       <Toaster position="top-center" richColors />
 
-      {/* 1. Top Header Bar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200 px-4 pb-3 flex items-center justify-between shadow-2xs app-header-safe">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handlePrevStep}
-            disabled={currentStep === 1}
-            className="p-2 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-            aria-label="Previous Step"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                {t("QuickPress Partner", "QuickPress Partner")}
-              </span>
-              <span className="text-xs font-bold text-neutral-900">
-                {t("Merchant Onboarding", "Merchant Onboarding")}
-              </span>
-            </div>
-            <p className="text-[10px] text-neutral-500 font-medium">
-              {t("Official Laundry & Dry-Cleaning Store Registration", "Official Laundry & Dry-Cleaning Store Registration")}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Prominent Language Switcher Button */}
-          <button
-            type="button"
-            onClick={openLanguageModal}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-extrabold rounded-xl transition active:scale-95 shadow-2xs cursor-pointer"
-            title="Change Language / भाषा बदलें"
-          >
-            <Globe className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span className="uppercase">{language}</span>
-          </button>
-
-          <span className="text-[11px] font-bold px-2.5 py-1 bg-neutral-100 border border-neutral-200 text-neutral-700 rounded-lg shadow-2xs">
-            {t("Step", "Step")} {currentStep} / 6
-          </span>
-        </div>
-      </header>
-
-      {/* 2. Step Progress Tracker (Clean Real Mobility App Style) */}
-      <div className="bg-white px-4 pt-3 pb-3 border-b border-neutral-200 shadow-2xs">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-black text-neutral-800 tracking-tight">
-            {t(STEPS[currentStep - 1]?.title, STEPS[currentStep - 1]?.title)}
-          </span>
-          <span className="text-[11px] font-bold text-emerald-700">
-            {Math.round((currentStep / 6) * 100)}% {t("Completed", "Completed")}
-          </span>
-        </div>
-
-        {/* Progress Line */}
-        <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden mb-3">
-          <div
-            className="h-full bg-[#00C853] transition-all duration-300"
-            style={{ width: `${(currentStep / 6) * 100}%` }}
-          />
-        </div>
-
-        {/* 6 Step Indicator Tabs */}
-        <div className="grid grid-cols-6 gap-1 text-center">
-          {STEPS.map((st) => {
-            const isDone = currentStep > st.num;
-            const isCurrent = currentStep === st.num;
-            const Icon = st.icon;
-
-            return (
-              <div
-                key={st.num}
-                onClick={() => {
-                  if (isDone) setCurrentStep(st.num);
-                }}
-                className={`flex flex-col items-center gap-1 transition-all ${
-                  isDone ? "cursor-pointer" : ""
-                } ${
-                  isCurrent
-                    ? "text-[#00C853] font-bold"
-                    : isDone
-                    ? "text-neutral-700 font-medium"
-                    : "text-neutral-400 font-normal"
-                }`}
-              >
-                <div
-                  className={`flex items-center justify-center w-7 h-7 rounded-full border text-xs transition-all ${
-                    isDone
-                      ? "bg-[#00C853] border-[#00C853] text-white shadow-2xs"
-                      : isCurrent
-                      ? "bg-white border-[#00C853] text-[#00C853] ring-2 ring-emerald-100 shadow-2xs"
-                      : "bg-white border-neutral-200 text-neutral-400"
-                  }`}
-                >
-                  {isDone ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Icon className="w-3.5 h-3.5" />}
-                </div>
-                <span className="text-[10px] truncate max-w-full">{t(st.short, st.short)}</span>
+      {/* 1. Sticky Header & Step Progress Container */}
+      <div className="sticky top-0 z-40 bg-white border-b border-neutral-200 shadow-xs">
+        <header className="px-4 pb-2.5 flex items-center justify-between app-header-safe">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handlePrevStep}
+              disabled={currentStep === 1}
+              className="p-1.5 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+              aria-label="Previous Step"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  {t("QuickPress Partner", "QuickPress Partner")}
+                </span>
+                <span className="text-xs font-bold text-neutral-900">
+                  {t("Merchant Onboarding", "Merchant Onboarding")}
+                </span>
               </div>
-            );
-          })}
+              <p className="text-[10px] text-neutral-500 font-medium">
+                {t("Official Laundry & Dry-Cleaning Store Registration", "Official Laundry & Dry-Cleaning Store Registration")}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openLanguageModal}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-extrabold rounded-xl transition active:scale-95 shadow-2xs cursor-pointer"
+              title="Change Language"
+            >
+              <Globe className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="uppercase">{language}</span>
+            </button>
+
+            <span className="text-[11px] font-bold px-2.5 py-1 bg-neutral-100 border border-neutral-200 text-neutral-700 rounded-lg shadow-2xs">
+              {t("Step", "Step")} {currentStep} / 6
+            </span>
+          </div>
+        </header>
+
+        {/* Minimalist Executive Stepper */}
+        <div className="px-4 pb-2.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-black text-neutral-800 tracking-tight">
+              {t(STEPS[currentStep - 1]?.title, STEPS[currentStep - 1]?.title)}
+            </span>
+            <span className="text-[11px] font-bold text-emerald-700">
+              {Math.round((currentStep / 6) * 100)}% {t("Completed", "Completed")}
+            </span>
+          </div>
+
+          <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#00C853] transition-all duration-300"
+              style={{ width: `${(currentStep / 6) * 100}%` }}
+            />
+          </div>
         </div>
       </div>
 
@@ -2611,31 +2584,18 @@ export function BusinessRegistrationScreen() {
                 )}
               </div>
 
-              {/* Account Holder Name (Auto-synced with Step 1 Owner Name) */}
+              {/* Account Holder Name: READ-ONLY (Clean minimal styling, cannot be altered) */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold text-neutral-700">
-                    {t("Beneficiary / Account Holder Name", "Beneficiary / Account Holder Name")} <span className="text-red-500">*</span>
-                  </label>
-                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <UserCheck className="w-3 h-3 text-[#00C853]" />
-                    {t("Same as Store Owner Name", "Same as Store Owner Name")}
-                  </span>
-                </div>
+                <label className="block text-xs font-bold text-neutral-700 mb-1">
+                  {t("Beneficiary / Account Holder Name", "Beneficiary / Account Holder Name")} <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
+                  readOnly
+                  disabled
                   value={accountHolder || ownerName}
-                  onChange={(e) => setAccountHolder(e.target.value)}
-                  placeholder={t("Exact name as in bank records", "Exact name as in bank records")}
-                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-semibold focus:outline-hidden focus:ring-2 transition ${
-                    fieldErrors["accountHolder"]
-                      ? "border-red-400 bg-red-50/20"
-                      : "border-neutral-200 focus:border-emerald-500 focus:ring-emerald-100"
-                  }`}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 bg-neutral-100 text-xs font-semibold text-neutral-700 cursor-not-allowed select-none"
                 />
-                <p className="mt-1 text-[10px] text-neutral-500">
-                  {t("Auto-filled from Step 1 Owner Name to ensure matching KYC & payout settlement", `Auto-filled: ${ownerName || "Owner Name"}`)}
-                </p>
               </div>
 
               {/* Account Number & Confirm Account Number */}

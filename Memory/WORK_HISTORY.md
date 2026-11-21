@@ -1,5 +1,55 @@
 # QuickPress — Engineering Work History
 
+## Session: November 21, 2026 (Part 52)
+
+### Rider & Partner Registration Redesign, Document Scanner Viewfinder, Delivery Kit Recipient Form & Customized EMI Integration
+
+1. **Context & User Directives:**
+   - User submitted 5 screenshots and specific directives:
+     - **Image 1 (Kit Gear Banner):** Remove the black starter kit marketing banner. Add home delivery recipient fields (Recipient Person Name, Mobile Number, Complete Delivery Address, Landmark, PIN code, and City).
+     - **Image 2 (Bank Account Holder Name):** Remove the lock icon and verbose security disclaimer, but keep the field strictly read-only/disabled so applicants cannot modify the verified name.
+     - **Image 3 (Stepper Tabs):** Remove the 7 cluttered circular icon tabs from the top of the registration screen.
+     - **Image 4 (Payment Button & Agreement Flow):** Replace duplicate "Continue to Step 7" button with a single button: strictly **"Proceed to Payment (₹...)"** in clean English. Automatically redirect to Step 7 (Partner Agreement) upon payment verification.
+     - **Image 5 (Verbose Disclaimer Boxes):** Remove yellow policy notice callout boxes and wordy multi-sentence disclaimers across all registration steps.
+     - **Customized EMI Installment Selection:** Allow flexible EMI installment plans (2, 3, or 4 weeks) with dynamic weekly deductions synced with the database and Admin console.
+     - **Sticky Navigation:** Pin header and step progress bar together (`sticky top-0 z-40 bg-white border-b border-neutral-200`) across all registration pages so it remains visible on scroll.
+     - **Document Scanner UI:** Implement a professional 4-corner document scanner viewfinder frame for all document upload slots.
+
+2. **Full-Stack Engineering Solutions Delivered:**
+   - **Rider Registration Redesign (`rider-frontend/src/screens/RiderRegistrationScreen.tsx`):**
+     - Grouped `<header>` and the step progress tracker into a unified `sticky top-0 z-40 bg-white border-b border-neutral-200 shadow-xs` container.
+     - Replaced the 7-circle icon stepper with a sleek, minimalist progress bar (`Step X of 7 · [Title]`).
+     - Step 5 Bank Account: Removed `(Locked)` label, lock icons, and fraud disclaimer text; maintained strict `readOnly disabled` enforcement for verified applicant name.
+     - Upgraded `DocumentUploadSlot` to the Document Scanner Viewfinder frame with 4 corner brackets and camera/scan iconography.
+     - Step 6 Bottom Navigation: Removed redundant "Continue to Step 7" bottom button so only the kit component's "Proceed to Payment" button controls the flow.
+     - Auto-advancement: Configured `onPaymentSuccess` to immediately advance to Step 7 (`setCurrentStep(7)`).
+     - Step 7 Agreement & Copy: Converted all Hinglish copy to professional English.
+   - **Delivery Kit Selection Component (`rider-frontend/src/components/registration/DeliveryKitSelectionStep.tsx`):**
+     - Completely removed the large black starter kit card banner and the yellow policy disclaimer banner.
+     - Integrated Home Delivery recipient inputs (`receiverName`, `receiverPhone`, `addressLine`, `landmark`, `pincode`, `deliveryCity`) with client-side validation.
+     - Added customized EMI selection options (2 Weeks: ₹450/wk, 3 Weeks: ₹300/wk, 4 Weeks: ₹225/wk) with dynamic installment breakdowns.
+     - Unified payment action button: `"Proceed to Payment (₹...)"` in English.
+     - When payment is already completed, displays `"Continue to Partner Agreement →"`.
+   - **Partner Registration Redesign (`partner-frontend/src/screens/BusinessRegistrationScreen.tsx`):**
+     - Pinned header and step tracker (`sticky top-0 z-40 bg-white border-b border-neutral-200 shadow-xs`).
+     - Replaced 6 circular icon tabs with a sleek minimalist progress bar.
+     - Bank Step: Removed badge and verbose helper text, strictly disabled Account Holder Name.
+     - Upgraded `DocumentUploadSlot` to the Document Scanner Viewfinder frame.
+   - **Backend Delivery Kit API (`backend-python/app/api/rider_delivery_kit.py`):**
+     - Updated `verify_kit_payment` to inspect `shippingAddress` for customized `emiWeeks` and `emiWeeklyAmount`.
+     - Stored customized `installmentWeeklyDeduction` and `installmentWeeks` in `rider_delivery_kits.pricing`.
+   - **Admin Delivery Kits Hub (`admin-frontend/src/routes/delivery-kits.tsx`):**
+     - Updated kit orders table to display recipient details for Home Delivery orders.
+     - Updated Dispatch Dialog Modal to render recipient name, phone, and complete shipping address.
+     - Updated Order Details Modal to display recipient address and EMI installment terms (`₹.../wk for X weeks`).
+
+3. **Verification & Testing Results:**
+   - `rider-frontend` production build: PASSED (`vite build` exit code 0, 0 errors).
+   - `partner-frontend` production build: PASSED (`vite build` exit code 0, 0 errors).
+   - `admin-frontend` production build: PASSED (`vite build` exit code 0, 0 errors).
+
+---
+
 ## Session: November 19, 2026 (Part 51)
 
 ### Complete Platform Mobile APK & Google Play AAB Release Automation

@@ -213,17 +213,24 @@ async def verify_kit_payment(payload: VerifyKitPaymentPayload) -> Dict[str, Any]
 
     is_part_payment = payload.paymentType.upper() in ("PART_PAYMENT", "PART", "INSTALLMENT")
 
+    ship_data = payload.shippingAddress or {}
+    custom_weekly = ship_data.get("emiWeeklyAmount")
+    custom_weeks = ship_data.get("emiWeeks")
+    custom_balance = ship_data.get("emiBalance")
+
     if is_part_payment:
         paid_amount = float(kit_cfg.get("partPaymentUpfront") or 300.0)
         total_price = float(kit_cfg.get("partPaymentTotalPrice") or 1200.0)
-        remaining_balance = round(total_price - paid_amount, 2)
-        weekly_deduction = float(kit_cfg.get("deductionWeekly") or 300.0)
+        remaining_balance = float(custom_balance) if custom_balance is not None else round(total_price - paid_amount, 2)
+        weekly_deduction = float(custom_weekly) if custom_weekly is not None else float(kit_cfg.get("deductionWeekly") or 300.0)
+        deduction_weeks = int(custom_weeks) if custom_weeks is not None else int(kit_cfg.get("deductionWeeks") or 3)
         status_val = "PARTIALLY_PAID"
     else:
         paid_amount = float(kit_cfg.get("totalPrice") or 999.0)
         total_price = paid_amount
         remaining_balance = 0.0
         weekly_deduction = 0.0
+        deduction_weeks = 0
         status_val = "PAID"
 
     now_str = _now_iso()
@@ -248,6 +255,7 @@ async def verify_kit_payment(payload: VerifyKitPaymentPayload) -> Dict[str, Any]
             "remainingBalance": remaining_balance,
             "upfrontPaid": paid_amount,
             "installmentWeeklyDeduction": weekly_deduction,
+            "installmentWeeks": deduction_weeks,
             "installmentsRecovered": 0.0,
             "fullySettled": not is_part_payment,
         },

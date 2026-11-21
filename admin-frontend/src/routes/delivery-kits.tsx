@@ -380,10 +380,17 @@ export function DeliveryKitsPage() {
                               Hub Pickup
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-800 border border-sky-200">
-                              <Truck className="w-3 h-3 text-sky-600" />
-                              Home Delivery
-                            </span>
+                            <div>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-800 border border-sky-200">
+                                <Truck className="w-3 h-3 text-sky-600" />
+                                Home Delivery
+                              </span>
+                              {k.shippingAddress?.recipientName && (
+                                <p className="text-[10px] text-neutral-600 font-medium mt-1 truncate max-w-[140px]" title={`${k.shippingAddress.recipientName} - ${k.shippingAddress.addressLine || ''}`}>
+                                  To: {k.shippingAddress.recipientName} ({k.shippingAddress.city || k.shippingAddress.pincode})
+                                </p>
+                              )}
+                            </div>
                           )}
                         </td>
 
@@ -539,6 +546,24 @@ export function DeliveryKitsPage() {
                   {selectedKit?.deliveryPreference === "hub_pickup" ? "Hub Pickup" : "Home Delivery"}
                 </span>
               </div>
+              {selectedKit?.shippingAddress?.recipientName && (
+                <div className="pt-1.5 mt-1 border-t border-neutral-200/80 text-[11px] space-y-0.5">
+                  <div className="font-bold text-neutral-900">Shipping Recipient:</div>
+                  <div className="text-neutral-700">
+                    {selectedKit.shippingAddress.recipientName} ({selectedKit.shippingAddress.recipientPhone || selectedKit.riderPhone})
+                  </div>
+                  <div className="text-neutral-500">
+                    {[
+                      selectedKit.shippingAddress.addressLine,
+                      selectedKit.shippingAddress.landmark,
+                      selectedKit.shippingAddress.city,
+                      selectedKit.shippingAddress.pincode,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </div>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-neutral-500">Payment Status:</span>
                 <span className="font-bold text-emerald-700">{selectedKit?.payment?.status}</span>
@@ -646,6 +671,24 @@ export function DeliveryKitsPage() {
                   <span className="text-neutral-500">T-Shirt Size:</span>
                   <span className="font-bold text-neutral-900">{selectedKit.tshirtSize}</span>
                 </div>
+                {selectedKit.shippingAddress?.recipientName && (
+                  <div className="pt-2 border-t border-neutral-200 text-[11px] space-y-0.5">
+                    <span className="text-neutral-500 font-bold block">Delivery Recipient & Address:</span>
+                    <div className="text-neutral-900 font-bold">
+                      {selectedKit.shippingAddress.recipientName} ({selectedKit.shippingAddress.recipientPhone || selectedKit.riderPhone})
+                    </div>
+                    <div className="text-neutral-600">
+                      {[
+                        selectedKit.shippingAddress.addressLine,
+                        selectedKit.shippingAddress.landmark,
+                        selectedKit.shippingAddress.city,
+                        selectedKit.shippingAddress.pincode,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="p-3 bg-emerald-50 rounded-xl space-y-2 border border-emerald-200 text-emerald-950">
@@ -665,7 +708,7 @@ export function DeliveryKitsPage() {
                   <div className="flex justify-between text-amber-900">
                     <span>Remaining Debt:</span>
                     <span className="font-bold">
-                      ₹{selectedKit.pricing?.remainingBalance} (₹{selectedKit.pricing?.installmentWeeklyDeduction}/wk)
+                      ₹{selectedKit.pricing?.remainingBalance} (₹{selectedKit.pricing?.installmentWeeklyDeduction}/wk for {selectedKit.pricing?.installmentWeeks || 3} wks)
                     </span>
                   </div>
                 )}
