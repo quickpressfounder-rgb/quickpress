@@ -224,6 +224,11 @@ export async function checkPartnerVerificationStatus(): Promise<PartnerVerificat
       resubmitted?: boolean;
       resubmittedAt?: string;
       resubmissionCount?: number;
+      agreementStatus?: string;
+      agreementApproved?: boolean;
+      agreementSignedAt?: string;
+      agreementToken?: string;
+      agreementSigningUrl?: string;
       draftData?: any;
     } | null = null;
 
@@ -292,6 +297,11 @@ export async function checkPartnerVerificationStatus(): Promise<PartnerVerificat
       resubmitted: res?.resubmitted,
       resubmittedAt: res?.resubmittedAt,
       resubmissionCount: res?.resubmissionCount,
+      agreementStatus: res?.agreementStatus || (isVerified ? "APPROVED" : "PENDING_SIGNATURE"),
+      agreementApproved: Boolean(res?.agreementApproved || isVerified),
+      agreementSignedAt: res?.agreementSignedAt,
+      agreementToken: res?.agreementToken,
+      agreementSigningUrl: res?.agreementSigningUrl,
       draftData: res?.draftData,
     };
   } catch {
@@ -515,6 +525,73 @@ export async function checkPartnerRegistered(phone: string): Promise<{
       };
     }
   }
+}
+
+// --------------------------------------------------------------------------
+// Master Merchant Agreement (Zomato-Style Contract Review & E-Sign APIs)
+// --------------------------------------------------------------------------
+
+export interface PartnerAgreementDetails {
+  ok: boolean;
+  partnerId: string;
+  storeName: string;
+  businessName: string;
+  ownerName: string;
+  phone: string;
+  email: string;
+  city: string;
+  state: string;
+  area: string;
+  address: string;
+  pincode: string;
+  category: string;
+  gstin: string;
+  pan: string;
+  aadhaar: string;
+  bankName: string;
+  accountHolder: string;
+  accountNumber: string;
+  ifsc: string;
+  commissionPct: number;
+  agreementStatus: "APPROVED" | "PENDING_SIGNATURE";
+  agreementApproved: boolean;
+  signatureUrl?: string;
+  agreementSignedAt?: string;
+  agreementToken?: string;
+  agreementVersion: string;
+  agreementRef: string;
+}
+
+export async function fetchPartnerAgreementDetails(token?: string, partnerId?: string): Promise<PartnerAgreementDetails> {
+  const params: Record<string, string> = {};
+  if (token) params.token = token;
+  if (partnerId) params.partner_id = partnerId;
+  return await apiGetJson<PartnerAgreementDetails>("/api/partner/agreement/details", {
+    params,
+    anonymous: true,
+  });
+}
+
+export async function signAndApprovePartnerAgreement(payload: {
+  token?: string;
+  partnerId?: string;
+  signatureUrl: string;
+  signedByName?: string;
+  agreementVersion?: string;
+}): Promise<{ ok: boolean; partnerId: string; agreementStatus: string; agreementApproved: boolean; signedAt: string; message: string }> {
+  return await apiPostJson("/api/partner/agreement/sign-and-approve", payload, {
+    anonymous: true,
+  });
+}
+
+export async function resendPartnerAgreementEmail(payload: {
+  token?: string;
+  partnerId?: string;
+  email?: string;
+}): Promise<{ ok: boolean; message: string; email?: string }> {
+  return await apiPostJson("/api/partner/agreement/resend-email", payload, {
+    anonymous: true,
+  });
 }
 
 

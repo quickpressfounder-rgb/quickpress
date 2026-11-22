@@ -1250,7 +1250,7 @@ class AdminPartnerRepository:
                 "ownerName": owner,
                 "phone": doc.get("phone") or doc.get("ownerPhone") or doc.get("mobile") or "",
                 "email": doc.get("email") or "",
-                "city": doc.get("city") or "Kasganj",
+                "city": doc.get("city") or "Operating Territory",
                 "zone": doc.get("zone") or "",
                 "status": raw_status,
                 "kycStatus": "Verified" if doc.get("isVerified") else "Pending",
@@ -1261,7 +1261,7 @@ class AdminPartnerRepository:
                 "approvedBy": doc.get("approvedBy") or "Operations Lead",
                 "lastActive": (doc.get("updatedAt") or doc.get("lastActive") or now_iso())[:10],
                 "lastLoginTimestamp": doc.get("lastLoginAt") or doc.get("lastActive") or doc.get("updatedAt") or doc.get("createdAt") or now_iso(),
-                "tags": doc.get("tags") or ["Kasganj", "Partner"],
+                "tags": doc.get("tags") or ([doc.get("city")] if doc.get("city") else ["Partner"]),
                 "activeOrdersCount": len(active),
                 "isOpen": bool(doc.get("isOpen", True)),
                 "isOnline": bool(doc.get("isOnline") or (doc.get("isOpen", True) and raw_status == "ACTIVE")),
@@ -1424,7 +1424,11 @@ class AdminPartnerRepository:
                 "accountNumber": doc.get("accountNumber") or "Not Provided",
                 "ifsc": doc.get("ifsc") or "—",
                 "ownerVerified": bool(doc.get("isVerified")),
-                "agreementSigned": bool(doc.get("agreementSigned", False)),
+                "agreementStatus": doc.get("agreementStatus") or ("APPROVED" if doc.get("isVerified") else "PENDING_SIGNATURE"),
+                "agreementApproved": bool(doc.get("agreementApproved") or doc.get("isVerified")),
+                "agreementSigned": bool(doc.get("agreementSigned", False) or doc.get("agreementApproved")),
+                "agreementToken": doc.get("agreementToken") or "",
+                "agreementSignedAt": doc.get("agreementSignedAt") or doc.get("signedAt"),
                 "signedAt": doc.get("signedAt") or (doc.get("createdAt") or now_iso())[:19],
                 "signedByName": doc.get("signedByName") or owner,
                 "agreementVersion": doc.get("agreementVersion") or "QP-SLA-2026-v4.2",
@@ -1536,6 +1540,17 @@ class AdminPartnerRepository:
         now = now_iso()
         pid_clean = str(partner_id).strip()
         query = {"$or": [{"_id": pid_clean}, {"partnerId": pid_clean}, {"id": pid_clean}]}
+
+        # Strict Agreement Gate: Store Partner Master SLA must be digitally executed & approved
+        p_doc_check = (
+            await database.find_one("partner_profiles", query)
+            or await database.find_one("admin_partners", query)
+            or await database.find_one(self.collection, query)
+        )
+        if p_doc_check:
+            agr_status = str(p_doc_check.get("agreementStatus", "")).upper()
+            if agr_status != "APPROVED" and not p_doc_check.get("agreementApproved") and not p_doc_check.get("signatureUrl"):
+                raise ValueError("Cannot approve partner store: Master Merchant SLA is awaiting digital signature by the store owner.")
 
         updates = {
             "status": "active",

@@ -28,6 +28,7 @@ import { partnerRoutes } from "../navigation/partner-routes";
 import {
   checkPartnerVerificationStatus,
   logout,
+  resendPartnerAgreementEmail,
 } from "@/api/partner/partner-auth-api";
 import { formatPartnerId } from "../lib/format-ids";
 
@@ -47,6 +48,10 @@ export function RegistrationSubmittedScreen() {
   const [isResubmitted, setIsResubmitted] = useState(false);
   const [resubmittedAt, setResubmittedAt] = useState<string | null>(null);
   const [kycStatus, setKycStatus] = useState<string>("pending");
+  const [agreementStatus, setAgreementStatus] = useState<string>("PENDING_SIGNATURE");
+  const [agreementApproved, setAgreementApproved] = useState<boolean>(false);
+  const [agreementToken, setAgreementToken] = useState<string>("");
+  const [resendingAgreement, setResendingAgreement] = useState(false);
 
   const checkStatus = useCallback(
     async (manual = false) => {
@@ -65,6 +70,9 @@ export function RegistrationSubmittedScreen() {
         if (result.resubmitted) setIsResubmitted(true);
         if (result.resubmittedAt) setResubmittedAt(result.resubmittedAt);
         if (result.kycStatus) setKycStatus(result.kycStatus);
+        if (result.agreementStatus) setAgreementStatus(result.agreementStatus);
+        if (typeof result.agreementApproved === "boolean") setAgreementApproved(result.agreementApproved);
+        if (result.agreementToken) setAgreementToken(result.agreementToken);
 
         if (result.isVerified) {
           setIsApproved(true);
@@ -83,6 +91,8 @@ export function RegistrationSubmittedScreen() {
           if (manual) {
             if (result.kycStatus === "rejected" || result.rejectionReason) {
               toast.error("Application rejected / update required by Admin. Please re-submit documents.");
+            } else if (result.agreementStatus !== "APPROVED") {
+              toast.info("Please review and sign your Master Merchant Agreement sent to your email.");
             } else {
               toast.info("Verification is in progress. The Admin team is reviewing your store.");
             }
@@ -98,6 +108,26 @@ export function RegistrationSubmittedScreen() {
     },
     [session, signIn, navigate, redirecting],
   );
+
+  const handleResendAgreement = async () => {
+    setResendingAgreement(true);
+    try {
+      const res = await resendPartnerAgreementEmail({
+        token: agreementToken,
+        partnerId,
+        email: session?.email,
+      });
+      if (res.ok) {
+        toast.success(res.message || "Merchant agreement link sent to your registered email.");
+      } else {
+        toast.error("Could not resend email. Please try again.");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to resend agreement email.");
+    } finally {
+      setResendingAgreement(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -136,20 +166,32 @@ export function RegistrationSubmittedScreen() {
     }
   };
 
+  const isAgrApproved = agreementStatus === "APPROVED" || agreementApproved || isApproved;
+
   const timeline = [
     {
       icon: Check,
       label: "Application Received",
-      body: "Registration details & KYC submitted successfully",
+      body: "Store details, services rate card & bank proof submitted",
       status: "done" as const,
+    },
+    {
+      icon: isAgrApproved ? FileCheck2 : Mail,
+      label: "Master Merchant Agreement",
+      body: isAgrApproved
+        ? "Bilateral Master Merchant SLA digitally executed"
+        : "Action Required: Review & digitally sign agreement sent to your email",
+      status: isAgrApproved ? ("done" as const) : ("active" as const),
     },
     {
       icon: isApproved ? ShieldCheck : Clock3,
       label: "Admin & Document Verification",
       body: isApproved
         ? "Documents verified & approved by QuickPress Admin"
-        : "Admin team is reviewing business credentials & store details",
-      status: isApproved ? ("done" as const) : ("active" as const),
+        : isAgrApproved
+        ? "Admin team is reviewing business credentials & store details"
+        : "Awaiting partner agreement digital signature before approval",
+      status: isApproved ? ("done" as const) : (isAgrApproved ? ("active" as const) : ("locked" as const)),
     },
     {
       icon: isApproved ? BadgeCheck : Lock,
@@ -259,7 +301,7 @@ export function RegistrationSubmittedScreen() {
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-rose-600 py-3 text-xs font-black text-white shadow-cta transition-all hover:bg-rose-700 active:scale-95"
                 >
                   <Edit3 className="size-3.5" />
-                  Update &amp; Re-Submit Store Documents / पुनः सुधारें
+                  Update &amp; Re-Submit Store Documents
                 </button>
               </div>
             </div>
@@ -279,6 +321,79 @@ export function RegistrationSubmittedScreen() {
                 </p>
                 <p className="text-[0.68rem] text-indigo-700">
                   Your corrected partner documents have been queued for priority admin review.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ACTION REQUIRED: SIGN MASTER MERCHANT AGREEMENT BANNER */}
+        {!isApproved && !isAgrApproved && (
+          <section className="animate-slide-up card-soft mt-5 border-2 border-amber-500/50 bg-amber-500/10 p-4.5 rounded-2xl shadow-soft">
+            <div className="flex items-start gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-800 font-black">
+                <FileText className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-black uppercase tracking-wider text-amber-900">
+                    Action Required: Sign Merchant Agreement
+                  </p>
+                  <span className="rounded bg-amber-500/30 px-1.5 py-0.5 text-[0.62rem] font-black text-amber-950">
+                    SLA PENDING
+                  </span>
+                </div>
+                <p className="mt-1.5 text-xs font-semibold leading-relaxed text-amber-950">
+                  Your Master Merchant Agreement has been dispatched to <strong>{session?.email || "your registered email"}</strong>. Please review commercial terms and digitally sign the agreement to unlock Admin approval.
+                </p>
+
+                <div className="mt-3.5 flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate({
+                        to: partnerRoutes.agreementSign,
+                        search: { token: agreementToken },
+                      })
+                    }
+                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-3 text-xs font-black text-white shadow-cta transition-all active:scale-95 cursor-pointer"
+                  >
+                    <FileCheck2 className="size-4" />
+                    Review &amp; Sign Agreement Now
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={resendingAgreement}
+                    onClick={handleResendAgreement}
+                    className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-white hover:bg-neutral-50 px-3 py-2.5 text-xs font-bold text-neutral-800 transition active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    {resendingAgreement ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Mail className="size-3.5 text-amber-700" />
+                    )}
+                    <span>Resend Email</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* AGREEMENT EXECUTED CONFIRMATION BADGE */}
+        {!isApproved && isAgrApproved && (
+          <section className="animate-slide-up card-soft mt-5 border border-emerald-500/40 bg-emerald-500/10 p-3.5 rounded-2xl">
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-800 font-bold">
+                <CheckCircle2 className="size-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-emerald-950">
+                  Merchant SLA Agreement Digitally Executed ✓
+                </p>
+                <p className="text-[0.68rem] text-emerald-800">
+                  Your signed agreement is archived. The Operations Desk is completing final store verification.
                 </p>
               </div>
             </div>

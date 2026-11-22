@@ -79,6 +79,7 @@ import {
   fetchPartners,
   fetchPartnerStats,
   approvePartner,
+  resendPartnerAgreement,
   suspendPartner,
   blockPartner,
   unblockPartner,
@@ -430,8 +431,36 @@ function PartnersPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "partners"] });
       if (selectedId) queryClient.invalidateQueries({ queryKey: ["admin", "partners", "360", selectedId] });
     },
-    onError: () => toast.error("Failed to approve partner."),
+    onError: (err: any) => toast.error(err?.message || "Failed to approve partner."),
   });
+
+  const resendAgreementMutation = useMutation({
+    mutationFn: (id: string) => resendPartnerAgreement(id),
+    onSuccess: (res) => {
+      toast.success(res?.message || "Master Merchant Agreement invitation email sent to partner! ✓");
+      if (selectedId) queryClient.invalidateQueries({ queryKey: ["admin", "partners", "360", selectedId] });
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to send agreement email."),
+  });
+
+  const handleApprovePartner = (id: string, partnerProfile?: Partner360Data) => {
+    const isSigned = Boolean(
+      partnerProfile?.header?.agreementStatus === "APPROVED" ||
+      partnerProfile?.header?.agreementApproved ||
+      partnerProfile?.kyc?.agreementStatus === "APPROVED" ||
+      partnerProfile?.agreement?.signed ||
+      Boolean(partnerProfile?.header?.signatureUrl)
+    );
+
+    if (partnerProfile && !isSigned) {
+      toast.error(
+        "Cannot approve store: Master Merchant Agreement is pending partner's digital signature. Please resend agreement invitation email."
+      );
+      return;
+    }
+
+    approveMutation.mutate(id);
+  };
 
   const suspendMutation = useMutation({
     mutationFn: ({ id, reason, internalNote }: { id: string; reason: string; internalNote?: string }) =>
@@ -1165,7 +1194,7 @@ function PartnersPage() {
                     {profile.header.status !== "ACTIVE" && (
                       <Button
                         size="sm"
-                        onClick={() => selectedId && approveMutation.mutate(selectedId)}
+                        onClick={() => selectedId && handleApprovePartner(selectedId, profile)}
                         disabled={approveMutation.isPending}
                         className="h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs px-4"
                       >
@@ -1283,7 +1312,8 @@ function PartnersPage() {
                       <Button
                         size="sm"
                         className="h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
-                        onClick={() => selectedId && approveMutation.mutate(selectedId)}
+                        onClick={() => selectedId && handleApprovePartner(selectedId, profile)}
+                        disabled={approveMutation.isPending}
                       >
                         <Check className="size-3.5 mr-1" />
                         Approve Store Now
@@ -1403,7 +1433,8 @@ function PartnersPage() {
                         {profile.header.status !== "ACTIVE" && (
                           <Button
                             size="sm"
-                            onClick={() => selectedId && approveMutation.mutate(selectedId)}
+                            onClick={() => selectedId && handleApprovePartner(selectedId, profile)}
+                            disabled={approveMutation.isPending}
                             className="h-8.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs"
                           >
                             <Check className="size-3.5 mr-1.5" />
@@ -1853,6 +1884,30 @@ function PartnersPage() {
                       </p>
                     </div>
 
+                    {/* Action Required: Agreement Pending Partner Signature */}
+                    {!(profile.header.agreementStatus === "APPROVED" || profile.agreement?.signed || Boolean(profile.header.signatureUrl)) && (
+                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-950 shadow-xs">
+                        <div className="flex items-start gap-2.5">
+                          <AlertTriangle className="size-5 text-amber-600 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-black text-amber-950 block">Master Merchant SLA Agreement Pending Partner Signature</span>
+                            <span className="text-[11px] text-amber-800">
+                              Invitation email sent to <strong>{profile.header.email || "partner email"}</strong>. Store cannot be approved until partner reviews and signs agreement.
+                            </span>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          disabled={resendAgreementMutation.isPending}
+                          onClick={() => selectedId && resendAgreementMutation.mutate(selectedId)}
+                          className="h-8.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 shadow-xs"
+                        >
+                          <Send className="size-3.5 mr-1.5" />
+                          {resendAgreementMutation.isPending ? "Sending..." : "Resend Agreement Email"}
+                        </Button>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       {/* Agreement Details Card */}
                       <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-4 space-y-3">
@@ -1863,7 +1918,14 @@ function PartnersPage() {
                         <DetailRow label="Signer Name" value={profile.kyc.signedByName || profile.header.ownerName} />
                         <DetailRow label="Agreement Version" value={profile.kyc.agreementVersion || "QP-SLA-2026-v4.2"} />
                         <DetailRow label="Signing Timestamp" value={formatTimestamp(profile.kyc.signedAt || profile.header.signedAt)} />
-                        <DetailRow label="Legal Status" value="Executed & Legally Binding ✓" />
+                        <DetailRow
+                          label="Legal Status"
+                          value={
+                            profile.header.agreementStatus === "APPROVED" || profile.agreement?.signed || Boolean(profile.header.signatureUrl)
+                              ? "Executed & Legally Binding ✓"
+                              : "Pending Merchant Signature ⚠️"
+                          }
+                        />
                         <DetailRow label="Franchise Code" value={`QP-FRANCHISE-${profile.header.id}`} />
                         <DetailRow label="Platform Revenue Split" value="82% Partner / 18% QuickPress" />
 
@@ -1882,9 +1944,15 @@ function PartnersPage() {
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Electronic Signature</span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                              Digitally Signed ✓
-                            </span>
+                            {profile.header.agreementStatus === "APPROVED" || profile.agreement?.signed || Boolean(profile.header.signatureUrl) ? (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                Digitally Signed ✓
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                                Pending Partner Signature
+                              </span>
+                            )}
                           </div>
                           <h5 className="font-bold text-xs text-zinc-900 mb-2">Authorized Representative E-Signature</h5>
 

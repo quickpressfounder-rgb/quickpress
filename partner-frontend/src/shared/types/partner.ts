@@ -62,6 +62,7 @@ export type BusinessRegistrationPayload = {
   longitude?: number;
   services?: Array<string | { name: string; price: number; unit: string; turnaroundHours?: number; enabled?: boolean }>;
   agreementSigned?: boolean;
+  agreementStatus?: string;
   signatureUrl?: string;
   signedAt?: string;
   signedByName?: string;

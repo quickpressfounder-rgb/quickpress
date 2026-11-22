@@ -73,6 +73,10 @@ export type BackendPartnerItem = {
   panCard?: string;
   chequePhoto?: string;
   signatureUrl?: string;
+  agreementStatus?: "APPROVED" | "PENDING_SIGNATURE" | string;
+  agreementApproved?: boolean;
+  agreementSignedAt?: string;
+  agreementToken?: string;
 };
 
 export type BackendPartnerListPage = {
@@ -154,6 +158,10 @@ export type Partner360Data = {
     servicePincodes?: string[];
     category?: string;
     signedAt?: string;
+    agreementStatus?: string;
+    agreementApproved?: boolean;
+    agreementSignedAt?: string;
+    agreementToken?: string;
   };
   overview: {
     totalOrders: number;
@@ -320,6 +328,18 @@ export type Partner360Data = {
     closingTime?: string;
     servicePincodes?: string[];
     category?: string;
+    agreementStatus?: string;
+    agreementApproved?: boolean;
+    agreementSignedAt?: string;
+    agreementToken?: string;
+  };
+  agreement?: {
+    signed: boolean;
+    status?: string;
+    signerName?: string;
+    signedAt?: string;
+    ipAddress?: string;
+    agreementToken?: string;
   };
   documents: Array<{
     name?: string;
@@ -478,6 +498,13 @@ export async function fetchPartner360(id: string): Promise<Partner360Data> {
 /** POST /api/admin/partners/{id}/approve */
 export async function approvePartner(id: string) {
   return apiPostJson<{ ok: boolean; status: string }>(`/api/admin/partners/${encodeURIComponent(id)}/approve`);
+}
+
+/** POST /api/admin/partners/{id}/resend-agreement */
+export async function resendPartnerAgreement(id: string) {
+  return apiPostJson<{ ok: boolean; message: string; agreementToken?: string }>(
+    `/api/admin/partners/${encodeURIComponent(id)}/resend-agreement`
+  );
 }
 
 /** POST /api/admin/partners/{id}/suspend */

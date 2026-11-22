@@ -27,6 +27,8 @@ export const partnerRoutes = {
   otp: "/otp",
   registration: "/registration",
   registrationSubmitted: "/registration-submitted",
+  submitted: "/registration-submitted",
+  agreementSign: "/agreement/sign",
   suspended: "/suspended",
   dashboard: "/dashboard",
   orders: "/orders",

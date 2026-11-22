@@ -645,9 +645,63 @@ async def get_partner(partner_id: str, user: User = Depends(current_user)):
 
 @router.post("/partners/{partner_id}/approve")
 async def approve_partner(partner_id: str, user: User = Depends(current_user)):
-    res = await admin_partner_repository.approve(partner_id, user.id)
+    profile = (
+        await database.find_one("partner_profiles", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
+        or await database.find_one("admin_partners", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
+        or {}
+    )
+    agreement_status = profile.get("agreementStatus")
+    if agreement_status != "APPROVED" and not profile.get("agreementApproved") and not profile.get("signatureUrl"):
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot approve partner store: Master Merchant Agreement has not been digitally signed & approved by the store owner yet. The owner must review and sign the agreement sent to their email.",
+        )
+    try:
+        res = await admin_partner_repository.approve(partner_id, user.id)
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err))
     await audit_repository.log(await _actor(user), "partner.approve", partner_id)
     return res
+
+
+@router.post("/partners/{partner_id}/resend-agreement")
+async def resend_partner_agreement_admin(partner_id: str, user: User = Depends(current_user)):
+    """Resend Master Merchant Agreement signing invitation to store owner from Admin Console."""
+    profile = (
+        await database.find_one("partner_profiles", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
+        or await database.find_one("admin_partners", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
+    )
+    if not profile:
+        raise HTTPException(status_code=404, detail="Partner store profile not found")
+    raw_email = str(profile.get("email") or "").strip().lower()
+    if not raw_email or "@" not in raw_email:
+        raise HTTPException(status_code=400, detail="Partner profile does not have a valid email address.")
+
+    import uuid
+    from app.core.email_service import send_partner_agreement_signing_invitation_email
+
+    agreement_token = profile.get("agreementToken") or f"ag_{uuid.uuid4().hex}"
+    if not profile.get("agreementToken"):
+        await database.update("partner_profiles", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]}, {"agreementToken": agreement_token})
+        await database.update("admin_partners", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]}, {"agreementToken": agreement_token})
+
+    signing_url = f"https://withquickpress.com/partner/agreement/sign?token={agreement_token}"
+    store_name = profile.get("businessName") or profile.get("storeName") or "Store Partner"
+    owner_name = profile.get("ownerName") or "Store Owner"
+    city = profile.get("city") or "Operating Territory"
+    category = profile.get("category") or "Laundry & Dry Cleaning Specialist"
+
+    await send_partner_agreement_signing_invitation_email(
+        partner_email=raw_email,
+        owner_name=owner_name,
+        store_name=store_name,
+        partner_id=partner_id,
+        city=city,
+        signing_url=signing_url,
+        category=category,
+    )
+    await audit_repository.log(await _actor(user), "partner.resend_agreement", partner_id, {"email": raw_email})
+    return {"ok": True, "message": f"Merchant agreement signing link successfully dispatched to {raw_email}"}
 
 
 @router.post("/partners/{partner_id}/suspend")

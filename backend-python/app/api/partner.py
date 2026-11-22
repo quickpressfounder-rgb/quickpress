@@ -33,6 +33,7 @@ partner profile — so the partner-frontend preview is never blank.
 from __future__ import annotations
 
 import logging
+import secrets
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -44,6 +45,10 @@ from fastapi.security import HTTPAuthorizationCredentials
 
 from app.core.deps import bearer_scheme, current_user, optional_user
 from app.core.identifiers import generate_partner_id
+from app.core.email_service import (
+    send_partner_agreement_signing_invitation_email,
+    send_partner_agreement_email,
+)
 from app.db.repositories import users
 from app.db.client import database
 from app.db.invoice_repositories import InvoiceError, invoice_repository
@@ -805,7 +810,7 @@ async def get_partner_verification_status(
             "closingTime": prof.get("closingTime") or "21:00",
             "emergencyClosing": prof.get("emergencyClosing") or "",
             "state": prof.get("state") or "Uttar Pradesh",
-            "city": prof.get("city") or "Kasganj",
+            "city": prof.get("city") or "",
             "area": prof.get("area") or "",
             "pincode": prof.get("pincode") or "",
             "pickupRadius": prof.get("pickupRadiusKm") or 5,
@@ -828,6 +833,28 @@ async def get_partner_verification_status(
             "serviceTurnarounds": service_turnarounds,
         }
 
+    agreement_status = (
+        (prof.get("agreementStatus") if prof else None)
+        or (admin_prof.get("agreementStatus") if admin_prof else None)
+        or ("APPROVED" if is_verified else "PENDING_SIGNATURE")
+    )
+    agreement_approved = bool(
+        (prof.get("agreementApproved") if prof else False)
+        or (admin_prof.get("agreementApproved") if admin_prof else False)
+        or is_verified
+    )
+    agreement_token = (
+        (prof.get("agreementToken") if prof else None)
+        or (admin_prof.get("agreementToken") if admin_prof else None)
+        or None
+    )
+    agreement_signed_at = (
+        (prof.get("agreementSignedAt") if prof else None)
+        or (prof.get("signedAt") if prof else None)
+        or (admin_prof.get("agreementSignedAt") if admin_prof else None)
+        or None
+    )
+
     return {
         "ok": True,
         "isVerified": is_verified,
@@ -841,6 +868,11 @@ async def get_partner_verification_status(
         "resubmitted": is_resub,
         "resubmittedAt": resub_at,
         "resubmissionCount": resub_count,
+        "agreementStatus": agreement_status,
+        "agreementApproved": agreement_approved,
+        "agreementToken": agreement_token,
+        "agreementSignedAt": agreement_signed_at,
+        "agreementSigningUrl": f"https://withquickpress.com/partner/agreement/sign?token={agreement_token}" if agreement_token else None,
         "draftData": draft_data,
     }
 
@@ -2321,6 +2353,9 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         except Exception:
             pass
 
+    agreement_token = secrets.token_urlsafe(32)
+    signing_url = f"https://withquickpress.com/partner/agreement/sign?token={agreement_token}"
+
     changes = {
         "_id": store_id_str,
         "partnerId": store_id_str,
@@ -2362,21 +2397,25 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         "gallery": payload.gallery,
         "latitude": payload.latitude,
         "longitude": payload.longitude,
-        "agreementSigned": True,
-        "signatureUrl": payload.signatureUrl,
-        "signedAt": payload.signedAt or now_iso_str,
-        "signedByName": payload.signedByName or payload.ownerName,
+        "agreementStatus": "PENDING_SIGNATURE",
+        "agreementApproved": False,
+        "agreementToken": agreement_token,
+        "agreementSigningUrl": signing_url,
+        "agreementSigned": False,
+        "signatureUrl": None,
+        "signedAt": None,
+        "signedByName": None,
         "agreementVersion": payload.agreementVersion or "QP-SLA-2026-v4.2",
-        "status": "active",
-        "approvalStatus": "approved",
-        "kycStatus": "verified",
+        "status": "under_verification",
+        "approvalStatus": "pending_verification",
+        "kycStatus": "pending",
         "rejectionReason": None,
         "kycReason": None,
-        "isVerified": True,
+        "isVerified": False,
         "isOnboarded": True,
-        "isApproved": True,
-        "isOnline": True,
-        "isStoreOpen": True,
+        "isApproved": False,
+        "isOnline": False,
+        "isStoreOpen": False,
         "resubmitted": is_resubmission,
         "resubmittedAt": now_iso_str if is_resubmission else None,
         "resubmissionCount": resub_count,
@@ -2392,8 +2431,8 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
                 "joinedOn": datetime.now(timezone.utc).strftime("%B %Y"),
                 "onTimeRate": 98.5,
                 "tier": "Silver",
-                "isOnline": True,
-                "isStoreOpen": True,
+                "isOnline": False,
+                "isStoreOpen": False,
                 "createdAt": now_iso_str,
             },
         )
@@ -2442,21 +2481,25 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
             "accountHolder": payload.accountHolder,
             "accountNumber": payload.accountNumber,
             "ifsc": payload.ifsc,
-            "agreementSigned": True,
-            "signedAt": payload.signedAt or now_iso_str,
-            "signedByName": payload.signedByName or payload.ownerName,
-            "signatureUrl": payload.signatureUrl,
+            "agreementStatus": "PENDING_SIGNATURE",
+            "agreementApproved": False,
+            "agreementToken": agreement_token,
+            "agreementSigningUrl": signing_url,
+            "agreementSigned": False,
+            "signedAt": None,
+            "signedByName": None,
+            "signatureUrl": None,
             "agreementVersion": payload.agreementVersion or "QP-SLA-2026-v4.2",
-            "status": "active",
-            "approvalStatus": "approved",
-            "kycStatus": "verified",
+            "status": "under_verification",
+            "approvalStatus": "pending_verification",
+            "kycStatus": "pending",
             "rejectionReason": None,
             "kycReason": None,
-            "isVerified": True,
+            "isVerified": False,
             "isOnboarded": True,
-            "isApproved": True,
-            "isOnline": True,
-            "isStoreOpen": True,
+            "isApproved": False,
+            "isOnline": False,
+            "isStoreOpen": False,
             "resubmitted": is_resubmission,
             "resubmittedAt": now_iso_str if is_resubmission else None,
             "resubmissionCount": resub_count,
@@ -2472,8 +2515,11 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         {"$or": [{"partnerId": store_id_str}, {"_id": store_id_str}]},
         {
             "partnerId": store_id_str,
-            "status": "approved",
-            "isVerified": True,
+            "status": "under_verification",
+            "isVerified": False,
+            "agreementStatus": "PENDING_SIGNATURE",
+            "agreementApproved": False,
+            "agreementToken": agreement_token,
             "resubmitted": is_resubmission,
             "resubmittedAt": now_iso_str if is_resubmission else None,
             "rejectionReason": None,
@@ -2567,8 +2613,8 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         user.id,
         {
             "is_onboarded": True,
-            "is_verified": True,
-            "status": "active",
+            "is_verified": False,
+            "status": "under_verification",
             "display_name": payload.ownerName or payload.businessName,
             "city": payload.city,
         },
@@ -2595,14 +2641,15 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         from app.services.socket_service import notify_partner_status_changed
         await notify_partner_status_changed(
             partner_id=store_id_str,
-            is_online=True,
-            store_open=True,
-            accepting=True,
+            is_online=False,
+            store_open=False,
+            accepting=False,
             extra={
                 "resubmitted": is_resubmission,
                 "resubmittedAt": now_iso_str if is_resubmission else None,
-                "status": "active",
-                "kycStatus": "verified",
+                "status": "under_verification",
+                "kycStatus": "pending",
+                "agreementStatus": "PENDING_SIGNATURE",
                 "businessName": payload.businessName,
                 "ownerName": payload.ownerName,
                 "city": payload.city,
@@ -2612,72 +2659,23 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
     except Exception as exc:
         logger.warning("Could not broadcast partner onboarding status change: %s", exc)
 
-    # --------------------------------------------------------------------------
-    # Generate Legally-Binding Bilateral Partner Agreement PDF & Dispatch via Hostinger Email
-    # --------------------------------------------------------------------------
-    clean_sig_url = (
-        payload.signatureUrl
-        or (payload.agreementSignature or {}).get("signatureUrl")
-        or None
-    )
-    agreement_payload = {
-        "partnerId": store_id_str,
-        "businessName": payload.businessName,
-        "ownerName": payload.ownerName or user.display_name or "Authorized Partner",
-        "phone": str(getattr(payload, "phone", None) or user.phone or ""),
-        "email": clean_email,
-        "address": payload.address or "",
-        "city": payload.city or "",
-        "state": payload.state or "Uttar Pradesh",
-        "pincode": payload.pincode or "",
-        "pan": clean_pan or payload.pan or "",
-        "aadhaar": clean_aadhaar or payload.aadhaar or "",
-        "gstin": payload.gstin or "",
-        "accountNumber": payload.accountNumber or "",
-        "ifsc": payload.ifsc or "",
-        "bankName": payload.bankName or "",
-        "signatureUrl": clean_sig_url,
-        "signedAt": _now(),
-    }
-
-    try:
-        from app.services.partner_agreement_pdf_generator import generate_partner_agreement_pdf
-        from app.core.email_service import send_partner_agreement_email
-
-        pdf_bytes = generate_partner_agreement_pdf(agreement_payload)
-        agreement_id = f"agr-{store_id_str[:8]}-{uuid.uuid4().hex[:6]}"
-
-        await database.update(
-            "partner_agreements",
-            {"partnerId": store_id_str},
-            {
-                "_id": agreement_id,
-                "partnerId": store_id_str,
-                "businessName": payload.businessName,
-                "ownerName": agreement_payload["ownerName"],
-                "email": clean_email,
-                "signedAt": agreement_payload["signedAt"],
-                "signatureUrl": clean_sig_url,
-                "status": "digitally_executed",
-                "signatory": "Himanshu Pal",
-                "version": payload.agreementVersion or "QP-SLA-2026.4",
-                "updatedAt": _now(),
-            },
-            upsert=True,
-        )
-
-        if clean_email:
+    # Dispatch Zomato-Style Review & Sign Merchant Agreement Email to Registered Email
+    if clean_email:
+        try:
             asyncio.create_task(
-                send_partner_agreement_email(
+                send_partner_agreement_signing_invitation_email(
                     partner_email=clean_email,
-                    business_name=payload.businessName,
-                    owner_name=agreement_payload["ownerName"],
-                    agreement_pdf_bytes=pdf_bytes,
+                    owner_name=payload.ownerName or "Store Partner",
+                    store_name=payload.businessName,
+                    partner_id=store_id_str,
+                    city=payload.city or "Operating Territory",
+                    signing_url=signing_url,
+                    category=payload.category or "Laundry & Dry Cleaning Specialist",
                 )
             )
-            logger.info("Executed Partner Agreement PDF queued for Hostinger dispatch to %s", clean_email)
-    except Exception as exc:
-        logger.warning("Could not generate or email partner agreement PDF: %s", exc)
+            logger.info("Partner Agreement Review & Sign invitation email queued for %s (%s)", payload.businessName, clean_email)
+        except Exception as exc:
+            logger.warning("Could not dispatch partner agreement invitation email: %s", exc)
 
     # Link referral code if provided during partner onboarding
     ref_code = str(getattr(payload, "referral_code", None) or getattr(payload, "referralCode", None) or "").strip()
@@ -2697,9 +2695,318 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         partnerId=store_id_str,
         phone=user.phone or "",
         businessName=payload.businessName,
-        isVerified=True,
+        isVerified=False,
         isOnboarded=True,
+        agreementStatus="PENDING_SIGNATURE",
+        agreementToken=agreement_token,
+        agreementSigningUrl=signing_url,
     )
+
+
+# --------------------------------------------------------------------------
+# Zomato-Style Post-Submission Agreement Endpoints (Review, Sign & Approve)
+# --------------------------------------------------------------------------
+
+@public_router.get("/agreement/details")
+@router.get("/agreement/details")
+async def get_partner_agreement_details(
+    token: Optional[str] = Query(None),
+    partner_id: Optional[str] = Query(None),
+    user: Optional[User] = Depends(optional_user),
+) -> dict:
+    """Fetch partner store details and SLA clauses for Zomato-style contract execution."""
+    profile = None
+    clean_token = (token or "").strip()
+
+    if clean_token:
+        profile = (
+            await database.find_one("partner_profiles", {"agreementToken": clean_token})
+            or await database.find_one("admin_partners", {"agreementToken": clean_token})
+        )
+
+    if not profile and partner_id:
+        profile = (
+            await database.find_one("partner_profiles", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
+            or await database.find_one("admin_partners", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
+        )
+
+    if not profile and user:
+        p_id = getattr(user, "linked_id", None) or getattr(user, "linked_partner_id", None) or user.id
+        profile = (
+            await database.find_one("partner_profiles", {"$or": [{"_id": p_id}, {"userId": user.id}, {"phone": user.phone}]})
+            or await database.find_one("admin_partners", {"$or": [{"_id": p_id}, {"userId": user.id}, {"phone": user.phone}]})
+        )
+
+    if not profile:
+        raise HTTPException(
+            status_code=404,
+            detail="Merchant Agreement record not found or signing link has expired. Please check your invitation email.",
+        )
+
+    p_id = str(profile.get("partnerId") or profile.get("_id") or "")
+    store_name = profile.get("businessName") or profile.get("storeName") or "Store Partner"
+    owner_name = profile.get("ownerName") or "Authorized Partner"
+
+    return {
+        "ok": True,
+        "partnerId": p_id,
+        "storeName": store_name,
+        "businessName": store_name,
+        "ownerName": owner_name,
+        "phone": profile.get("phone") or profile.get("mobile") or "",
+        "email": profile.get("email") or "",
+        "city": profile.get("city") or "Operating Territory",
+        "state": profile.get("state") or "Uttar Pradesh",
+        "area": profile.get("area") or "",
+        "address": profile.get("address") or "",
+        "pincode": profile.get("pincode") or "",
+        "category": profile.get("category") or "Laundry & Dry Cleaning Specialist",
+        "gstin": profile.get("gstin") or "Unregistered / Composition",
+        "pan": profile.get("pan") or "",
+        "aadhaar": profile.get("aadhaar") or "",
+        "bankName": profile.get("bankName") or "",
+        "accountHolder": profile.get("accountHolder") or owner_name,
+        "accountNumber": profile.get("accountNumber") or "",
+        "ifsc": profile.get("ifsc") or "",
+        "commissionPct": float(profile.get("commissionRate") or 12.0),
+        "agreementStatus": profile.get("agreementStatus") or ("APPROVED" if profile.get("agreementApproved") else "PENDING_SIGNATURE"),
+        "agreementApproved": bool(profile.get("agreementApproved") or profile.get("isVerified")),
+        "signatureUrl": profile.get("signatureUrl") or profile.get("agreementSignature") or "",
+        "agreementSignedAt": profile.get("agreementSignedAt") or profile.get("signedAt"),
+        "agreementToken": profile.get("agreementToken") or clean_token,
+        "agreementVersion": profile.get("agreementVersion") or "QP-SLA-2026-v4.2",
+        "agreementRef": f"QP-MERCHANT-SLA-2026-{p_id[-6:] if len(p_id) >= 6 else '000000'}",
+    }
+
+
+@public_router.post("/agreement/sign-and-approve")
+@router.post("/agreement/sign-and-approve")
+async def sign_and_approve_partner_agreement(
+    body: dict,
+    user: Optional[User] = Depends(optional_user),
+) -> dict:
+    """Digitally sign and execute the Master Merchant Partnership SLA Agreement."""
+    token = str(body.get("token") or "").strip()
+    signature_url = str(body.get("signatureUrl") or body.get("signature") or "").strip()
+    partner_id_param = str(body.get("partnerId") or "").strip()
+    signed_by_name = str(body.get("signedByName") or "").strip()
+    agreement_version = str(body.get("agreementVersion") or "QP-SLA-2026-v4.2").strip()
+
+    if not signature_url:
+        raise HTTPException(
+            status_code=400,
+            detail="Digital signature is required to confirm and execute agreement.",
+        )
+
+    profile = None
+    if token:
+        profile = (
+            await database.find_one("partner_profiles", {"agreementToken": token})
+            or await database.find_one("admin_partners", {"agreementToken": token})
+        )
+    if not profile and partner_id_param:
+        profile = (
+            await database.find_one("partner_profiles", {"$or": [{"_id": partner_id_param}, {"partnerId": partner_id_param}]})
+            or await database.find_one("admin_partners", {"$or": [{"_id": partner_id_param}, {"partnerId": partner_id_param}]})
+        )
+    if not profile and user:
+        p_id = getattr(user, "linked_id", None) or getattr(user, "linked_partner_id", None) or user.id
+        profile = (
+            await database.find_one("partner_profiles", {"$or": [{"_id": p_id}, {"userId": user.id}, {"phone": user.phone}]})
+            or await database.find_one("admin_partners", {"$or": [{"_id": p_id}, {"userId": user.id}, {"phone": user.phone}]})
+        )
+
+    if not profile:
+        raise HTTPException(
+            status_code=404,
+            detail="Partner profile not found. The link may be invalid or expired.",
+        )
+
+    target_id = str(profile.get("partnerId") or profile.get("_id"))
+    now_iso = datetime.now(timezone.utc).isoformat()
+    signer = signed_by_name or profile.get("ownerName") or "Store Owner"
+
+    update_fields = {
+        "agreementStatus": "APPROVED",
+        "agreementApproved": True,
+        "agreementSigned": True,
+        "agreementSignature": signature_url,
+        "signatureUrl": signature_url,
+        "agreementSignedAt": now_iso,
+        "signedAt": now_iso,
+        "signedByName": signer,
+        "agreementVersion": agreement_version,
+        "termsAccepted": True,
+        "updatedAt": now_iso,
+    }
+
+    await database.update("partner_profiles", {"$or": [{"_id": target_id}, {"partnerId": target_id}]}, update_fields)
+    await database.update("admin_partners", {"$or": [{"_id": target_id}, {"partnerId": target_id}]}, update_fields)
+    await database.update("partner_verifications", {"$or": [{"_id": target_id}, {"partnerId": target_id}]}, {
+        "agreementStatus": "APPROVED",
+        "agreementApproved": True,
+        "agreementSignedAt": now_iso,
+        "updatedAt": now_iso,
+    })
+
+    # Generate executed Partner Agreement PDF and dispatch via email to partner & admin
+    clean_email = str(profile.get("email") or "").strip().lower()
+    if clean_email:
+        agreement_pdf_data = {
+            "partnerId": target_id,
+            "businessName": profile.get("businessName") or profile.get("storeName") or "Store Partner",
+            "ownerName": signer,
+            "phone": str(profile.get("phone") or profile.get("mobile") or ""),
+            "email": clean_email,
+            "address": profile.get("address") or "",
+            "city": profile.get("city") or "Operating Territory",
+            "state": profile.get("state") or "Uttar Pradesh",
+            "pincode": profile.get("pincode") or "",
+            "pan": profile.get("pan") or "",
+            "aadhaar": profile.get("aadhaar") or "",
+            "gstin": profile.get("gstin") or "",
+            "accountNumber": profile.get("accountNumber") or "",
+            "ifsc": profile.get("ifsc") or "",
+            "bankName": profile.get("bankName") or "",
+            "signatureUrl": signature_url,
+            "signedAt": now_iso,
+        }
+        try:
+            from app.services.partner_agreement_pdf_generator import generate_partner_agreement_pdf
+            pdf_bytes = generate_partner_agreement_pdf(agreement_pdf_data)
+            agreement_id = f"agr-{target_id[:8]}-{uuid.uuid4().hex[:6]}"
+
+            await database.update(
+                "partner_agreements",
+                {"partnerId": target_id},
+                {
+                    "_id": agreement_id,
+                    "partnerId": target_id,
+                    "businessName": agreement_pdf_data["businessName"],
+                    "ownerName": signer,
+                    "email": clean_email,
+                    "signedAt": now_iso,
+                    "signatureUrl": signature_url,
+                    "status": "digitally_executed",
+                    "signatory": "Himanshu Pal",
+                    "version": agreement_version,
+                    "updatedAt": now_iso,
+                },
+                upsert=True,
+            )
+
+            asyncio.create_task(
+                send_partner_agreement_email(
+                    partner_email=clean_email,
+                    business_name=agreement_pdf_data["businessName"],
+                    owner_name=signer,
+                    agreement_pdf_bytes=pdf_bytes,
+                )
+            )
+            logger.info("Executed Master Merchant Agreement PDF queued for Hostinger dispatch to %s", clean_email)
+        except Exception as exc:
+            logger.warning("Could not generate or email executed partner agreement PDF: %s", exc)
+
+    # Real-time socket broadcast
+    try:
+        from app.core.socket_manager import sio
+        await sio.emit("partner:agreement_approved", {
+            "partnerId": target_id,
+            "agreementStatus": "APPROVED",
+            "signedAt": now_iso,
+        })
+        await sio.emit("partner:status_updated", {
+            "partnerId": target_id,
+            "agreementStatus": "APPROVED",
+        })
+    except Exception:
+        pass
+
+    return {
+        "ok": True,
+        "partnerId": target_id,
+        "agreementStatus": "APPROVED",
+        "agreementApproved": True,
+        "signedAt": now_iso,
+        "message": "Master Merchant Agreement successfully approved and digitally executed. Your store is now awaiting final Admin verification!",
+    }
+
+
+@public_router.post("/agreement/resend-email")
+@router.post("/agreement/resend-email")
+async def resend_partner_agreement_email_endpoint(
+    body: dict,
+    user: Optional[User] = Depends(optional_user),
+) -> dict:
+    """Resend the official Zomato-style merchant contract review & signing invitation email."""
+    token = str(body.get("token") or "").strip()
+    partner_id_param = str(body.get("partnerId") or "").strip()
+    email_param = str(body.get("email") or "").strip().lower()
+
+    profile = None
+    if token:
+        profile = (
+            await database.find_one("partner_profiles", {"agreementToken": token})
+            or await database.find_one("admin_partners", {"agreementToken": token})
+        )
+    if not profile and partner_id_param:
+        profile = (
+            await database.find_one("partner_profiles", {"$or": [{"_id": partner_id_param}, {"partnerId": partner_id_param}]})
+            or await database.find_one("admin_partners", {"$or": [{"_id": partner_id_param}, {"partnerId": partner_id_param}]})
+        )
+    if not profile and email_param:
+        profile = (
+            await database.find_one("partner_profiles", {"email": email_param})
+            or await database.find_one("admin_partners", {"email": email_param})
+        )
+    if not profile and user:
+        p_id = getattr(user, "linked_id", None) or getattr(user, "linked_partner_id", None) or user.id
+        profile = (
+            await database.find_one("partner_profiles", {"$or": [{"_id": p_id}, {"userId": user.id}, {"phone": user.phone}]})
+            or await database.find_one("admin_partners", {"$or": [{"_id": p_id}, {"userId": user.id}, {"phone": user.phone}]})
+        )
+
+    if not profile:
+        raise HTTPException(
+            status_code=404,
+            detail="Partner profile not found. Please verify your registered details.",
+        )
+
+    target_email = profile.get("email") or email_param
+    if not target_email or "@" not in target_email:
+        raise HTTPException(
+            status_code=400,
+            detail="No valid email address registered for this store.",
+        )
+
+    agreement_token = profile.get("agreementToken")
+    target_id = str(profile.get("partnerId") or profile.get("_id"))
+    if not agreement_token:
+        agreement_token = f"ag_{uuid.uuid4().hex}"
+        await database.update("partner_profiles", {"$or": [{"_id": target_id}, {"partnerId": target_id}]}, {"agreementToken": agreement_token})
+        await database.update("admin_partners", {"$or": [{"_id": target_id}, {"partnerId": target_id}]}, {"agreementToken": agreement_token})
+
+    signing_url = f"https://withquickpress.com/partner/agreement/sign?token={agreement_token}"
+    store_name = profile.get("businessName") or profile.get("storeName") or "Store Partner"
+    owner_name = profile.get("ownerName") or "Authorized Partner"
+    city = profile.get("city") or "Operating Territory"
+    category = profile.get("category") or "Laundry & Dry Cleaning Specialist"
+
+    await send_partner_agreement_signing_invitation_email(
+        partner_email=target_email,
+        owner_name=owner_name,
+        store_name=store_name,
+        partner_id=target_id,
+        city=city,
+        signing_url=signing_url,
+        category=category,
+    )
+
+    return {
+        "ok": True,
+        "message": f"Merchant agreement signing link successfully dispatched to {target_email}",
+        "email": target_email,
+    }
 
 
 # --------------------------------------------------------------------------

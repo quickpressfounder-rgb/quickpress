@@ -63,10 +63,6 @@ import { toast } from "sonner";
 import { Toaster } from "@/shared/ui/sonner";
 import { PartnerAuthHeader } from "../components/PartnerAuthHeader";
 import { MapPicker, type PickedLocation } from "../components/MapPicker";
-import {
-  PartnerAgreementSignaturePad,
-  type AgreementSignatureData,
-} from "../components/onboarding/PartnerAgreementSignaturePad";
 import { SimpleSelfieCaptureModal } from "../components/kyc/SimpleSelfieCaptureModal";
 import { compareKycNames } from "../lib/kyc-name-matcher";
 import { playPartnerOrderChime } from "../lib/partner-order-alert-sound";
@@ -76,10 +72,8 @@ import { partnerRoutes } from "../navigation/partner-routes";
 import {
   checkPartnerVerificationStatus,
   registerBusiness,
-  sendPartnerAgreementOtp,
   sendPartnerEmailOtp,
   uploadPartnerDocument,
-  verifyPartnerAgreementOtp,
   verifyPartnerEmailOtp,
   verifyPartnerGst,
   verifyPartnerIfsc,
@@ -103,7 +97,6 @@ const STEPS = [
   { num: 3, title: "Business Details", short: "Business", icon: Store },
   { num: 4, title: "Services Specific", short: "Services", icon: Sparkles },
   { num: 5, title: "Bank Details", short: "Bank", icon: Landmark },
-  { num: 6, title: "Agreement & Review", short: "Agreement", icon: FileCheck2 },
 ] as const;
 
 const BUSINESS_TYPES = [
@@ -439,6 +432,33 @@ export function BusinessRegistrationScreen() {
   const [emailOtpCountdown, setEmailOtpCountdown] = useState(0);
   const [gender, setGender] = useState<"Male" | "Female" | "Other">("Male");
   const [dob, setDob] = useState("");
+
+  // Segmented DOB values for custom picker
+  const dobParts = dob ? dob.split("-") : ["", "", ""];
+  const dobYear = dobParts[0] || "";
+  const dobMonth = dobParts[1] || "";
+  const dobDay = dobParts[2] || "";
+
+  const handleDobChange = (part: "year" | "month" | "day", val: string) => {
+    const y = part === "year" ? val : dobYear;
+    const m = part === "month" ? val : dobMonth;
+    const d = part === "day" ? val : dobDay;
+    if (y && m && d) {
+      setDob(`${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`);
+      if (fieldErrors["dob"]) {
+        const next = { ...fieldErrors };
+        delete next["dob"];
+        setFieldErrors(next);
+      }
+    } else if (y || m || d) {
+      setDob(`${y || "2000"}-${(m || "01").padStart(2, "0")}-${(d || "01").padStart(2, "0")}`);
+      if (fieldErrors["dob"]) {
+        const next = { ...fieldErrors };
+        delete next["dob"];
+        setFieldErrors(next);
+      }
+    }
+  };
   const [alternatePhone, setAlternatePhone] = useState("");
   const [referralCode, setReferralCode] = useState(() => {
     if (typeof window !== "undefined") {
@@ -545,18 +565,7 @@ export function BusinessRegistrationScreen() {
   const [chequePhotoUrl, setChequePhotoUrlUrl] = useState("");
   const [isUploadingCheque, setIsUploadingCheque] = useState(false);
 
-  // STEP 6: Agreement & E-Signature
-  const [agreementSignature, setAgreementSignature] = useState<AgreementSignatureData | null>(null);
-  const [consentAadhaarEsign, setConsentAadhaarEsign] = useState(false);
-  const [consentTermsAccepted, setConsentTermsAccepted] = useState(false);
-  const [isAgreementOtpVerified, setIsAgreementOtpVerified] = useState(false);
-  const [isSendingAgreementOtp, setIsSendingAgreementOtp] = useState(false);
-  const [isVerifyingAgreementOtp, setIsVerifyingAgreementOtp] = useState(false);
-  const [agreementOtp, setAgreementOtp] = useState("");
-  const [showAgreementOtpBox, setShowAgreementOtpBox] = useState(false);
-  const [agreementOtpCountdown, setAgreementOtpCountdown] = useState(0);
-
-  // Email & Agreement OTP countdown timers
+  // Email OTP countdown timer
   useEffect(() => {
     if (emailOtpCountdown <= 0) return;
     const timer = setInterval(() => {
@@ -564,14 +573,6 @@ export function BusinessRegistrationScreen() {
     }, 1000);
     return () => clearInterval(timer);
   }, [emailOtpCountdown]);
-
-  useEffect(() => {
-    if (agreementOtpCountdown <= 0) return;
-    const timer = setInterval(() => {
-      setAgreementOtpCountdown((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [agreementOtpCountdown]);
 
   const handleSendEmailOtp = async () => {
     const clean = email.trim().toLowerCase();
@@ -616,52 +617,6 @@ export function BusinessRegistrationScreen() {
       toast.error(err?.message || "Invalid or expired OTP");
     } finally {
       setIsVerifyingEmailOtp(false);
-    }
-  };
-
-  const handleSendAgreementOtp = async () => {
-    const clean = email.trim().toLowerCase();
-    if (!clean) {
-      toast.error("Verified email address is missing");
-      return;
-    }
-    setIsSendingAgreementOtp(true);
-    try {
-      const res = await sendPartnerAgreementOtp(clean, ownerName.trim(), shopName.trim());
-      if (res.ok) {
-        setShowAgreementOtpBox(true);
-        setAgreementOtpCountdown(60);
-        toast.success(`Agreement confirmation OTP sent to ${clean}`);
-      } else {
-        toast.error(res.message || "Could not send agreement OTP");
-      }
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to send agreement OTP");
-    } finally {
-      setIsSendingAgreementOtp(false);
-    }
-  };
-
-  const handleVerifyAgreementOtp = async () => {
-    const cleanOtp = agreementOtp.trim();
-    if (!cleanOtp || cleanOtp.length !== 6) {
-      toast.error("Please enter the 6-digit Agreement OTP");
-      return;
-    }
-    setIsVerifyingAgreementOtp(true);
-    try {
-      const res = await verifyPartnerAgreementOtp(email.trim().toLowerCase(), cleanOtp);
-      if (res.ok) {
-        setIsAgreementOtpVerified(true);
-        setShowAgreementOtpBox(false);
-        toast.success("Agreement legally authorized and confirmed via Email OTP! ✓");
-      } else {
-        toast.error(res.message || "Invalid Agreement OTP code");
-      }
-    } catch (err: any) {
-      toast.error(err?.message || "Invalid or expired Agreement OTP");
-    } finally {
-      setIsVerifyingAgreementOtp(false);
     }
   };
 
@@ -1256,15 +1211,10 @@ export function BusinessRegistrationScreen() {
         setMissingSummary(missing);
         toast.error(`Please complete ${missing.length} banking fields`);
         triggerHaptic();
-        setTimeout(() => {
-          document.getElementById("missing-fields-banner")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 50);
         return;
       }
 
-      setCurrentStep(6);
-      triggerHaptic();
-      toast.success("Bank details saved. Moving to Step 6 (Agreement & Review)");
+      handleSubmitRegistration();
     }
   };
 
@@ -1278,25 +1228,49 @@ export function BusinessRegistrationScreen() {
   /* ------------------- Final Registration Submission ------------------- */
 
   const handleSubmitRegistration = async () => {
-    if (!consentAadhaarEsign || !consentTermsAccepted) {
-      toast.error("Please agree to the platform terms and consent checkboxes");
-      triggerHaptic();
-      return;
+    // Validate Step 5 bank fields
+    const errors: Record<string, string> = {};
+    const missing: string[] = [];
+
+    const effectiveBankName = bankName === "Other Bank" ? customBankName.trim() : bankName;
+    if (!effectiveBankName) {
+      errors["bankName"] = "Please select or enter bank name";
+      missing.push("Bank Name");
     }
-    if (!agreementSignature?.signatureUrl) {
-      toast.error("Please sign your digital signature before submitting");
-      triggerHaptic();
-      return;
+    const cleanAccountHolder = accountHolder.trim() || ownerName.trim();
+    if (!cleanAccountHolder) {
+      errors["accountHolder"] = "Please enter bank account holder name";
+      missing.push("Account Holder Name");
     }
-    if (!isAgreementOtpVerified) {
-      toast.error("Please enter the Email OTP to legally execute and confirm the agreement");
+    const cleanAcc = accountNumber.trim();
+    if (!cleanAcc || cleanAcc.length < 8) {
+      errors["accountNumber"] = "Please enter a valid bank account number";
+      missing.push("Bank Account Number");
+    }
+    if (cleanAcc !== confirmAccountNumber.trim()) {
+      errors["confirmAccountNumber"] = "Account numbers do not match";
+      missing.push("Matching Account Number Confirmation");
+    }
+    const cleanIfsc = ifsc.trim().toUpperCase();
+    if (cleanIfsc.length !== 11) {
+      errors["ifsc"] = "Please enter a valid 11-character IFSC code";
+      missing.push("11-Character Bank IFSC Code");
+    }
+    if (!chequePhotoUrl) {
+      errors["chequePhotoUrl"] = "Please upload Cancelled Cheque or Bank Passbook photo";
+      missing.push("Cancelled Cheque or Passbook Photo");
+    }
+
+    if (missing.length > 0) {
+      setFieldErrors(errors);
+      setMissingSummary(missing);
+      toast.error(`Please complete ${missing.length} banking fields to submit`);
       triggerHaptic();
       return;
     }
 
     setBusy(true);
     try {
-      const effectiveBankName = bankName === "Other Bank" ? customBankName.trim() : bankName;
       const cleanPan = panNumber.trim().toUpperCase();
       const cleanAadhaar = aadhaarNumber.replace(/\D/g, "");
 
@@ -1330,10 +1304,10 @@ export function BusinessRegistrationScreen() {
         experience,
         pickupRadiusKm: pickupRadius,
         deliveryRadiusKm: deliveryRadius,
-        accountHolder: accountHolder.trim() || ownerName.trim(),
+        accountHolder: cleanAccountHolder,
         bankName: effectiveBankName,
-        accountNumber: accountNumber.trim(),
-        ifsc: ifsc.trim().toUpperCase(),
+        accountNumber: cleanAcc,
+        ifsc: cleanIfsc,
         logo: logoUrl || undefined,
         banner: bannerUrl || undefined,
         gallery: galleryUrls,
@@ -1351,11 +1325,8 @@ export function BusinessRegistrationScreen() {
         }),
         servicePrices,
         serviceTurnarounds,
-        agreementSigned: true,
-        signatureUrl: agreementSignature.signatureUrl,
-        signedAt: agreementSignature.signedAt || new Date().toISOString(),
-        signedByName: ownerName.trim(),
-        agreementVersion: agreementSignature.agreementVersion || "QP-SLA-2026-v4.2",
+        agreementSigned: false,
+        agreementStatus: "PENDING_SIGNATURE",
         referral_code: referralCode ? referralCode.trim().toUpperCase() : undefined,
         referralCode: referralCode ? referralCode.trim().toUpperCase() : undefined,
       };
@@ -1369,8 +1340,8 @@ export function BusinessRegistrationScreen() {
 
       toast.success(
         isResubmissionFlow
-          ? "Store application re-submitted successfully for Admin review!"
-          : "Partner registration submitted successfully!"
+          ? "Store application re-submitted successfully for verification!"
+          : "Partner registration submitted! Master Merchant Agreement link sent to your email."
       );
 
       signIn({
@@ -1494,7 +1465,7 @@ export function BusinessRegistrationScreen() {
             </button>
 
             <span className="text-[11px] font-bold px-2.5 py-1 bg-neutral-100 border border-neutral-200 text-neutral-700 rounded-lg shadow-2xs">
-              {t("Step", "Step")} {currentStep} / 6
+              {t("Step", "Step")} {currentStep} / 5
             </span>
           </div>
         </header>
@@ -1506,14 +1477,14 @@ export function BusinessRegistrationScreen() {
               {t(STEPS[currentStep - 1]?.title, STEPS[currentStep - 1]?.title)}
             </span>
             <span className="text-[11px] font-bold text-emerald-700">
-              {Math.round((currentStep / 6) * 100)}% {t("Completed", "Completed")}
+              {Math.round((currentStep / 5) * 100)}% {t("Completed", "Completed")}
             </span>
           </div>
 
           <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-[#00C853] transition-all duration-300"
-              style={{ width: `${(currentStep / 6) * 100}%` }}
+              style={{ width: `${(currentStep / 5) * 100}%` }}
             />
           </div>
         </div>
@@ -1736,9 +1707,6 @@ export function BusinessRegistrationScreen() {
                   </div>
                 )}
 
-                <p className="mt-1 text-[10px] text-neutral-400">
-                  Signed bilateral franchise agreement &amp; daily statements will be sent here
-                </p>
               </div>
 
               {/* Gender Selection */}
@@ -1763,17 +1731,72 @@ export function BusinessRegistrationScreen() {
                 </div>
               </div>
 
-              {/* Date of Birth & Alternate Phone */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Segmented Date of Birth (DD / MM / YYYY) */}
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1">Date of Birth</label>
-                  <input
-                    type="date"
-                    value={dob}
-                    onChange={(e) => setDob(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-emerald-100"
-                  />
+                  <label className="block text-xs font-bold text-neutral-700 mb-1">
+                    Date of Birth <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1.5 text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Day</span>
+                      <select
+                        value={dobDay}
+                        onChange={(e) => handleDobChange("day", e.target.value)}
+                        className="w-full h-11 pt-4 pb-1 px-2.5 bg-neutral-50/70 hover:bg-neutral-50 border border-neutral-200 focus:border-[#00C853] focus:bg-white rounded-xl text-xs font-bold text-neutral-900 focus:outline-none transition-all cursor-pointer"
+                      >
+                        <option value="">DD</option>
+                        {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0")).map((d) => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1.5 text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Month</span>
+                      <select
+                        value={dobMonth}
+                        onChange={(e) => handleDobChange("month", e.target.value)}
+                        className="w-full h-11 pt-4 pb-1 px-2.5 bg-neutral-50/70 hover:bg-neutral-50 border border-neutral-200 focus:border-[#00C853] focus:bg-white rounded-xl text-xs font-bold text-neutral-900 focus:outline-none transition-all cursor-pointer"
+                      >
+                        <option value="">MM</option>
+                        {[
+                          { num: "01", name: "Jan" },
+                          { num: "02", name: "Feb" },
+                          { num: "03", name: "Mar" },
+                          { num: "04", name: "Apr" },
+                          { num: "05", name: "May" },
+                          { num: "06", name: "Jun" },
+                          { num: "07", name: "Jul" },
+                          { num: "08", name: "Aug" },
+                          { num: "09", name: "Sep" },
+                          { num: "10", name: "Oct" },
+                          { num: "11", name: "Nov" },
+                          { num: "12", name: "Dec" },
+                        ].map((m) => (
+                          <option key={m.num} value={m.num}>{m.num} - {m.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1.5 text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Year</span>
+                      <select
+                        value={dobYear}
+                        onChange={(e) => handleDobChange("year", e.target.value)}
+                        className="w-full h-11 pt-4 pb-1 px-2.5 bg-neutral-50/70 hover:bg-neutral-50 border border-neutral-200 focus:border-[#00C853] focus:bg-white rounded-xl text-xs font-bold text-neutral-900 focus:outline-none transition-all cursor-pointer"
+                      >
+                        <option value="">YYYY</option>
+                        {Array.from({ length: 55 }, (_, i) => String(2007 - i)).map((y) => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  {fieldErrors["dob"] && (
+                    <p className="mt-1 text-[11px] font-semibold text-red-500">{fieldErrors["dob"]}</p>
+                  )}
                 </div>
+
+                {/* Alternate Mobile */}
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 mb-1">Emergency / Alt. Mobile</label>
                   <input
@@ -2152,6 +2175,7 @@ export function BusinessRegistrationScreen() {
                     onChange={(e) => setCity(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-semibold bg-white"
                   >
+                    <option value="">-- Select Operating City --</option>
                     {approvedCities.map((c) => (
                       <option key={c} value={c}>
                         {c}
@@ -2667,278 +2691,50 @@ export function BusinessRegistrationScreen() {
           </div>
         )}
 
-        {/* ========================================================
-            STEP 6: AGREEMENT & SUBMIT
-        ======================================================== */}
-        {currentStep === 6 && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            {/* Complete Application Review Summary */}
-            <div className="p-4.5 bg-white border border-neutral-200 rounded-3xl space-y-3.5 shadow-xs">
-              <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
-                <h3 className="text-sm font-black text-neutral-900">Application Summary</h3>
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                  Ready for Submission
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2.5 bg-neutral-50 rounded-xl border border-neutral-200/70">
-                  <p className="text-[10px] text-neutral-400 font-bold uppercase">Owner Name</p>
-                  <p className="font-bold text-neutral-900 truncate">{ownerName || "—"}</p>
-                </div>
-                <div className="p-2.5 bg-neutral-50 rounded-xl border border-neutral-200/70">
-                  <p className="text-[10px] text-neutral-400 font-bold uppercase">Store Name</p>
-                  <p className="font-bold text-neutral-900 truncate">{shopName || "—"}</p>
-                </div>
-                <div className="p-2.5 bg-neutral-50 rounded-xl border border-neutral-200/70">
-                  <p className="text-[10px] text-neutral-400 font-bold uppercase">Aadhaar (UIDAI)</p>
-                  <p className="font-bold text-neutral-900">
-                    {aadhaarNumber ? `XXXX-XXXX-${aadhaarNumber.slice(-4)}` : "—"}
-                  </p>
-                </div>
-                <div className="p-2.5 bg-neutral-50 rounded-xl border border-neutral-200/70">
-                  <p className="text-[10px] text-neutral-400 font-bold uppercase">PAN Number</p>
-                  <p className="font-bold text-neutral-900">{panNumber || "—"}</p>
-                </div>
-                <div className="p-2.5 bg-neutral-50 rounded-xl border border-neutral-200/70">
-                  <p className="text-[10px] text-neutral-400 font-bold uppercase">City &amp; Pincode</p>
-                  <p className="font-bold text-neutral-900 truncate">{city} ({pincode})</p>
-                </div>
-                <div className="p-2.5 bg-neutral-50 rounded-xl border border-neutral-200/70">
-                  <p className="text-[10px] text-neutral-400 font-bold uppercase">Bank Settlement</p>
-                  <p className="font-bold text-neutral-900 truncate">
-                    {bankName.split("(")[0]} · {accountNumber ? `XX${accountNumber.slice(-4)}` : "—"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Master Partner Agreement & E-Signature Pad */}
-            <div className="p-4.5 bg-white border border-neutral-200 rounded-3xl space-y-4 shadow-xs">
-              <div className="pb-2 border-b border-neutral-100 flex items-start justify-between">
-                <div>
-                  <h3 className="text-sm font-black text-neutral-900">Master Merchant SLA &amp; E-Signature</h3>
-                </div>
-                <div className="p-2 rounded-2xl bg-emerald-50 text-emerald-700">
-                  <FileCheck2 className="w-5 h-5" />
-                </div>
-              </div>
-
-              {/* Embedded Signature Pad */}
-              <PartnerAgreementSignaturePad
-                ownerName={ownerName}
-                storeName={shopName}
-                aadhaar={aadhaarNumber}
-                pan={panNumber}
-                city={city}
-                initialSignature={agreementSignature?.signatureUrl}
-                onSignatureConfirmed={(data) => {
-                  setAgreementSignature(data);
-                  setConsentAadhaarEsign(true);
-                  setConsentTermsAccepted(true);
-                }}
-              />
-
-              {/* Consent Checkboxes */}
-              <div className="space-y-2 pt-2 border-t border-neutral-100">
-                <label className="flex items-start gap-2.5 cursor-pointer text-xs font-semibold text-neutral-800">
-                  <input
-                    type="checkbox"
-                    checked={consentAadhaarEsign}
-                    onChange={(e) => setConsentAadhaarEsign(e.target.checked)}
-                    className="size-4 mt-0.5 accent-emerald-600 rounded"
-                  />
-                  <span>
-                    I confirm that the provided Aadhaar, PAN and Bank details belong to me and all information is 100% accurate.
-                  </span>
-                </label>
-                <label className="flex items-start gap-2.5 cursor-pointer text-xs font-semibold text-neutral-800">
-                  <input
-                    type="checkbox"
-                    checked={consentTermsAccepted}
-                    onChange={(e) => setConsentTermsAccepted(e.target.checked)}
-                    className="size-4 mt-0.5 accent-emerald-600 rounded"
-                  />
-                  <span>
-                    I accept the QuickPress Laundry Franchise SLA Agreement, applicable platform commission tiers, and service quality standards.
-                  </span>
-                </label>
-              </div>
-
-              {/* Email OTP Agreement Execution Confirmation Card */}
-              <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 p-4 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="text-xs font-black text-neutral-900 uppercase tracking-wider flex items-center gap-1.5">
-                      <Mail className="w-4 h-4 text-emerald-600" />
-                      <span>Execute Agreement via Email OTP *</span>
-                    </h4>
-                    <p className="text-[11px] font-semibold text-neutral-500">
-                      Legally seal bilateral contract with <strong>QuickPress</strong>
-                    </p>
-                  </div>
-                  {isAgreementOtpVerified ? (
-                    <span className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white font-black text-[10px] flex items-center gap-1 shadow-2xs">
-                      <Check className="w-3 h-3 stroke-[3]" /> OTP Verified ✓
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-lg bg-amber-100 text-amber-800 font-bold text-[10px] border border-amber-200">
-                      OTP Required
-                    </span>
-                  )}
-                </div>
-
-                {isAgreementOtpVerified ? (
-                  <div className="p-3 rounded-xl bg-white border border-emerald-300 flex items-center gap-2.5">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                    <div className="text-xs">
-                      <span className="font-bold text-neutral-900 block">
-                        Agreement Confirmed &amp; Legally Authorized!
-                      </span>
-                      <span className="text-[11px] text-neutral-500">
-                        Official signed 3-page PDF agreement will be dispatched to <strong>{email}</strong> upon submission.
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-neutral-600 font-medium">
-                        Verification destination: <strong>{email || "Verified Email"}</strong>
-                      </span>
-                      {!showAgreementOtpBox && (
-                        <button
-                          type="button"
-                          disabled={isSendingAgreementOtp || !agreementSignature?.signatureUrl}
-                          onClick={handleSendAgreementOtp}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition disabled:opacity-40 flex items-center gap-1 cursor-pointer shadow-xs"
-                        >
-                          {isSendingAgreementOtp ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              <span>Sending OTP...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Send className="w-3.5 h-3.5" />
-                              <span>Send Execution OTP</span>
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
-
-                    {showAgreementOtpBox && (
-                      <div className="p-3 rounded-xl bg-white border border-emerald-300 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-emerald-900">
-                            Enter 6-Digit Execution Code
-                          </span>
-                          {agreementOtpCountdown > 0 ? (
-                            <span className="text-[10px] font-mono text-emerald-700 font-bold">
-                              {agreementOtpCountdown}s
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={handleSendAgreementOtp}
-                              className="text-[10px] font-black text-emerald-800 hover:underline cursor-pointer"
-                            >
-                              Resend Code
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            maxLength={6}
-                            value={agreementOtp}
-                            onChange={(e) => setAgreementOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                            placeholder="123456"
-                            className="flex-1 px-3 py-2 rounded-xl bg-neutral-50 border border-neutral-300 text-center text-sm font-black tracking-widest text-neutral-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono"
-                          />
-                          <button
-                            type="button"
-                            disabled={isVerifyingAgreementOtp || agreementOtp.length !== 6}
-                            onClick={handleVerifyAgreementOtp}
-                            className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs transition disabled:opacity-40 flex items-center gap-1 cursor-pointer shadow-xs"
-                          >
-                            {isVerifyingAgreementOtp ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <>
-                                <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                <span>Confirm &amp; Sign</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Final Submit Button */}
-              <button
-                type="button"
-                disabled={
-                  busy ||
-                  !consentAadhaarEsign ||
-                  !consentTermsAccepted ||
-                  !agreementSignature?.signatureUrl ||
-                  !isAgreementOtpVerified
-                }
-                onClick={handleSubmitRegistration}
-                className="w-full py-4 px-6 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-sm shadow-lg shadow-primary/25 active:scale-98 transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {busy ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>{t("Submitting...", "Submitting Partner Application...")}</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-                    <span>
-                      {isResubmissionFlow
-                        ? t("Re-Submit Application for Approval", "Re-Submit Application for Approval")
-                        : t("Submit Application", "Submit Registration for Approval")}
-                    </span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
       </main>
 
       {/* 4. Sticky Bottom Action Bar (Steps 1 to 5) */}
-      {currentStep < 6 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-4 py-3 shadow-lg">
-          <div className="max-w-xl mx-auto flex items-center gap-3">
-            {currentStep > 1 && (
-              <button
-                type="button"
-                onClick={handlePrevStep}
-                className="py-3 px-4 rounded-2xl border border-neutral-200 hover:bg-neutral-100 text-neutral-700 font-bold text-xs transition active:scale-95 shrink-0 cursor-pointer"
-              >
-                {t("Back", "Back")}
-              </button>
-            )}
-
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-4 py-3 shadow-lg">
+        <div className="max-w-xl mx-auto flex items-center gap-3">
+          {currentStep > 1 && (
             <button
               type="button"
-              onClick={handleNextStep}
-              className="flex-1 py-3.5 px-5 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-xs shadow-md shadow-primary/20 active:scale-98 transition flex items-center justify-center gap-2 cursor-pointer"
+              onClick={handlePrevStep}
+              className="py-3 px-4 rounded-2xl border border-neutral-200 hover:bg-neutral-100 text-neutral-700 font-bold text-xs transition active:scale-95 shrink-0 cursor-pointer"
             >
-              <span>{t("Save & Continue", `Continue to Step ${currentStep + 1}`)}</span>
-              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+              {t("Back", "Back")}
             </button>
-          </div>
+          )}
+
+          <button
+            type="button"
+            disabled={busy}
+            onClick={currentStep === 5 ? handleSubmitRegistration : handleNextStep}
+            className="flex-1 py-3.5 px-5 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-xs shadow-md shadow-primary/20 active:scale-98 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            {busy ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>{t("Submitting...", "Submitting Registration...")}</span>
+              </>
+            ) : currentStep === 5 ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                <span>
+                  {isResubmissionFlow
+                    ? t("Re-Submit Application for Approval", "Re-Submit Application for Approval")
+                    : t("Submit Registration for Verification", "Submit Registration for Verification")}
+                </span>
+              </>
+            ) : (
+              <>
+                <span>{t("Save & Continue", `Continue to Step ${currentStep + 1}`)}</span>
+                <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+              </>
+            )}
+          </button>
         </div>
-      )}
+      </div>
 
       {/* 5. Modals */}
       {/* Live Selfie Capture Modal */}

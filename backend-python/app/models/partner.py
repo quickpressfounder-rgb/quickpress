@@ -450,3 +450,6 @@ class OnboardingResponse(BaseModel):
     businessName: str
     isVerified: bool
     isOnboarded: bool
+    agreementStatus: Optional[str] = "PENDING_SIGNATURE"
+    agreementToken: Optional[str] = None
+    agreementSigningUrl: Optional[str] = None

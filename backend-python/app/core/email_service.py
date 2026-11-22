@@ -1408,6 +1408,99 @@ async def send_partner_email_otp(
     )
 
 
+# (10A) Partner Agreement Signing Invitation Email (Zomato-Style Review & Sign)
+async def send_partner_agreement_signing_invitation_email(
+    partner_email: str,
+    owner_name: str,
+    store_name: str,
+    partner_id: str,
+    city: str,
+    signing_url: str,
+    category: str = "Laundry & Dry Cleaning Specialist",
+) -> Dict[str, Any]:
+    """Sends Zomato-style merchant contract execution email with secure tokenized link to review and sign the agreement."""
+    clean_id = "".join(c for c in partner_id if c.isalnum() or c in ("-", "_")).strip() or "Store"
+    subject = f"Action Required: Review & Sign Master Merchant Agreement — {store_name} [QuickPress]"
+
+    content = f"""
+      <p style="font-size: 15px; color: #1e293b; margin-top: 0;">
+        Dear <strong>{owner_name}</strong> (Store ID: <code>{clean_id}</code>),
+      </p>
+      <p style="font-size: 14px; color: #475569; line-height: 1.6;">
+        Your store profile and rate card for <strong>{store_name}</strong> have been successfully submitted to the QuickPress Partner Network!
+      </p>
+      <p style="font-size: 14px; color: #475569; line-height: 1.6;">
+        To proceed with your store onboarding and unlock final inspection &amp; approval by the <strong>QuickPress Operations Admin Desk</strong>, you are required to review and digitally sign your official <strong>Master Merchant Partnership Agreement (SLA &amp; Commercial Terms)</strong> under Section 10A of the Information Technology Act, 2000.
+      </p>
+
+      <div class="card" style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px; margin: 20px 0;">
+        <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #047857; text-transform: uppercase; font-weight: 800;">Merchant Partnership Summary</h4>
+        <table style="width: 100%; font-size: 13px; color: #334155; line-height: 1.8;">
+          <tr>
+            <td style="font-weight: 700; width: 45%;">Store Partner:</td>
+            <td><strong>{store_name}</strong></td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Owner / Signatory:</td>
+            <td><strong>{owner_name}</strong></td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Partner ID:</td>
+            <td><code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">{clean_id}</code></td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Operating Territory:</td>
+            <td><strong>{city}</strong></td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Category:</td>
+            <td>{category}</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Status:</td>
+            <td><span style="background: #fef3c7; color: #92400e; font-weight: 700; padding: 2px 8px; border-radius: 6px;">Awaiting Digital Signature</span></td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="text-align: center; margin: 30px 0 24px 0;">
+        <a href="{signing_url}" target="_blank" style="display: inline-block; background-color: #00C853; color: #000000; font-size: 15px; font-weight: 900; text-decoration: none; padding: 14px 32px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0, 200, 83, 0.35); text-transform: uppercase; letter-spacing: 0.5px;">
+          Review &amp; Sign Merchant Agreement &rarr;
+        </a>
+      </div>
+
+      <p style="font-size: 12px; color: #64748b; line-height: 1.5; text-align: center;">
+        Or copy and paste this link in your web browser:<br/>
+        <a href="{signing_url}" style="color: #047857; word-break: break-all;">{signing_url}</a>
+      </p>
+
+      <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; margin: 20px 0;">
+        <p style="margin: 0; font-size: 12px; color: #1e40af; line-height: 1.5;">
+          ℹ️ <strong>Note:</strong> You can also sign this agreement directly inside your QuickPress Partner Console under the <strong>Registration Submitted</strong> screen. Your store cannot be activated or receive customer orders until this agreement is digitally approved.
+        </p>
+      </div>
+    """
+
+    html = _render_base_email(
+        preheader_text=f"Action Required: Review and sign the QuickPress Master Merchant Agreement for {store_name}.",
+        badge_label="MERCHANT PARTNERSHIP",
+        headline="Review & Sign Merchant SLA",
+        subheadline=f"Welcome {owner_name}! Please review and approve your store partnership terms.",
+        content_html=content,
+    )
+
+    return await dispatch_email(
+        to=partner_email,
+        subject=subject,
+        html=html,
+        text=f"Please review and digitally sign your QuickPress Master Merchant Partnership Agreement: {signing_url}",
+        recipient_name=owner_name,
+        audience="partner",
+        category="onboarding",
+        metadata={"purpose": "PARTNER_AGREEMENT_INVITATION", "partnerId": clean_id},
+    )
+
+
 # (10B) Partner Signed Agreement Dispatch with PDF Attachment & CC
 async def send_partner_agreement_email(
     partner_email: str,

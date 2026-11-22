@@ -1,5 +1,76 @@
 # QuickPress — Engineering Work History
 
+## Session: November 22, 2026 (Part 56)
+
+### Partner Registration Redesign: 5-Step Stepper, Post-Submission Zomato-Style Email Agreement Execution, Admin Cities Enforcement, Segmented DOB Selector & Admin Approval Gate
+
+1. **Context & Architectural Objectives:**
+   - **Partner Registration Parity with Rider:** Mirror the high-converting, professional Zomato-style contract execution model for Partner store registration (`partner-frontend`), aligning with the approved `partner_registration_redesign_plan.md`.
+   - **Stepper Reduction:** Reduced Partner registration from 6 steps to 5 steps (`1. Personal Details`, `2. Aadhaar & PAN KYC`, `3. Business & Store Details`, `4. Services & Rate Card`, `5. Bank Details`). Removed embedded in-wizard Step 6 agreement screen.
+   - **Post-Submission Email Agreement Execution:** On Step 5 Bank Details submission, application is committed in `under_verification` status (`isVerified: False`, `isOnboarded: True`, `agreementStatus: "PENDING_SIGNATURE"`). Backend immediately dispatches a Zomato-style Master Merchant Franchise SLA Agreement invitation email with a secure tokenized signing link (`/partner/agreement/sign?token=...`).
+   - **Dedicated Contract Signing Screen (`/agreement/sign`):** Built standalone agreement review & e-sign screen with comprehensive merchant clauses:
+     - 82%/18% commission split & double-entry ledger settlement terms.
+     - 24-hour turnaround SLA compliance.
+     - Inbound defect inspection & customer damage liability cover.
+     - Interactive digital signature pad canvas with IT Act 2000 legal acknowledgment.
+   - **Registration Submitted Screen (`/registration-submitted`):** Added Action Required Banner ("Review & Sign Merchant Agreement Now" and "Resend Email" buttons), real-time status tracker, and "Merchant SLA Agreement Digitally Executed ✓" badge once signed.
+   - **Admin Console Gate:** Admin Console strictly locks partner store activation until `agreementStatus == "APPROVED"`. If pending signature, the Admin Approval dialog blocks activation with a warning and provides a 1-click "Resend Agreement Email" action.
+   - **Strict Admin Operating Cities (Zero Hardcoded Cities):** Onboarding strictly validates against live cities configured in Admin Panel (`admin_cities`). Eliminated hardcoded city defaults (e.g. Kasganj).
+   - **UI & Form Controls Polish:**
+     - Segmented DD / MM / YYYY Day/Month/Year dropdown picker for Date of Birth, eliminating native date-picker inconsistencies.
+     - Email verification badge positioned in the label row, eliminating text overlapping.
+     - Removed verbose descriptions and subtitles across all form inputs.
+     - Clean read-only Account Holder Name automatically synchronized with Owner Full Name.
+
+2. **Full-Stack Engineering Changes Implemented:**
+   - **`backend-python/app/core/email_service.py`:**
+     - Added `send_partner_agreement_signing_invitation_email(...)` dispatching branded HTML contract invitation email with store & owner summary card, SLA specs, and tokenized URL.
+   - **`backend-python/app/models/partner.py`:**
+     - Added `agreementStatus`, `agreementToken`, `agreementSigningUrl` to `OnboardingResponse`.
+   - **`backend-python/app/api/partner.py`:**
+     - In `onboarding`: Sets store to `under_verification`, `isVerified = False`, `isOnboarded = True`, generates `agreementToken`, queues contract invitation email via `send_partner_agreement_signing_invitation_email(...)`, and returns agreement tokens.
+     - In `get_partner_verification_status`: returns `agreementStatus`, `agreementApproved`, `agreementSignedAt`, `agreementToken`, `agreementSigningUrl`.
+     - Added agreement endpoints on `@public_router` and `@router`:
+       - `GET /agreement/details`: Retrieves partner store details and SLA clauses by token or partnerId.
+       - `POST /agreement/sign-and-approve`: Digitally signs and executes agreement, updates `partner_profiles`, `admin_partners`, `partner_verifications`, generates PDF, and dispatches via email.
+       - `POST /agreement/resend-email`: Resends agreement signing invitation email.
+   - **`backend-python/app/api/admin.py` & `backend-python/app/db/admin_repositories.py`:**
+     - In `approve_partner` & `AdminPartnerRepository.approve`: Strictly checks `profile.get("agreementStatus") == "APPROVED"`, raising HTTP 400 if pending signature.
+     - Added `POST /api/v1/admin/partners/{partner_id}/resend-agreement` to allow admin operators to resend agreement email.
+     - In `get_partner_360`: Added `agreementStatus`, `agreementApproved`, `agreementSignedAt`, `agreementToken` to KYC/documents, and replaced hardcoded Kasganj tags with operating territory.
+   - **`partner-frontend/src/screens/BusinessRegistrationScreen.tsx`:**
+     - Shortened `STEPS` array from 6 to 5 steps; updated stepper header counter and progress bar to `5`.
+     - Replaced `<input type="date" />` with segmented `dobDay`, `dobMonth`, `dobYear` dropdown picker (DD / MM / YYYY) with `handleDobChange`.
+     - In Step 3: Added `-- Select Operating City --` option to City dropdown.
+     - In Step 5 Bank Details: Form button submits registration directly via `handleSubmitRegistration()`.
+     - Removed Step 6 JSX block entirely (embedded agreement pad, OTP box, summary card).
+     - In `handleSubmitRegistration()`: Sets `agreementStatus: "PENDING_SIGNATURE"`, calls `registerBusiness(payload)`, and navigates to `/registration-submitted`.
+     - Cleaned up subtexts and descriptions under inputs.
+   - **`partner-frontend/src/api/partner/partner-auth-api.ts`:**
+     - Exported `fetchPartnerAgreementDetails`, `signAndApprovePartnerAgreement`, `resendPartnerAgreementEmail`.
+     - Added agreement fields to `checkPartnerVerificationStatus`.
+   - **`partner-frontend/src/shared/types/partner.ts`:**
+     - Added `agreementStatus?: string;` to `BusinessRegistrationPayload`.
+   - **`partner-frontend/src/screens/PartnerAgreementSigningScreen.tsx` & `partner-frontend/src/routes/agreement.sign.tsx`:**
+     - Created dedicated Zomato-style contract signing screen with legal clauses, commission breakdown, signature pad, and IT Act legal acknowledgment.
+   - **`partner-frontend/src/screens/RegistrationSubmittedScreen.tsx`:**
+     - Added Action Required banner with "Review & Sign Agreement Now" and "Resend Email" buttons.
+     - Added "Merchant SLA Agreement Digitally Executed ✓" badge when signed.
+     - Updated 4-step progress tracker.
+   - **`admin-frontend/src/api/partners.ts` & `admin-frontend/src/routes/partners.tsx`:**
+     - Added `agreementStatus`, `agreementApproved`, `agreementSignedAt`, `agreementToken` to `AdminPartner` and `Partner360Data`.
+     - Added `resendPartnerAgreement(id: string)` API function.
+     - Displayed Agreement Status badge in Partner 360 overview and Tab 5 SLA Agreement.
+     - Locked `Approve Store` action with toast error if agreement is pending partner signature.
+     - Added "Resend Agreement Email" action button.
+
+3. **Build & Quality Assurance:**
+   - `backend-python`: Verified with `python3 -m py_compile` across all modified files (0 errors).
+   - `partner-frontend`: Built successfully (`npm run build` exit code 0).
+   - `admin-frontend`: Built successfully (`npm run build` exit code 0).
+
+---
+
 ## Session: November 22, 2026 (Part 55)
 
 ### Post-Payment Zomato-Style Email Agreement Execution, Admin Cities Onboarding Enforcement, UI Polish Across Registration Steps
