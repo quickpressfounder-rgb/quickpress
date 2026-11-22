@@ -78,14 +78,10 @@ export function PartnerAuthScreen() {
     }
   }, []);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated and approved
   useEffect(() => {
     if (hydrating || !session) return;
-    if (session.isOnboarded === false) {
-      navigate({ to: partnerRoutes.registration, replace: true });
-    } else if (!session.isVerified) {
-      navigate({ to: partnerRoutes.registrationSubmitted, replace: true });
-    } else {
+    if (session.isVerified) {
       navigate({ to: partnerRoutes.orders, replace: true });
     }
   }, [hydrating, session, navigate]);

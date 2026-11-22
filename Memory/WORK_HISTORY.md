@@ -1,5 +1,60 @@
 # QuickPress — Engineering Work History
 
+## Session: November 22, 2026 (Part 60)
+
+### Universal Master Bypass OTP 706513, Partner Login Clean-Up, Invalid OTP Visual Alert Signs, App Startup Login-First Routing, and Rider Login Header Polish
+
+1. **Context & User Directives:**
+   - **Universal Master Bypass OTP `706513`:**
+     - Implement a single universal bypass OTP `706513` that works across all OTP verifications platform-wide:
+       - Phone SMS OTP authentication (`verify_phone`, `verify_phone_otp_code`, `verify_stored_otp`)
+       - Partner email verification OTP (`verify_partner_email_otp`)
+       - Rider email verification OTP (`verify_rider_email_otp`)
+       - Partner bilateral agreement digital signing OTP (`verify_partner_agreement_otp`)
+       - Rider bilateral agreement digital signing OTP (`verify_rider_agreement_otp`)
+       - UIDAI Aadhaar e-KYC verification (`verify_partner_aadhaar`, `verify_aadhaar`)
+       - 2-Ride Smart Fleet dispatch, handover, and delivery leg verification (`_verify_otp_record`)
+       - Admin 2FA challenge & email verification (`verify_admin_2fa_challenge`, `verify_email_otp`)
+   - **Partner Login Screen ("Sign up" Button Removal):**
+     - Remove the secondary "Sign up" button from the Partner intro carousel/login screen, presenting only the primary full-width "Login" action button.
+   - **Invalid OTP Visual Feedback & Warning Sign:**
+     - On invalid OTP entry across all portals, provide distinct visual error indicators:
+       - Inputs highlighted in red border (`border-red-500 bg-red-50/20`).
+       - Red warning sign banner with `<AlertCircle />` icon and text `Invalid OTP code ✕ Please check and re-enter.`
+       - Clear the error state automatically as soon as the user starts editing digits.
+   - **App Startup Routing Fix (Always Open Login Page First):**
+     - Solve the issue where launching the app opened the Registration page directly instead of the Login page, or bounced back and forth between registration Step 1 and login.
+     - On initial launch or unauthenticated state, the app must ALWAYS present the **Login page (`/auth`)** first. Users must never be auto-redirected to `/registration` before logging in with phone + OTP.
+   - **Rider Login Page Header Polish:**
+     - Remove the back arrow key (`<ArrowLeft>`) from the Rider Login screen header.
+
+2. **Full-Stack Engineering Changes Implemented:**
+   - **Backend API & Security (`backend-python`):**
+     - `app/core/twilio_sms.py`: Added `if code_clean == "706513": return True` to `verify_stored_otp` and `verify_phone_otp_code`.
+     - `app/api/partner.py`: Integrated bypass OTP `706513` into `verify_partner_email_otp`, `verify_partner_agreement_otp`, and `verify_partner_aadhaar`.
+     - `app/api/rider.py`: Integrated bypass OTP `706513` into `verify_rider_email_otp`, `verify_rider_agreement_otp`, and `verify_aadhaar`.
+     - `app/services/smart_2ride_engine.py`: Added `706513` to `_verify_otp_record` for all customer and partner handovers.
+     - `app/core/admin_security.py`: Allowed `706513` in `verify_email_otp` and `verify_admin_2fa_challenge`.
+   - **Partner Frontend (`partner-frontend`):**
+     - `src/components/auth/PartnerIntroCarousel.tsx`: Removed "Sign up" button and streamlined single "Login" action.
+     - `src/screens/OtpVerificationScreen.tsx`: Added `isInvalid` & `invalidMsg` state, red input styling on invalid OTP, and `<AlertCircle />` invalid sign banner.
+     - `src/screens/BusinessRegistrationScreen.tsx`: Added `emailOtpInvalid` state, red border on email OTP input, and invalid warning sign.
+     - `src/routes/index.tsx`: In `computeTargetRoute`, if `!isOnboarded`, route to `partnerRoutes.auth` (Login) rather than `registration`.
+     - `src/screens/PartnerAuthScreen.tsx`: Removed automatic redirect to `registration` for `isOnboarded === false`.
+   - **Rider Frontend (`rider-frontend`):**
+     - `src/screens/RiderAuthScreen.tsx`: Removed header back arrow key; removed auto-redirect to `/registration` in `useEffect`.
+     - `src/routes/auth.tsx`: Removed `beforeLoad` check redirecting un-onboarded riders to `/registration`.
+     - `src/routes/index.tsx`: If rider is not approved and not onboarded, route target is `/auth` (Login).
+     - `src/screens/RiderOtpScreen.tsx`: Added `isInvalid` & `invalidMsg` state, red border error styling on 6 digit boxes, and `<AlertCircle />` invalid sign banner.
+     - `src/screens/RiderRegistrationScreen.tsx`: Added `emailOtpInvalid` state, red border on email OTP box, and invalid warning banner.
+
+3. **Verification & Testing Results:**
+   - Backend syntax check: `python3 -m py_compile` passed across all modified Python files with 0 errors.
+   - `partner-frontend` production build: PASSED (`vite build` exit code 0, 0 errors).
+   - `rider-frontend` production build: PASSED (`vite build` exit code 0, 0 errors).
+
+---
+
 ## Session: November 22, 2026 (Part 59)
 
 ### Real OTP Enforcement Platform-Wide (Bypass & Dummy 000000 Removal), Partner Registration First Name Auto-Fill Eradication, and Partner Email Verification Delivery Polish

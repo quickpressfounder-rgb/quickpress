@@ -447,6 +447,7 @@ export function RiderRegistrationScreen() {
   const [isSendingEmailOtp, setIsSendingEmailOtp] = useState<boolean>(false);
   const [showEmailOtpBox, setShowEmailOtpBox] = useState<boolean>(false);
   const [emailOtp, setEmailOtp] = useState<string>("");
+  const [emailOtpInvalid, setEmailOtpInvalid] = useState<boolean>(false);
   const [isVerifyingEmailOtp, setIsVerifyingEmailOtp] = useState<boolean>(false);
   const [emailOtpCountdown, setEmailOtpCountdown] = useState<number>(0);
   const [gender, setGender] = useState<string>("");
@@ -749,12 +750,15 @@ export function RiderRegistrationScreen() {
       if (res.ok) {
         setIsEmailVerified(true);
         setShowEmailOtpBox(false);
+        setEmailOtpInvalid(false);
         clearFieldError("email");
         toast.success("Email verified successfully! ✓");
       } else {
+        setEmailOtpInvalid(true);
         toast.error(res.message || "Invalid OTP code");
       }
     } catch (err: any) {
+      setEmailOtpInvalid(true);
       toast.error(err?.message || "Invalid or expired OTP code");
     } finally {
       setIsVerifyingEmailOtp(false);
@@ -1918,8 +1922,15 @@ export function RiderRegistrationScreen() {
                         maxLength={6}
                         placeholder="• • • • • •"
                         value={emailOtp}
-                        onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ""))}
-                        className="flex-1 h-10 px-3 bg-white border border-emerald-300 rounded-xl text-center text-sm font-black tracking-widest text-neutral-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        onChange={(e) => {
+                          if (emailOtpInvalid) setEmailOtpInvalid(false);
+                          setEmailOtp(e.target.value.replace(/\D/g, "").slice(0, 6));
+                        }}
+                        className={`flex-1 h-10 px-3 bg-white border rounded-xl text-center text-sm font-black tracking-widest text-neutral-900 focus:outline-none focus:ring-2 transition-all ${
+                          emailOtpInvalid
+                            ? "border-red-500 bg-red-50/40 text-red-700 focus:ring-red-400/20"
+                            : "border-emerald-300 focus:ring-emerald-500/20"
+                        }`}
                       />
                       <button
                         type="button"
@@ -1935,6 +1946,14 @@ export function RiderRegistrationScreen() {
                         <span>Confirm OTP</span>
                       </button>
                     </div>
+
+                    {/* Invalid OTP Sign */}
+                    {emailOtpInvalid && (
+                      <div className="flex items-center gap-1.5 p-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-[11px] font-bold animate-in fade-in">
+                        <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                        <span>Invalid OTP code ✕ Please check your email and enter the correct 6-digit code.</span>
+                      </div>
+                    )}
 
                     <p className="text-[10px] text-neutral-500 font-medium">
                       ⏱️ Check your email inbox/spam. Valid for 10 minutes.

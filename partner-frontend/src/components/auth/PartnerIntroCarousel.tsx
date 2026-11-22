@@ -31,7 +31,7 @@ export const INTRO_SLIDES: IntroSlide[] = [
 
 interface PartnerIntroCarouselProps {
   onLoginClick: () => void;
-  onSignUpClick: () => void;
+  onSignUpClick?: () => void;
 }
 
 export function PartnerIntroCarousel({
@@ -193,22 +193,14 @@ export function PartnerIntroCarousel({
         </button>
       </div>
 
-      {/* Bottom Action Buttons (Exact Match to Screenshot in Image 1) */}
-      <div className="w-full px-5 pt-3.5 pb-6 space-y-2.5 bg-white shrink-0">
+      {/* Bottom Action Button */}
+      <div className="w-full px-5 pt-3.5 pb-6 bg-white shrink-0">
         <button
           type="button"
           onClick={onLoginClick}
           className="w-full py-3.5 px-4 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] active:scale-[0.99] text-white font-bold text-base shadow-sm transition-all cursor-pointer flex items-center justify-center"
         >
           Login
-        </button>
-
-        <button
-          type="button"
-          onClick={onSignUpClick}
-          className="w-full py-3.5 px-4 rounded-xl bg-white border border-[#2563eb] hover:bg-blue-50/50 active:scale-[0.99] text-[#2563eb] font-bold text-base transition-all cursor-pointer flex items-center justify-center"
-        >
-          Sign up
         </button>
       </div>
     </div>

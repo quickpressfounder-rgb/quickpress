@@ -1,5 +1,5 @@
 import { useNavigate, Link } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, AlertCircle, X, Globe } from "lucide-react";
+import { Loader2, AlertCircle, X, Globe } from "lucide-react";
 import React, { useEffect, useState, type FormEvent } from "react";
 
 import { useRiderContext } from "../context/RiderContext";
@@ -32,17 +32,11 @@ export function RiderAuthScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fast synchronous session check: redirect if already authenticated
+  // Fast synchronous session check: redirect ONLY if already fully approved
   useEffect(() => {
     const sess = readSession("rider") || readSession();
-    if (sess && sess.token) {
-      if (!isRiderOnboarded(sess)) {
-        navigate({ to: "/registration", replace: true });
-      } else if (!isRiderApproved(sess)) {
-        navigate({ to: "/verification", replace: true });
-      } else {
-        navigate({ to: "/dashboard", replace: true });
-      }
+    if (sess && sess.token && isRiderApproved(sess)) {
+      navigate({ to: "/dashboard", replace: true });
     }
   }, [navigate]);
 
@@ -88,18 +82,9 @@ export function RiderAuthScreen() {
         paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 12px, 20px)",
       }}
     >
-      {/* 1. Header with Back Arrow & Official QuickPress Brand Logo */}
+      {/* 1. Header with Language Selector & Official QuickPress Brand Logo */}
       <div>
-        <div className="flex items-center justify-between pb-2">
-          <button
-            type="button"
-            onClick={() => navigate({ to: "/language" })}
-            className="flex items-center justify-center w-10 h-10 -ml-2 rounded-full hover:bg-neutral-100 text-neutral-900 active:scale-95 transition-transform"
-            aria-label="Go Back"
-          >
-            <ArrowLeft className="w-6 h-6 stroke-[2.4]" />
-          </button>
-
+        <div className="flex items-center justify-end pb-2">
           <button
             type="button"
             onClick={() => navigate({ to: "/language" })}

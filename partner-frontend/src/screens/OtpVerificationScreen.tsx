@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
+  AlertCircle,
   ArrowLeft,
   Check,
   CheckCircle2,
@@ -29,6 +30,8 @@ export function OtpVerificationScreen() {
   const [digits, setDigits] = useState("");
   const [busy, setBusy] = useState(false);
   const [verified, setVerified] = useState(false);
+  const [isInvalid, setIsInvalid] = useState(false);
+  const [invalidMsg, setInvalidMsg] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const targetPhone =
@@ -71,14 +74,16 @@ export function OtpVerificationScreen() {
       session = await verifyOtp(targetPhone, digits);
     } catch (cause) {
       setBusy(false);
-      setDigits("");
+      setIsInvalid(true);
+      const msg = cause instanceof Error ? cause.message : "That OTP is incorrect. Please try again.";
+      setInvalidMsg(msg);
+      toast.error(msg);
       inputRef.current?.focus();
-      toast.error(
-        cause instanceof Error ? cause.message : "That OTP is incorrect. Please try again.",
-      );
       return;
     }
     setBusy(false);
+    setIsInvalid(false);
+    setInvalidMsg(null);
     setVerified(true);
 
     // Check ground-truth verification & onboarding status
@@ -188,7 +193,13 @@ export function OtpVerificationScreen() {
                 autoComplete="one-time-code"
                 maxLength={6}
                 value={digits}
-                onChange={(e) => setDigits(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) => {
+                  if (isInvalid) {
+                    setIsInvalid(false);
+                    setInvalidMsg(null);
+                  }
+                  setDigits(e.target.value.replace(/\D/g, "").slice(0, 6));
+                }}
                 className="absolute inset-0 z-10 size-full cursor-pointer bg-transparent text-transparent caret-transparent outline-none focus:outline-none"
               />
               <div className="flex items-center justify-between gap-2">
@@ -199,7 +210,9 @@ export function OtpVerificationScreen() {
                     <div
                       key={i}
                       className={`flex h-13 sm:h-14 flex-1 items-center justify-center rounded-xl border-2 text-xl font-black tracking-tight transition-all select-none ${
-                        verified
+                        isInvalid
+                          ? "border-red-500 bg-red-50 text-red-600 animate-shake"
+                          : verified
                           ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                           : active
                           ? "border-[#2563eb] bg-blue-50/20 shadow-xs scale-105"
@@ -213,6 +226,14 @@ export function OtpVerificationScreen() {
                   );
                 })}
               </div>
+
+              {/* Invalid OTP Sign / Indicator */}
+              {isInvalid && (
+                <div className="mt-3 flex items-center justify-center gap-1.5 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold animate-in fade-in slide-in-from-top-1">
+                  <AlertCircle className="size-4 text-red-600 shrink-0" />
+                  <span>{invalidMsg || "Invalid OTP code ✕ Please check and re-enter."}</span>
+                </div>
+              )}
             </div>
 
             {/* Verify Button */}

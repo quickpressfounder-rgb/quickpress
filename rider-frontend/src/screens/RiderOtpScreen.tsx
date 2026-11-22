@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Edit2, Loader2, RotateCcw, ShieldCheck, Zap } from "lucide-react";
+import { AlertCircle, ArrowLeft, Edit2, Loader2, RotateCcw, ShieldCheck, Zap } from "lucide-react";
 import React, { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ClipboardEvent } from "react";
 import { toast } from "sonner";
 
@@ -20,6 +20,8 @@ export function RiderOtpScreen() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [timer, setTimer] = useState(30);
+  const [isInvalid, setIsInvalid] = useState(false);
+  const [invalidMsg, setInvalidMsg] = useState<string | null>(null);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -108,6 +110,8 @@ export function RiderOtpScreen() {
       }
 
       // 2. Strict Onboarding & Verification Navigation
+      setIsInvalid(false);
+      setInvalidMsg(null);
       if (!sessionResult.isOnboarded) {
         navigate({ to: "/registration", replace: true });
       } else if (!sessionResult.isVerified) {
@@ -116,7 +120,10 @@ export function RiderOtpScreen() {
         navigate({ to: "/permissions", replace: true });
       }
     } catch (err: any) {
-      toast.error(err?.message || "Invalid OTP code. Please enter valid 6-digit OTP.");
+      setIsInvalid(true);
+      const msg = err?.message || "Invalid OTP code. Please enter valid 6-digit OTP.";
+      setInvalidMsg(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -152,6 +159,10 @@ export function RiderOtpScreen() {
 
   // Handle individual digit change (Auto-accept when 6th digit entered!)
   const handleDigitChange = (index: number, value: string) => {
+    if (isInvalid) {
+      setIsInvalid(false);
+      setInvalidMsg(null);
+    }
     const cleanDigit = value.replace(/\D/g, "").slice(-1);
     const newDigits = [...digits];
     newDigits[index] = cleanDigit;
@@ -290,7 +301,9 @@ export function RiderOtpScreen() {
                 onKeyDown={(e) => handleKeyDown(idx, e)}
                 onPaste={handlePaste}
                 className={`w-11 sm:w-12 h-13 sm:h-14 text-center text-xl sm:text-2xl font-black rounded-2xl border-2 transition-all outline-none ${
-                  digit
+                  isInvalid
+                    ? "border-red-500 bg-red-50 text-red-600 scale-100"
+                    : digit
                     ? "border-[#00C853] bg-emerald-50 text-neutral-950 shadow-xs scale-105"
                     : "border-neutral-200 bg-white text-neutral-900 focus:border-[#00C853] focus:bg-emerald-50/20"
                 }`}
@@ -298,6 +311,16 @@ export function RiderOtpScreen() {
               />
             ))}
           </div>
+
+          {/* Invalid OTP Sign / Banner */}
+          {isInvalid && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-left animate-in fade-in slide-in-from-top-1">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+              <p className="text-xs font-bold text-red-700 leading-tight">
+                {invalidMsg || "Invalid OTP code ✕ Please check and re-enter."}
+              </p>
+            </div>
+          )}
 
           {/* Resend Timer Row */}
           <div className="flex items-center justify-between px-2 text-xs pt-1">

@@ -469,6 +469,7 @@ export function BusinessRegistrationScreen() {
   const [emailOtp, setEmailOtp] = useState("");
   const [showEmailOtpBox, setShowEmailOtpBox] = useState(false);
   const [emailOtpCountdown, setEmailOtpCountdown] = useState(0);
+  const [emailOtpInvalid, setEmailOtpInvalid] = useState(false);
   const [gender, setGender] = useState<"Male" | "Female" | "Other">("Male");
   const [dob, setDob] = useState("");
 
@@ -649,11 +650,14 @@ export function BusinessRegistrationScreen() {
       if (res.ok) {
         setIsEmailVerified(true);
         setShowEmailOtpBox(false);
+        setEmailOtpInvalid(false);
         toast.success("Business Email verified successfully! ✓");
       } else {
+        setEmailOtpInvalid(true);
         toast.error(res.message || "Invalid OTP code");
       }
     } catch (err: any) {
+      setEmailOtpInvalid(true);
       toast.error(err?.message || "Invalid or expired OTP");
     } finally {
       setIsVerifyingEmailOtp(false);
@@ -1766,9 +1770,16 @@ export function BusinessRegistrationScreen() {
                         type="text"
                         maxLength={6}
                         value={emailOtp}
-                        onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        onChange={(e) => {
+                          if (emailOtpInvalid) setEmailOtpInvalid(false);
+                          setEmailOtp(e.target.value.replace(/\D/g, "").slice(0, 6));
+                        }}
                         placeholder="• • • • • •"
-                        className="flex-1 px-3 py-2 rounded-xl bg-white border border-emerald-300 text-center text-sm font-black tracking-widest text-emerald-950 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono"
+                        className={`flex-1 px-3 py-2 rounded-xl bg-white border text-center text-sm font-black tracking-widest focus:outline-hidden focus:ring-2 font-mono transition-all ${
+                          emailOtpInvalid
+                            ? "border-red-500 bg-red-50/40 text-red-700 focus:ring-red-300"
+                            : "border-emerald-300 text-emerald-950 focus:ring-emerald-500"
+                        }`}
                       />
                       <button
                         type="button"
@@ -1786,6 +1797,14 @@ export function BusinessRegistrationScreen() {
                         )}
                       </button>
                     </div>
+
+                    {/* Invalid OTP Sign */}
+                    {emailOtpInvalid && (
+                      <div className="flex items-center gap-1.5 p-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-[11px] font-bold animate-in fade-in">
+                        <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                        <span>Invalid OTP code ✕ Please check your email inbox and enter the 6-digit code.</span>
+                      </div>
+                    )}
                   </div>
                 )}
 

@@ -49,7 +49,7 @@ function computeTargetRoute(sess: any): string {
     isVerified ||
     hasLinkedStore
   );
-  if (!isOnboarded) return partnerRoutes.registration;
+  if (!isOnboarded) return partnerRoutes.auth;
   if (!isVerified) return partnerRoutes.registrationSubmitted;
 
   return partnerRoutes.orders;

@@ -40,12 +40,12 @@ function RiderSplashScreen() {
 
     let targetRoute = "/auth";
     if (sess && sess.token) {
-      if (!isRiderOnboarded(sess)) {
-        targetRoute = "/registration";
-      } else if (!isRiderApproved(sess)) {
+      if (isRiderApproved(sess)) {
+        targetRoute = "/dashboard";
+      } else if (isRiderOnboarded(sess)) {
         targetRoute = "/verification";
       } else {
-        targetRoute = "/dashboard";
+        targetRoute = "/auth";
       }
     } else {
       const hasSelectedLanguage =
