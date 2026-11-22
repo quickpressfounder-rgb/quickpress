@@ -68,6 +68,10 @@
    - `backend-python`: Verified with `python3 -m py_compile` across all modified files (0 errors).
    - `partner-frontend`: Built successfully (`npm run build` exit code 0).
    - `admin-frontend`: Built successfully (`npm run build` exit code 0).
+   - **Production Mobile Packages:**
+     - `QuickPress-Partner.apk` (18 MB) & `QuickPress-Partner.aab` (17 MB) built and synced to artifacts and `website/public/apks`.
+     - `QuickPress-Captain.apk` (18 MB) & `QuickPress-Captain.aab` (18 MB) built and synced to artifacts and `website/public/apks`.
+     - `QuickPress-Customer.apk` (20 MB) & `QuickPress-Customer.aab` (19 MB) built and synced to artifacts and `website/public/apks`.
 
 ---
 

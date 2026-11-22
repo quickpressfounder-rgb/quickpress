@@ -175,10 +175,24 @@ def build_customer(apks_dir):
 
 def build_partner(apks_dir):
     print("\n--- [Partner App] Building Partner App ---")
-    run_cmd("VITE_API_BASE_URL=https://api.withquickpress.com npm run build:partner", ROOT_DIR)
-    part_web_dist = os.path.join(ROOT_DIR, "partner-frontend", ".output", "public")
-    part_android_assets = os.path.join(ROOT_DIR, "partner-frontend", "android", "app", "src", "main", "assets", "public")
+    run_cmd("NITRO_PRESET=node-server VITE_API_BASE_URL=https://api.withquickpress.com npm run build:partner", ROOT_DIR)
+    part_frontend_dir = os.path.join(ROOT_DIR, "partner-frontend")
+    patch_ssr_bundle(part_frontend_dir)
+    generate_index_html(part_frontend_dir, 8093)
+
+    part_web_dist = os.path.join(part_frontend_dir, ".output", "public")
+    part_android_assets = os.path.join(part_frontend_dir, "android", "app", "src", "main", "assets", "public")
     sync_assets(part_web_dist, part_android_assets)
+
+    # Ensure Capacitor config in Android assets does not load an external URL
+    part_cap_json = os.path.join(part_frontend_dir, "android", "app", "src", "main", "assets", "capacitor.config.json")
+    if os.path.exists(part_cap_json):
+        import json
+        with open(part_cap_json, "r") as f:
+            cfg = json.load(f)
+        cfg.pop("server", None)
+        with open(part_cap_json, "w") as f:
+            json.dump(cfg, f, indent=2)
 
     part_android_dir = os.path.join(ROOT_DIR, "partner-frontend", "android")
     run_cmd("./gradlew clean assembleDebug", part_android_dir)

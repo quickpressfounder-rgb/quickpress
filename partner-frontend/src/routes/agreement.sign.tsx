@@ -16,3 +16,4 @@ export const Route = createFileRoute("/agreement/sign")({
   }),
   component: PartnerAgreementSigningScreen,
 });
+
