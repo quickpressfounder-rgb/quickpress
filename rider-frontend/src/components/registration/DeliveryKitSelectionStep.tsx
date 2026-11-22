@@ -717,7 +717,7 @@ export function DeliveryKitSelectionStep({
             }}
             className="flex-1 h-12 bg-[#00C853] hover:bg-[#00B548] active:scale-[0.99] text-black font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <span>Continue to Partner Agreement</span>
+            <span>Complete Registration &amp; Submit</span>
             <ArrowRight className="w-4 h-4 text-black ml-1" />
           </button>
         </div>

@@ -158,7 +158,7 @@ export function SimpleSelfieCaptureModal({
           )}
         </div>
         <p className="text-[11px] text-white/60 mt-3 text-center">
-          Apna chehra frame me rakhein aur neeche diye gaye button par click karein
+          Position your face inside the frame and tap the capture button below
         </p>
       </div>
 

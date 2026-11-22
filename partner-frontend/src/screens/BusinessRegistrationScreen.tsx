@@ -473,9 +473,9 @@ export function BusinessRegistrationScreen() {
   const [verifyingGst, setVerifyingGst] = useState(false);
   const [gstVerified, setGstVerified] = useState(false);
   const [shopAddress, setShopAddress] = useState("");
-  const [city, setCity] = useState("Kasganj");
+  const [city, setCity] = useState("");
   const [area, setArea] = useState("");
-  const [pincode, setPincode] = useState("207123");
+  const [pincode, setPincode] = useState("");
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [pincodeServiceability, setPincodeServiceability] = useState<PincodeServiceabilityResult | null>(null);
   const [pickedLatitude, setPickedLatitude] = useState<number>(27.8083);
@@ -665,8 +665,8 @@ export function BusinessRegistrationScreen() {
     }
   };
 
-  // Approved cities from server
-  const [approvedCities, setApprovedCities] = useState<string[]>(["Kasganj", "Aligarh", "Mathura", "Hathras"]);
+  // Approved cities strictly loaded from server (Zero hardcoded fallback)
+  const [approvedCities, setApprovedCities] = useState<string[]>([]);
 
   // Browser / Hardware Popstate Back Button Handling (matching Rider flow)
   useEffect(() => {

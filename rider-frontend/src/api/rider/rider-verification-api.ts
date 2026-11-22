@@ -35,6 +35,11 @@ export interface RiderVerificationStatusResponse {
   resubmittedAt?: string;
   resubmissionCount?: number;
   draftData?: Record<string, any>;
+  email?: string;
+  agreementStatus?: "PENDING_SIGNATURE" | "APPROVED" | "REJECTED";
+  agreementApproved?: boolean;
+  agreementToken?: string;
+  agreementSignedAt?: string;
   steps: VerificationStep[];
   documents: VerificationDocument[];
   support: {
@@ -71,5 +76,38 @@ export async function simulateAdminReject(reason?: string, riderId?: string) {
   return await apiPostJson<{ ok: boolean; status: string; kycStatus: string; rejectionReason: string }>(
     "/api/rider/verification/simulate-admin-reject",
     { reason, riderId }
+  );
+}
+
+/** GET /api/rider/agreement/details — Fetch agreement details by token or rider ID for Zomato-style signing. */
+export async function fetchRiderAgreementDetails(token?: string, riderId?: string) {
+  const params = new URLSearchParams();
+  if (token) params.set("token", token);
+  if (riderId) params.set("rider_id", riderId);
+  const qStr = params.toString();
+  return await apiGetJson<any>(`/api/rider/agreement/details${qStr ? `?${qStr}` : ""}`);
+}
+
+/** POST /api/rider/agreement/sign-and-approve — Digitally sign and confirm partner agreement. */
+export async function signAndApproveRiderAgreement(payload: {
+  token?: string;
+  signatureUrl: string;
+  riderId?: string;
+}) {
+  return await apiPostJson<{ ok: boolean; message: string; agreementStatus: string }>(
+    "/api/rider/agreement/sign-and-approve",
+    payload
+  );
+}
+
+/** POST /api/rider/agreement/resend-email — Resend Zomato-style agreement invitation email. */
+export async function resendRiderAgreementEmail(payload: {
+  token?: string;
+  riderId?: string;
+  email?: string;
+}) {
+  return await apiPostJson<{ ok: boolean; message: string; email: string }>(
+    "/api/rider/agreement/resend-email",
+    payload
   );
 }

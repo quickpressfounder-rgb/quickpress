@@ -91,6 +91,7 @@ import {
   updateRider,
   deleteRider,
   addRiderNote,
+  resendRiderAgreement,
   type AdminRider,
   type Rider360Data,
 } from "../api/riders";
@@ -347,6 +348,27 @@ export function RidersPage() {
 
   // Notes state
   const [newNoteText, setNewNoteText] = useState("");
+  const [resendingAgreement, setResendingAgreement] = useState(false);
+
+  const isAgreementApproved = Boolean(
+    selectedRider?.agreementStatus === "APPROVED" ||
+    selectedRider?.agreementApproved === true ||
+    (data360 as any)?.agreement?.signed ||
+    (data360 as any)?.profile?.agreementApproved
+  );
+
+  const handleResendAgreementAdmin = async () => {
+    if (!selectedId) return;
+    setResendingAgreement(true);
+    try {
+      await resendRiderAgreement(selectedId);
+      toast.success(`Agreement signing invitation resent to ${selectedRider?.email || "candidate"}`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to resend agreement email");
+    } finally {
+      setResendingAgreement(false);
+    }
+  };
 
   // Populate edit form when selectedRider loads
   useEffect(() => {
@@ -1256,6 +1278,18 @@ export function RidersPage() {
                     </>
                   ) : (
                     <>
+                      {!isAgreementApproved && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={resendingAgreement}
+                          className="h-8.5 rounded-xl border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 font-bold text-xs"
+                          onClick={handleResendAgreementAdmin}
+                        >
+                          <Mail className="size-3.5 mr-1 text-amber-700" />
+                          {resendingAgreement ? "Sending..." : "Resend Agreement"}
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         className="h-8.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs shadow-sm transition-all"
@@ -3416,15 +3450,37 @@ export function RidersPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-900 space-y-1">
-            <p className="font-bold flex items-center gap-1.5 text-emerald-950">
-              <Sparkles className="size-3.5 text-emerald-600" />
-              <span>Instant Real-Time Unlock</span>
-            </p>
-            <p className="text-[11px] text-emerald-800">
-              The rider's verification screen will instantly update via realtime socket to grant access to the Captain Dashboard.
-            </p>
-          </div>
+          {!isAgreementApproved ? (
+            <div className="p-3 bg-amber-50 rounded-2xl border border-amber-300 text-xs text-amber-950 space-y-2">
+              <p className="font-bold flex items-center gap-1.5 text-amber-900">
+                <AlertCircle className="size-4 text-amber-600 shrink-0" />
+                <span>Agreement Not Signed by Candidate</span>
+              </p>
+              <p className="text-[11px] text-amber-800 leading-relaxed">
+                The candidate has not yet digitally signed and approved the Partner Agreement sent to their email ({selectedRider?.email || "on file"}). Compliance policy requires candidate signature before Admin can activate the account.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={resendingAgreement}
+                className="w-full text-xs font-bold border-amber-300 bg-white text-amber-900 hover:bg-amber-100/60"
+                onClick={handleResendAgreementAdmin}
+              >
+                <Mail className="size-3.5 mr-1 text-amber-700" />
+                {resendingAgreement ? "Sending..." : "Resend Agreement Email to Candidate"}
+              </Button>
+            </div>
+          ) : (
+            <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-900 space-y-1">
+              <p className="font-bold flex items-center gap-1.5 text-emerald-950">
+                <Sparkles className="size-3.5 text-emerald-600" />
+                <span>Instant Real-Time Unlock</span>
+              </p>
+              <p className="text-[11px] text-emerald-800">
+                The rider's verification screen will instantly update via realtime socket to grant access to the Captain Dashboard.
+              </p>
+            </div>
+          )}
 
           <DialogFooter className="flex gap-2 pt-2">
             <Button
@@ -3435,7 +3491,8 @@ export function RidersPage() {
               Cancel
             </Button>
             <Button
-              className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-xs font-bold h-10 text-white shadow-sm"
+              disabled={!isAgreementApproved || decideMutation.isPending}
+              className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-xs font-bold h-10 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => {
                 if (selectedId) {
                   decideMutation.mutate({ id: selectedId, action: "approve" });

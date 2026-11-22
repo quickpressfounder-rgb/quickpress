@@ -1568,6 +1568,95 @@ async def send_rider_email_otp(
     )
 
 
+# (10C) Rider / Captain Agreement Invitation Email (Zomato-Style Review & Sign)
+async def send_rider_agreement_signing_invitation_email(
+    rider_email: str,
+    rider_name: str,
+    rider_id: str,
+    city: str,
+    signing_url: str,
+    kit_name: str = "Standard Captain Starter Kit",
+    payment_mode: str = "Part Payment",
+) -> Dict[str, Any]:
+    """Sends Zomato-style contract execution email with secure tokenized link to review and sign the agreement."""
+    clean_id = "".join(c for c in rider_id if c.isalnum() or c in ("-", "_")).strip() or "Captain"
+    subject = f"Action Required: Review & Sign Partner Agreement — {rider_name} [QuickPress]"
+
+    content = f"""
+      <p style="font-size: 15px; color: #1e293b; margin-top: 0;">
+        Dear <strong>{rider_name}</strong> (Captain ID: <code>{clean_id}</code>),
+      </p>
+      <p style="font-size: 14px; color: #475569; line-height: 1.6;">
+        Your QuickPress Captain registration and Delivery Kit payment have been successfully confirmed!
+      </p>
+      <p style="font-size: 14px; color: #475569; line-height: 1.6;">
+        To proceed with your onboarding and unlock final verification by the <strong>QuickPress Operations Admin Desk</strong>, you are required to review and digitally sign your official <strong>Delivery Partner Service Level Agreement (SLA)</strong> under Section 10A of the Information Technology Act, 2000.
+      </p>
+
+      <div class="card" style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px; margin: 20px 0;">
+        <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #006045; text-transform: uppercase; font-weight: 800;">Captain Onboarding Summary</h4>
+        <table style="width: 100%; font-size: 13px; color: #334155; line-height: 1.8;">
+          <tr>
+            <td style="font-weight: 700; width: 45%;">Delivery Captain:</td>
+            <td><strong>{rider_name}</strong></td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Captain ID:</td>
+            <td><code style="background: #e2e8f0; padding: 2px 6px; rounded: 4px;">{clean_id}</code></td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Operating City:</td>
+            <td><strong>{city}</strong></td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Delivery Kit Gear:</td>
+            <td>{kit_name} ({payment_mode})</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Status:</td>
+            <td><span style="background: #fef3c7; color: #92400e; font-weight: 700; padding: 2px 8px; border-radius: 6px;">Awaiting Digital Signature</span></td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="text-align: center; margin: 30px 0 24px 0;">
+        <a href="{signing_url}" target="_blank" style="display: inline-block; background-color: #00C853; color: #000000; font-size: 15px; font-weight: 900; text-decoration: none; padding: 14px 32px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0, 200, 83, 0.35); text-transform: uppercase; letter-spacing: 0.5px;">
+          Review &amp; Sign Partner Agreement &rarr;
+        </a>
+      </div>
+
+      <p style="font-size: 12px; color: #64748b; line-height: 1.5; text-align: center;">
+        Or copy and paste this link in your mobile browser:<br/>
+        <a href="{signing_url}" style="color: #006045; word-break: break-all;">{signing_url}</a>
+      </p>
+
+      <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; margin: 20px 0;">
+        <p style="margin: 0; font-size: 12px; color: #1e40af; line-height: 1.5;">
+          ℹ️ <strong>Note:</strong> You can also sign this agreement directly inside your QuickPress Captain App under the <strong>Verification Status</strong> screen. Your application cannot be approved by Admin until this agreement is signed.
+        </p>
+      </div>
+    """
+
+    html = _render_base_email(
+        preheader_text="Action Required: Review and sign your QuickPress Delivery Partner Agreement.",
+        badge_label="LEGAL AGREEMENT",
+        headline="Review & Sign Your Agreement",
+        subheadline=f"Welcome aboard {rider_name}! Please review and approve your SLA.",
+        content_html=content,
+    )
+
+    return await dispatch_email(
+        to=rider_email,
+        subject=subject,
+        html=html,
+        text=f"Please review and digitally sign your QuickPress Delivery Partner Agreement: {signing_url}",
+        recipient_name=rider_name,
+        audience="rider",
+        category="onboarding",
+        metadata={"purpose": "RIDER_AGREEMENT_INVITATION", "riderId": clean_id},
+    )
+
+
 # (10D) Rider / Captain Signed Agreement Dispatch with PDF Attachment & CC
 async def send_rider_agreement_email(
     rider_email: str,

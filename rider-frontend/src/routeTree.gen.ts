@@ -33,6 +33,7 @@ import { Route as RegistrationRouteImport } from './routes/registration'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as VerificationRouteImport } from './routes/verification'
 import { Route as WalletRouteImport } from './routes/wallet'
+import { Route as AgreementSignRouteImport } from './routes/agreement.sign'
 import { Route as LegalDocSlugRouteImport } from './routes/legal.$docSlug'
 
 const IndexRoute = IndexRouteImport.update({
@@ -155,6 +156,11 @@ const WalletRoute = WalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgreementSignRoute = AgreementSignRouteImport.update({
+  id: '/agreement/sign',
+  path: '/agreement/sign',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LegalDocSlugRoute = LegalDocSlugRouteImport.update({
   id: '/legal/$docSlug',
   path: '/legal/$docSlug',
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/support': typeof SupportRoute
   '/verification': typeof VerificationRoute
   '/wallet': typeof WalletRoute
+  '/agreement/sign': typeof AgreementSignRoute
   '/legal/$docSlug': typeof LegalDocSlugRoute
 }
 export interface FileRoutesByTo {
@@ -213,6 +220,7 @@ export interface FileRoutesByTo {
   '/support': typeof SupportRoute
   '/verification': typeof VerificationRoute
   '/wallet': typeof WalletRoute
+  '/agreement/sign': typeof AgreementSignRoute
   '/legal/$docSlug': typeof LegalDocSlugRoute
 }
 export interface FileRoutesById {
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   '/support': typeof SupportRoute
   '/verification': typeof VerificationRoute
   '/wallet': typeof WalletRoute
+  '/agreement/sign': typeof AgreementSignRoute
   '/legal/$docSlug': typeof LegalDocSlugRoute
 }
 export interface FileRouteTypes {
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/verification'
     | '/wallet'
+    | '/agreement/sign'
     | '/legal/$docSlug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/verification'
     | '/wallet'
+    | '/agreement/sign'
     | '/legal/$docSlug'
   id:
     | '__root__'
@@ -324,6 +335,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/verification'
     | '/wallet'
+    | '/agreement/sign'
     | '/legal/$docSlug'
   fileRoutesById: FileRoutesById
 }
@@ -352,6 +364,7 @@ export interface RootRouteChildren {
   SupportRoute: typeof SupportRoute
   VerificationRoute: typeof VerificationRoute
   WalletRoute: typeof WalletRoute
+  AgreementSignRoute: typeof AgreementSignRoute
   LegalDocSlugRoute: typeof LegalDocSlugRoute
 }
 
@@ -525,6 +538,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agreement/sign': {
+      id: '/agreement/sign'
+      path: '/agreement/sign'
+      fullPath: '/agreement/sign'
+      preLoaderRoute: typeof AgreementSignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/legal/$docSlug': {
       id: '/legal/$docSlug'
       path: '/legal/$docSlug'
@@ -560,6 +580,7 @@ const rootRouteChildren: RootRouteChildren = {
   SupportRoute: SupportRoute,
   VerificationRoute: VerificationRoute,
   WalletRoute: WalletRoute,
+  AgreementSignRoute: AgreementSignRoute,
   LegalDocSlugRoute: LegalDocSlugRoute,
 }
 export const routeTree = rootRouteImport

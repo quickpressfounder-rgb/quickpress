@@ -879,7 +879,54 @@ async def _rider_transition(
 
 @router.post("/riders/{rider_id}/approve")
 async def approve_rider(rider_id: str, user: User = Depends(current_user)):
+    profile = (
+        await database.find_one("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
+        or await database.find_one("admin_riders", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
+        or {}
+    )
+    agreement_status = profile.get("agreementStatus")
+    if agreement_status != "APPROVED" and not profile.get("agreementSignature"):
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot approve rider: Partner Agreement has not been signed & approved by candidate yet. The candidate must review and sign the agreement sent to their email.",
+        )
     return await _rider_transition(rider_id, "active", "approve", user)
+
+
+@router.post("/riders/{rider_id}/resend-agreement")
+async def resend_rider_agreement_admin(rider_id: str, user: User = Depends(current_user)):
+    profile = (
+        await database.find_one("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
+        or await database.find_one("admin_riders", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
+    )
+    if not profile:
+        raise HTTPException(status_code=404, detail="Rider profile not found")
+    raw_email = str(profile.get("email") or "").strip().lower()
+    if not raw_email or "@" not in raw_email:
+        raise HTTPException(status_code=400, detail="Rider profile does not have a valid email address.")
+    
+    agreement_token = profile.get("agreementToken") or f"ag_{uuid.uuid4().hex}"
+    if not profile.get("agreementToken"):
+        await database.update("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}, {"agreementToken": agreement_token})
+        await database.update("admin_riders", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}, {"agreementToken": agreement_token})
+        
+    signing_url = f"https://withquickpress.com/agreement/sign?token={agreement_token}"
+    from app.core.email_service import send_rider_agreement_signing_invitation_email
+    full_name = profile.get("fullName") or profile.get("name") or "Delivery Captain"
+    city = profile.get("city") or profile.get("preferredCity") or "Operating Territory"
+    kit_name = profile.get("kitName") or "Standard Captain Starter Kit"
+    payment_mode = "Part Payment" if profile.get("kitPaymentType") == "part" else "Full Payment"
+    
+    await send_rider_agreement_signing_invitation_email(
+        rider_email=raw_email,
+        rider_name=full_name,
+        rider_id=rider_id,
+        city=city,
+        signing_url=signing_url,
+        kit_name=kit_name,
+        payment_mode=payment_mode,
+    )
+    return {"ok": True, "message": f"Agreement signing invitation email resent to {raw_email}"}
 
 
 @router.post("/riders/{rider_id}/suspend")

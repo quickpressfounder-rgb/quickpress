@@ -346,7 +346,7 @@ export function RiderProfileScreen() {
   const handleDeleteAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!deleteDob) {
-      setDeleteError("Kripya apni Date of Birth (DOB) darj karein.");
+      setDeleteError("Please enter your Date of Birth (DOB).");
       return;
     }
 
@@ -363,7 +363,7 @@ export function RiderProfileScreen() {
 
     if (registeredDob && normalize(deleteDob) !== normalize(registeredDob)) {
       triggerHaptic(50);
-      setDeleteError("Galat Date of Birth! Kripya apni registered Date of Birth darj karein.");
+      setDeleteError("Incorrect Date of Birth! Please enter your registered Date of Birth.");
       return;
     }
 

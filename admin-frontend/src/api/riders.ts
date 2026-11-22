@@ -35,6 +35,10 @@ export type AdminRider = {
   resubmittedAt?: string | undefined;
   resubmissionCount?: number | undefined;
   rejectionReason?: string | undefined;
+  agreementStatus?: "APPROVED" | "PENDING_SIGNATURE" | "REJECTED" | string | undefined;
+  agreementApproved?: boolean | undefined;
+  agreementSignedAt?: string | undefined;
+  agreementToken?: string | undefined;
   raw?: any;
 };
 
@@ -395,5 +399,13 @@ export async function addRiderNote(id: string, note: string) {
   return apiPostJson<{ id: string; note: string; author: string; at: string }>(
     `/api/admin/riders/${encodeURIComponent(id)}/notes`,
     { note }
+  );
+}
+
+/** POST /api/admin/riders/{id}/resend-agreement — resend Zomato-style contract review & signing invitation */
+export async function resendRiderAgreement(id: string) {
+  return apiPostJson<{ ok: boolean; message: string }>(
+    `/api/admin/riders/${encodeURIComponent(id)}/resend-agreement`,
+    {}
   );
 }

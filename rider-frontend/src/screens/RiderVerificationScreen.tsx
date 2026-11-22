@@ -12,11 +12,13 @@ import {
   HelpCircle,
   IdCard,
   LogOut,
+  Mail,
   MapPin,
   MessageCircle,
   Phone,
   RefreshCw,
   RotateCcw,
+  Scale,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
@@ -27,6 +29,7 @@ import {
 import { toast } from "sonner";
 import {
   fetchRiderVerificationStatus,
+  resendRiderAgreementEmail,
   type RiderVerificationStatusResponse,
 } from "../api/rider/rider-verification-api";
 import { clearSession, readSession, writeSession } from "../api/core/session-store";
@@ -143,6 +146,24 @@ export function RiderVerificationScreen() {
   const isApproved = data?.isApproved ?? false;
   const isRejected = (data?.kycStatus === "rejected" || data?.status === "rejected") && !isApproved;
   const rejectionReason = data?.rejectionReason;
+  const isAgreementApproved = Boolean(data?.agreementApproved || data?.agreementStatus === "APPROVED");
+  const [resendingAgreement, setResendingAgreement] = useState(false);
+
+  const handleResendAgreement = async () => {
+    setResendingAgreement(true);
+    try {
+      await resendRiderAgreementEmail({
+        token: data?.agreementToken,
+        riderId: data?.riderId,
+        email: data?.email,
+      });
+      toast.success(`Agreement signing link resent to ${data?.email || "your registered email"}!`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to resend agreement email.");
+    } finally {
+      setResendingAgreement(false);
+    }
+  };
 
   return (
     <div className="relative flex flex-col w-full min-h-[100dvh] max-w-md mx-auto bg-white shadow-xl overflow-hidden text-slate-800 select-none font-sans">
@@ -330,6 +351,71 @@ export function RiderVerificationScreen() {
           </section>
         )}
 
+        {/* ZOMATO-STYLE DIGITAL AGREEMENT STATUS CARD */}
+        {!isAgreementApproved ? (
+          <section className="p-4 rounded-3xl bg-amber-50 border-2 border-amber-300 shadow-xs space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-200/80 flex items-center justify-center shrink-0 text-amber-900">
+                <Scale className="w-5 h-5 text-amber-900" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="text-xs font-black text-amber-950 uppercase tracking-wide">
+                    Action Required: Partner Agreement
+                  </h3>
+                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-200 text-amber-900">
+                    Pending Signature
+                  </span>
+                </div>
+                <p className="text-xs text-amber-900 mt-1 leading-relaxed font-medium">
+                  An official agreement invitation has been sent to <strong>{data?.email || "your registered email"}</strong>.
+                  You must review and digitally sign this agreement before Admin can activate your account.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic();
+                  navigate({ to: "/agreement/sign", search: { token: data?.agreementToken || "" } });
+                }}
+                className="flex-1 py-3 px-3.5 bg-[#00C853] hover:bg-[#00B548] active:scale-[0.99] text-black font-black text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <FileCheck2 className="w-4 h-4 text-black" />
+                <span>Review &amp; Sign Agreement Now</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleResendAgreement}
+                disabled={resendingAgreement}
+                className="py-3 px-3 bg-white border border-amber-300 text-amber-900 font-bold text-xs rounded-xl hover:bg-amber-100/70 transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+              >
+                <Mail className="w-3.5 h-3.5 text-amber-700" />
+                <span>{resendingAgreement ? "Sending..." : "Resend"}</span>
+              </button>
+            </div>
+          </section>
+        ) : (
+          <section className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 shadow-2xs flex items-center justify-between text-xs text-emerald-950">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
+              <div>
+                <p className="font-bold leading-tight">Partner Agreement Digitally Approved ✓</p>
+                <p className="text-[10px] text-emerald-700 font-medium">Signed copy delivered to {data?.email || "registered email"}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/agreement/sign", search: { token: data?.agreementToken || "" } })}
+              className="text-[10px] font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-2 py-1 rounded-md transition-all cursor-pointer"
+            >
+              View SLA
+            </button>
+          </section>
+        )}
+
         {/* 4-STEP VERIFICATION TRACKER */}
         <section className="p-4 bg-white rounded-3xl border border-slate-200 shadow-2xs space-y-3">
           <div className="flex items-center justify-between">
@@ -337,43 +423,45 @@ export function RiderVerificationScreen() {
               Verification Progress
             </h3>
             <span className="text-[10px] font-bold text-slate-500">
-              Step 3 of 4 Active
+              {isApproved ? "4 of 4 Completed" : isAgreementApproved ? "Step 4 of 4 Active" : "Step 3 of 4 Active"}
             </span>
           </div>
 
           <div className="space-y-3 relative pl-6 border-l-2 border-slate-100 ml-3">
-            {(data?.steps || [
+            {[
               {
                 id: "step_1",
                 title: "Mobile OTP & Security Authentication",
-                status: "completed",
+                status: "completed" as const,
                 desc: `Phone ${data?.phone || "+91 80775 49253"} authenticated via OTP`,
               },
               {
                 id: "step_2",
                 title: "KYC Documents & Vehicle Registration",
-                status: "completed",
-                desc: "Aadhaar, Driving License, RC & Bank details uploaded",
+                status: "completed" as const,
+                desc: "Aadhaar, Driving License, RC & Bank payout details submitted",
               },
               {
                 id: "step_3",
-                title: "Admin Document Review & Background Check",
-                status: isApproved ? "completed" : isRejected ? "rejected" : "in_progress",
-                desc: isApproved
-                  ? "Approved by Kasganj Admin Desk"
-                  : isRejected
-                  ? "Rejected by Admin Desk"
-                  : "Kasganj Verification Desk is reviewing your documents",
+                title: "Delivery Partner Agreement Digital Execution",
+                status: isAgreementApproved ? ("completed" as const) : ("in_progress" as const),
+                desc: isAgreementApproved
+                  ? "Agreement digitally signed and approved by applicant ✓"
+                  : `Awaiting signature via link sent to ${data?.email || "registered email"}`,
               },
               {
                 id: "step_4",
-                title: "Captain Account Activation & Dispatch Ready",
-                status: isApproved ? "completed" : "pending",
+                title: "Admin Account Activation & Dispatch Ready",
+                status: isApproved ? ("completed" as const) : isRejected ? ("rejected" as const) : ("pending" as const),
                 desc: isApproved
-                  ? "Live order dispatch and daily earnings unlocked"
-                  : "Locked until Admin approves your application",
+                  ? "Live order dispatch and daily earnings unlocked ✓"
+                  : isRejected
+                  ? "Verification rejected by Admin Desk"
+                  : isAgreementApproved
+                  ? `${data?.city || "Kasganj"} Hub Admin Desk is reviewing your documents for final activation`
+                  : "Locked until Partner Agreement is signed & approved by candidate",
               },
-            ]).map((step, idx) => {
+            ].map((step, idx) => {
               const isDone = step.status === "completed";
               const isInProgress = step.status === "in_progress";
               const isStepRejected = step.status === "rejected";

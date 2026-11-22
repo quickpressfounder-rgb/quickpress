@@ -1,5 +1,57 @@
 # QuickPress — Engineering Work History
 
+## Session: November 22, 2026 (Part 55)
+
+### Post-Payment Zomato-Style Email Agreement Execution, Admin Cities Onboarding Enforcement, UI Polish Across Registration Steps
+
+1. **Context & User Directives:**
+   - **Post-Payment Zomato-Style Agreement Execution:** Remove in-wizard agreement step from the registration stepper. Flow ends at Step 6 (Delivery Kit payment). Upon successful Razorpay payment, automatically submit the registration payload in `under_verification` status with `agreementStatus: "PENDING_SIGNATURE"`, and dispatch a Zomato-style contract review & signing invitation email to the candidate's verified mailbox containing a secure tokenized link (`/agreement/sign?token=...`).
+   - **Onboarding Activation Gate:** The onboarding account stays locked in `under_verification` until the candidate digitally executes the agreement via signature pad.
+   - **Admin Console Gate:** Admin Panel can strictly only approve riders whose agreement has been digitally executed and approved (`agreementStatus === "APPROVED"`). If pending, the Admin approval button warns and is locked, with a 1-click "Resend Agreement Link" action.
+   - **Strict Admin Cities Enforcement (Zero Hardcoded Cities):** Riders and Partners can strictly only register in active/live operating cities configured by the Admin Panel in `admin_cities`. Absolutely no hardcoded fallback cities (e.g. Kasganj). GPS location auto-detection matches strictly against live Admin cities.
+   - **Registration Polish from Screenshots:**
+     - Email verification badge: Clean placement in label row, eliminated text overlapping inside input, eliminated double checkmarks.
+     - Account Holder Name: Clean read-only field without lock icon or explanatory paragraph.
+     - Removed subtitles and verbose descriptions across all registration steps.
+     - 100% English across all camera modals, profile deletion dialogs, and error messages.
+
+2. **Full-Stack Engineering Changes Implemented:**
+   - **`backend-python/app/core/email_service.py`:**
+     - Created `send_rider_agreement_signing_invitation_email(...)` delivering high-trust official QuickPress dispatch email with SLA agreement token link (`/agreement/sign?token=...`).
+   - **`backend-python/app/api/rider.py`:**
+     - Strict Admin cities validation in `submit_registration` and `rider_onboarding` (rejects unapproved cities with HTTP 400).
+     - Added `GET /api/rider/agreement/details` and `POST /api/rider/agreement/sign-and-approve`.
+     - Added `POST /api/rider/agreement/resend-email`.
+     - In `submit_registration`: dispatches invitation email on kit payment, sets `agreementStatus = "PENDING_SIGNATURE"`.
+     - In `get_rider_verification_status`: returns `agreementStatus`, `agreementApproved`, `agreementSignedAt`, `agreementToken`.
+   - **`backend-python/app/api/partner.py`:**
+     - Enforced strict Admin-Approved cities validation in `onboarding` without hardcoded fallbacks.
+   - **`backend-python/app/api/admin.py` & `backend-python/app/db/admin_repositories.py`:**
+     - Admin rider approval verifies `agreementStatus == "APPROVED"`.
+     - Added `POST /api/admin/riders/{rider_id}/resend-agreement`.
+     - Included `agreementStatus` in 360 profile and riders list.
+   - **`rider-frontend/src/screens/RiderRegistrationScreen.tsx`:**
+     - Stepper reduced to 6 steps (`Profile`, `Identity`, `Vehicle`, `Licence`, `Bank`, `Kit Gear`).
+     - In Step 6: Payment triggers `handleSubmitRegistrationAfterKit`, submits registration payload, and navigates to `/verification`.
+     - Removed in-wizard Step 7 agreement block.
+     - Clean email badge in label row; clean read-only account holder name without lock icon.
+     - Zero hardcoded cities in `liveCities`.
+   - **`rider-frontend/src/screens/RiderAgreementSigningScreen.tsx` & `rider-frontend/src/routes/agreement.sign.tsx`:**
+     - Created dedicated Zomato-style contract signing screen with legal clauses, commercial kit breakdown, signature pad, and IT Act 2000 legal acknowledgment.
+   - **`rider-frontend/src/screens/RiderVerificationScreen.tsx`:**
+     - Added "Agreement Action Required" banner with direct "Review & Sign Agreement Now" action and "Resend Email" button.
+     - Step 3 is "Delivery Partner Agreement Digital Execution" and Step 4 is "Admin Account Activation" (unlocked only upon agreement approval).
+   - **`partner-frontend/src/screens/BusinessRegistrationScreen.tsx`:**
+     - Removed hardcoded city defaults and fallback arrays; strictly loads from `/api/cities`.
+   - **`admin-frontend/src/routes/riders.tsx` & `admin-frontend/src/api/riders.ts`:**
+     - Added Resend Agreement action in detail drawer and agreement safety check in Approve confirmation dialog.
+
+3. **Build & Quality Assurance:**
+   - `rider-frontend`: Built successfully (`npm run build` exit code 0).
+   - `partner-frontend`: Built successfully (`npm run build` exit code 0).
+   - `admin-frontend`: Built successfully (`npm run build` exit code 0).
+   - Python backend syntax verified (`py_compile` exit code 0) and live endpoints responding (`/api/rider/agreement/details`, `/api/cities`, `/api/health`).
+
 ## Session: November 21, 2026 (Part 54)
 
 ### Registration Polish: Missing Fields Banner Removal, 100% Professional English (Zero Hinglish), Segmented DL Expiry Picker, Resilient Live Razorpay Integration & Zero Mock Fallbacks

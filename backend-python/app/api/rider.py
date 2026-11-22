@@ -669,6 +669,244 @@ async def _dispatch_captain_agreement_pdf_and_email(rider_id: str, profile_data:
         logger.warning("[CaptainAgreement] Could not dispatch captain agreement email: %s", err)
 
 
+# --------------------------------------------------------------------------
+# Zomato-Style Post-Payment Agreement Endpoints (Review, Sign & Approve)
+# --------------------------------------------------------------------------
+
+@public_router.get("/agreement/details")
+@router.get("/agreement/details")
+async def get_rider_agreement_details(
+    token: Optional[str] = Query(None),
+    rider_id: Optional[str] = Query(None),
+    user: Optional[User] = Depends(optional_user),
+) -> dict:
+    """Fetch applicant details and SLA clauses for Zomato-style contract execution."""
+    profile = None
+    clean_token = (token or "").strip()
+    
+    if clean_token:
+        profile = (
+            await database.find_one("rider_profiles", {"agreementToken": clean_token})
+            or await database.find_one("admin_riders", {"agreementToken": clean_token})
+        )
+    
+    if not profile and rider_id:
+        profile = (
+            await database.find_one("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
+            or await database.find_one("admin_riders", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
+        )
+
+    if not profile and user:
+        r_id = getattr(user, "linked_id", None) or user.id
+        profile = (
+            await database.find_one("rider_profiles", {"$or": [{"_id": r_id}, {"userId": user.id}, {"phone": user.phone}]})
+            or await database.find_one("admin_riders", {"$or": [{"_id": r_id}, {"userId": user.id}, {"phone": user.phone}]})
+        )
+
+    if not profile:
+        raise HTTPException(
+            status_code=404,
+            detail="Agreement record not found or signing link has expired. Please check your invitation email.",
+        )
+
+    r_id = str(profile.get("riderId") or profile.get("_id") or "")
+    full_name = profile.get("fullName") or profile.get("name") or "Delivery Captain"
+    
+    return {
+        "ok": True,
+        "riderId": r_id,
+        "fullName": full_name,
+        "phone": profile.get("phone") or "",
+        "email": profile.get("email") or "",
+        "city": profile.get("city") or profile.get("preferredCity") or "Operating Territory",
+        "vehicleType": profile.get("vehicleType") or "Bike",
+        "vehicleNumber": profile.get("vehicleNumber") or "",
+        "license": profile.get("license") or profile.get("dlNumber") or "",
+        "bankName": profile.get("bankName") or "",
+        "accountNumber": profile.get("accountNumber") or "",
+        "ifsc": profile.get("ifsc") or "",
+        "kitName": profile.get("kitName") or "Standard Captain Starter Kit",
+        "kitPaymentType": profile.get("kitPaymentType") or "part",
+        "kitAmountPaid": profile.get("kitAmountPaid") or 300,
+        "kitBalanceRemaining": profile.get("kitBalanceRemaining") or 900,
+        "kitDeliveryPreference": profile.get("kitDeliveryPreference") or "doorstep",
+        "agreementStatus": profile.get("agreementStatus") or ("APPROVED" if profile.get("agreementSignature") else "PENDING_SIGNATURE"),
+        "agreementApproved": bool(profile.get("agreementApproved") or profile.get("agreementSignature")),
+        "agreementSignature": profile.get("agreementSignature") or profile.get("signatureUrl") or "",
+        "agreementSignedAt": profile.get("agreementSignedAt"),
+        "agreementToken": profile.get("agreementToken") or clean_token,
+        "agreementRef": f"QP-CAPTAIN-SLA-2026-{r_id[-6:] if len(r_id) >= 6 else '000000'}",
+    }
+
+
+@public_router.post("/agreement/sign-and-approve")
+@router.post("/agreement/sign-and-approve")
+async def sign_and_approve_agreement(
+    body: dict,
+    user: Optional[User] = Depends(optional_user),
+) -> dict:
+    """Digitally sign and approve the Delivery Partner Agreement."""
+    token = str(body.get("token") or "").strip()
+    signature_url = str(body.get("signatureUrl") or body.get("signature") or "").strip()
+    rider_id_param = str(body.get("riderId") or "").strip()
+
+    if not signature_url:
+        raise HTTPException(
+            status_code=400,
+            detail="Digital signature is required to confirm and execute agreement.",
+        )
+
+    profile = None
+    if token:
+        profile = (
+            await database.find_one("rider_profiles", {"agreementToken": token})
+            or await database.find_one("admin_riders", {"agreementToken": token})
+        )
+    if not profile and rider_id_param:
+        profile = (
+            await database.find_one("rider_profiles", {"$or": [{"_id": rider_id_param}, {"riderId": rider_id_param}]})
+            or await database.find_one("admin_riders", {"$or": [{"_id": rider_id_param}, {"riderId": rider_id_param}]})
+        )
+    if not profile and user:
+        r_id = getattr(user, "linked_id", None) or user.id
+        profile = (
+            await database.find_one("rider_profiles", {"$or": [{"_id": r_id}, {"userId": user.id}, {"phone": user.phone}]})
+            or await database.find_one("admin_riders", {"$or": [{"_id": r_id}, {"userId": user.id}, {"phone": user.phone}]})
+        )
+
+    if not profile:
+        raise HTTPException(
+            status_code=404,
+            detail="Agreement profile not found. The link may be invalid or expired.",
+        )
+
+    target_id = str(profile.get("riderId") or profile.get("_id"))
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    update_fields = {
+        "agreementStatus": "APPROVED",
+        "agreementApproved": True,
+        "agreementSignature": signature_url,
+        "agreementSignedAt": now_iso,
+        "termsAccepted": True,
+        "updatedAt": now_iso,
+    }
+
+    await database.update("rider_profiles", {"$or": [{"_id": target_id}, {"riderId": target_id}]}, update_fields)
+    await database.update("admin_riders", {"$or": [{"_id": target_id}, {"riderId": target_id}]}, update_fields)
+    await database.update("riders", {"$or": [{"_id": target_id}, {"rider_id": target_id}]}, {"agreementStatus": "APPROVED", "agreementApproved": True, "updated_at": now_iso})
+
+    # Dispatch signed PDF to candidate's mailbox and CC admin
+    merged_profile = {**profile, **update_fields}
+    try:
+        asyncio.create_task(_dispatch_captain_agreement_pdf_and_email(target_id, merged_profile, body))
+    except Exception as email_err:
+        logger.warning("[AgreementApproval] PDF dispatch task error: %s", email_err)
+
+    # Real-time socket broadcast
+    try:
+        from app.core.socket_manager import sio
+        await sio.emit("rider:agreement_approved", {
+            "riderId": target_id,
+            "agreementStatus": "APPROVED",
+            "signedAt": now_iso,
+        })
+        await sio.emit("rider:status_updated", {
+            "riderId": target_id,
+            "agreementStatus": "APPROVED",
+        })
+    except Exception:
+        pass
+
+    return {
+        "ok": True,
+        "riderId": target_id,
+        "agreementStatus": "APPROVED",
+        "agreementApproved": True,
+        "signedAt": now_iso,
+        "message": "Delivery Partner Agreement successfully approved and executed. Welcome to QuickPress!",
+    }
+
+
+@public_router.post("/agreement/resend-email")
+@router.post("/agreement/resend-email")
+async def resend_agreement_email(
+    body: dict,
+    user: Optional[User] = Depends(optional_user),
+) -> dict:
+    """Resend the official Zomato-style contract review & signing invitation email."""
+    token = str(body.get("token") or "").strip()
+    rider_id_param = str(body.get("riderId") or "").strip()
+    email_param = str(body.get("email") or "").strip().lower()
+
+    profile = None
+    if token:
+        profile = (
+            await database.find_one("rider_profiles", {"agreementToken": token})
+            or await database.find_one("admin_riders", {"agreementToken": token})
+        )
+    if not profile and rider_id_param:
+        profile = (
+            await database.find_one("rider_profiles", {"$or": [{"_id": rider_id_param}, {"riderId": rider_id_param}]})
+            or await database.find_one("admin_riders", {"$or": [{"_id": rider_id_param}, {"riderId": rider_id_param}]})
+        )
+    if not profile and email_param:
+        profile = (
+            await database.find_one("rider_profiles", {"email": email_param})
+            or await database.find_one("admin_riders", {"email": email_param})
+        )
+    if not profile and user:
+        r_id = getattr(user, "linked_id", None) or user.id
+        profile = (
+            await database.find_one("rider_profiles", {"$or": [{"_id": r_id}, {"userId": user.id}, {"phone": user.phone}]})
+            or await database.find_one("admin_riders", {"$or": [{"_id": r_id}, {"userId": user.id}, {"phone": user.phone}]})
+        )
+
+    if not profile:
+        raise HTTPException(
+            status_code=404,
+            detail="Rider profile not found. Please verify your registered details.",
+        )
+
+    target_email = profile.get("email") or email_param
+    if not target_email or "@" not in target_email:
+        raise HTTPException(
+            status_code=400,
+            detail="No valid email address registered for this application.",
+        )
+
+    agreement_token = profile.get("agreementToken")
+    if not agreement_token:
+        agreement_token = f"ag_{uuid.uuid4().hex}"
+        target_id = str(profile.get("riderId") or profile.get("_id"))
+        await database.update("rider_profiles", {"$or": [{"_id": target_id}, {"riderId": target_id}]}, {"agreementToken": agreement_token})
+        await database.update("admin_riders", {"$or": [{"_id": target_id}, {"riderId": target_id}]}, {"agreementToken": agreement_token})
+
+    signing_url = f"https://withquickpress.com/agreement/sign?token={agreement_token}"
+    from app.core.email_service import send_rider_agreement_signing_invitation_email
+    target_id = str(profile.get("riderId") or profile.get("_id"))
+    full_name = profile.get("fullName") or profile.get("name") or "Delivery Captain"
+    city = profile.get("city") or profile.get("preferredCity") or "Operating Territory"
+    kit_name = profile.get("kitName") or "Standard Captain Starter Kit"
+    payment_mode = "Part Payment" if profile.get("kitPaymentType") == "part" else "Full Payment"
+
+    await send_rider_agreement_signing_invitation_email(
+        rider_email=target_email,
+        rider_name=full_name,
+        rider_id=target_id,
+        city=city,
+        signing_url=signing_url,
+        kit_name=kit_name,
+        payment_mode=payment_mode,
+    )
+
+    return {
+        "ok": True,
+        "message": f"Agreement signing link successfully dispatched to {target_email}",
+        "email": target_email,
+    }
+
+
 async def _check_rider_uniqueness(
     *,
     current_rider_id: str,
@@ -705,7 +943,7 @@ async def _check_rider_uniqueness(
             if dup:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"यह मोबाइल नंबर (+91 {clean_phone}) पहले से QuickPress में किसी अन्य राइडर के साथ रजिस्टर्ड है।",
+                    detail=f"This mobile number (+91 {clean_phone}) is already registered with another QuickPress account.",
                 )
 
     # 2. Aadhaar Uniqueness Check
@@ -720,7 +958,7 @@ async def _check_rider_uniqueness(
         if dup:
             raise HTTPException(
                 status_code=400,
-                detail=f"यह आधार नंबर (XXXX-XXXX-{clean_aadhaar[-4:]}) पहले से QuickPress में रजिस्टर्ड है। एक आधार से केवल एक राइडर रजिस्टर हो सकता है।",
+                detail=f"This Aadhaar number (XXXX-XXXX-{clean_aadhaar[-4:]}) is already registered. Each applicant can only register once.",
             )
 
     # 3. PAN Uniqueness Check
@@ -735,7 +973,7 @@ async def _check_rider_uniqueness(
         if dup:
             raise HTTPException(
                 status_code=400,
-                detail=f"यह पैन कार्ड नंबर ({clean_pan}) पहले से QuickPress में रजिस्टर्ड है।",
+                detail=f"This PAN card number ({clean_pan}) is already registered with QuickPress.",
             )
 
     # 4. Vehicle / RC Number Uniqueness Check
@@ -756,7 +994,7 @@ async def _check_rider_uniqueness(
         if dup:
             raise HTTPException(
                 status_code=400,
-                detail=f"यह वाहन नंबर ({vehicle_number.strip().upper()}) पहले से QuickPress में किसी अन्य राइडर के साथ रजिस्टर्ड है।",
+                detail=f"This vehicle registration number ({vehicle_number.strip().upper()}) is already registered with another rider.",
             )
 
     # 5. Driving License Uniqueness Check
@@ -777,7 +1015,7 @@ async def _check_rider_uniqueness(
         if dup:
             raise HTTPException(
                 status_code=400,
-                detail=f"यह ड्राइविंग लाइसेंस ({license_number.strip().upper()}) पहले से QuickPress में रजिस्टर्ड है।",
+                detail=f"This driving license number ({license_number.strip().upper()}) is already registered with QuickPress.",
             )
 
     # 6. Bank Account Uniqueness Check
@@ -790,7 +1028,7 @@ async def _check_rider_uniqueness(
         if dup:
             raise HTTPException(
                 status_code=400,
-                detail=f"यह बैंक खाता नंबर (XX{clean_bank[-4:]}) पहले से किसी अन्य राइडर पेआउट खाते में रजिस्टर्ड है।",
+                detail=f"This bank account number (ending in XX{clean_bank[-4:]}) is already linked to another payout account.",
             )
 
 
@@ -836,7 +1074,33 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
         candidate_name = ""
     full_name = candidate_name
     email = payload.get("email") or user.email or ""
-    city = payload.get("city") or payload.get("preferredCity") or "Kasganj"
+    city = (payload.get("city") or payload.get("preferredCity") or "").strip()
+
+    # Strict Admin-Approved Cities Enforcement: Zero hardcoded cities allowed
+    all_admin_cities = await database.find_many("admin_cities") or []
+    valid_cities = [
+        str(c.get("city") or c.get("name") or "").strip().lower()
+        for c in all_admin_cities
+        if str(c.get("status", "Live")).strip().lower() in ["live", "active", "pilot", "approved"]
+        and str(c.get("city") or c.get("name") or "").strip()
+    ]
+    if valid_cities:
+        if not city:
+            raise HTTPException(
+                status_code=400,
+                detail="Operating city is required. Please select an approved operating city from the Admin Panel.",
+            )
+        if city.lower() not in valid_cities:
+            formatted_valid = ", ".join(c.title() for c in valid_cities)
+            raise HTTPException(
+                status_code=400,
+                detail=f"City '{city}' is not an active QuickPress operating territory in Admin Panel. Available cities: {formatted_valid}",
+            )
+    elif not city:
+        raise HTTPException(
+            status_code=400,
+            detail="Operating city is required. Please select an approved operating territory.",
+        )
 
     # Enforce Uniqueness: 1 account per Phone, Aadhaar, PAN, Vehicle Number, DL, Bank (excluding current rider ID)
     await _check_rider_uniqueness(
@@ -1200,8 +1464,34 @@ async def submit_registration(body: dict) -> dict:
     full_name = payload.get("fullName") or payload.get("name") or ""
     if full_name in ("Delivery Partner", "Delivery Captain"):
         full_name = ""
-    city = payload.get("city") or payload.get("preferredCity") or "Kasganj"
+    city = (payload.get("city") or payload.get("preferredCity") or "").strip()
     now_iso = datetime.now(timezone.utc).isoformat()
+
+    # Strict Admin-Approved Cities Enforcement: Zero hardcoded cities allowed
+    all_admin_cities = await database.find_many("admin_cities") or []
+    valid_cities = [
+        str(c.get("city") or c.get("name") or "").strip().lower()
+        for c in all_admin_cities
+        if str(c.get("status", "Live")).strip().lower() in ["live", "active", "pilot", "approved"]
+        and str(c.get("city") or c.get("name") or "").strip()
+    ]
+    if valid_cities:
+        if not city:
+            raise HTTPException(
+                status_code=400,
+                detail="Operating city is required. Please select an approved operating city from the Admin Panel.",
+            )
+        if city.lower() not in valid_cities:
+            formatted_valid = ", ".join(c.title() for c in valid_cities)
+            raise HTTPException(
+                status_code=400,
+                detail=f"City '{city}' is not an active QuickPress operating territory in Admin Panel. Available cities: {formatted_valid}",
+            )
+    elif not city:
+        raise HTTPException(
+            status_code=400,
+            detail="Operating city is required. Please select an approved operating territory.",
+        )
 
     # Enforce Uniqueness: 1 account per Phone, Aadhaar, PAN, Vehicle Number, DL, Bank (excluding current rider ID)
     await _check_rider_uniqueness(
@@ -1212,6 +1502,21 @@ async def submit_registration(body: dict) -> dict:
         vehicle_number=payload.get("vehicleNumber") or payload.get("rcNumber", ""),
         license_number=payload.get("license") or payload.get("dlNumber", ""),
         account_number=payload.get("accountNumber", ""),
+    )
+
+    agreement_token = (
+        existing_profile.get("agreementToken")
+        if (existing_profile and existing_profile.get("agreementToken"))
+        else f"ag_{uuid.uuid4().hex}"
+    )
+    existing_agreement_status = (
+        existing_profile.get("agreementStatus") if existing_profile else None
+    )
+    agreement_status = (
+        "APPROVED" if existing_agreement_status == "APPROVED" else "PENDING_SIGNATURE"
+    )
+    agreement_approved = (
+        bool(existing_profile.get("agreementApproved")) if existing_profile else False
     )
 
     profile_data = {
@@ -1288,9 +1593,12 @@ async def submit_registration(body: dict) -> dict:
         "preferredArea": payload.get("preferredArea", ""),
         "shift": payload.get("shift", "Morning"),
         "employmentType": payload.get("employmentType", "Full Time"),
-        # Legal Agreement & Consent
-        "agreementSignature": payload.get("signatureUrl") or payload.get("agreementSignature", ""),
-        "agreementSignedAt": payload.get("signedAt") or payload.get("agreementSignedAt", now_iso),
+        # Legal Agreement & Consent (Zomato-Style Email Execution Flow)
+        "agreementStatus": agreement_status,
+        "agreementApproved": agreement_approved,
+        "agreementToken": agreement_token,
+        "agreementSignature": payload.get("signatureUrl") or payload.get("agreementSignature", existing_profile.get("agreementSignature", "") if existing_profile else ""),
+        "agreementSignedAt": payload.get("signedAt") or payload.get("agreementSignedAt", existing_profile.get("agreementSignedAt") if existing_profile else None),
         "termsAccepted": bool(payload.get("termsAccepted", True)),
         # Delivery Kit Onboarding Linkage
         "kitOrderId": payload.get("kitOrderId"),
@@ -1479,11 +1787,25 @@ async def submit_registration(body: dict) -> dict:
         except Exception as ref_err:
             logger.warning("[RiderRegistration] Referral attribution error: %s", ref_err)
 
-    # Generate official Captain SLA Agreement PDF and dispatch via email in background
-    try:
-        asyncio.create_task(_dispatch_captain_agreement_pdf_and_email(rider_id, profile_data, payload))
-    except Exception as dispatch_err:
-        logger.warning("[RiderRegistration] Background dispatch error: %s", dispatch_err)
+    # Dispatch official Zomato-style contract review & sign invitation email to candidate's verified mailbox
+    signing_url = f"https://withquickpress.com/agreement/sign?token={agreement_token}"
+    raw_email = str(payload.get("email") or profile_data.get("email") or "").strip().lower()
+    if raw_email and "@" in raw_email:
+        try:
+            from app.core.email_service import send_rider_agreement_signing_invitation_email
+            asyncio.create_task(
+                send_rider_agreement_signing_invitation_email(
+                    rider_email=raw_email,
+                    rider_name=full_name or "Delivery Captain",
+                    rider_id=rider_id,
+                    city=city,
+                    signing_url=signing_url,
+                    kit_name=profile_data.get("kitName") or "Standard Captain Starter Kit",
+                    payment_mode="Part Payment (Kiston me)" if profile_data.get("kitPaymentType") == "part" else "Full Payment",
+                )
+            )
+        except Exception as email_err:
+            logger.warning("[RiderRegistration] Agreement invitation email error: %s", email_err)
 
     return {
         "ok": True,
@@ -1496,7 +1818,10 @@ async def submit_registration(body: dict) -> dict:
         "isVerified": False,
         "isOnboarded": True,
         "is_onboarded": True,
-        "message": "Registration submitted successfully. Waiting for admin approval.",
+        "agreementStatus": agreement_status,
+        "agreementToken": agreement_token,
+        "agreementApproved": agreement_approved,
+        "message": "Registration submitted successfully. Please review and sign the agreement sent to your email.",
     }
 
 
@@ -2461,6 +2786,11 @@ async def get_rider_verification_status(
         "isVerified": is_verified,
         "isApproved": is_verified,
         "isOnboarded": True,
+        "email": profile.get("email") or getattr(user, "email", "") or "",
+        "agreementStatus": profile.get("agreementStatus") or ("APPROVED" if profile.get("agreementSignature") else "PENDING_SIGNATURE"),
+        "agreementApproved": bool(profile.get("agreementApproved") or profile.get("agreementSignature")),
+        "agreementToken": profile.get("agreementToken") or "",
+        "agreementSignedAt": profile.get("agreementSignedAt") or "",
         "resubmitted": bool(profile.get("resubmitted", False)),
         "resubmittedAt": profile.get("resubmittedAt"),
         "resubmissionCount": int(profile.get("resubmissionCount") or 0),

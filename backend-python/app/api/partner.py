@@ -2205,6 +2205,33 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
 
     store_id_str = str(partner_id)
 
+    # --- Strict Admin-Approved Operating Cities Enforcement (Zero Hardcoded Cities) ---
+    all_admin_cities = await database.find_many("admin_cities") or []
+    valid_cities = [
+        str(c.get("city") or c.get("name") or "").strip().lower()
+        for c in all_admin_cities
+        if str(c.get("status", "Live")).strip().lower() in ["live", "active", "pilot", "approved"]
+        and str(c.get("city") or c.get("name") or "").strip()
+    ]
+    partner_city = str(payload.city or "").strip()
+    if valid_cities:
+        if not partner_city:
+            raise HTTPException(
+                status_code=400,
+                detail="Operating city is required. Please select an approved operating territory from Admin Panel.",
+            )
+        if partner_city.lower() not in valid_cities:
+            formatted_valid = ", ".join(c.title() for c in valid_cities)
+            raise HTTPException(
+                status_code=400,
+                detail=f"City '{partner_city}' is not an active QuickPress operating territory in Admin Panel. Available cities: {formatted_valid}",
+            )
+    elif not partner_city:
+        raise HTTPException(
+            status_code=400,
+            detail="Operating city is required. Please select an approved operating territory.",
+        )
+
     # --- Strict 1-to-1 Uniqueness Constraints (Excluding self / own store & unapproved drafts) ---
     clean_aadhaar = str(payload.aadhaar or "").replace(" ", "").replace("-", "").strip()
     clean_pan = str(payload.pan or "").replace(" ", "").strip().upper()
@@ -2322,8 +2349,8 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         "state": payload.state or "Uttar Pradesh",
         "area": payload.area,
         "pincode": payload.pincode,
-        "servicePincodes": payload.servicePincodes if payload.servicePincodes else ([payload.pincode] if payload.pincode else ["207123"]),
-        "sectors": payload.sectors if payload.sectors else ([payload.area] if payload.area else ["Central Sector"]),
+        "servicePincodes": payload.servicePincodes if payload.servicePincodes else ([payload.pincode] if payload.pincode else []),
+        "sectors": payload.sectors if payload.sectors else ([payload.area] if payload.area else []),
         "openingTime": payload.openingTime,
         "closingTime": payload.closingTime,
         "accountHolder": payload.accountHolder,

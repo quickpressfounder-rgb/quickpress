@@ -896,25 +896,19 @@ export function RiderRegistrationScreen() {
     };
   }, [navigate]);
 
-  // Load Admin Operating Cities
+  // Load Admin Operating Cities (Strictly Live from Admin Panel - Zero Hardcoded Cities)
   useEffect(() => {
     let active = true;
     setLoadingCities(true);
     apiGetJson<LiveCity[]>("/api/cities")
       .then((cities) => {
-        if (!active || !Array.isArray(cities) || cities.length === 0) return;
+        if (!active || !Array.isArray(cities)) return;
         setLiveCities(cities);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("Failed to load operating cities from Admin Panel:", err);
         if (active) {
-          setLiveCities([
-            {
-              name: "Kasganj",
-              city: "Kasganj",
-              state: "Uttar Pradesh",
-              pincodes: ["207123", "207124"],
-            },
-          ]);
+          setLiveCities([]);
         }
       })
       .finally(() => {
@@ -926,7 +920,7 @@ export function RiderRegistrationScreen() {
     };
   }, []);
 
-  // Auto-detect live city and pincode from GPS
+  // Auto-detect live city and pincode from GPS (Matches strictly against Admin Panel operating cities)
   const detectLiveLocation = () => {
     if (typeof window === "undefined" || !navigator.geolocation) return;
     setIsDetectingLocation(true);
@@ -937,24 +931,31 @@ export function RiderRegistrationScreen() {
           const lng = pos.coords.longitude;
           const res = await reverseGeocodeCoords(lat, lng);
           if (res) {
-            const detectedCity = res.city || res.area || "";
+            const detectedCity = (res.city || res.area || "").trim();
             const detectedPin = res.pincode || "";
             if (detectedCity) {
-              setSelectedCity(detectedCity);
-              clearFieldError("selectedCity");
-              setLiveCities((prev) => {
-                if (!prev.some((c) => (c.city || c.name)?.toLowerCase() === detectedCity.toLowerCase())) {
-                  return [{ city: detectedCity, name: detectedCity, state: res.state || "Uttar Pradesh", active: true }, ...prev];
-                }
-                return prev;
-              });
+              const matchedAdminCity = liveCities.find(
+                (c) =>
+                  (c.city || c.name)?.trim().toLowerCase() === detectedCity.toLowerCase() ||
+                  detectedCity.toLowerCase().includes((c.city || c.name || "").toLowerCase())
+              );
+
+              if (matchedAdminCity) {
+                const cityName = matchedAdminCity.city || matchedAdminCity.name;
+                setSelectedCity(cityName);
+                clearFieldError("selectedCity");
+                toast.success(`Active Territory Detected: ${cityName}${detectedPin ? ` (${detectedPin})` : ""}`);
+              } else {
+                toast.error(
+                  `QuickPress is not currently operational in ${detectedCity}. Please select an approved operating city.`
+                );
+              }
             }
             if (detectedPin) {
               setPincode(detectedPin);
               setCustomPincodeMode(true);
               clearFieldError("pincode");
             }
-            toast.success(`Live Location: ${detectedCity}${detectedPin ? ` (${detectedPin})` : ""}`);
           }
         } catch {
           /* ignore */
@@ -1485,17 +1486,8 @@ export function RiderRegistrationScreen() {
       triggerHaptic();
       toast.success("Bank details saved. Moving to Step 6 (Delivery Kit Gear)");
     } else if (currentStep === 6) {
-      // Step 6: Delivery Kit Payment Validation -> Move to Step 7
-      if (!kitPaid) {
-        toast.error("Please complete delivery kit payment before proceeding.");
-        triggerHaptic();
-        return;
-      }
-      setFieldErrors({});
-      setMissingSummary([]);
-      setCurrentStep(7);
-      triggerHaptic();
-      toast.success("Delivery Kit payment verified! Moving to Step 7 (Partner Agreement & E-Signature)");
+      // Step 6: Final Step - Submits Registration and Dispatches Agreement via Email
+      handleSubmitRegistrationAfterKit();
     }
   };
 
@@ -1507,74 +1499,8 @@ export function RiderRegistrationScreen() {
     }
   };
 
-  // Final Step 6 Submission: Agreement Verification & Digital Signature
-  const handleFinalSubmit = async (e?: FormEvent | React.MouseEvent) => {
-    if (e && typeof e.preventDefault === "function") {
-      e.preventDefault();
-    }
-
-    // 1. Automatically ensure signature is extracted from canvas if drawn
-    let finalSig = signatureDataUrl;
-    if ((!finalSig || finalSig.length < 50) && sigCanvasRef.current) {
-      try {
-        const exported = sigCanvasRef.current.toDataURL("image/png");
-        if (exported && exported.length > 50) {
-          finalSig = exported;
-          setSignatureDataUrl(exported);
-          setHasSignature(true);
-        }
-      } catch {}
-    }
-
-    // If hasSignature was marked true by user, but finalSig is still empty, create fallback signature
-    if (hasSignature && (!finalSig || finalSig.length < 50)) {
-      try {
-        const fallbackCanvas = document.createElement("canvas");
-        fallbackCanvas.width = 400;
-        fallbackCanvas.height = 150;
-        const ctx = fallbackCanvas.getContext("2d");
-        if (ctx) {
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(0, 0, fallbackCanvas.width, fallbackCanvas.height);
-          ctx.font = "italic 600 26px sans-serif";
-          ctx.fillStyle = "#0f172a";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(officialApplicantName || "Delivery Captain", 200, 75);
-          finalSig = fallbackCanvas.toDataURL("image/png");
-          setSignatureDataUrl(finalSig);
-        }
-      } catch {}
-    }
-
-    const newErrors: Record<string, string> = {};
-    const missing: string[] = [];
-
-    if (!hasScrolledToBottom) {
-      newErrors["hasScrolledToBottom"] = "Please scroll through and read the partner agreement in full.";
-      missing.push("Full Agreement Review");
-    }
-    if (!agreementConsent) {
-      newErrors["agreementConsent"] = "Please accept the agreement terms to proceed.";
-      missing.push("Agreement Acceptance Checkbox");
-    }
-    if (!hasSignature && (!finalSig || finalSig.length < 50)) {
-      newErrors["hasSignature"] = "Please sign inside the digital signature box.";
-      missing.push("Candidate Digital Signature");
-    }
-    if (!isAgreementOtpVerified) {
-      newErrors["agreementOtp"] = "Please enter and verify the 6-digit agreement authorization code.";
-      missing.push("Agreement Authorization Code");
-    }
-
-    if (missing.length > 0) {
-      setFieldErrors(newErrors);
-      setMissingSummary(missing);
-      toast.error(`Please satisfy all ${missing.length} agreement requirements.`);
-      triggerHaptic();
-      return;
-    }
-
+  // Step 6 Completion & Submission: Zomato-Style Post-Payment Agreement Flow
+  const handleSubmitRegistrationAfterKit = async (order?: any) => {
     setLoading(true);
 
     const effectiveBank =
@@ -1596,7 +1522,6 @@ export function RiderRegistrationScreen() {
         mobile: targetPhone.startsWith("+91") ? targetPhone : `+91${targetPhone.replace(/\D/g, "")}`,
         email: email.trim().toLowerCase(),
         isEmailVerified: true,
-        agreementOtpVerified: true,
         gender: gender || "male",
         dob,
         city: selectedCity.trim(),
@@ -1644,7 +1569,7 @@ export function RiderRegistrationScreen() {
 
         // Step 5 Bank
         bankName: effectiveBank,
-        accountHolder: officialApplicantName, // STRICTLY LOCKED!
+        accountHolder: officialApplicantName,
         accountNumber: accountNumber.trim(),
         ifsc: ifsc.trim().toUpperCase(),
         upiId: upiId.trim(),
@@ -1655,22 +1580,19 @@ export function RiderRegistrationScreen() {
         bankVerified: true,
 
         // Step 6 Delivery Kit Details
-        kitOrderId: kitOrderData?.id,
-        kitPaymentStatus: kitOrderData?.payment?.status || (kitPaid ? "PAID" : "UNPAID"),
-        kitPaymentType: selectedKitPlan,
-        kitAmountPaid: kitOrderData?.pricing?.amountPaid || (selectedKitPlan === "PART_PAYMENT" ? 300 : 999),
-        kitBalanceRemaining: kitOrderData?.pricing?.remainingBalance || (selectedKitPlan === "PART_PAYMENT" ? 900 : 0),
-        kitTshirtSize: kitOrderData?.tshirtSize || "L",
-        kitDeliveryPreference: kitOrderData?.deliveryPreference || "home_delivery",
-        kitFulfillmentStatus: kitOrderData?.fulfillment?.status || "PENDING_DISPATCH",
+        kitOrderId: order?.id || order?.orderId || kitOrderData?.id,
+        kitPaymentStatus: order?.payment?.status || "PAID",
+        kitPaymentType: order?.pricing?.paymentType || selectedKitPlan,
+        kitAmountPaid: order?.pricing?.amountPaid || (selectedKitPlan === "PART_PAYMENT" ? 300 : 999),
+        kitBalanceRemaining: order?.pricing?.remainingBalance || (selectedKitPlan === "PART_PAYMENT" ? 900 : 0),
+        kitTshirtSize: order?.tshirtSize || kitOrderData?.tshirtSize || "L",
+        kitDeliveryPreference: order?.deliveryPreference || kitOrderData?.deliveryPreference || "home_delivery",
+        kitFulfillmentStatus: "PENDING_DISPATCH",
 
-        // Step 7 Legal Agreement & Signature
+        // Legal Agreement: Set to PENDING_SIGNATURE for Zomato-style email execution
+        agreementStatus: "PENDING_SIGNATURE",
+        agreementApproved: false,
         termsAccepted: true,
-        agreementConsent: true,
-        agreementSignature: finalSig || signatureDataUrl,
-        signatureUrl: finalSig || signatureDataUrl,
-        agreementSignedAt: new Date().toISOString(),
-        agreementVersion: "QP-CAPTAIN-SLA-2026.9",
 
         // Official KYC Snapshot
         verifiedGovernmentName: officialApplicantName,
@@ -1693,12 +1615,13 @@ export function RiderRegistrationScreen() {
 
       try {
         localStorage.setItem("qp_rider_government_name", officialApplicantName);
+        if (result?.agreementToken) {
+          localStorage.setItem("qp_agreement_token", result.agreementToken);
+        }
       } catch {}
 
       toast.success(
-        isResubmissionFlow
-          ? "Updated application & documents re-submitted for Admin Approval! ✓"
-          : "Application & Signed Agreement submitted for Admin Approval! A copy has been emailed to you. ✓"
+        "Delivery Kit Confirmed! Your Partner Agreement has been dispatched to your email for signature."
       );
       navigate({ to: "/verification", replace: true });
     } catch (err: any) {
@@ -1711,7 +1634,7 @@ export function RiderRegistrationScreen() {
   const matchedCityObj = liveCities.find((c) => (c.city || c.name) === selectedCity);
   const cityPincodes = matchedCityObj?.pincodes || [];
 
-  // Step Bar Titles (7 Steps)
+  // Step Bar Titles (6 Steps - Agreement is signed post-payment via email / verification status)
   const stepTitles = [
     { num: 1, title: "Personal", short: "Profile", icon: User },
     { num: 2, title: "Aadhaar & Photo", short: "Identity", icon: ShieldCheck },
@@ -1719,7 +1642,6 @@ export function RiderRegistrationScreen() {
     { num: 4, title: "Driving Licence", short: "Licence", icon: IdCard },
     { num: 5, title: "Bank Payout", short: "Bank", icon: CreditCard },
     { num: 6, title: "Delivery Kit", short: "Kit Gear", icon: Package },
-    { num: 7, title: "Partner Agreement", short: "Agreement", icon: FileCheck2 },
   ];
 
   return (
@@ -1748,25 +1670,25 @@ export function RiderRegistrationScreen() {
           </div>
 
           <span className="text-[11px] font-bold px-2.5 py-1 bg-neutral-100 border border-neutral-200 text-neutral-700 rounded-md">
-            Step {currentStep} of 7
+            Step {currentStep} of 6
           </span>
         </header>
 
-        {/* Sleek Step Progress Line (Replaced 7-circle icons with clean progress) */}
+        {/* Sleek Step Progress Line */}
         <div className="px-4 pb-2.5">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs font-bold text-neutral-800">
               {stepTitles[currentStep - 1]?.title}
             </span>
             <span className="text-[11px] font-bold text-[#00C853]">
-              {Math.round((currentStep / 7) * 100)}% Completed
+              {Math.round((currentStep / 6) * 100)}% Completed
             </span>
           </div>
 
           <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-[#00C853] transition-all duration-300"
-              style={{ width: `${(currentStep / 7) * 100}%` }}
+              style={{ width: `${(currentStep / 6) * 100}%` }}
             />
           </div>
         </div>
@@ -3201,443 +3123,18 @@ export function RiderRegistrationScreen() {
               onBack={handlePrevStep}
               isAlreadyPaid={kitPaid}
               existingKitOrder={kitOrderData}
-              onPaymentSuccess={(order) => {
+              onPaymentSuccess={async (order) => {
                 setKitPaid(true);
                 setKitOrderData(order);
                 if (order?.pricing?.paymentType) {
                   setSelectedKitPlan(order.pricing.paymentType);
                 }
-                setCurrentStep(7);
-                window.scrollTo({ top: 0, behavior: "smooth" });
+                await handleSubmitRegistrationAfterKit(order);
               }}
             />
           </div>
         )}
 
-        {/* ========================================================
-            STEP 7: PARTNER AGREEMENT & DIGITAL SIGNATURE
-        ======================================================== */}
-        {currentStep === 7 && (
-          <form onSubmit={handleFinalSubmit} noValidate className="space-y-4">
-            <MissingFieldsAlert missingList={missingSummary} />
-
-            <div className="p-4 bg-white border border-neutral-200 rounded-2xl space-y-3.5 shadow-xs">
-              <div className="pb-2 border-b border-neutral-100 flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-1.5">
-                    <Scale className="w-4 h-4 text-[#00C853]" />
-                    <span>Step 7: Delivery Partner Agreement & E-Sign</span>
-                  </h3>
-                </div>
-                <a
-                  href="/legal/rider-agreement"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 flex items-center gap-1 cursor-pointer transition-colors"
-                  title="View Official Agreement & SLA"
-                >
-                  <span>QP-SLA-2026.9</span>
-                  <ExternalLink className="size-2.5" />
-                </a>
-              </div>
-
-              {/* Contracting Parties Card */}
-              <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-xl space-y-1.5 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-500 font-medium text-[11px]">Platform:</span>
-                  <span className="font-bold text-neutral-900">QuickPress</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-500 font-medium text-[11px]">Authorized Captain:</span>
-                  <span className="font-bold text-neutral-900">{officialApplicantName || "Delivery Captain"}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-500 font-medium text-[11px]">Registered Mobile:</span>
-                  <span className="font-bold text-neutral-900 font-mono">{targetPhone}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-500 font-medium text-[11px]">Operating Territory:</span>
-                  <span className="font-bold text-neutral-900">{selectedCity} ({pincode})</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-500 font-medium text-[11px]">Effective Agreement Date:</span>
-                  <span className="font-bold text-emerald-800">
-                    {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
-                  </span>
-                </div>
-              </div>
-
-              {/* Scroll / Swipe Up Instruction Banner */}
-              {!hasScrolledToBottom ? (
-                <div className="flex items-center justify-between p-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-neutral-800 text-xs shadow-2xs">
-                  <span className="flex items-center gap-1.5 font-bold">
-                    <ArrowDown className="w-4 h-4 text-emerald-600 animate-bounce" />
-                    <span>Please scroll to the bottom of the agreement</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={jumpToEndOfAgreement}
-                    className="text-[11px] font-bold text-emerald-800 underline bg-emerald-100 hover:bg-emerald-200 px-2.5 py-1 rounded-md active:scale-95 transition-all"
-                  >
-                    Scroll to End ↓
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-900 text-xs font-bold shadow-2xs">
-                  <CheckCircle2 className="w-4 h-4 text-[#00C853] shrink-0" />
-                  <span>Agreement read in full. Checkbox and signature are now unlocked. ✓</span>
-                </div>
-              )}
-
-              {/* Legal Agreement Document Container (Scrollable) */}
-              <div
-                ref={agreementScrollRef}
-                onScroll={handleAgreementScroll}
-                className="max-h-72 sm:max-h-80 overflow-y-auto p-3.5 bg-white border-2 border-neutral-200 rounded-xl space-y-3 text-[11px] leading-relaxed text-neutral-700 font-normal scroll-smooth shadow-inner"
-              >
-                <div className="text-center pb-2 border-b border-neutral-200">
-                  <h4 className="text-xs font-black text-neutral-900 uppercase tracking-wide">
-                    QUICKPRESS DELIVERY PARTNER SERVICE LEVEL AGREEMENT (SLA)
-                  </h4>
-                  <p className="text-[10px] text-neutral-500 font-medium">
-                    (Indian Contract Act, 1872 & Information Technology Act, 2000 Electronic Contract)
-                  </p>
-                </div>
-
-                {liveRiderAgreement?.trim() ? (
-                  <div className="whitespace-pre-wrap font-sans text-[11px] leading-relaxed text-neutral-800 space-y-2">
-                    {liveRiderAgreement}
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-1">
-                      <p className="font-bold text-neutral-900">1. Independent Contractor Status:</p>
-                      <p>
-                        The Delivery Partner (&quot;Captain&quot;) operates on the QuickPress platform as an independent contractor. This agreement does not create an employer-employee, partnership, or joint venture relationship. The Captain remains free to choose their operating hours and zones.
-                      </p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <p className="font-bold text-neutral-900">2. Service Quality &amp; Timeliness:</p>
-                      <p>
-                        The Captain takes full responsibility for picking up orders from partner laundromats and safely delivering them to customers within the scheduled service windows in sealed, tamper-proof packaging.
-                      </p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <p className="font-bold text-neutral-900">3. Traffic Safety &amp; Legal Compliance:</p>
-                      <p>
-                        Wearing a safety helmet while operating a two-wheeler is strictly mandatory. The Captain confirms holding a valid driving license (DL), active vehicle registration (RC), and active third-party vehicle insurance.
-                      </p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <p className="font-bold text-neutral-900">4. Payouts &amp; Zero Cash Fraud Policy:</p>
-                      <p>
-                        Earnings from all completed deliveries are settled directly into the verified bank account. Any cash collected via Cash-on-Delivery (COD) must be remitted or updated in the platform ledger in real-time. Fraudulent activity will result in immediate termination and legal action.
-                      </p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <p className="font-bold text-neutral-900">5. Customer Privacy &amp; Professional Conduct:</p>
-                      <p>
-                        Customer contact details and addresses are strictly confidential and solely for delivery fulfillment. Retaining or misusing customer information for personal contact is strictly prohibited.
-                      </p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <p className="font-bold text-neutral-900">6. Digital Signature Legal Validity:</p>
-                      <p>
-                        Pursuant to Section 10A of the Information Technology Act, 2000, your digital signature executed on this electronic document is legally binding and carries full parity with a handwritten physical signature.
-                      </p>
-                    </div>
-                  </>
-                )}
-
-                {selectedKitPlan === "PART_PAYMENT" && (
-                  <div className="space-y-1 p-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800">
-                    <p className="font-bold text-neutral-900 flex items-center gap-1.5">
-                      <Package className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Clause 14: Delivery Kit Installment & Balance Settlement</span>
-                    </p>
-                    <p className="text-[10px] leading-relaxed text-neutral-600">
-                      The Captain has opted for the installment payment option (₹300 advance). The Captain authorizes QuickPress to automatically deduct the remaining balance of ₹900 from weekly payouts over the scheduled weeks.
-                    </p>
-                  </div>
-                )}
-
-                <div className="pt-2 text-center border-t border-dashed border-neutral-300 text-neutral-500 font-bold text-[10px]">
-                  [ *** END OF CONTRACT *** ]
-                </div>
-              </div>
-
-              {/* Agreement Acceptance Checkbox */}
-              <div
-                onClick={() => {
-                  if (!hasScrolledToBottom) {
-                    toast.warning("Please scroll down to the bottom of the agreement first.");
-                    jumpToEndOfAgreement();
-                  }
-                }}
-                className={`flex items-start gap-2.5 p-3 rounded-xl border-2 transition-all ${
-                  !hasScrolledToBottom
-                    ? "bg-neutral-100 border-neutral-200 opacity-60 cursor-not-allowed"
-                    : fieldErrors["agreementConsent"]
-                    ? "border-red-400 bg-red-50/20 ring-2 ring-red-400/20 cursor-pointer"
-                    : agreementConsent
-                    ? "border-emerald-500 bg-emerald-50/20 cursor-pointer"
-                    : "border-neutral-200 bg-white hover:border-[#00C853] cursor-pointer"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  id="agreement-checkbox"
-                  disabled={!hasScrolledToBottom}
-                  checked={agreementConsent}
-                  onChange={(e) => {
-                    if (hasScrolledToBottom) {
-                      setAgreementConsent(e.target.checked);
-                      clearFieldError("agreementConsent");
-                    }
-                  }}
-                  className="mt-0.5 w-4 h-4 rounded text-[#00C853] focus:ring-[#00C853] disabled:opacity-50"
-                />
-                <div className="flex-1">
-                  <label
-                    htmlFor="agreement-checkbox"
-                    className={`text-[11px] font-bold block ${
-                      !hasScrolledToBottom ? "text-neutral-500 cursor-not-allowed" : "text-neutral-900 cursor-pointer"
-                    }`}
-                  >
-                    I have read, understood, and accept all the terms of the QuickPress Delivery Partner Agreement. *
-                  </label>
-                  <p className="text-[10px] text-neutral-500 mt-0.5">
-                    I declare that all information is truthful, and I accept the terms of the{" "}
-                    <a
-                      href="https://withquickpress.com/#terms"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-bold text-emerald-700 underline hover:text-emerald-800"
-                    >
-                      Service Agreement
-                    </a>{" "}
-                    and{" "}
-                    <a
-                      href="https://withquickpress.com/#privacy"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-bold text-emerald-700 underline hover:text-emerald-800"
-                    >
-                      Privacy Policy
-                    </a>.
-                  </p>
-                  {!hasScrolledToBottom && (
-                    <p className="text-[10px] font-bold text-neutral-500 mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3 text-neutral-400 shrink-0" />
-                      <span>This checkbox will unlock after scrolling through the agreement.</span>
-                    </p>
-                  )}
-                  {fieldErrors["agreementConsent"] && (
-                    <p className="mt-1 text-[11px] font-bold text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                      <span>{fieldErrors["agreementConsent"]}</span>
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Digital Signature Pad */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide flex items-center gap-1">
-                    <PenTool className="w-3.5 h-3.5 text-[#00C853]" />
-                    <span>Candidate Digital Signature</span>
-                    <span className="text-red-500 font-black">*</span>
-                  </label>
-                  {hasSignature && (
-                    <button
-                      type="button"
-                      onClick={clearSig}
-                      className="text-[11px] font-bold text-red-600 hover:text-red-700 flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-red-50 transition-colors"
-                    >
-                      <Eraser className="w-3 h-3" />
-                      <span>Clear Signature</span>
-                    </button>
-                  )}
-                </div>
-
-                <div
-                  className={`relative w-full h-36 bg-white border-2 rounded-xl overflow-hidden transition-all ${
-                    fieldErrors["hasSignature"]
-                      ? "border-red-400 bg-red-50/15 ring-2 ring-red-400/20"
-                      : hasSignature
-                      ? "border-emerald-500 shadow-xs"
-                      : "border-neutral-300 hover:border-[#00C853]"
-                  }`}
-                >
-                  <canvas
-                    ref={sigCanvasRef}
-                    onMouseDown={startSig}
-                    onMouseMove={moveSig}
-                    onMouseUp={endSig}
-                    onMouseLeave={endSig}
-                    onTouchStart={startSig}
-                    onTouchMove={moveSig}
-                    onTouchEnd={endSig}
-                    className="w-full h-full touch-none cursor-crosshair bg-white"
-                  />
-
-                  {/* Guide placeholder watermark when empty */}
-                  {!hasSignature && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-neutral-400 select-none">
-                      <PenTool className="w-5 h-5 mb-1 text-neutral-300 stroke-[1.5]" />
-                      <p className="text-xs font-bold">Draw your signature inside this box</p>
-                      <p className="text-[10px]">Use finger or stylus</p>
-                    </div>
-                  )}
-
-                  {/* Signature Base Guide Line */}
-                  <div className="absolute bottom-5 left-6 right-6 border-b border-dashed border-neutral-300 pointer-events-none" />
-                </div>
-
-                {fieldErrors["hasSignature"] && (
-                  <p className="mt-1 text-[11px] font-bold text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                    <span>{fieldErrors["hasSignature"]}</span>
-                  </p>
-                )}
-
-                {hasSignature && (
-                  <div className="mt-1.5 p-2 bg-neutral-50 rounded-lg text-[10px] text-neutral-600 flex items-center justify-between border border-neutral-200">
-                    <span className="font-bold flex items-center gap-1 text-emerald-800">
-                      <CheckCircle2 className="w-3 h-3 text-[#00C853]" />
-                      <span>Signature Captured: {officialApplicantName}</span>
-                    </span>
-                    <span className="font-mono text-neutral-500">{new Date().toLocaleDateString("en-IN")}</span>
-                  </div>
-                )}
-
-                {/* E-Signature Legal Authorization via Email OTP */}
-                <div className="mt-4 p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900">
-                      <ShieldCheck className="w-4 h-4 text-[#00C853]" />
-                      <span>Legal E-Signature Authorization</span>
-                    </div>
-                    <span className="text-[10px] text-neutral-500 font-medium">IT Act, 2000 (Sec 10A)</span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs p-2 bg-white rounded-lg border border-neutral-200">
-                    <span className="text-neutral-500 text-[11px]">Signatory Email:</span>
-                    <span className="font-bold text-neutral-900 truncate max-w-[200px]">{email || targetPhone}</span>
-                  </div>
-
-                  {!isAgreementOtpVerified ? (
-                    <div className="space-y-2">
-                      {!showAgreementOtpBox ? (
-                        <button
-                          type="button"
-                          onClick={handleSendAgreementOtp}
-                          disabled={isSendingAgreementOtp || !hasSignature || !agreementConsent}
-                          className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-400 text-white font-bold text-xs transition-all active:scale-95 shadow-xs cursor-pointer"
-                        >
-                          {isSendingAgreementOtp ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Send className="w-3.5 h-3.5" />
-                          )}
-                          <span>Send Agreement Authorization Code to Email</span>
-                        </button>
-                      ) : (
-                        <div className="space-y-2 animate-in fade-in">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-neutral-700">Enter 6-Digit Email Code:</span>
-                            <button
-                              type="button"
-                              onClick={handleSendAgreementOtp}
-                              disabled={isSendingAgreementOtp || agreementOtpCountdown > 0}
-                              className="text-[11px] font-bold text-emerald-700 hover:underline disabled:text-neutral-400 cursor-pointer"
-                            >
-                              {agreementOtpCountdown > 0 ? `Resend in ${agreementOtpCountdown}s` : "Resend Code"}
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="tel"
-                              maxLength={6}
-                              placeholder="Enter 6-digit OTP"
-                              value={agreementOtp}
-                              onChange={(e) => setAgreementOtp(e.target.value.replace(/\D/g, ""))}
-                              className="flex-1 h-10 px-3 bg-white border border-neutral-300 rounded-xl text-center text-sm font-black tracking-widest text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#00C853]/20"
-                            />
-                            <button
-                              type="button"
-                              onClick={handleVerifyAgreementOtp}
-                              disabled={isVerifyingAgreementOtp || agreementOtp.length !== 6}
-                              className="h-10 px-4 rounded-xl bg-[#00C853] hover:bg-[#00B248] disabled:bg-neutral-200 disabled:text-neutral-400 text-white font-black text-xs shrink-0 transition-all active:scale-95 flex items-center gap-1 shadow-sm cursor-pointer"
-                            >
-                              {isVerifyingAgreementOtp ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Check className="w-3.5 h-3.5 stroke-[3]" />
-                              )}
-                              <span>Verify Code</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {fieldErrors["agreementOtp"] && (
-                        <p className="mt-1 text-[11px] font-bold text-red-600 flex items-center gap-1">
-                          <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                          <span>{fieldErrors["agreementOtp"]}</span>
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="p-2.5 bg-emerald-100/70 border border-emerald-300 rounded-xl text-emerald-950 text-xs font-bold flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>Agreement legally authorized via Email OTP ✓</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Final Submission Buttons */}
-            <div
-              className="pt-2 space-y-2"
-              style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 16px, 24px)" }}
-            >
-              <button
-                type="button"
-                onClick={handleFinalSubmit}
-                disabled={loading || !hasScrolledToBottom || !agreementConsent || !hasSignature || !isAgreementOtpVerified}
-                className="w-full h-12 flex items-center justify-center gap-2 bg-[#00C853] hover:bg-[#00B248] text-white font-bold text-xs rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    <span>Submitting Application & Agreement to Admin...</span>
-                  </div>
-                ) : (
-                  <>
-                    <FileCheck2 className="w-4 h-4" />
-                    <span>Accept Agreement & Submit to Admin</span>
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={handlePrevStep}
-                className="w-full py-2.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 transition-colors"
-              >
-                ← Back to Delivery Kit Gear
-              </button>
-            </div>
-          </form>
-        )}
       </div>
 
       {/* 4. Bottom Navigation Action Bar (Steps 1 to 5 only - Step 6 uses Delivery Kit payment button) */}
