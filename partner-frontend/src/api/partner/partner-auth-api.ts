@@ -20,34 +20,38 @@ import { getCachedPartnerProfile, getCleanPartnerName } from "./partner-profile-
 const ROLE: AccountRole = "partner";
 
 function toPartnerSession(session: AuthSession): PartnerSession {
+  const acc = session.account;
   const isVerified = Boolean(
-    session.account?.isVerified === true ||
+    acc?.isVerified === true ||
     (session as any).isVerified === true ||
+    acc?.kycStatus === "verified" ||
     (session as any).kycStatus === "verified" ||
-    (session.account as any)?.kycStatus === "verified" ||
-    (session.account as any)?.status === "approved" ||
+    acc?.status === "approved" ||
     (session as any).status === "approved" ||
-    (session.account as any)?.status === "active" ||
-    session.status === "active"
+    (acc?.status === "active" && acc?.isVerified === true)
   );
+
+  // A genuine linked partner ID exists only if it differs from the user's auth ID
+  const hasRealPartnerId = Boolean(acc?.linkedId && acc?.linkedId !== acc?.id);
+
   const isOnboarded = Boolean(
-    session.account?.isOnboarded === true ||
+    acc?.isOnboarded === true ||
     (session as any).isOnboarded === true ||
     isVerified ||
-    session.account?.linkedId ||
-    (session as any).partnerId
+    (hasRealPartnerId && acc?.status !== "not_registered" && (session as any).status !== "not_registered")
   );
+
   const status = isVerified
     ? "active"
-    : (isOnboarded ? ((session.account as any)?.status || (session as any).status || "pending_verification") : "not_registered");
+    : (isOnboarded ? (acc?.status || (session as any).status || "pending_verification") : "not_registered");
 
   const cached = getCachedPartnerProfile();
-  const rawAccountName = session.account?.name ?? "";
+  const rawAccountName = acc?.name ?? "";
   const resolvedName = getCleanPartnerName([
     cached?.businessName,
     cached?.ownerName,
     cached?.name,
-    (session.account as any)?.ownerName,
+    (acc as any)?.ownerName,
     (session as any)?.ownerName,
     (session as any)?.businessName,
     rawAccountName,
@@ -55,21 +59,21 @@ function toPartnerSession(session: AuthSession): PartnerSession {
 
   const resolvedOwner = getCleanPartnerName([
     cached?.ownerName,
-    (session.account as any)?.ownerName,
+    (acc as any)?.ownerName,
     (session as any)?.ownerName,
   ], "");
 
   return {
-    partnerId: session.account?.linkedId ?? session.account?.id,
-    phone: session.account?.phone ?? "",
-    email: session.account?.email,
+    partnerId: hasRealPartnerId ? acc!.linkedId! : "",
+    phone: acc?.phone ?? "",
+    email: acc?.email,
     businessName: resolvedName,
     ownerName: resolvedOwner,
-    city: (session.account as any)?.city ?? cached?.city ?? "",
+    city: (acc as any)?.city ?? cached?.city ?? "",
     isVerified,
     isOnboarded,
     status,
-    kycStatus: (session.account as any)?.kycStatus || (isVerified ? "verified" : (isOnboarded ? "pending" : "not_registered")),
+    kycStatus: (acc as any)?.kycStatus || (isVerified ? "verified" : (isOnboarded ? "pending" : "not_registered")),
   };
 }
 

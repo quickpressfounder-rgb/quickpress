@@ -20,36 +20,29 @@ export const Route = createFileRoute("/")({
 });
 
 function computeTargetRoute(sess: any): string {
-  if (!sess || (!sess.token && !sess.phone && !sess.partnerId && !sess.account?.id)) {
+  if (!sess || !sess.token) {
     return partnerRoutes.auth;
   }
   const isSuspended =
     sess.status === "suspended" || sess.isSuspended === true;
   if (isSuspended) return partnerRoutes.suspended;
 
-  const hasLinkedStore = Boolean(sess.account?.linkedId || sess.partnerId);
-  const explicitPending =
-    sess.status === "pending_verification" ||
-    sess.account?.status === "pending_verification" ||
-    (sess as any).kycStatus === "pending";
+  const acc = sess.account || sess;
+  const hasRealLinkedStore = Boolean(acc?.linkedId && acc?.linkedId !== acc?.id);
 
   const isVerified = Boolean(
-    (sess.isVerified ?? sess.account?.isVerified) ||
-      sess.status === "active" ||
-      sess.status === "approved" ||
-      sess.account?.status === "active" ||
-      sess.account?.status === "approved" ||
-      sess.kycStatus === "verified" ||
-      sess.account?.kycStatus === "verified" ||
-      (hasLinkedStore && !explicitPending)
+    (sess.isVerified === true || acc?.isVerified === true) &&
+    (sess.status === "approved" || acc?.status === "approved" || sess.status === "active" || acc?.status === "active" || sess.kycStatus === "verified" || acc?.kycStatus === "verified")
   );
 
   const isOnboarded = Boolean(
-    (sess.isOnboarded ?? sess.account?.isOnboarded) ||
+    sess.isOnboarded === true ||
+    acc?.isOnboarded === true ||
     isVerified ||
-    hasLinkedStore
+    (hasRealLinkedStore && sess.status !== "not_registered")
   );
-  if (!isOnboarded) return partnerRoutes.auth;
+
+  if (!isOnboarded) return partnerRoutes.registration;
   if (!isVerified) return partnerRoutes.registrationSubmitted;
 
   return partnerRoutes.orders;

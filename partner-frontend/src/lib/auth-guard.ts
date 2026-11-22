@@ -19,32 +19,25 @@ export function requirePartnerAuth() {
     throw redirect({ to: partnerRoutes.suspended });
   }
 
-  // A partner who possesses a linked store ID or verified status
-  const hasLinkedStore = Boolean(sess.account?.linkedId || (sess as any).partnerId);
-  const explicitPending =
-    sess.status === "pending_verification" ||
-    sess.account?.status === "pending_verification" ||
-    (sess as any).kycStatus === "pending";
+  const acc = sess.account || sess;
+  const hasRealLinkedStore = Boolean(acc?.linkedId && acc?.linkedId !== acc?.id);
 
-  // A partner is verified if marked verified, status is approved/active, kycStatus is verified,
-  // or has a linked store and is not explicitly in pending_verification
   const isVerified = Boolean(
     sess.isVerified === true ||
-    sess.account?.isVerified === true ||
+    acc?.isVerified === true ||
     sess.status === "approved" ||
-    sess.account?.status === "approved" ||
-    sess.status === "active" ||
-    sess.account?.status === "active" ||
+    acc?.status === "approved" ||
+    (sess.status === "active" && (sess.isVerified === true || acc?.isVerified === true)) ||
+    (acc?.status === "active" && (sess.isVerified === true || acc?.isVerified === true)) ||
     (sess as any).kycStatus === "verified" ||
-    (sess.account as any)?.kycStatus === "verified" ||
-    (hasLinkedStore && !explicitPending)
+    (acc as any)?.kycStatus === "verified"
   );
 
   const isOnboarded = Boolean(
     sess.isOnboarded === true ||
-    sess.account?.isOnboarded === true ||
+    acc?.isOnboarded === true ||
     isVerified ||
-    hasLinkedStore
+    (hasRealLinkedStore && sess.status !== "not_registered")
   );
 
   if (!isOnboarded) {
@@ -79,7 +72,20 @@ export function requirePendingVerification() {
     throw redirect({ to: partnerRoutes.suspended });
   }
 
-  const hasLinkedStore = Boolean(sess.account?.linkedId || (sess as any).partnerId);
+  const acc = sess.account || sess;
+  const hasRealLinkedStore = Boolean(acc?.linkedId && acc?.linkedId !== acc?.id);
+  const isOnboarded = Boolean(
+    sess.isOnboarded === true ||
+    acc?.isOnboarded === true ||
+    (hasRealLinkedStore && sess.status !== "not_registered")
+  );
+
+  // If partner hasn't completed registration, route to registration
+  if (!isOnboarded) {
+    throw redirect({ to: partnerRoutes.registration });
+  }
+
+  const hasLinkedStore = hasRealLinkedStore || Boolean((sess as any).partnerId && (sess as any).partnerId !== acc?.id);
   const explicitPending =
     sess.status === "pending_verification" ||
     sess.account?.status === "pending_verification" ||
@@ -90,8 +96,8 @@ export function requirePendingVerification() {
     sess.account?.isVerified === true ||
     sess.status === "approved" ||
     sess.account?.status === "approved" ||
-    sess.status === "active" ||
-    sess.account?.status === "active" ||
+    (sess.status === "active" && (sess.isVerified === true || sess.account?.isVerified === true)) ||
+    (sess.account?.status === "active" && (sess.isVerified === true || sess.account?.isVerified === true)) ||
     (sess as any).kycStatus === "verified" ||
     (sess.account as any)?.kycStatus === "verified" ||
     (hasLinkedStore && !explicitPending)

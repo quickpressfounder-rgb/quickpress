@@ -19,9 +19,10 @@ export function isRiderOnboarded(sess: any): boolean {
     return true;
   }
 
-  // Linked to an established rider document ID
+  // Linked to an established rider document ID (must not be the auth user ID)
   const linkedId = acc.linkedId || sess.riderId;
-  if (linkedId && typeof linkedId === "string" && linkedId.trim().length > 3) {
+  const authUserId = acc.id || sess.id;
+  if (linkedId && typeof linkedId === "string" && linkedId.trim().length > 3 && linkedId !== authUserId) {
     return true;
   }
 

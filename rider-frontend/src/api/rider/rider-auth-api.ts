@@ -18,13 +18,26 @@ import { startSessionAutoRefresh } from "../core/session-refresh";
 const ROLE: AccountRole = "rider";
 
 function toRiderSession(session: AuthSession): RiderSession {
+  const acc = session.account;
+  const hasRealRiderId = Boolean(acc?.linkedId && acc?.linkedId !== acc?.id);
+  const isVerified = Boolean(
+    acc?.isVerified === true &&
+    (acc?.status === "active" || (session as any).status === "active" || acc?.status === "approved" || (session as any).status === "approved")
+  );
+  const isOnboarded = Boolean(
+    acc?.isOnboarded === true ||
+    (session as any).isOnboarded === true ||
+    isVerified ||
+    (hasRealRiderId && acc?.status !== "not_registered")
+  );
+
   return {
-    riderId: session.account.linkedId ?? session.account.id,
-    phone: session.account.phone,
-    fullName: session.account.name,
-    isVerified: session.account.isVerified,
-    isOnboarded: session.account.isOnboarded,
-    isNewRider: !session.account.isOnboarded,
+    riderId: hasRealRiderId ? acc.linkedId! : "",
+    phone: acc?.phone || "",
+    fullName: acc?.name || "",
+    isVerified,
+    isOnboarded,
+    isNewRider: !isOnboarded,
     token: session.token,
     refreshToken: session.refreshToken,
   };

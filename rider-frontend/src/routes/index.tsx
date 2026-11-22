@@ -45,7 +45,7 @@ function RiderSplashScreen() {
       } else if (isRiderOnboarded(sess)) {
         targetRoute = "/verification";
       } else {
-        targetRoute = "/auth";
+        targetRoute = "/registration";
       }
     } else {
       const hasSelectedLanguage =

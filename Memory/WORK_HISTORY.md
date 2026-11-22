@@ -1,5 +1,38 @@
 # QuickPress — Engineering Work History
 
+## Session: November 22, 2026 (Part 62)
+
+### Un-onboarded Partner & Rider Registration Lockdown, Elimination of Auth UUID ID-Conflation Leak, and Partner Email OTP Input Box ReferenceError Resolution
+
+1. **Context & User Directives:**
+   - User directive: *"partner bina registtionn kee login ho raha hai isko sahi karo or rider me bhi / partner me email otp verfiction otp dalne bala box jhi nahi aa raha hai"*
+   - **Root Cause Analysis:**
+     - **Issue 1 (Un-onboarded Partner & Rider Bypassing Registration):**
+       - In `toPartnerSession` (`partner-auth-api.ts`), `partnerId` fell back to `session.account.id` (the user auth UUID).
+       - In `toRiderSession` (`rider-auth-api.ts`), `riderId` fell back to `session.account.id`.
+       - In downstream route guards (`auth-guard.ts` in both Partner and Rider), `hasLinkedStore` and `isRiderOnboarded` checked whether `linkedId || partnerId / riderId` existed. Because the fallback assigned the user's UUID, `hasLinkedStore` and `isRiderOnboarded` evaluated to `true` on initial login for un-onboarded accounts, bypassing the registration requirement and routing brand new users straight to `/orders` or `/dashboard`.
+       - Additionally, in `requirePendingVerification`, `isVerified` considered `sess.account?.status === "active"` (which generic auth records often carry) as verified, erroneously treating pending or un-onboarded partners as active.
+     - **Issue 2 (Partner Email OTP Verification Box Missing):**
+       - In `BusinessRegistrationScreen.tsx` line 632, `handleSendEmailOtp` invoked `setEmailOtpError(null)`. `setEmailOtpError` was never declared, throwing an unhandled runtime `ReferenceError: setEmailOtpError is not defined` inside the `try` block immediately after `sendPartnerEmailOtp` succeeded. This caused execution to jump to the `catch` block before `setShowEmailOtpBox(true)` could execute.
+       - The disabled attribute on the "Verify Email" button used a rigid regex `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` inconsistent with the relaxed handler validation (`!clean.includes("@")`).
+
+2. **Full-Stack Engineering Changes Implemented:**
+   - **Partner Session & Route Guard Hardening (`partner-auth-api.ts`, `auth-guard.ts`, `routes/index.tsx`):**
+     - In `toPartnerSession`: Enforced `hasRealPartnerId = Boolean(acc?.linkedId && acc?.linkedId !== acc?.id)`. `partnerId` is now empty string `""` for un-onboarded accounts.
+     - In `auth-guard.ts` (`requirePartnerAuth` & `requirePendingVerification`): Un-onboarded sessions (`!isOnboarded`) are strictly redirected to `partnerRoutes.registration`. Verified status strictly requires `isOnboarded` to be true.
+     - In `routes/index.tsx`: Updated `computeTargetRoute` to return `partnerRoutes.registration` whenever an authenticated session is not onboarded (`!isOnboarded`).
+   - **Rider Session & Route Guard Hardening (`rider-auth-api.ts`, `auth-guard.ts`, `routes/index.tsx`):**
+     - In `toRiderSession`: Strictly populated `riderId` only when `acc.linkedId && acc.linkedId !== acc.id`. For un-onboarded riders, `riderId` remains `""`.
+     - In `auth-guard.ts` (`isRiderOnboarded` & `requireRiderAuth`): `linkedId` is only treated as valid if `linkedId !== authUserId`. `isRiderApproved` explicitly requires `isRiderOnboarded(sess)` before any approval checks. Un-onboarded riders are strictly redirected to `/registration`.
+     - In `routes/index.tsx`: Authenticated riders with `!isRiderOnboarded` are routed directly to `/registration`.
+   - **Partner Email OTP Input Box Fix (`BusinessRegistrationScreen.tsx`):**
+     - Removed the undefined `setEmailOtpError(null)` call from `handleSendEmailOtp`, enabling `setShowEmailOtpBox(true)` to execute seamlessly and render the 6-digit email OTP input box upon sending.
+     - Aligned the "Verify Email" button disabled check to `!email.trim() || !email.includes("@")`, ensuring fluid button responsiveness on mobile devices.
+
+3. **Build & Quality Assurance:**
+   - `partner-frontend` production build: PASSED (`vite build` exit code 0).
+   - `rider-frontend` production build: PASSED (`vite build` exit code 0).
+
 ## Session: November 22, 2026 (Part 61)
 
 ### Resend OTP Enhancement, Eradication of 1-Attempt Lockout Loop, and 5-Attempt Grace Threshold Across Portals

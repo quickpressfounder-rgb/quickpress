@@ -629,7 +629,6 @@ export function BusinessRegistrationScreen() {
         setEmailOtpCountdown(60);
         setEmailOtp("");
         setEmailOtpInvalid(false);
-        setEmailOtpError(null);
         toast.success(`6-Digit OTP sent to ${clean}`);
       } else {
         toast.error(res.message || "Could not send OTP to email");
@@ -1726,7 +1725,7 @@ export function BusinessRegistrationScreen() {
                   {!isEmailVerified && (
                     <button
                       type="button"
-                      disabled={isSendingEmailOtp || !email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || emailOtpCountdown > 0}
+                      disabled={isSendingEmailOtp || !email.trim() || !email.includes("@") || emailOtpCountdown > 0}
                       onClick={handleSendEmailOtp}
                       className="px-3.5 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs shrink-0 transition disabled:opacity-40 flex items-center gap-1.5 cursor-pointer shadow-2xs"
                     >
