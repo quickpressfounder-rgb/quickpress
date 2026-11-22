@@ -20,8 +20,7 @@ OLD_ARTIFACT_DIRS = [
     "/Users/himanshupal/.gemini/antigravity-ide/brain/3ab9df93-0c34-4b9b-8fdb-99d5f33cf43f",
 ]
 
-def run_cmd(cmd, cwd=ROOT_DIR):
-    print(f"\n===> Executing: {cmd} (in {cwd})")
+def get_extended_env():
     env = os.environ.copy()
     node_bins = [
         "/Users/himanshupal/.nvm/versions/node/v22.23.2/bin",
@@ -34,6 +33,11 @@ def run_cmd(cmd, cwd=ROOT_DIR):
         if os.path.exists(sdk):
             env["ANDROID_HOME"] = sdk
             env["PATH"] = f"{sdk}/platform-tools:{sdk}/cmdline-tools/latest/bin:{env['PATH']}"
+    return env
+
+def run_cmd(cmd, cwd=ROOT_DIR):
+    print(f"\n===> Executing: {cmd} (in {cwd})")
+    env = get_extended_env()
     res = subprocess.run(cmd, shell=True, cwd=cwd, env=env)
     if res.returncode != 0:
         raise RuntimeError(f"Command failed with code {res.returncode}: {cmd}")
@@ -68,9 +72,10 @@ def generate_index_html(app_dir, port):
     if not os.path.exists(server_script):
         raise RuntimeError(f"Server script not found: {server_script}")
 
-    env = os.environ.copy()
+    env = get_extended_env()
     env["PORT"] = str(port)
-    proc = subprocess.Popen(["node", server_script], cwd=app_dir, env=env)
+    node_bin = shutil.which("node", path=env["PATH"]) or "/usr/local/bin/node"
+    proc = subprocess.Popen([node_bin, server_script], cwd=app_dir, env=env)
     
     html = None
     try:
