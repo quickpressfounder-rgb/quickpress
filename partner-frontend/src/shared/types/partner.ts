@@ -21,6 +21,8 @@ export type BusinessCategory = "laundry" | "dry-clean" | "premium" | "shoe-care"
 export type BusinessRegistrationPayload = {
   businessName: string;
   ownerName: string;
+  firstName?: string;
+  lastName?: string;
   category: BusinessCategory;
   gstin?: string;
   address: string;
@@ -33,6 +35,7 @@ export type BusinessRegistrationPayload = {
   openingTime: string;
   closingTime: string;
   email?: string;
+  isEmailVerified?: boolean;
   phone?: string;
   pan?: string;
   aadhaar?: string;

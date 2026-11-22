@@ -417,7 +417,15 @@ export function RiderRegistrationScreen() {
   const [loadingCities, setLoadingCities] = useState<boolean>(false);
 
   // STEP 1: Personal Data
-  const [fullName, setFullName] = useState<string>("");
+  const [firstName, setFirstName] = useState<string>("");
+  const [lastName, setLastName] = useState<string>("");
+  const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
+
+  const setRiderFullName = (full: string) => {
+    const parts = full.trim().split(/\s+/);
+    setFirstName(parts[0] || "");
+    setLastName(parts.slice(1).join(" ") || "");
+  };
   const [email, setEmail] = useState<string>("");
   const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
   const [isSendingEmailOtp, setIsSendingEmailOtp] = useState<boolean>(false);
@@ -840,7 +848,9 @@ export function RiderRegistrationScreen() {
           // Pre-fill form from existing profile if available
           if (statusRes.draftData) {
             const d = statusRes.draftData;
-            if (d.fullName) setFullName((prev) => prev || d.fullName);
+            if (d.firstName) setFirstName((prev) => prev || d.firstName);
+            if (d.lastName) setLastName((prev) => prev || d.lastName);
+            if (d.fullName && !d.firstName) setRiderFullName(d.fullName);
             if (d.email) {
               setEmail((prev) => prev || d.email);
               setIsEmailVerified(true);
@@ -1280,9 +1290,13 @@ export function RiderRegistrationScreen() {
       const newErrors: Record<string, string> = {};
       const missing: string[] = [];
 
-      if (!fullName.trim()) {
-        newErrors["fullName"] = "Please enter your full legal name matching government ID.";
-        missing.push("Full Legal Name");
+      if (!firstName.trim()) {
+        newErrors["firstName"] = "Please enter your first name matching government ID.";
+        missing.push("First Name");
+      }
+      if (!lastName.trim()) {
+        newErrors["lastName"] = "Please enter your last name matching government ID.";
+        missing.push("Last Name");
       }
       if (!email.trim() || !email.includes("@") || !email.includes(".")) {
         newErrors["email"] = "Please enter a valid email address.";
@@ -1525,6 +1539,8 @@ export function RiderRegistrationScreen() {
       const payload = {
         fullName: officialApplicantName,
         name: officialApplicantName,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         phone: targetPhone.startsWith("+91") ? targetPhone : `+91${targetPhone.replace(/\D/g, "")}`,
         mobile: targetPhone.startsWith("+91") ? targetPhone : `+91${targetPhone.replace(/\D/g, "")}`,
         email: email.trim().toLowerCase(),
@@ -1733,34 +1749,64 @@ export function RiderRegistrationScreen() {
                 <h3 className="text-sm font-bold text-neutral-900">Step 1: Personal Details</h3>
               </div>
 
-              {/* Full Name */}
-              <div>
-                <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
-                  Full Name (As per Aadhaar / Official ID) <span className="text-red-500 font-black">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  autoComplete="name"
-                  placeholder="e.g. Ramesh Kumar"
-                  value={fullName}
-                  onChange={(e) => {
-                    setFullName(e.target.value);
-                    clearFieldError("fullName");
-                  }}
-                  className={`w-full h-11 px-3.5 bg-white border rounded-xl text-xs font-bold text-neutral-900 transition-all ${
-                    fieldErrors["fullName"]
-                      ? "border-red-500 ring-2 ring-red-400/20 bg-red-50/10 focus:border-red-500"
-                      : "border-neutral-200 focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/15"
-                  }`}
-                  autoFocus
-                />
-                {fieldErrors["fullName"] && (
-                  <p className="mt-1 text-[11px] font-bold text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                    <span>{fieldErrors["fullName"]}</span>
-                  </p>
-                )}
+              {/* First Name & Last Name */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
+                    First Name <span className="text-red-500 font-black">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoComplete="given-name"
+                    placeholder="e.g. Ramesh"
+                    value={firstName}
+                    onChange={(e) => {
+                      setFirstName(e.target.value);
+                      clearFieldError("firstName");
+                    }}
+                    className={`w-full h-11 px-3.5 bg-white border rounded-xl text-xs font-bold text-neutral-900 transition-all ${
+                      fieldErrors["firstName"]
+                        ? "border-red-500 ring-2 ring-red-400/20 bg-red-50/10 focus:border-red-500"
+                        : "border-neutral-200 focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/15"
+                    }`}
+                    autoFocus
+                  />
+                  {fieldErrors["firstName"] && (
+                    <p className="mt-1 text-[11px] font-bold text-red-600 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                      <span>{fieldErrors["firstName"]}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
+                    Last Name <span className="text-red-500 font-black">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoComplete="family-name"
+                    placeholder="e.g. Kumar"
+                    value={lastName}
+                    onChange={(e) => {
+                      setLastName(e.target.value);
+                      clearFieldError("lastName");
+                    }}
+                    className={`w-full h-11 px-3.5 bg-white border rounded-xl text-xs font-bold text-neutral-900 transition-all ${
+                      fieldErrors["lastName"]
+                        ? "border-red-500 ring-2 ring-red-400/20 bg-red-50/10 focus:border-red-500"
+                        : "border-neutral-200 focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/15"
+                    }`}
+                  />
+                  {fieldErrors["lastName"] && (
+                    <p className="mt-1 text-[11px] font-bold text-red-600 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                      <span>{fieldErrors["lastName"]}</span>
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Official Email Address & Live OTP Verification */}

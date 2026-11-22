@@ -421,7 +421,15 @@ export function BusinessRegistrationScreen() {
   const [rejectionNotice, setRejectionNotice] = useState<string | null>(null);
 
   // STEP 1: Personal Details
-  const [ownerName, setOwnerName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const ownerName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
+
+  const setOwnerFullName = (full: string) => {
+    const parts = full.trim().split(/\s+/);
+    setFirstName(parts[0] || "");
+    setLastName(parts.slice(1).join(" ") || "");
+  };
   const [mobile, setMobile] = useState(() => {
     if (phone) return phone;
     if (session?.phone) return session.phone;
@@ -742,7 +750,9 @@ export function BusinessRegistrationScreen() {
       const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
       if (savedDraft) {
         const d = JSON.parse(savedDraft);
-        if (d.ownerName) setOwnerName(d.ownerName);
+        if (d.firstName) setFirstName(d.firstName);
+        if (d.lastName) setLastName(d.lastName);
+        if (d.ownerName && !d.firstName) setOwnerFullName(d.ownerName);
         if (d.mobile) setMobile(d.mobile);
         if (d.email) setEmail(d.email);
         if (d.gender) setGender(d.gender);
@@ -802,7 +812,9 @@ export function BusinessRegistrationScreen() {
 
         if (statusRes.draftData) {
           const d = statusRes.draftData;
-          if (d.ownerName) setOwnerName(d.ownerName);
+          if (d.firstName) setFirstName(d.firstName);
+          if (d.lastName) setLastName(d.lastName);
+          if (d.ownerName && !d.firstName) setOwnerFullName(d.ownerName);
           if (d.phone || d.mobile) setMobile(d.phone || d.mobile);
           if (d.email) setEmail(d.email);
           if (d.gender) setGender(d.gender);
@@ -852,8 +864,8 @@ export function BusinessRegistrationScreen() {
       if (!email && session.email) {
         setEmail(session.email);
       }
-      if (!ownerName && session.ownerName && !/^\+?[\d\s\-()]+$/.test(session.ownerName.trim())) {
-        setOwnerName(session.ownerName);
+      if (!firstName && session.ownerName && !/^\+?[\d\s\-()]+$/.test(session.ownerName.trim())) {
+        setOwnerFullName(session.ownerName);
       }
     }
   }, [session, phone]);
@@ -880,6 +892,8 @@ export function BusinessRegistrationScreen() {
   // Auto-Save Draft to LocalStorage
   useEffect(() => {
     const draftPayload = {
+      firstName,
+      lastName,
       ownerName,
       mobile,
       email,
@@ -1040,9 +1054,13 @@ export function BusinessRegistrationScreen() {
       const errors: Record<string, string> = {};
       const missing: string[] = [];
 
-      if (!ownerName.trim() || ownerName.trim().length < 2) {
-        errors["ownerName"] = "Please enter owner full name as per official ID";
-        missing.push("Owner Full Name (Owner Name)");
+      if (!firstName.trim() || firstName.trim().length < 2) {
+        errors["firstName"] = "Please enter owner first name";
+        missing.push("Owner First Name");
+      }
+      if (!lastName.trim() || lastName.trim().length < 1) {
+        errors["lastName"] = "Please enter owner last name";
+        missing.push("Owner Last Name");
       }
       const cleanPhone = mobile.replace(/\D/g, "");
       if (cleanPhone.length < 10) {
@@ -1289,6 +1307,8 @@ export function BusinessRegistrationScreen() {
       const payload: BusinessRegistrationPayload = {
         businessName: shopName.trim(),
         ownerName: ownerName.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         category: (BUSINESS_TYPES.find((b) => b.id === businessType)?.category || "laundry") as BusinessCategory,
         gstin: gstin.trim().toUpperCase() || undefined,
         address: shopAddress.trim(),
@@ -1302,6 +1322,7 @@ export function BusinessRegistrationScreen() {
         closingTime,
         weeklyOff,
         email: email.trim().toLowerCase() || undefined,
+        isEmailVerified: Boolean(isEmailVerified),
         phone: mobile.replace(/\D/g, "") || undefined,
         alternatePhone: alternatePhone.trim() || undefined,
         gender,
@@ -1439,46 +1460,32 @@ export function BusinessRegistrationScreen() {
 
       {/* 1. Sticky Header & Step Progress Container */}
       <div className="sticky top-0 z-40 bg-white border-b border-neutral-200 shadow-xs">
-        <header className="px-4 pb-2.5 flex items-center justify-between app-header-safe">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handlePrevStep}
-              disabled={currentStep === 1}
-              className="p-1.5 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-              aria-label="Previous Step"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                  {t("QuickPress Partner", "QuickPress Partner")}
-                </span>
-                <span className="text-xs font-bold text-neutral-900">
-                  {t("Merchant Onboarding", "Merchant Onboarding")}
-                </span>
-              </div>
-              <p className="text-[10px] text-neutral-500 font-medium">
-                {t("Official Laundry & Dry-Cleaning Store Registration", "Official Laundry & Dry-Cleaning Store Registration")}
-              </p>
+        <header className="px-4 py-3 flex items-center justify-between app-header-safe">
+          <div className="flex items-center gap-2 select-none">
+            <div className="flex items-center gap-0.5">
+              <span className="text-xl sm:text-2xl font-black tracking-tight text-neutral-950">
+                Quick
+              </span>
+              <span className="text-xl sm:text-2xl font-black tracking-tight text-[#00C853]">
+                Press
+              </span>
             </div>
+            <span className="h-4 w-[1px] bg-neutral-300 mx-0.5" />
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-neutral-600">
+              PARTNER
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={openLanguageModal}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-extrabold rounded-xl transition active:scale-95 shadow-2xs cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-800 text-xs font-extrabold rounded-xl transition active:scale-95 shadow-2xs cursor-pointer"
               title="Change Language"
             >
-              <Globe className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <Globe className="w-3.5 h-3.5 text-neutral-600 shrink-0" />
               <span className="uppercase">{language}</span>
             </button>
-
-            <span className="text-[11px] font-bold px-2.5 py-1 bg-neutral-100 border border-neutral-200 text-neutral-700 rounded-lg shadow-2xs">
-              {t("Step", "Step")} {currentStep} / 5
-            </span>
           </div>
         </header>
 
@@ -1540,38 +1547,67 @@ export function BusinessRegistrationScreen() {
                 </div>
               </div>
 
-              {/* Owner Full Name */}
-              <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1">
-                  {t("Store Owner Full Name", "Owner Full Name")} <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
+              {/* Owner First & Last Name */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-neutral-700 mb-1">
+                    {t("First Name", "First Name")} <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
-                    value={ownerName}
+                    value={firstName}
                     onChange={(e) => {
                       const val = e.target.value;
-                      setOwnerName(val);
-                      setAccountHolder(val);
-                      if (fieldErrors["ownerName"]) {
+                      setFirstName(val);
+                      if (fieldErrors["firstName"]) {
                         setFieldErrors((prev) => {
                           const next = { ...prev };
-                          delete next["ownerName"];
+                          delete next["firstName"];
                           return next;
                         });
                       }
                     }}
-                    placeholder="e.g. Ramesh Chandra Agrawal"
+                    placeholder="e.g. Ramesh"
                     className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-semibold focus:outline-hidden focus:ring-2 transition ${
-                      fieldErrors["ownerName"]
+                      fieldErrors["firstName"]
                         ? "border-red-400 bg-red-50/20 focus:ring-red-400"
                         : "border-neutral-200 focus:border-emerald-500 focus:ring-emerald-100"
                     }`}
                   />
+                  {fieldErrors["firstName"] && (
+                    <p className="mt-1 text-[10px] font-bold text-red-600">{fieldErrors["firstName"]}</p>
+                  )}
                 </div>
-                <p className="mt-1 text-[10px] text-neutral-400">
-                  {t("Name should match exactly with your Aadhaar and Bank Account", "Name should match exactly with your Aadhaar and Bank Account")}
-                </p>
+
+                <div>
+                  <label className="block text-xs font-bold text-neutral-700 mb-1">
+                    {t("Last Name", "Last Name")} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setLastName(val);
+                      if (fieldErrors["lastName"]) {
+                        setFieldErrors((prev) => {
+                          const next = { ...prev };
+                          delete next["lastName"];
+                          return next;
+                        });
+                      }
+                    }}
+                    placeholder="e.g. Kumar"
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-semibold focus:outline-hidden focus:ring-2 transition ${
+                      fieldErrors["lastName"]
+                        ? "border-red-400 bg-red-50/20 focus:ring-red-400"
+                        : "border-neutral-200 focus:border-emerald-500 focus:ring-emerald-100"
+                    }`}
+                  />
+                  {fieldErrors["lastName"] && (
+                    <p className="mt-1 text-[10px] font-bold text-red-600">{fieldErrors["lastName"]}</p>
+                  )}
+                </div>
               </div>
 
               {/* Primary Mobile Phone (Prefilled / Verified) */}
@@ -1626,42 +1662,51 @@ export function BusinessRegistrationScreen() {
                   )}
                 </div>
 
-                <div className="relative flex items-center">
-                  <input
-                    type="email"
-                    value={email}
-                    disabled={isEmailVerified}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      setIsEmailVerified(false);
-                      setShowEmailOtpBox(false);
-                    }}
-                    placeholder="official.laundry@gmail.com"
-                    className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-semibold focus:outline-hidden focus:ring-2 transition ${
-                      isEmailVerified
-                        ? "border-emerald-300 bg-emerald-50/20 text-emerald-950 font-bold"
-                        : fieldErrors["email"]
-                        ? "border-red-400 bg-red-50/20 focus:ring-red-400"
-                        : "border-neutral-200 focus:border-emerald-500 focus:ring-emerald-100"
-                    }`}
-                  />
+                <div className="relative flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="email"
+                      value={email}
+                      disabled={isEmailVerified}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setIsEmailVerified(false);
+                        setShowEmailOtpBox(false);
+                        if (fieldErrors["email"]) {
+                          setFieldErrors((prev) => {
+                            const next = { ...prev };
+                            delete next["email"];
+                            return next;
+                          });
+                        }
+                      }}
+                      placeholder="official.laundry@gmail.com"
+                      className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-semibold focus:outline-hidden focus:ring-2 transition ${
+                        isEmailVerified
+                          ? "border-emerald-300 bg-emerald-50/20 text-emerald-950 font-bold"
+                          : fieldErrors["email"]
+                          ? "border-red-400 bg-red-50/20 focus:ring-red-400"
+                          : "border-neutral-200 focus:border-emerald-500 focus:ring-emerald-100"
+                      }`}
+                    />
+                  </div>
 
                   {!isEmailVerified && (
                     <button
                       type="button"
-                      disabled={isSendingEmailOtp || !email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())}
+                      disabled={isSendingEmailOtp || !email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || emailOtpCountdown > 0}
                       onClick={handleSendEmailOtp}
-                      className="absolute right-2 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] transition disabled:opacity-40 flex items-center gap-1 cursor-pointer shadow-2xs"
+                      className="px-3.5 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs shrink-0 transition disabled:opacity-40 flex items-center gap-1.5 cursor-pointer shadow-2xs"
                     >
                       {isSendingEmailOtp ? (
                         <>
-                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           <span>Sending...</span>
                         </>
                       ) : (
                         <>
-                          <Send className="w-3 h-3" />
-                          <span>Verify Email</span>
+                          <Send className="w-3.5 h-3.5" />
+                          <span>{emailOtpCountdown > 0 ? `Resend (${emailOtpCountdown}s)` : showEmailOtpBox ? "Resend Code" : "Verify Email"}</span>
                         </>
                       )}
                     </button>

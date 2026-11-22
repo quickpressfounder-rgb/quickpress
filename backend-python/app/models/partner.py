@@ -394,8 +394,11 @@ class PartnerNotificationResponse(BaseModel):
 class OnboardingPayload(BaseModel):
     businessName: str
     ownerName: str
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
+    isEmailVerified: Optional[bool] = False
     category: BusinessCategory = "laundry"
     gstin: Optional[str] = ""
     address: str = ""
