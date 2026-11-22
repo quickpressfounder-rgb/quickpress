@@ -34,7 +34,9 @@ jobs:
             cd ~/quickpress/partner-frontend
             npm install --prefer-offline --no-audit || npm install
             NITRO_PRESET=node-server npm run build
-            pm2 restart quickpress-partner || (PORT=8082 pm2 start .output/server/index.mjs --name quickpress-partner && pm2 save)
+            pm2 delete quickpress-partner 2>/dev/null || true
+            PORT=8082 NITRO_PORT=8082 pm2 start .output/server/index.mjs --name quickpress-partner
+            pm2 save
 
             echo "🛡️ [4/6] Building Ops / Admin Console & restarting PM2..."
             cd ~/quickpress/admin-frontend

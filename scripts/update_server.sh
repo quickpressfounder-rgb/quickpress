@@ -38,7 +38,9 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 NITRO_PRESET=node-server npm run build
-pm2 restart quickpress-partner || (PORT=8082 pm2 start .output/server/index.mjs --name quickpress-partner && pm2 save)
+pm2 delete quickpress-partner 2>/dev/null || true
+PORT=8082 NITRO_PORT=8082 pm2 start .output/server/index.mjs --name quickpress-partner
+pm2 save
 
 # 2. Admin Frontend (Ops Console Node.js Service on Port 8084)
 echo "🛡️ [2/5] Building Ops / Admin Console & restarting PM2..."
