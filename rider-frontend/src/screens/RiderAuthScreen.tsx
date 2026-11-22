@@ -1,9 +1,9 @@
 import { useNavigate, Link } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, UserPlus, LogIn, AlertCircle, X, Globe } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, X, Globe } from "lucide-react";
 import React, { useEffect, useState, type FormEvent } from "react";
 
 import { useRiderContext } from "../context/RiderContext";
-import { sendOtp, checkRiderRegistered } from "../api/rider/rider-auth-api";
+import { sendOtp } from "../api/rider/rider-auth-api";
 import { readSession } from "../api/core/session-store";
 import { isRiderApproved, isRiderOnboarded } from "../lib/auth-guard";
 import { useLanguage } from "../lib/i18n";
@@ -15,7 +15,6 @@ export function RiderAuthScreen() {
   const { phone, session, setPhone } = useRiderContext();
   const { t, selectedLanguageObj } = useLanguage();
 
-  const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [phoneNumber, setPhoneNumber] = useState(() => {
     if (phone) return phone.replace(/\D/g, "").slice(-10);
     if (typeof window !== "undefined") {
@@ -61,33 +60,9 @@ export function RiderAuthScreen() {
 
     try {
       setPhone(cleanNumber);
-
-      // Enforce: Unregistered accounts cannot log in!
-      if (authMode === "login") {
-        const check = await checkRiderRegistered(cleanNumber);
-        if (!check.isRegistered) {
-          setError(
-            t(
-              "auth.notRegistered",
-              "This mobile number is not registered as a Captain. Please register first."
-            )
-          );
-          setLoading(false);
-          return;
-        }
-      } else {
-        // In registration mode, if already onboarded, prompt to log in
-        const check = await checkRiderRegistered(cleanNumber);
-        if (check.isRegistered && check.isOnboarded) {
-          setError(
-            t(
-              "auth.alreadyRegistered",
-              "This number is already registered. Please switch to Login."
-            )
-          );
-          setLoading(false);
-          return;
-        }
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem("qp.rider.pendingPhone", cleanNumber);
+        window.localStorage.setItem("qp.rider.pendingPhone", cleanNumber);
       }
 
       await sendOtp(cleanNumber);
@@ -140,52 +115,13 @@ export function RiderAuthScreen() {
           <QuickPressLogo size="lg" showSubtitle={true} subtitleText="DELIVERY PARTNER" />
         </div>
 
-        {/* Mode Selector: Login vs Register */}
-        <div className="flex items-center p-1 bg-neutral-100 rounded-2xl mb-6 border border-neutral-200/80">
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic(15);
-              setAuthMode("login");
-              setError(null);
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition-all ${authMode === "login"
-              ? "bg-white text-neutral-950 shadow-xs"
-              : "text-neutral-500 hover:text-neutral-900"
-              }`}
-          >
-            <LogIn className="w-4 h-4" />
-            <span>{t("auth.loginTab", "Captain Login")}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic(15);
-              setAuthMode("register");
-              setError(null);
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition-all ${authMode === "register"
-              ? "bg-white text-neutral-950 shadow-xs"
-              : "text-neutral-500 hover:text-neutral-900"
-              }`}
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>{t("auth.registerTab", "New Registration")}</span>
-          </button>
-        </div>
-
         {/* Heading & Subtitle */}
-        <div className="text-center pb-5">
+        <div className="text-center pb-6 pt-2">
           <h2 className="text-xl font-black text-neutral-950 tracking-tight">
-            {authMode === "login"
-              ? t("auth.signIn", "Sign in to your account")
-              : t("auth.createAccount", "Register as New Captain")}
+            {t("auth.enterPhoneHeading", "Enter your mobile number")}
           </h2>
-          <p className="text-xs font-semibold text-neutral-500 mt-1">
-            {authMode === "login"
-              ? t("auth.loginDesc", "Enter your registered mobile number to continue")
-              : t("auth.registerDesc", "Join QuickPress with 0% commission & daily payouts")}
+          <p className="text-xs font-semibold text-neutral-500 mt-1.5">
+            {t("auth.enterPhoneSubtitle", "Login or register as a Captain with 0% commission & daily payouts")}
           </p>
         </div>
 
@@ -222,27 +158,13 @@ export function RiderAuthScreen() {
             )}
           </div>
 
-          {/* Error & Registration Prompt */}
+          {/* Error Message */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl space-y-2 text-left">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-left">
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                 <p className="text-xs font-bold text-red-700 leading-tight">{error}</p>
               </div>
-
-              {authMode === "login" && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMode("register");
-                    setError(null);
-                  }}
-                  className="w-full py-2 bg-white border border-red-300 text-red-700 font-black text-xs rounded-lg active:scale-98 transition-all flex items-center justify-center gap-1.5"
-                >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>Click here to Register as a Captain</span>
-                </button>
-              )}
             </div>
           )}
 
@@ -265,11 +187,7 @@ export function RiderAuthScreen() {
           {loading ? (
             <Loader2 className="w-5 h-5 animate-spin text-white" />
           ) : (
-            <span>
-              {authMode === "login"
-                ? t("auth.continueLogin", "Verify & Login")
-                : t("auth.continueRegister", "Register as Captain")}
-            </span>
+            <span>{t("auth.continueWithOtp", "Continue with OTP")}</span>
           )}
         </button>
 

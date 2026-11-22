@@ -99,6 +99,14 @@ export function RiderOtpScreen() {
       const sessionResult = await verifyOtp(effectivePhone, codeToVerify);
       signIn(sessionResult);
 
+      if (typeof window !== "undefined") {
+        const cleanDigits = effectivePhone.replace(/\D/g, "").slice(-10);
+        if (cleanDigits) {
+          window.sessionStorage.setItem("qp.rider.pendingPhone", cleanDigits);
+          window.localStorage.setItem("qp.rider.pendingPhone", cleanDigits);
+        }
+      }
+
       // 2. Strict Onboarding & Verification Navigation
       if (!sessionResult.isOnboarded) {
         navigate({ to: "/registration", replace: true });

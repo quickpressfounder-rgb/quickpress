@@ -422,7 +422,19 @@ export function BusinessRegistrationScreen() {
 
   // STEP 1: Personal Details
   const [ownerName, setOwnerName] = useState("");
-  const [mobile, setMobile] = useState(phone || "");
+  const [mobile, setMobile] = useState(() => {
+    if (phone) return phone;
+    if (session?.phone) return session.phone;
+    if (typeof window !== "undefined") {
+      const stored =
+        window.sessionStorage.getItem("qp.partner.pendingPhone") ||
+        window.localStorage.getItem("qp.partner.pendingPhone") ||
+        window.localStorage.getItem("qp.partner.rememberedPhone") ||
+        "";
+      if (stored) return stored.replace(/\D/g, "").slice(-10);
+    }
+    return "";
+  });
   const [email, setEmail] = useState("");
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [isSendingEmailOtp, setIsSendingEmailOtp] = useState(false);

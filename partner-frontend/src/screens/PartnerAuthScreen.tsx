@@ -63,7 +63,6 @@ export function PartnerAuthScreen() {
   const [step, setStep] = useState<"intro" | "phone">("intro");
   const [phoneVal, setPhoneVal] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [notRegistered, setNotRegistered] = useState(false);
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -110,28 +109,19 @@ export function PartnerAuthScreen() {
       return;
     }
     setError(null);
-    setNotRegistered(false);
     setBusy(true);
 
     const digits = phoneVal.replace(/\D/g, "").slice(-10);
 
     try {
-      // 1. Verify partner registration in DB
-      const check = await checkPartnerRegistered(digits);
-
-      if (!check.isRegistered || !check.isOnboarded) {
-        const notRegMsg =
-          "This mobile number is not registered as a Partner Store. Please register your store first.";
-        setError(notRegMsg);
-        setNotRegistered(true);
-        setBusy(false);
-        return;
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(REMEMBER_KEY, digits);
+        window.localStorage.setItem("qp.partner.pendingPhone", digits);
+        window.sessionStorage.setItem("qp.partner.pendingPhone", digits);
       }
-
-      window.localStorage.setItem(REMEMBER_KEY, digits);
       rememberPartnerLogin(true);
 
-      // 2. Request real OTP via Firebase
+      // Request real OTP via Firebase / Backend
       await requestOtp(digits);
       setPhone(digits);
       setSent(true);
@@ -187,7 +177,6 @@ export function PartnerAuthScreen() {
   const clearPhone = () => {
     setPhoneVal("");
     setError(null);
-    setNotRegistered(false);
   };
 
   return (
@@ -201,12 +190,12 @@ export function PartnerAuthScreen() {
         <div className="w-full h-full animate-in fade-in duration-300">
           <PartnerIntroCarousel
             onLoginClick={() => setStep("phone")}
-            onSignUpClick={() => navigate({ to: partnerRoutes.registration })}
+            onSignUpClick={() => setStep("phone")}
           />
         </div>
       ) : (
         /* ======================================================================= */
-        /* STEP 2: PHONE NUMBER LOGIN SCREEN (EMAIL LOGIN REMOVED)                 */
+        /* STEP 2: PHONE NUMBER LOGIN & REGISTRATION SCREEN                        */
         /* ======================================================================= */
         <div className="min-h-screen flex flex-col justify-between max-w-sm sm:max-w-md mx-auto w-full px-5 pt-2 pb-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] animate-in fade-in duration-200">
           {/* Top Navigation Bar */}
@@ -233,7 +222,7 @@ export function PartnerAuthScreen() {
 
             {/* Instruction Prompt */}
             <p className="text-center text-sm font-medium text-zinc-600 mb-6 px-4 leading-relaxed">
-              Enter your phone number and we will send an OTP to continue
+              Enter your mobile number to log in or register your store. We will send an OTP to continue.
             </p>
 
             {/* Phone Form */}
@@ -264,7 +253,6 @@ export function PartnerAuthScreen() {
                     setPhoneVal(e.target.value.replace(/\D/g, "").slice(0, 10));
                     if (error) {
                       setError(null);
-                      setNotRegistered(false);
                     }
                   }}
                   placeholder="Enter phone number"
@@ -283,26 +271,15 @@ export function PartnerAuthScreen() {
                 )}
               </div>
 
-              {/* Error / Not Registered Callout */}
-              {error && notRegistered ? (
-                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 space-y-2 animate-in fade-in duration-200">
+              {/* Error Callout */}
+              {error && (
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-950 space-y-1 animate-in fade-in duration-200">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <p className="text-xs font-semibold leading-relaxed">{error}</p>
+                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                    <p className="text-xs font-semibold leading-relaxed text-red-700">{error}</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate({ to: partnerRoutes.registration })}
-                    className="w-full py-2 px-3 rounded-lg bg-amber-600 text-white font-bold text-xs hover:bg-amber-700 transition-colors shadow-2xs cursor-pointer text-center block"
-                  >
-                    Register as New Partner Store →
-                  </button>
                 </div>
-              ) : error ? (
-                <p className="text-xs font-semibold text-red-600 px-1 animate-in fade-in duration-200">
-                  {error}
-                </p>
-              ) : null}
+              )}
 
               {/* Send OTP Button (Grey when disabled, Vibrant Blue when 10 digits) */}
               <button
@@ -320,7 +297,7 @@ export function PartnerAuthScreen() {
                     <span>Sending OTP...</span>
                   </>
                 ) : (
-                  <span>Send OTP</span>
+                  <span>Continue with OTP</span>
                 )}
               </button>
             </form>

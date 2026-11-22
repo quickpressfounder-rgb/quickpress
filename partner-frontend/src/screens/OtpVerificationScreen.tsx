@@ -95,6 +95,15 @@ export function OtpVerificationScreen() {
     const resolved = { ...session, isOnboarded: realIsOnboarded, isVerified: realIsVerified };
     signIn(resolved);
 
+    if (typeof window !== "undefined") {
+      const cleanDigits = targetPhone.replace(/\D/g, "").slice(-10);
+      if (cleanDigits) {
+        window.sessionStorage.setItem("qp.partner.pendingPhone", cleanDigits);
+        window.localStorage.setItem("qp.partner.pendingPhone", cleanDigits);
+        window.localStorage.setItem("qp.partner.rememberedPhone", cleanDigits);
+      }
+    }
+
     toast.success("Phone verified successfully!");
 
     window.setTimeout(() => {

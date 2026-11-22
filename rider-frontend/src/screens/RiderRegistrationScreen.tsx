@@ -398,7 +398,14 @@ export function RiderRegistrationScreen() {
   const { phone, session, signIn } = useRiderContext();
   const { t } = useLanguage();
 
-  const targetPhone = phone || session?.phone || "";
+  const targetPhone =
+    phone ||
+    session?.phone ||
+    (typeof window !== "undefined"
+      ? window.sessionStorage.getItem("qp.rider.pendingPhone") ||
+        window.localStorage.getItem("qp.rider.pendingPhone") ||
+        ""
+      : "");
 
   // 5 Step Flow: 1. Personal, 2. Aadhaar & Selfie, 3. Vehicle & RC, 4. Driving Licence, 5. Bank
   const [currentStep, setCurrentStep] = useState<number>(1);
