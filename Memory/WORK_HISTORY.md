@@ -1,5 +1,52 @@
 # QuickPress — Engineering Work History
 
+## Session: November 22, 2026 (Part 57)
+
+### Unified Smart Authentication & Automatic Routing for Partner and Rider (Captain) Applications
+
+1. **Context & Architectural Objectives:**
+   - **Elimination of Fragmented Auth Modes:** Previously, both `rider-frontend` and `partner-frontend` maintained conflicting and friction-heavy login vs. registration modes:
+     - In `rider-frontend`: Had a segmented toggle `[Captain Login]` vs `[New Registration]` where entering an unregistered phone number in "Login" mode threw an error blocking OTP generation (`"This mobile number is not registered as a Captain. Please register first."`), while entering a registered number in "Registration" mode blocked progress with `"This number is already registered. Please switch to Login."`
+     - In `partner-frontend`: Welcome carousel had separate "Login" and "Sign up" buttons where "Sign up" navigated directly to `/registration` without an authenticated session, hitting the route guard. Meanwhile, in `PartnerAuthScreen.tsx`, entering an unregistered number explicitly blocked OTP generation (`"This mobile number is not registered as a Partner Store. Please register your store first."`), trapping new partners.
+   - **Single-Input Smart Routing Pattern:** Replaced multi-step toggles with a single, frictionless phone number input screen:
+     - Any valid 10-digit mobile number immediately receives a 6-digit SMS OTP without pre-judgment.
+     - Post-OTP verification dynamically routes applicants based on ground-truth database state:
+       - **New applicant (`!isOnboarded`):** Automatically routes to `/registration` with verified phone number pre-filled and locked in session.
+       - **Incomplete draft:** Opens `/registration` to resume draft onboarding.
+       - **Submitted / under review (`!isVerified`):** Routes to `/verification` (Rider) or `/registration-submitted` (Partner).
+       - **Approved & verified (`isVerified`):** Directly logs in and routes to `/dashboard` (Rider) or `/orders` (Partner).
+
+2. **Full-Stack Engineering Changes Implemented:**
+   - **`rider-frontend/src/screens/RiderAuthScreen.tsx`:**
+     - Removed `authMode` state (`"login" | "register"`) and eliminated the segmented tab toggle buttons.
+     - Removed blocking `checkRiderRegistered` checks from `handleSubmit`.
+     - Added storage persistence for `qp.rider.pendingPhone` in `sessionStorage` and `localStorage`.
+     - Streamlined UI: Unified heading ("Enter your mobile number"), subtitle ("Login or register as a Captain with 0% commission & daily payouts"), and CTA button ("Continue with OTP").
+   - **`rider-frontend/src/screens/RiderOtpScreen.tsx`:**
+     - Added robust persistence of verified `cleanDigits` into `sessionStorage` and `localStorage`.
+     - Preserved intelligent auto-navigation to `/registration`, `/verification`, or `/permissions` -> `/dashboard`.
+   - **`rider-frontend/src/screens/RiderRegistrationScreen.tsx`:**
+     - Updated `targetPhone` fallback initialization to check `sessionStorage` / `localStorage` under `qp.rider.pendingPhone` if context hasn't hydrated yet, guaranteeing pre-fill.
+   - **`partner-frontend/src/screens/PartnerAuthScreen.tsx`:**
+     - Removed blocking `checkPartnerRegistered` logic in `handlePhoneSubmit`.
+     - Removed `notRegistered` state and Amber error box with broken direct link.
+     - Replaced with clean standard alert banner on actual OTP failure.
+     - Updated welcome carousel callbacks: both "Login" and "Sign up" smoothly open the mobile input step (`setStep("phone")`).
+     - Updated instruction prompt: "Enter your mobile number to log in or register your store. We will send an OTP to continue."
+     - Updated CTA button: "Continue with OTP".
+   - **`partner-frontend/src/screens/OtpVerificationScreen.tsx`:**
+     - Added persistent storage of verified `cleanDigits` into `sessionStorage` and `localStorage` under `qp.partner.pendingPhone`.
+     - Confirmed automatic routing to `/registration` for new stores, `/registration-submitted` for under review, and `/orders` for approved.
+   - **`partner-frontend/src/screens/BusinessRegistrationScreen.tsx`:**
+     - Updated `mobile` state initialization with a storage fallback checking `qp.partner.pendingPhone` / `qp.partner.rememberedPhone`, ensuring phone number is always pre-filled immediately upon mount.
+
+3. **Build & Quality Assurance:**
+   - `rider-frontend`: Built successfully (`npm run build` exit code 0).
+   - `partner-frontend`: Built successfully (`npm run build` exit code 0).
+   - Linear git commit `5ab76cdf` created and pushed to GitHub `origin main`.
+
+---
+
 ## Session: November 22, 2026 (Part 56)
 
 ### Partner Registration Redesign: 5-Step Stepper, Post-Submission Zomato-Style Email Agreement Execution, Admin Cities Enforcement, Segmented DOB Selector & Admin Approval Gate
