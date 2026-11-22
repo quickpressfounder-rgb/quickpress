@@ -413,14 +413,20 @@ async def send_rider_email_otp_endpoint(body: dict) -> dict:
     )
 
     from app.core.email_service import send_rider_email_otp
-    asyncio.create_task(
-        send_rider_email_otp(
-            to_email=raw_email,
-            otp_code=otp_code,
-            rider_name=rider_name,
-            purpose="verification",
-        )
-    )
+
+    async def _safe_dispatch_rider_email():
+        try:
+            res = await send_rider_email_otp(
+                to_email=raw_email,
+                otp_code=otp_code,
+                rider_name=rider_name,
+                purpose="verification",
+            )
+            logger.info("Rider email verification OTP dispatched to %s: %s", raw_email, res.get("ok"))
+        except Exception as exc:
+            logger.error("Failed to dispatch rider email OTP to %s: %s", raw_email, exc)
+
+    asyncio.create_task(_safe_dispatch_rider_email())
 
     return {
         "ok": True,
@@ -448,8 +454,8 @@ async def verify_rider_email_otp(body: dict) -> dict:
     if record:
         if record.get("expiresAt", 0) < now_ts:
             raise HTTPException(status_code=400, detail="OTP expired. Please request a new code.")
-        if record.get("otp") != otp and otp != "000000":
-            raise HTTPException(status_code=400, detail="Invalid OTP code. Please check your email.")
+        if record.get("otp") != otp:
+            raise HTTPException(status_code=400, detail="Invalid OTP code. Please enter the valid code sent to your email.")
     else:
         raise HTTPException(status_code=400, detail="No pending verification found for this email. Please request OTP.")
 
@@ -580,8 +586,8 @@ async def verify_rider_agreement_otp(body: dict) -> dict:
     if record:
         if record.get("expiresAt", 0) < now_ts:
             raise HTTPException(status_code=400, detail="Agreement OTP expired. Please request a new code.")
-        if record.get("otp") != otp and otp != "000000":
-            raise HTTPException(status_code=400, detail="Invalid Agreement OTP code. Please check your email.")
+        if record.get("otp") != otp:
+            raise HTTPException(status_code=400, detail="Invalid Agreement OTP code. Please enter the valid code sent to your email.")
     else:
         raise HTTPException(status_code=400, detail="No pending agreement OTP found for this email.")
 

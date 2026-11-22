@@ -1,5 +1,53 @@
 # QuickPress — Engineering Work History
 
+## Session: November 22, 2026 (Part 59)
+
+### Real OTP Enforcement Platform-Wide (Bypass & Dummy 000000 Removal), Partner Registration First Name Auto-Fill Eradication, and Partner Email Verification Delivery Polish
+
+1. **Context & User Directives:**
+   - **Real OTP Enforcement & Zero Dummy OTPs:**
+     - The user requested that Partner email verification must receive real OTP codes via email (exactly like Rider) and that only real OTPs must work.
+     - Eliminate all dummy bypasses, including `000000` or fallback bypass codes across Partner and Rider email verifications, SLA agreement digital executions, and phone OTP verifications.
+   - **Partner First Name Auto-Fill Removal:**
+     - Fixed the issue where `"Partner"` was getting auto-filled into the Partner registration `firstName` field.
+     - Ensured that placeholder / fallback values (`"Partner"`, `"QuickPress Partner"`, `"Merchant Store"`, etc.) are never prefilled into applicant name fields.
+
+2. **Full-Stack Engineering Changes Implemented:**
+   - **Backend API & Security:**
+     - `backend-python/app/api/partner.py`:
+       - In `verify_partner_email_otp`: Removed `and otp != "000000"`, strictly enforcing real OTP comparison against database verification records.
+       - In `verify_partner_agreement_otp`: Removed `and otp != "000000"`, strictly verifying real OTP for bilateral SLA execution.
+       - In `send_partner_email_verification_otp`: Wrapped email dispatch in safe async task with structured error logging.
+     - `backend-python/app/api/rider.py`:
+       - In `verify_rider_email_otp`: Removed `and otp != "000000"`, enforcing strict validation of genuine OTP codes.
+       - In `verify_rider_agreement_otp`: Removed `and otp != "000000"`, ensuring 100% genuine OTP verification for Captain SLA execution.
+       - In `send_rider_email_otp_endpoint`: Added structured error logging for dispatch verification.
+     - `backend-python/app/core/twilio_sms.py`:
+       - Removed `if is_test_otp_allowed() and code_clean == "000000": return True` from both `verify_stored_otp` and `verify_phone_otp_code`.
+     - `backend-python/app/api/auth.py`:
+       - Removed fallback `store_otp(phone, "000000")`.
+     - `backend-python/app/core/email_service.py`:
+       - Polished `send_partner_email_otp` to match Rider's executive styling: official QuickPress Partner brand lockup, subject `"QuickPress Partner Email Verification OTP"`, badge `"Partner Identity Verification"`, headline `"Verify Your Partner Email ✉️"`, brand `#00C853` dashed highlight box, and 10-minute validity notice.
+   - **Partner Frontend:**
+     - `partner-frontend/src/api/partner/partner-auth-api.ts`: Removed `"Partner"` fallback for `ownerName` in `toPartnerSession`.
+     - `partner-frontend/src/context/PartnerShopContext.tsx`: Removed `"Partner"` fallback for `ownerName`.
+     - `partner-frontend/src/screens/BusinessRegistrationScreen.tsx`:
+       - Implemented `isGenericPartnerName` guard filter rejecting `"partner"`, `"quickpress partner"`, `"merchant store"`, etc.
+       - Sanitized `setOwnerFullName`, localStorage draft restoration, `statusRes.draftData` prefill, and session prefill so `firstName` is never initialized to `"Partner"`.
+       - Changed OTP input placeholder from `123456` to clean `• • • • • •`.
+       - Sanitized sender name dispatched to `sendPartnerEmailOtp`.
+   - **Rider Frontend:**
+     - `rider-frontend/src/screens/RiderRegistrationScreen.tsx`:
+       - Implemented `isGenericRiderName` guard filter so `"Delivery Captain"` or `"Captain"` never auto-fills `firstName`.
+       - Updated OTP placeholder from `123456` to clean `• • • • • •`.
+
+3. **Build & Quality Assurance:**
+   - `backend-python`: Verified with `python3 -m py_compile` across all modified files (0 errors).
+   - `partner-frontend`: Built successfully (`npm run build` exit code 0).
+   - `rider-frontend`: Built successfully (`npm run build` exit code 0).
+
+---
+
 ## Session: November 22, 2026 (Part 58)
 
 ### Partner Registration Header Modernization, First Name / Last Name Field Separation for Partner & Rider, and Seamless Email Verification Integration

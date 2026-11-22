@@ -57,9 +57,7 @@ function toPartnerSession(session: AuthSession): PartnerSession {
     cached?.ownerName,
     (session.account as any)?.ownerName,
     (session as any)?.ownerName,
-    cached?.businessName,
-    rawAccountName,
-  ], "Partner");
+  ], "");
 
   return {
     partnerId: session.account?.linkedId ?? session.account?.id,

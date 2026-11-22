@@ -425,10 +425,29 @@ export function BusinessRegistrationScreen() {
   const [lastName, setLastName] = useState("");
   const ownerName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
 
+  const isGenericPartnerName = (val: string): boolean => {
+    const lower = (val || "").trim().toLowerCase();
+    return (
+      !lower ||
+      lower === "partner" ||
+      lower === "quickpress partner" ||
+      lower === "merchant partner" ||
+      lower === "merchant store" ||
+      lower === "registered partner" ||
+      lower === "partner admin" ||
+      lower === "delivery partner" ||
+      lower === "delivery captain"
+    );
+  };
+
   const setOwnerFullName = (full: string) => {
-    const parts = full.trim().split(/\s+/);
-    setFirstName(parts[0] || "");
-    setLastName(parts.slice(1).join(" ") || "");
+    const clean = (full || "").trim();
+    if (isGenericPartnerName(clean)) return;
+    const parts = clean.split(/\s+/);
+    const fName = parts[0] || "";
+    const lName = parts.slice(1).join(" ") || "";
+    if (!isGenericPartnerName(fName)) setFirstName(fName);
+    if (!isGenericPartnerName(lName)) setLastName(lName);
   };
   const [mobile, setMobile] = useState(() => {
     if (phone) return phone;
@@ -602,7 +621,8 @@ export function BusinessRegistrationScreen() {
     }
     setIsSendingEmailOtp(true);
     try {
-      const res = await sendPartnerEmailOtp(clean, ownerName.trim());
+      const senderName = ownerName.trim() || [firstName.trim(), lastName.trim()].filter(Boolean).join(" ") || "Store Partner";
+      const res = await sendPartnerEmailOtp(clean, senderName);
       if (res.ok) {
         setShowEmailOtpBox(true);
         setEmailOtpCountdown(60);
@@ -750,8 +770,8 @@ export function BusinessRegistrationScreen() {
       const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
       if (savedDraft) {
         const d = JSON.parse(savedDraft);
-        if (d.firstName) setFirstName(d.firstName);
-        if (d.lastName) setLastName(d.lastName);
+        if (d.firstName && !isGenericPartnerName(d.firstName)) setFirstName(d.firstName.trim());
+        if (d.lastName && !isGenericPartnerName(d.lastName)) setLastName(d.lastName.trim());
         if (d.ownerName && !d.firstName) setOwnerFullName(d.ownerName);
         if (d.mobile) setMobile(d.mobile);
         if (d.email) setEmail(d.email);
@@ -812,8 +832,8 @@ export function BusinessRegistrationScreen() {
 
         if (statusRes.draftData) {
           const d = statusRes.draftData;
-          if (d.firstName) setFirstName(d.firstName);
-          if (d.lastName) setLastName(d.lastName);
+          if (d.firstName && !isGenericPartnerName(d.firstName)) setFirstName(d.firstName.trim());
+          if (d.lastName && !isGenericPartnerName(d.lastName)) setLastName(d.lastName.trim());
           if (d.ownerName && !d.firstName) setOwnerFullName(d.ownerName);
           if (d.phone || d.mobile) setMobile(d.phone || d.mobile);
           if (d.email) setEmail(d.email);
@@ -864,7 +884,12 @@ export function BusinessRegistrationScreen() {
       if (!email && session.email) {
         setEmail(session.email);
       }
-      if (!firstName && session.ownerName && !/^\+?[\d\s\-()]+$/.test(session.ownerName.trim())) {
+      if (
+        !firstName &&
+        session.ownerName &&
+        !isGenericPartnerName(session.ownerName) &&
+        !/^\+?[\d\s\-()]+$/.test(session.ownerName.trim())
+      ) {
         setOwnerFullName(session.ownerName);
       }
     }
@@ -1742,7 +1767,7 @@ export function BusinessRegistrationScreen() {
                         maxLength={6}
                         value={emailOtp}
                         onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                        placeholder="123456"
+                        placeholder="• • • • • •"
                         className="flex-1 px-3 py-2 rounded-xl bg-white border border-emerald-300 text-center text-sm font-black tracking-widest text-emerald-950 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono"
                       />
                       <button

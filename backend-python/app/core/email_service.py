@@ -1352,28 +1352,28 @@ async def send_partner_email_otp(
     subject = (
         "QuickPress SLA Agreement Execution OTP"
         if is_agreement
-        else "QuickPress Merchant Email Verification OTP"
+        else "QuickPress Partner Email Verification OTP"
     )
-    badge = "Legal E-Signature Security" if is_agreement else "Merchant Identity Verification"
-    headline = "Your 6-Digit Execution Code 🔐" if is_agreement else "Verify Your Merchant Email ✉️"
+    badge = "Legal E-Signature Security" if is_agreement else "Partner Identity Verification"
+    headline = "Your 6-Digit Execution Code 🔐" if is_agreement else "Verify Your Partner Email ✉️"
     subheadline = (
         "Required to legally bind and execute your QuickPress Franchise Agreement"
         if is_agreement
-        else "Confirm your official merchant communications address"
+        else "Confirm your official QuickPress partner communications address"
     )
-    greeting_name = owner_name or "Merchant Partner"
+    greeting_name = owner_name or "Store Partner"
 
     content = f"""
       <p style="font-size: 15px; color: #1e293b; margin-top: 0;">
         Dear <strong>{greeting_name}</strong>,
       </p>
       <p style="font-size: 14px; color: #475569; line-height: 1.6;">
-        {'You are executing the QuickPress Master Merchant Franchise & SLA Agreement. Please use the one-time code below to authenticate and seal your bilateral contract:' if is_agreement else 'Thank you for starting your store registration on QuickPress. Please enter the one-time verification code below to verify your business email address:'}
+        {'You are executing the QuickPress Master Merchant Franchise & SLA Agreement. Please use the one-time code below to authenticate and seal your bilateral contract:' if is_agreement else 'Thank you for registering your store on QuickPress. Please enter the one-time verification code below to verify your business email address:'}
       </p>
 
-      <div style="background: #f0fdf4; border: 2px dashed #059669; border-radius: 14px; padding: 22px; text-align: center; margin: 24px 0;">
-        <span style="font-size: 11px; font-weight: 800; color: #047857; text-transform: uppercase; letter-spacing: 1.5px;">Official One-Time Passcode</span>
-        <div style="font-size: 36px; font-weight: 900; letter-spacing: 10px; color: #065f46; font-family: 'Courier New', Courier, monospace; margin: 12px 0;">
+      <div style="background: #f0fdf4; border: 2px dashed #00C853; border-radius: 14px; padding: 22px; text-align: center; margin: 24px 0;">
+        <span style="font-size: 11px; font-weight: 800; color: #006045; text-transform: uppercase; letter-spacing: 1.5px;">Official One-Time Passcode</span>
+        <div style="font-size: 36px; font-weight: 900; letter-spacing: 10px; color: #006045; font-family: 'Courier New', Courier, monospace; margin: 12px 0;">
           {otp_code}
         </div>
         <p style="font-size: 12px; color: #059669; margin: 0; font-weight: 600;">
@@ -1389,7 +1389,7 @@ async def send_partner_email_otp(
     """
 
     html = _render_base_email(
-        preheader_text=f"Your QuickPress OTP is {otp_code}. Valid for 10 minutes.",
+        preheader_text=f"Your QuickPress Partner OTP is {otp_code}. Valid for 10 minutes.",
         badge_label=badge,
         headline=headline,
         subheadline=subheadline,
@@ -1400,7 +1400,7 @@ async def send_partner_email_otp(
         to=to_email,
         subject=subject,
         html=html,
-        text=f"Your QuickPress OTP is {otp_code}. Valid for 10 minutes. Do not share with anyone.",
+        text=f"Your QuickPress Partner OTP is {otp_code}. Valid for 10 minutes. Do not share with anyone.",
         recipient_name=greeting_name,
         audience="partner",
         category="security",

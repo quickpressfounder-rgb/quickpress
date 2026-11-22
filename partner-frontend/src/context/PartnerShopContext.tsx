@@ -105,7 +105,7 @@ function toShopProfile(profile: PartnerProfile): ShopProfile {
   return {
     shopId: profile.partnerId,
     name: profile.businessName || profile.ownerName || "Merchant Store",
-    ownerName: profile.ownerName || "Partner",
+    ownerName: profile.ownerName || "",
     description: profile.description || "Professional doorstep laundry, steam ironing, and premium dry cleaning store with high hygiene standards.",
     category: profile.category || "Laundry & Dry Clean",
     businessType: profile.category || "Laundry & Dry Clean",

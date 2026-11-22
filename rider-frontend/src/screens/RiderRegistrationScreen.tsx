@@ -421,10 +421,26 @@ export function RiderRegistrationScreen() {
   const [lastName, setLastName] = useState<string>("");
   const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
 
+  const isGenericRiderName = (val: string): boolean => {
+    const lower = (val || "").trim().toLowerCase();
+    return (
+      !lower ||
+      lower === "captain" ||
+      lower === "delivery captain" ||
+      lower === "delivery partner" ||
+      lower === "new captain" ||
+      lower === "quickpress captain"
+    );
+  };
+
   const setRiderFullName = (full: string) => {
-    const parts = full.trim().split(/\s+/);
-    setFirstName(parts[0] || "");
-    setLastName(parts.slice(1).join(" ") || "");
+    const clean = (full || "").trim();
+    if (isGenericRiderName(clean)) return;
+    const parts = clean.split(/\s+/);
+    const fName = parts[0] || "";
+    const lName = parts.slice(1).join(" ") || "";
+    if (!isGenericRiderName(fName)) setFirstName(fName);
+    if (!isGenericRiderName(lName)) setLastName(lName);
   };
   const [email, setEmail] = useState<string>("");
   const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
@@ -848,8 +864,8 @@ export function RiderRegistrationScreen() {
           // Pre-fill form from existing profile if available
           if (statusRes.draftData) {
             const d = statusRes.draftData;
-            if (d.firstName) setFirstName((prev) => prev || d.firstName);
-            if (d.lastName) setLastName((prev) => prev || d.lastName);
+            if (d.firstName && !isGenericRiderName(d.firstName)) setFirstName((prev) => prev || d.firstName);
+            if (d.lastName && !isGenericRiderName(d.lastName)) setLastName((prev) => prev || d.lastName);
             if (d.fullName && !d.firstName) setRiderFullName(d.fullName);
             if (d.email) {
               setEmail((prev) => prev || d.email);
@@ -1900,7 +1916,7 @@ export function RiderRegistrationScreen() {
                       <input
                         type="tel"
                         maxLength={6}
-                        placeholder="123456"
+                        placeholder="• • • • • •"
                         value={emailOtp}
                         onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ""))}
                         className="flex-1 h-10 px-3 bg-white border border-emerald-300 rounded-xl text-center text-sm font-black tracking-widest text-neutral-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"

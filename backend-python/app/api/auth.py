@@ -298,9 +298,7 @@ async def send_otp(payload: SendOtpRequest) -> SendOtpResponse:
     # Dispatch SMS synchronously via real SMS provider (Fast2SMS / 2Factor / Twilio)
     ok, provider, err = await send_twilio_sms_otp(phone, payload.role.value)
     if not ok:
-        _log.warning("SMS Dispatch failed via %s: %s. Enabling temporary testing OTP 000000.", provider, err)
-        from app.core.twilio_sms import store_otp
-        store_otp(phone, "000000", ttl_seconds=settings.otp_ttl_seconds)
+        _log.warning("SMS Dispatch failed via %s: %s", provider, err)
 
     return SendOtpResponse(
         expiresInSeconds=settings.otp_ttl_seconds,
