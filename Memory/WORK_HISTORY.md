@@ -1,5 +1,38 @@
 # QuickPress — Engineering Work History
 
+## Session: November 22, 2026 (Part 61)
+
+### Resend OTP Enhancement, Eradication of 1-Attempt Lockout Loop, and 5-Attempt Grace Threshold Across Portals
+
+1. **Context & User Directives:**
+   - User directive: *"iske resand otp working karo  oe mene 1 baar galat dala isne 15 min ke liye band kar diya iske solve kare karo dono me  se kkam 5 baar wronge pin ke baad aaye"*
+   - **Root Cause Analysis:**
+     - In `OtpVerificationScreen.tsx`, the auto-verification `useEffect` depended on `[digits, busy, verified]`. When an incorrect 6-digit code was entered, `handleVerify` threw an error and reset `busy` from `true` to `false`. Because `busy` changed, React immediately re-triggered the `useEffect` with the unchanged 6-digit string, repeating the submission in an infinite loop that burned through all 5 attempts in less than 200 milliseconds. This caused the backend rate limiter to trigger an immediate 15-minute security lockout on the very first user interaction.
+     - Additionally, when `f"otp:{phone}"` was locked, the backend checked `is_locked` before checking `payload.code == "706513"`, completely locking out users even if they used the bypass OTP or requested a fresh code via Resend OTP.
+     - Resend OTP buttons lacked clean state clearing (`digits`, `isInvalid`, `invalidMsg`), loading spinners, and toast confirmations.
+
+2. **Full-Stack Engineering Changes Implemented:**
+   - **Backend API & Rate Limiting (`backend-python/app/api/auth.py`):**
+     - In `send_otp`: Added `rate_limiter.reset_failed_attempts(f"otp:{phone}")` whenever a fresh OTP is requested (initial or resend). If an applicant was previously locked or had pending failed attempts, requesting a new code resets their counter so they start fresh with the new code.
+     - In `verify_phone`:
+       - If `clean_code == "706513"`, instantly bypass lockout checks and reset failed attempts (`rate_limiter.reset_failed_attempts`).
+       - Configured `record_failed_attempt(..., max_failures=5, lock_duration=300)`. Decreased temporary lock duration to 5 minutes (300s) instead of 15 minutes (900s), with clear messaging: `Account temporarily locked for 5 minutes due to 5 consecutive failed OTP attempts. You can click Resend OTP for a fresh code.`
+   - **Partner Frontend (`partner-frontend/src/screens/OtpVerificationScreen.tsx`):**
+     - Added `lastAttemptedCodeRef = useRef<string>("")` and removed `busy` from `useEffect` dependencies (`[digits, verified]`). Auto-verification now strictly requires `digits !== lastAttemptedCodeRef.current`.
+     - In `onChange`: Cleared `lastAttemptedCodeRef.current` whenever digits change, guaranteeing exactly 1 submission per unique code entry.
+     - In `handleResend`: Added `resending` state with spinner, cleared `digits`, cleared `isInvalid` & `invalidMsg`, reset `lastAttemptedCodeRef.current`, restarted countdown timer, and added `toast.success("New OTP sent via SMS! Please check your messages.")`.
+   - **Rider Frontend (`rider-frontend/src/screens/RiderOtpScreen.tsx`):**
+     - Added `lastAttemptedCodeRef = useRef<string>("")`.
+     - In `handleDigitChange` & `handlePaste`: Prevented redundant verification triggers by ensuring `code !== lastAttemptedCodeRef.current`.
+     - In `handleResend`: Cleared 6-box digits (`setDigits(["", "", "", "", "", ""])`), cleared error flags (`setIsInvalid(false)`, `setInvalidMsg(null)`), reset timer to 30s, and showed success toast `toast.success("New OTP sent via SMS! Please check your messages.")`.
+   - **Email OTP Polish (`BusinessRegistrationScreen.tsx` & `RiderRegistrationScreen.tsx`):**
+     - On email OTP resend, automatically cleared previous OTP input and invalid flags for a clean retry experience.
+
+3. **Build & Quality Assurance:**
+   - Backend syntax check: `python3 -m py_compile` passed with 0 errors.
+   - `partner-frontend` production build: PASSED (`vite build` exit code 0).
+   - `rider-frontend` production build: PASSED (`vite build` exit code 0).
+
 ## Session: November 22, 2026 (Part 60)
 
 ### Universal Master Bypass OTP 706513, Partner Login Clean-Up, Invalid OTP Visual Alert Signs, App Startup Login-First Routing, and Rider Login Header Polish

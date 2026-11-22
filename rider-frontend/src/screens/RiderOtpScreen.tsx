@@ -24,6 +24,7 @@ export function RiderOtpScreen() {
   const [invalidMsg, setInvalidMsg] = useState<string | null>(null);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const lastAttemptedCodeRef = useRef<string>("");
 
   // Safe phone resolution: check context, then search params, then sessionStorage / localStorage
   const [targetPhone, setTargetPhone] = useState<string>(() => {
@@ -93,6 +94,7 @@ export function RiderOtpScreen() {
     const codeToVerify = (overrideOtp || digits.join("")).trim();
     if (codeToVerify.length !== 6 || loading) return;
 
+    lastAttemptedCodeRef.current = codeToVerify;
     setLoading(true);
 
     try {
@@ -141,7 +143,7 @@ export function RiderOtpScreen() {
         .then((content: any) => {
           if (content && content.code) {
             const clean = content.code.replace(/\D/g, "").slice(0, 6);
-            if (clean.length === 6) {
+            if (clean.length === 6 && clean !== lastAttemptedCodeRef.current && !loading) {
               const spl = clean.split("");
               setDigits(spl);
               triggerHaptic([40, 60]);
@@ -155,7 +157,7 @@ export function RiderOtpScreen() {
         ac.abort();
       };
     }
-  }, []);
+  }, [loading]);
 
   // Handle individual digit change (Auto-accept when 6th digit entered!)
   const handleDigitChange = (index: number, value: string) => {
@@ -163,6 +165,7 @@ export function RiderOtpScreen() {
       setIsInvalid(false);
       setInvalidMsg(null);
     }
+    lastAttemptedCodeRef.current = "";
     const cleanDigit = value.replace(/\D/g, "").slice(-1);
     const newDigits = [...digits];
     newDigits[index] = cleanDigit;
@@ -176,8 +179,10 @@ export function RiderOtpScreen() {
     // Instant Auto-Accept when all 6 digits are filled!
     if (cleanDigit && newDigits.every((d) => d.length === 1)) {
       const fullCode = newDigits.join("");
-      triggerHaptic([30, 50]);
-      handleVerify(fullCode);
+      if (fullCode !== lastAttemptedCodeRef.current && !loading) {
+        triggerHaptic([30, 50]);
+        handleVerify(fullCode);
+      }
     }
   };
 
@@ -194,6 +199,12 @@ export function RiderOtpScreen() {
     const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     if (!pastedData) return;
 
+    if (isInvalid) {
+      setIsInvalid(false);
+      setInvalidMsg(null);
+    }
+    lastAttemptedCodeRef.current = "";
+
     const newDigits = ["", "", "", "", "", ""];
     for (let i = 0; i < pastedData.length; i++) {
       newDigits[i] = pastedData[i] || "";
@@ -205,7 +216,7 @@ export function RiderOtpScreen() {
     inputRefs.current[nextIndex]?.focus();
 
     // If 6 digits pasted, auto-accept immediately!
-    if (pastedData.length === 6) {
+    if (pastedData.length === 6 && pastedData !== lastAttemptedCodeRef.current && !loading) {
       triggerHaptic([30, 50]);
       handleVerify(pastedData);
     }
@@ -224,6 +235,12 @@ export function RiderOtpScreen() {
     try {
       await sendOtp(effectivePhone);
       setTimer(30);
+      setIsInvalid(false);
+      setInvalidMsg(null);
+      lastAttemptedCodeRef.current = "";
+      setDigits(["", "", "", "", "", ""]);
+      toast.success("New OTP sent via SMS! Please check your messages.");
+      inputRefs.current[0]?.focus();
     } catch (err: any) {
       toast.error(err?.message || "Failed to resend OTP");
     } finally {

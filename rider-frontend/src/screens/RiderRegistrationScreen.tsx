@@ -725,6 +725,8 @@ export function RiderRegistrationScreen() {
       if (res.ok) {
         setShowEmailOtpBox(true);
         setEmailOtpCountdown(60);
+        setEmailOtp("");
+        setEmailOtpInvalid(false);
         clearFieldError("email");
         toast.success(`Verification OTP sent to ${cleanEmail} ✓`);
       } else {

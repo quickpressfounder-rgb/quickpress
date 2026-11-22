@@ -29,10 +29,12 @@ export function OtpVerificationScreen() {
   const { remaining, canResend, restart } = useOtpCountdown(45);
   const [digits, setDigits] = useState("");
   const [busy, setBusy] = useState(false);
+  const [resending, setResending] = useState(false);
   const [verified, setVerified] = useState(false);
   const [isInvalid, setIsInvalid] = useState(false);
   const [invalidMsg, setInvalidMsg] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastAttemptedCodeRef = useRef<string>("");
 
   const targetPhone =
     phone ||
@@ -54,11 +56,17 @@ export function OtpVerificationScreen() {
     inputRef.current?.focus();
   }, []);
 
+  // Auto-verify ONLY when 6 digits are entered AND it's a fresh code that wasn't just attempted
   useEffect(() => {
-    if (digits.length === 6 && !busy && !verified) {
+    if (
+      digits.length === 6 &&
+      digits !== lastAttemptedCodeRef.current &&
+      !busy &&
+      !verified
+    ) {
       void handleVerify();
     }
-  }, [digits, busy, verified]);
+  }, [digits, verified]);
 
   const handleVerify = async (event?: FormEvent) => {
     event?.preventDefault();
@@ -67,6 +75,7 @@ export function OtpVerificationScreen() {
       toast.error("Please enter the complete 6-digit code");
       return;
     }
+    lastAttemptedCodeRef.current = digits;
     setBusy(true);
 
     let session;
@@ -127,18 +136,24 @@ export function OtpVerificationScreen() {
   };
 
   const handleResend = async () => {
+    if (resending || !canResend || verified) return;
+    setResending(true);
     try {
       await requestOtp(targetPhone);
-      toast.success("New OTP sent via SMS!");
+      setIsInvalid(false);
+      setInvalidMsg(null);
+      lastAttemptedCodeRef.current = "";
+      setDigits("");
+      restart();
+      toast.success("New OTP sent via SMS! Please check your messages.");
+      inputRef.current?.focus();
     } catch (cause) {
       toast.error(
         cause instanceof Error ? cause.message : "Could not resend OTP. Please try again.",
       );
-      return;
+    } finally {
+      setResending(false);
     }
-    restart();
-    setDigits("");
-    inputRef.current?.focus();
   };
 
   return (
@@ -194,11 +209,15 @@ export function OtpVerificationScreen() {
                 maxLength={6}
                 value={digits}
                 onChange={(e) => {
+                  const nextVal = e.target.value.replace(/\D/g, "").slice(0, 6);
                   if (isInvalid) {
                     setIsInvalid(false);
                     setInvalidMsg(null);
                   }
-                  setDigits(e.target.value.replace(/\D/g, "").slice(0, 6));
+                  if (nextVal !== digits) {
+                    lastAttemptedCodeRef.current = "";
+                  }
+                  setDigits(nextVal);
                 }}
                 className="absolute inset-0 z-10 size-full cursor-pointer bg-transparent text-transparent caret-transparent outline-none focus:outline-none"
               />
@@ -267,13 +286,17 @@ export function OtpVerificationScreen() {
             <div className="text-center pt-2">
               <button
                 type="button"
-                disabled={!canResend || verified}
+                disabled={!canResend || verified || resending}
                 onClick={handleResend}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-700 hover:text-zinc-950 disabled:text-zinc-400 cursor-pointer"
               >
-                <RotateCcw className="size-3.5" />
+                <RotateCcw className={`size-3.5 ${resending ? "animate-spin" : ""}`} />
                 <span>
-                  {canResend ? "Resend OTP SMS" : `Resend OTP in ${remaining}s`}
+                  {resending
+                    ? "Sending OTP..."
+                    : canResend
+                    ? "Resend OTP SMS"
+                    : `Resend OTP in ${remaining}s`}
                 </span>
               </button>
             </div>

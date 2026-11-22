@@ -627,6 +627,9 @@ export function BusinessRegistrationScreen() {
       if (res.ok) {
         setShowEmailOtpBox(true);
         setEmailOtpCountdown(60);
+        setEmailOtp("");
+        setEmailOtpInvalid(false);
+        setEmailOtpError(null);
         toast.success(`6-Digit OTP sent to ${clean}`);
       } else {
         toast.error(res.message || "Could not send OTP to email");
