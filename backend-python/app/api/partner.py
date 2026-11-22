@@ -32,6 +32,7 @@ partner profile — so the partner-frontend preview is never blank.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import secrets
 import uuid

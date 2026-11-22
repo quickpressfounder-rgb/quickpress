@@ -25,9 +25,10 @@
      - In `toRiderSession`: Strictly populated `riderId` only when `acc.linkedId && acc.linkedId !== acc.id`. For un-onboarded riders, `riderId` remains `""`.
      - In `auth-guard.ts` (`isRiderOnboarded` & `requireRiderAuth`): `linkedId` is only treated as valid if `linkedId !== authUserId`. `isRiderApproved` explicitly requires `isRiderOnboarded(sess)` before any approval checks. Un-onboarded riders are strictly redirected to `/registration`.
      - In `routes/index.tsx`: Authenticated riders with `!isRiderOnboarded` are routed directly to `/registration`.
-   - **Partner Email OTP Input Box Fix (`BusinessRegistrationScreen.tsx`):**
+   - **Partner Email OTP Input Box Fix & Backend Asyncio Import (`BusinessRegistrationScreen.tsx`, `backend-python/app/api/partner.py`):**
      - Removed the undefined `setEmailOtpError(null)` call from `handleSendEmailOtp`, enabling `setShowEmailOtpBox(true)` to execute seamlessly and render the 6-digit email OTP input box upon sending.
      - Aligned the "Verify Email" button disabled check to `!email.trim() || !email.includes("@")`, ensuring fluid button responsiveness on mobile devices.
+     - Added `import asyncio` to `backend-python/app/api/partner.py`, fixing the runtime `NameError: name 'asyncio' is not defined` when triggering `asyncio.create_task(_safe_dispatch_partner_email())` on `/api/partner/send-email-otp`.
 
 3. **Build & Quality Assurance:**
    - `partner-frontend` production build: PASSED (`vite build` exit code 0).
