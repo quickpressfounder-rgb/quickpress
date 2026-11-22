@@ -1,5 +1,55 @@
 # QuickPress — Engineering Work History
 
+## Session: November 22, 2026 (Part 58)
+
+### Partner Registration Header Modernization, First Name / Last Name Field Separation for Partner & Rider, and Seamless Email Verification Integration
+
+1. **Context & User Directives:**
+   - **Partner Registration Header Polish:**
+     - Removed back arrow key (`<ArrowLeft>`) from the sticky registration header.
+     - Removed verbose subtitle/description (`"Official Laundry & Dry-Cleaning Store Registration"`).
+     - Removed the redundant `"Step 1 / 5"` text badge.
+     - Replaced the generic green badge with the prominent official QuickPress Partner brand lockup (`Quick` black + `Press` `#00C853` + `PARTNER`).
+   - **First Name and Last Name Separation:**
+     - Split single full name field into separate First Name and Last Name inputs across both Partner (`BusinessRegistrationScreen.tsx`) and Rider (`RiderRegistrationScreen.tsx`) registration wizards in a 2-column responsive layout.
+     - Maintained automatic fallback synthesis of `ownerName` / `fullName` (`${firstName} ${lastName}`) for legal agreements, bank penny drops, and existing backend endpoints.
+     - Supported auto-loading of first/last names from saved drafts and existing session records.
+   - **Email Verification Integration:**
+     - Redesigned the Email verification input layout in `BusinessRegistrationScreen.tsx` with a clean `flex items-center gap-2` row, completely eliminating button overlapping on long email addresses.
+     - Dispatched real 6-digit OTPs via `/api/partner/verify/email/send-otp` and verified via `/api/partner/verify/email/verify-otp`.
+     - Strictly enforced email verification completion before allowing progression past Step 1.
+     - Transmitted `isEmailVerified: true`, `firstName`, and `lastName` in registration payloads.
+     - Updated backend `OnboardingPayload`, `partner_profiles`, and `rider_profiles` to persist `firstName`, `lastName`, and `isEmailVerified`.
+
+2. **Full-Stack Engineering Changes Implemented:**
+   - **`partner-frontend/src/screens/BusinessRegistrationScreen.tsx`:**
+     - Redesigned header: Removed back arrow, removed description, removed step counter, added QuickPress Partner brand lockup.
+     - Added `firstName` and `lastName` states; derived `ownerName`; updated draft saving and loading.
+     - Replaced single owner name input with responsive 2-column First Name & Last Name inputs.
+     - Fixed email input container from absolute positioned button to flex layout; wired OTP countdown and verification.
+     - Enforced `isEmailVerified` and individual first/last name validations in `handleNextStep`.
+   - **`partner-frontend/src/shared/types/partner.ts`:**
+     - Added `firstName?: string;`, `lastName?: string;`, `isEmailVerified?: boolean;` to `BusinessRegistrationPayload`.
+   - **`rider-frontend/src/screens/RiderRegistrationScreen.tsx`:**
+     - Added `firstName` and `lastName` states; derived `fullName`; updated draft prefill and draft loading.
+     - Replaced single full name input with 2-column First Name & Last Name inputs.
+     - Updated `handleNextStep` validation for both first and last names.
+     - Included `firstName`, `lastName`, and `isEmailVerified` in `submitRiderRegistration` payload.
+   - **`backend-python/app/models/partner.py`:**
+     - Added `firstName`, `lastName`, and `isEmailVerified` to `OnboardingPayload`.
+   - **`backend-python/app/api/partner.py`:**
+     - In `onboarding`: Persisted `firstName`, `lastName`, and `isEmailVerified` to `partner_profiles`.
+   - **`backend-python/app/api/rider.py`:**
+     - In `submit_registration`: Persisted `firstName`, `lastName`, and `isEmailVerified` to `rider_profiles`.
+
+3. **Build & Quality Assurance:**
+   - `backend-python`: Verified with `python3 -m py_compile` (0 errors).
+   - `partner-frontend`: Built successfully (`npm run build` exit code 0).
+   - `rider-frontend`: Built successfully (`npm run build` exit code 0).
+   - Git commits `742066f2` created and pushed to GitHub `origin main`.
+
+---
+
 ## Session: November 22, 2026 (Part 57)
 
 ### Unified Smart Authentication & Automatic Routing for Partner and Rider (Captain) Applications
