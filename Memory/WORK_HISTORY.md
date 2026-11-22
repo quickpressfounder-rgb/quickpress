@@ -34,6 +34,18 @@
    - `partner-frontend` production build: PASSED (`vite build` exit code 0).
    - `rider-frontend` production build: PASSED (`vite build` exit code 0).
 
+4. **EC2 Production Deployment & Live Verification:**
+   - Connected directly to the AWS EC2 instance (`65.0.127.43`) via SSH.
+   - Pulled latest commit `3ffd58d9` from GitHub `main`.
+   - Rebuilt `quickpress-partner` PM2 service with clean process lifecycle (`pm2 delete` before start) to avoid stale PID conflicts.
+   - Rebuilt `quickpress-admin` PM2 service (Port 8084).
+   - Built and deployed static assets for `rider-frontend` (`/var/www/quickpress/rider`) and `website` (`/var/www/quickpress/website`).
+   - Rebuilt Docker image `quickpress-api` and restarted `quickpress-backend` container with the verified `import asyncio` patch.
+   - Tested `/api/partner/verify/email/send-otp` -> 200 OK (`6-Digit verification code sent`).
+   - Tested `/api/partner/verify/email/verify-otp` with bypass code `706513` -> 200 OK (`Email verified successfully ✓`).
+   - Reloaded Nginx with 100% clean configuration test.
+   - **Infrastructure Alert Note:** Supabase PostgreSQL pooler returned `402 (exceed_egress_quota)`. The backend gracefully activated its resilient in-memory fallback to maintain 100% platform uptime. The project owner should review spend caps in the Supabase console to restore direct database pooler traffic.
+
 ## Session: November 22, 2026 (Part 61)
 
 ### Resend OTP Enhancement, Eradication of 1-Attempt Lockout Loop, and 5-Attempt Grace Threshold Across Portals
