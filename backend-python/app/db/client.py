@@ -269,40 +269,73 @@ class Database:
         }
 
     async def connect(self) -> None:
-        """Connect to Supabase PostgreSQL or MongoDB database."""
+        """Connect to Supabase PostgreSQL or MongoDB database with multi-host resilience."""
         settings = get_settings()
         import logging
-        is_production = settings.app_env.lower() == "production"
+        logger = logging.getLogger(__name__)
 
         # 1. Connect to Supabase PostgreSQL if configured
-        db_url = (getattr(settings, "database_url", None) or "").strip()
-        if db_url:
-            for attempt in range(3):
-                try:
-                    from app.db.supabase_client import SupabaseDatabase
-                    sb_db = SupabaseDatabase(db_url)
-                    await asyncio.wait_for(sb_db.connect(), timeout=30.0)
-                    self._supabase = sb_db
-                    self._engine = "supabase-postgresql"
-                    self._fallback_in_memory = False
-                    logging.getLogger(__name__).info("Connected to Supabase PostgreSQL successfully.")
-                    return
-                except Exception as err:
-                    logging.getLogger(__name__).warning("Supabase PostgreSQL connection attempt %d failed: %s", attempt + 1, repr(err))
-                    if attempt < 2:
-                        await asyncio.sleep(1.5)
-                    else:
-                        logging.getLogger(__name__).error(
-                            "CRITICAL: Production database connection attempt failed after 3 tries: %s. Entering safe in-memory fallback to preserve server uptime.",
+        raw_db_url = (getattr(settings, "database_url", None) or "").strip()
+        if raw_db_url:
+            candidate_urls = [raw_db_url]
+            # If URL points to quickpress-postgres, also prepare fallback hosts (direct IP, host gateway, bridge IP, localhost)
+            if "@quickpress-postgres" in raw_db_url:
+                for fallback_host in ["172.18.0.3", "host.docker.internal", "172.17.0.1", "127.0.0.1"]:
+                    alt_url = raw_db_url.replace("@quickpress-postgres", f"@{fallback_host}")
+                    if alt_url not in candidate_urls:
+                        candidate_urls.append(alt_url)
+
+            for target_url in candidate_urls:
+                for attempt in range(3):
+                    try:
+                        from app.db.supabase_client import SupabaseDatabase
+                        sb_db = SupabaseDatabase(target_url)
+                        await asyncio.wait_for(sb_db.connect(), timeout=15.0)
+                        self._supabase = sb_db
+                        self._engine = "supabase-postgresql"
+                        self._fallback_in_memory = False
+                        logger.info("Connected to Supabase PostgreSQL successfully via %s.", target_url.split("@")[-1])
+                        return
+                    except Exception as err:
+                        logger.warning(
+                            "PostgreSQL connection attempt %d to %s failed: %s",
+                            attempt + 1,
+                            target_url.split("@")[-1],
                             repr(err),
                         )
-                        self._fallback_in_memory = True
-                        self._engine = "in-memory"
-                        return
+                        await asyncio.sleep(1.0)
+
+            # If all immediate attempts fail, enter temporary in-memory fallback AND schedule background reconnect loop
+            logger.error(
+                "CRITICAL: Immediate PostgreSQL connection failed across all candidate hosts. Entering temporary in-memory fallback and starting background auto-reconnect task."
+            )
+            self._fallback_in_memory = True
+            self._engine = "in-memory"
+            asyncio.create_task(self._background_reconnect(candidate_urls))
+            return
 
         self._fallback_in_memory = True
         self._engine = "in-memory"
-        logging.getLogger(__name__).info("Using in-memory database store.")
+        logger.info("Using in-memory database store.")
+
+    async def _background_reconnect(self, candidate_urls: list[str]) -> None:
+        """Background daemon that keeps trying to restore PostgreSQL connection if server started before DB."""
+        import logging
+        logger = logging.getLogger(__name__)
+        while self._fallback_in_memory:
+            await asyncio.sleep(5.0)
+            for target_url in candidate_urls:
+                try:
+                    from app.db.supabase_client import SupabaseDatabase
+                    sb_db = SupabaseDatabase(target_url)
+                    await asyncio.wait_for(sb_db.connect(), timeout=10.0)
+                    self._supabase = sb_db
+                    self._engine = "supabase-postgresql"
+                    self._fallback_in_memory = False
+                    logger.info("Restored PostgreSQL connection in background via %s! Exited in-memory mode.", target_url.split("@")[-1])
+                    return
+                except Exception:
+                    continue
 
     async def run_migrations(self) -> Optional[Dict[str, Any]]:
         """Supabase PostgreSQL uses declarative jsonb store and dynamic schemas."""

@@ -79,10 +79,33 @@ sudo find /var/www/quickpress/website -mindepth 1 -maxdepth 1 ! -name 'apks' -ex
 sudo cp -r dist/* /var/www/quickpress/website/
 sudo chown -R www-data:www-data /var/www/quickpress/website
 
-# 5. Docker Backend
-echo "🐳 [5/5] Rebuilding & restarting Python FastAPI Backend Container..."
+# 5. Docker Backend & Persistent PostgreSQL Database
+echo "🐳 [5/5] Ensuring Persistent PostgreSQL & Python FastAPI Backend Container..."
 cd "$REPO_ROOT"
 if command -v docker &> /dev/null; then
+    # Ensure Docker network exists
+    sudo docker network create quickpress-net 2>/dev/null || true
+
+    # Ensure persistent PostgreSQL directory exists
+    sudo mkdir -p /home/ubuntu/quickpress-data/postgres
+    sudo chown -R 999:999 /home/ubuntu/quickpress-data/postgres 2>/dev/null || true
+
+    # Ensure quickpress-postgres is running on quickpress-net with persistent volume
+    if ! sudo docker ps | grep -q "quickpress-postgres"; then
+        echo "  -> Starting quickpress-postgres container on quickpress-net..."
+        sudo docker start quickpress-postgres 2>/dev/null || sudo docker run -d \
+            --name quickpress-postgres \
+            --restart always \
+            --network quickpress-net \
+            -v /home/ubuntu/quickpress-data/postgres:/var/lib/postgresql/data \
+            -p 127.0.0.1:5432:5432 \
+            -e POSTGRES_DB=quickpress \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_PASSWORD=QuickPressDB2026Secure \
+            postgres:16-alpine
+    fi
+    sudo docker network connect quickpress-net quickpress-postgres 2>/dev/null || true
+
     sudo docker build -t quickpress-api .
     sudo docker stop quickpress-backend 2>/dev/null || true
     sudo docker rm quickpress-backend 2>/dev/null || true
@@ -93,12 +116,14 @@ if command -v docker &> /dev/null; then
     sudo docker run -d \
         --name quickpress-backend \
         --restart always \
+        --network quickpress-net \
+        --add-host=host.docker.internal:host-gateway \
         --env-file .env \
         $FIREBASE_MOUNT \
         -p 127.0.0.1:8000:8000 \
         quickpress-api
     echo "  -> Verifying backend container health..."
-    sleep 3
+    sleep 4
     if sudo docker ps | grep -q "quickpress-backend"; then
         echo "✅ Backend container running healthy on port 8000."
     else
