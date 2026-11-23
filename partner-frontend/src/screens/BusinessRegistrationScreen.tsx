@@ -47,6 +47,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Shirt,
+  SlidersHorizontal,
   Sparkles,
   Store,
   Trash2,
@@ -55,6 +56,7 @@ import {
   UserCheck,
   UserRound,
   Wind,
+  X,
   Zap,
 } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -92,11 +94,11 @@ import type { BusinessCategory, BusinessRegistrationPayload } from "@/shared/typ
 /* ----------------------------- static constants ----------------------------- */
 
 const STEPS = [
-  { num: 1, title: "Personal Details", short: "Personal", icon: UserRound },
-  { num: 2, title: "Aadhaar, PAN & Photo", short: "KYC & Photo", icon: IdCard },
-  { num: 3, title: "Business Details", short: "Business", icon: Store },
-  { num: 4, title: "Services Specific", short: "Services", icon: Sparkles },
-  { num: 5, title: "Bank Details", short: "Bank", icon: Landmark },
+  { num: 1, title: "Step 1: Personal Details", short: "Personal", icon: UserRound },
+  { num: 2, title: "Step 2: KYC & Identity Verification", short: "KYC & Photo", icon: IdCard },
+  { num: 3, title: "Step 3: Store Details & Map Location", short: "Store & Map", icon: Store },
+  { num: 4, title: "Step 4: Services & Rate Card", short: "Services & Rates", icon: Sparkles },
+  { num: 5, title: "Step 5: Bank Account & Payouts", short: "Bank & Payouts", icon: Landmark },
 ] as const;
 
 const BUSINESS_TYPES = [
@@ -426,8 +428,26 @@ export function BusinessRegistrationScreen() {
     return 1;
   });
   const [busy, setBusy] = useState(false);
+  const [isDraftHydrated, setIsDraftHydrated] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [missingSummary, setMissingSummary] = useState<string[]>([]);
+
+  // Extended service rate configuration (SLA, Express delivery, notes)
+  const [serviceConfigs, setServiceConfigs] = useState<
+    Record<
+      string,
+      {
+        price: number;
+        unit: string;
+        slaHours: number;
+        expressAvailable: boolean;
+        expressPrice: number;
+        expressSlaHours: number;
+        notes?: string;
+      }
+    >
+  >({});
+  const [editingService, setEditingService] = useState<(MasterCatalogItem & { category?: string }) | null>(null);
 
   // Re-submission / Correction States
   const [isResubmissionFlow, setIsResubmissionFlow] = useState(false);
@@ -922,6 +942,7 @@ export function BusinessRegistrationScreen() {
         if (d.servicePrices) setServicePrices(d.servicePrices);
         if (d.serviceTurnarounds) setServiceTurnarounds(d.serviceTurnarounds);
         if (d.serviceUnits) setServiceUnits(d.serviceUnits);
+        if (d.serviceConfigs) setServiceConfigs(d.serviceConfigs);
         if (d.bankName) setBankName(d.bankName);
         if (d.customBankName) setCustomBankName(d.customBankName);
         if (d.accountHolder) setAccountHolder(d.accountHolder);
@@ -932,7 +953,10 @@ export function BusinessRegistrationScreen() {
         if (d.ifsc) setIfsc(d.ifsc);
         if (d.chequePhotoUrl) setChequePhotoUrlUrl(d.chequePhotoUrl);
       }
-    } catch {}
+      setIsDraftHydrated(true);
+    } catch {
+      setIsDraftHydrated(true);
+    }
 
     // 2. Fetch server status and draft data
     checkPartnerVerificationStatus()
@@ -1041,6 +1065,7 @@ export function BusinessRegistrationScreen() {
 
   // Auto-Save Draft to LocalStorage
   useEffect(() => {
+    if (!isDraftHydrated) return;
     const draftPayload = {
       currentStep,
       pickedLatitude,
@@ -1075,6 +1100,7 @@ export function BusinessRegistrationScreen() {
       servicePrices,
       serviceTurnarounds,
       serviceUnits,
+      serviceConfigs,
       bankName,
       customBankName,
       accountHolder,
@@ -1086,6 +1112,7 @@ export function BusinessRegistrationScreen() {
       localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftPayload));
     } catch {}
   }, [
+    isDraftHydrated,
     currentStep,
     pickedLatitude,
     pickedLongitude,
@@ -1119,6 +1146,7 @@ export function BusinessRegistrationScreen() {
     servicePrices,
     serviceTurnarounds,
     serviceUnits,
+    serviceConfigs,
     bankName,
     customBankName,
     accountHolder,
@@ -1512,17 +1540,35 @@ export function BusinessRegistrationScreen() {
         longitude: pickedLongitude,
         services: selectedServices.map((sId) => {
           const item = catalogServices.find((it) => it.id === sId) || DEFAULT_SERVICES.find((it) => it.id === sId);
+          const cfg = serviceConfigs[sId];
+          const price = cfg?.price ?? servicePrices[sId] ?? (item?.price || 79);
+          const unit = cfg?.unit || serviceUnits[sId] || item?.unit || "pc";
+          const turnaroundHours = cfg?.slaHours ?? serviceTurnarounds[sId] ?? (item?.defaultHours || 24);
+          const expressAvailable = cfg?.expressAvailable ?? false;
+          const expressPrice = cfg?.expressPrice ?? (price ? Math.round(price * 1.5) : 0);
+          const expressSlaHours = cfg?.expressSlaHours ?? Math.max(4, Math.round(turnaroundHours / 2));
+          const notes = cfg?.notes || "";
           return {
+            id: sId,
             name: item?.name || sId,
-            price: servicePrices[sId] ?? (item?.price || 79),
-            unit: serviceUnits[sId] || item?.unit || "pc",
-            turnaroundHours: serviceTurnarounds[sId] ?? (item?.defaultHours || 24),
+            price,
+            regularPrice: price,
+            unit,
+            turnaroundHours,
+            regularSlaHours: turnaroundHours,
+            expressAvailable,
+            expressPrice,
+            expressSlaHours,
+            notes,
+            category: item?.category || "laundry",
+            image: item?.image || "",
             enabled: true,
           };
         }),
         servicePrices,
         serviceTurnarounds,
         serviceUnits,
+        serviceConfigs,
         agreementSigned: false,
         agreementStatus: "PENDING_SIGNATURE",
         referral_code: referralCode ? referralCode.trim().toUpperCase() : undefined,
@@ -2635,7 +2681,7 @@ export function BusinessRegistrationScreen() {
               </div>
 
               {/* Service Cards List */}
-              <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
                 {filteredCatalogServices.map((svc) => {
                   const isSelected = selectedServices.includes(svc.id);
                   const price = servicePrices[svc.id] ?? svc.price;
@@ -2649,31 +2695,36 @@ export function BusinessRegistrationScreen() {
                       ? "set"
                       : "pc";
                   const selectedUnit = serviceUnits[svc.id] || defaultUnitFallback;
+                  const cfg = serviceConfigs[svc.id];
 
                   return (
                     <div
                       key={svc.id}
                       className={`p-3.5 rounded-2xl border transition-all ${
                         isSelected
-                          ? "bg-emerald-500/5 border-emerald-500/30 ring-1 ring-emerald-500/20 shadow-xs"
+                          ? "bg-emerald-500/5 border-emerald-500/40 ring-1 ring-emerald-500/20 shadow-xs"
                           : "bg-white border-neutral-200 hover:border-neutral-300"
                       }`}
                     >
-                      {/* Top Row: Checkbox, Thumbnail, Title & Description */}
-                      <div
-                        className="flex items-start gap-3 cursor-pointer"
-                        onClick={() => toggleService(svc.id)}
-                      >
-                        <div
-                          className={`size-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition ${
-                            isSelected ? "bg-emerald-600 border-emerald-600 text-white" : "border-neutral-300 bg-white"
+                      {/* Top Row: Checkbox, Thumbnail, Title, Rates & Edit Button */}
+                      <div className="flex items-start gap-3">
+                        {/* Direct Checkbox to quickly toggle ON/OFF */}
+                        <button
+                          type="button"
+                          onClick={() => toggleService(svc.id)}
+                          className={`size-6 rounded-lg border flex items-center justify-center shrink-0 mt-1 transition active:scale-90 cursor-pointer ${
+                            isSelected ? "bg-emerald-600 border-emerald-600 text-white shadow-xs" : "border-neutral-300 bg-white hover:border-neutral-400"
                           }`}
+                          aria-label={`Toggle ${svc.name}`}
                         >
-                          {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                        </div>
+                          {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </button>
 
                         {/* Service Thumbnail (Master Catalog Image) */}
-                        <div className="size-11 sm:size-12 rounded-xl overflow-hidden bg-neutral-100 shrink-0 border border-neutral-200/80 relative self-start shadow-2xs">
+                        <div
+                          className="size-14 sm:size-16 rounded-2xl overflow-hidden bg-neutral-100 shrink-0 border border-neutral-200 relative self-start shadow-2xs cursor-pointer active:scale-95 transition"
+                          onClick={() => setEditingService(svc)}
+                        >
                           {svc.image ? (
                             <img
                               src={svc.image}
@@ -2686,98 +2737,74 @@ export function BusinessRegistrationScreen() {
                             />
                           ) : (
                             <div className="size-full flex items-center justify-center bg-primary/10 text-primary">
-                              <Sparkles className="size-5" />
+                              <Sparkles className="size-6" />
                             </div>
                           )}
                         </div>
 
-                        <div className="min-w-0 flex-1">
+                        {/* Card Body & Commercial Rates */}
+                        <div
+                          className="min-w-0 flex-1 cursor-pointer"
+                          onClick={() => setEditingService(svc)}
+                        >
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <h4 className="text-xs sm:text-sm font-black text-neutral-900 leading-snug">{svc.name}</h4>
+                            <h4 className="text-xs sm:text-sm font-black text-neutral-900 leading-snug">
+                              {svc.name}
+                            </h4>
                             {svc.category && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 uppercase tracking-wider">
+                              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-neutral-100 text-neutral-600 uppercase tracking-wider">
                                 {svc.category}
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-neutral-500 font-medium line-clamp-2 mt-0.5 leading-relaxed">{svc.desc}</p>
+
+                          <p className="text-[11px] text-neutral-500 font-medium line-clamp-1 mt-0.5 leading-relaxed">
+                            {svc.desc}
+                          </p>
+
+                          {/* Commercial Rates Summary Pills */}
                           {isSelected ? (
-                            <p className="text-[10px] text-emerald-700 font-black mt-1">
-                              ₹{price} / {selectedUnit.toUpperCase()} · {turnaround}h turnaround
-                            </p>
+                            <div className="mt-1.5 space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-600/10 text-emerald-800 font-black text-[11px]">
+                                  ₹{price} / {selectedUnit.toUpperCase()}
+                                </span>
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-700 font-bold text-[10px]">
+                                  <Clock className="size-2.5 text-neutral-500" />
+                                  <span>{turnaround}h SLA</span>
+                                </span>
+                                {cfg?.expressAvailable && (
+                                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-800 font-black text-[10px]">
+                                    <Zap className="size-2.5" />
+                                    <span>Express: ₹{cfg.expressPrice} ({cfg.expressSlaHours}h)</span>
+                                  </span>
+                                )}
+                              </div>
+                              {cfg?.notes && (
+                                <p className="text-[10px] text-neutral-500 italic line-clamp-1">
+                                  Note: {cfg.notes}
+                                </p>
+                              )}
+                            </div>
                           ) : (
-                            <p className="text-[10px] text-neutral-400 font-semibold mt-0.5">
-                              Tap card to enable service &amp; set custom rate
+                            <p className="text-[10px] text-neutral-400 font-semibold mt-1 flex items-center gap-1">
+                              <SlidersHorizontal className="size-3 text-neutral-400" />
+                              <span>Tap to set custom price, SLA hours &amp; express delivery</span>
                             </p>
                           )}
                         </div>
+
+                        {/* Right: Direct Edit Rates Button */}
+                        <button
+                          type="button"
+                          onClick={() => setEditingService(svc)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-[11px] font-bold text-neutral-800 transition active:scale-95 cursor-pointer shrink-0 shadow-2xs"
+                          title="Edit Rates & Turnaround SLA"
+                        >
+                          <SlidersHorizontal className="size-3 text-emerald-600" />
+                          <span className="hidden sm:inline">Set Rates</span>
+                        </button>
                       </div>
-
-                      {/* Bottom Controls Row: Price, Unit Selector & SLA (Visible when selected) */}
-                      {isSelected && (
-                        <div className="mt-3 pt-2.5 border-t border-emerald-600/10 flex items-center justify-between gap-2 flex-wrap">
-                          {/* Rate input */}
-                          <div className="flex items-center gap-1.5 bg-white border border-neutral-200/90 rounded-xl px-2.5 py-1.5 shadow-2xs">
-                            <span className="text-xs font-bold text-neutral-400">₹</span>
-                            <input
-                              type="number"
-                              min={5}
-                              value={price}
-                              onChange={(e) =>
-                                setServicePrices((prev) => ({
-                                  ...prev,
-                                  [svc.id]: Number(e.target.value) || 0,
-                                }))
-                              }
-                              className="w-14 text-xs font-black text-neutral-900 focus:outline-hidden"
-                              placeholder="Rate"
-                            />
-                          </div>
-
-                          {/* Unit Selector: Pc / Kg / Pair / Set / Panel / Meter */}
-                          <div className="flex items-center gap-1 bg-white border border-neutral-200/90 rounded-xl px-2.5 py-1.5 shadow-2xs">
-                            <span className="text-[10px] font-bold text-neutral-400 uppercase">Unit:</span>
-                            <select
-                              value={selectedUnit}
-                              onChange={(e) =>
-                                setServiceUnits((prev) => ({
-                                  ...prev,
-                                  [svc.id]: e.target.value,
-                                }))
-                              }
-                              className="text-xs font-black text-neutral-900 bg-transparent focus:outline-hidden cursor-pointer"
-                            >
-                              <option value="pc">Per Pc (Piece)</option>
-                              <option value="kg">Per Kg</option>
-                              <option value="pair">Per Pair</option>
-                              <option value="set">Per Set</option>
-                              <option value="panel">Per Panel</option>
-                              <option value="meter">Per Meter</option>
-                            </select>
-                          </div>
-
-                          {/* Turnaround SLA */}
-                          <div className="flex items-center gap-1 bg-white border border-neutral-200/90 rounded-xl px-2 py-1.5 shadow-2xs">
-                            <Clock className="w-3 h-3 text-neutral-400 shrink-0" />
-                            <select
-                              value={turnaround}
-                              onChange={(e) =>
-                                setServiceTurnarounds((prev) => ({
-                                  ...prev,
-                                  [svc.id]: Number(e.target.value) || 24,
-                                }))
-                              }
-                              className="text-xs font-bold text-neutral-800 bg-transparent focus:outline-hidden cursor-pointer"
-                            >
-                              <option value={12}>12h (Express)</option>
-                              <option value={24}>24h (Standard)</option>
-                              <option value={36}>36h</option>
-                              <option value={48}>48h (Economy)</option>
-                              <option value={72}>72h</option>
-                            </select>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -3045,6 +3072,340 @@ export function BusinessRegistrationScreen() {
       />
 
 
+
+      {/* Step 4: Service Detail Rate Customization Modal */}
+      {editingService && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setEditingService(null);
+          }}
+        >
+          <div className="w-full max-w-lg bg-white rounded-t-[28px] sm:rounded-3xl border border-neutral-200 shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[85vh] overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-neutral-100 flex items-start gap-3.5 bg-neutral-50/70">
+              <div className="size-14 sm:size-16 rounded-2xl overflow-hidden bg-neutral-200 shrink-0 border border-neutral-300/80 shadow-2xs relative">
+                {editingService.image ? (
+                  <img
+                    src={editingService.image}
+                    alt={editingService.name}
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <div className="size-full flex items-center justify-center bg-emerald-100 text-emerald-700">
+                    <Sparkles className="size-6" />
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base font-black text-neutral-900 leading-tight">
+                    {editingService.name}
+                  </h3>
+                  {editingService.category && (
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-600/10 text-emerald-700 uppercase tracking-wider">
+                      {editingService.category}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-neutral-500 font-medium line-clamp-2 mt-1 leading-relaxed">
+                  {editingService.desc || "Configure commercial rates, SLA turnaround time, and express delivery."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingService(null)}
+                className="size-9 rounded-xl bg-neutral-200/70 hover:bg-neutral-200 text-neutral-700 flex items-center justify-center transition active:scale-90 shrink-0 cursor-pointer"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="p-4 sm:p-5 space-y-4 overflow-y-auto">
+              {/* SECTION 1: Standard Service Rate & SLA */}
+              <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200/90 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-neutral-900 flex items-center gap-1.5">
+                    <CheckCircle2 className="size-4 text-emerald-600" />
+                    <span>Regular Service Rate Card</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
+                    Standard Delivery
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-neutral-700 mb-1">
+                      Regular Price (₹) <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3 text-xs font-bold text-neutral-400">₹</span>
+                      <input
+                        type="number"
+                        min={5}
+                        value={servicePrices[editingService.id] ?? editingService.price}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setServicePrices((prev) => ({ ...prev, [editingService.id]: val }));
+                        }}
+                        className="w-full pl-7 pr-3 py-2 rounded-xl border border-neutral-200 text-xs font-black text-neutral-900 bg-white focus:outline-hidden focus:border-emerald-600"
+                        placeholder="Price"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-neutral-700 mb-1">
+                      Billing Unit <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={serviceUnits[editingService.id] || editingService.unit || "pc"}
+                      onChange={(e) => {
+                        const unitVal = e.target.value;
+                        setServiceUnits((prev) => ({ ...prev, [editingService.id]: unitVal }));
+                      }}
+                      className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-black text-neutral-900 bg-white focus:outline-hidden focus:border-emerald-600 cursor-pointer"
+                    >
+                      <option value="pc">Per Pc (Piece)</option>
+                      <option value="kg">Per Kg</option>
+                      <option value="pair">Per Pair</option>
+                      <option value="set">Per Set</option>
+                      <option value="panel">Per Panel</option>
+                      <option value="meter">Per Meter</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Regular SLA Hours Selection */}
+                <div>
+                  <label className="block text-[11px] font-bold text-neutral-700 mb-1.5 flex items-center gap-1">
+                    <Clock className="size-3.5 text-neutral-500" />
+                    <span>Regular Turnaround Time (SLA)</span>
+                  </label>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {[12, 24, 36, 48, 72].map((hrs) => {
+                      const curSla = serviceTurnarounds[editingService.id] ?? editingService.defaultHours ?? 24;
+                      const isSel = curSla === hrs;
+                      return (
+                        <button
+                          key={hrs}
+                          type="button"
+                          onClick={() => {
+                            setServiceTurnarounds((prev) => ({ ...prev, [editingService.id]: hrs }));
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                            isSel
+                              ? "bg-emerald-600 text-white shadow-xs"
+                              : "bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-100"
+                          }`}
+                        >
+                          {hrs} Hours {hrs === 24 ? "(Standard)" : hrs === 12 ? "(Fast)" : ""}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2: Express Delivery Addon */}
+              <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/80 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="size-7 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center font-bold">
+                      <Zap className="size-4" />
+                    </span>
+                    <div>
+                      <span className="text-xs font-black text-neutral-900 block leading-tight">
+                        Offer Express Delivery (⚡)
+                      </span>
+                      <span className="text-[10px] text-neutral-500 font-medium">
+                        Customers pay higher rate for expedited delivery
+                      </span>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={serviceConfigs[editingService.id]?.expressAvailable ?? false}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        const basePrice = servicePrices[editingService.id] ?? editingService.price;
+                        const baseSla = serviceTurnarounds[editingService.id] ?? editingService.defaultHours ?? 24;
+                        setServiceConfigs((prev) => ({
+                          ...prev,
+                          [editingService.id]: {
+                            price: basePrice,
+                            unit: serviceUnits[editingService.id] || editingService.unit || "pc",
+                            slaHours: baseSla,
+                            expressAvailable: checked,
+                            expressPrice: prev[editingService.id]?.expressPrice || Math.round(basePrice * 1.5),
+                            expressSlaHours: prev[editingService.id]?.expressSlaHours || Math.max(4, Math.round(baseSla / 2)),
+                            notes: prev[editingService.id]?.notes || "",
+                          },
+                        }));
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500" />
+                  </label>
+                </div>
+
+                {serviceConfigs[editingService.id]?.expressAvailable && (
+                  <div className="space-y-3 pt-2 border-t border-amber-200/60 animate-in fade-in duration-150">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-700 mb-1">
+                          Express Price (₹) <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative flex items-center">
+                          <span className="absolute left-3 text-xs font-bold text-amber-600">₹</span>
+                          <input
+                            type="number"
+                            min={5}
+                            value={serviceConfigs[editingService.id]?.expressPrice || Math.round((servicePrices[editingService.id] ?? editingService.price) * 1.5)}
+                            onChange={(e) => {
+                              const val = Math.max(0, Number(e.target.value) || 0);
+                              setServiceConfigs((prev) => ({
+                                ...prev,
+                                [editingService.id]: {
+                                  ...(prev[editingService.id] || {
+                                    price: servicePrices[editingService.id] ?? editingService.price,
+                                    unit: serviceUnits[editingService.id] || editingService.unit || "pc",
+                                    slaHours: serviceTurnarounds[editingService.id] ?? editingService.defaultHours ?? 24,
+                                    expressAvailable: true,
+                                    expressSlaHours: 12,
+                                  }),
+                                  expressPrice: val,
+                                },
+                              }));
+                            }}
+                            className="w-full pl-7 pr-3 py-2 rounded-xl border border-amber-300 text-xs font-black text-neutral-900 bg-white focus:outline-hidden focus:border-amber-600"
+                            placeholder="Express Price"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-700 mb-1">
+                          Express Turnaround SLA
+                        </label>
+                        <select
+                          value={serviceConfigs[editingService.id]?.expressSlaHours || 8}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 8;
+                            setServiceConfigs((prev) => ({
+                              ...prev,
+                              [editingService.id]: {
+                                ...(prev[editingService.id] || {
+                                  price: servicePrices[editingService.id] ?? editingService.price,
+                                  unit: serviceUnits[editingService.id] || editingService.unit || "pc",
+                                  slaHours: serviceTurnarounds[editingService.id] ?? editingService.defaultHours ?? 24,
+                                  expressAvailable: true,
+                                  expressPrice: Math.round((servicePrices[editingService.id] ?? editingService.price) * 1.5),
+                                }),
+                                expressSlaHours: val,
+                              },
+                            }));
+                          }}
+                          className="w-full px-3 py-2 rounded-xl border border-amber-300 text-xs font-black text-neutral-900 bg-white focus:outline-hidden focus:border-amber-600 cursor-pointer"
+                        >
+                          <option value={4}>4 Hours (Super Express)</option>
+                          <option value={6}>6 Hours (Same Day)</option>
+                          <option value={8}>8 Hours (Same Day)</option>
+                          <option value={12}>12 Hours (Half Day)</option>
+                          <option value={18}>18 Hours (Next Morning)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 3: Partner Processing & Care Notes */}
+              <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200/90 space-y-2">
+                <label className="block text-xs font-black text-neutral-900">
+                  Partner Processing Notes (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={serviceConfigs[editingService.id]?.notes || ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setServiceConfigs((prev) => ({
+                      ...prev,
+                      [editingService.id]: {
+                        ...(prev[editingService.id] || {
+                          price: servicePrices[editingService.id] ?? editingService.price,
+                          unit: serviceUnits[editingService.id] || editingService.unit || "pc",
+                          slaHours: serviceTurnarounds[editingService.id] ?? editingService.defaultHours ?? 24,
+                          expressAvailable: false,
+                          expressPrice: Math.round((servicePrices[editingService.id] ?? editingService.price) * 1.5),
+                          expressSlaHours: 12,
+                        }),
+                        notes: val,
+                      },
+                    }));
+                  }}
+                  placeholder="e.g. Steam pressed with wooden hanger & dust cover included"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 bg-white focus:outline-hidden focus:border-emerald-600"
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer CTA */}
+            <div className="p-4 sm:p-5 border-t border-neutral-200 bg-neutral-50 flex items-center gap-2.5">
+              {selectedServices.includes(editingService.id) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedServices(selectedServices.filter((id) => id !== editingService.id));
+                    setEditingService(null);
+                    toast.info(`Removed ${editingService.name} from offered services`);
+                  }}
+                  className="px-4 py-3 rounded-2xl border border-neutral-300 hover:bg-neutral-200 text-neutral-700 font-bold text-xs transition cursor-pointer"
+                >
+                  Remove
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!selectedServices.includes(editingService.id)) {
+                    setSelectedServices([...selectedServices, editingService.id]);
+                  }
+                  // Ensure serviceConfigs is stored
+                  const p = servicePrices[editingService.id] ?? editingService.price;
+                  const u = serviceUnits[editingService.id] || editingService.unit || "pc";
+                  const s = serviceTurnarounds[editingService.id] ?? editingService.defaultHours ?? 24;
+                  setServiceConfigs((prev) => ({
+                    ...prev,
+                    [editingService.id]: {
+                      price: p,
+                      unit: u,
+                      slaHours: s,
+                      expressAvailable: prev[editingService.id]?.expressAvailable ?? false,
+                      expressPrice: prev[editingService.id]?.expressPrice || Math.round(p * 1.5),
+                      expressSlaHours: prev[editingService.id]?.expressSlaHours || Math.max(4, Math.round(s / 2)),
+                      notes: prev[editingService.id]?.notes || "",
+                    },
+                  }));
+                  setEditingService(null);
+                  toast.success(`${editingService.name} rate card & SLA configured! ✓`);
+                }}
+                className="flex-1 py-3 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/20 active:scale-98 transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Check className="size-4 stroke-[2.5]" />
+                <span>Save &amp; Enable Service</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Interactive Map Picker Modal */}
       {showMapPicker && (

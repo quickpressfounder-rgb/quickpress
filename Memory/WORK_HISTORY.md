@@ -1,5 +1,61 @@
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 67)
+
+### Admin Console Partner Detail Crash Fix, Missing Icon Imports, Rider Step 1 Persistence, Leaflet Detecting Loop Elimination, Partner Step 4 Item Rate Customization Modal, and Session Resumption
+
+1. **Context & User Directives:**
+   - User reported 6 critical issues across the multi-console platform along with uploaded screenshot evidence:
+     1. **Rider App Step 1 Reset:** Rider app was reverting to Step 1 upon reopen instead of restoring saved multi-step draft progress.
+     2. **Location Fetching Detecting Loop:** Map location selector was stuck in an address resolution/detecting loop with a permanent loading spinner on "Confirm Shop Location".
+     3. **Partner Step 4 Service Item Detail Modal & Rate Customization:** Merchants need to tap any catalog service to open a detailed modal where they can set regular price, billing unit (`pc`, `kg`, `pair`, `set`, `meter`, `panel`), regular turnaround SLA hours, enable/disable express delivery with custom express price and express turnaround SLA hours, and add care notes. These details must be persisted to the backend so Admin and Customer consoles receive the exact configured rates and express guarantees.
+     4. **Agreement Page Layout & Header Polish:** Safe area top inset padding and a clear back navigation arrow were missing or poorly positioned.
+     5. **Admin Console Partner Detail Page Crash:** Screenshot showed Admin Console (`/partners`) throwing: `Cannot read properties of undefined (reading 'floorAreaSqFt')` when viewing partner profile details.
+     6. **Session Reset on App Restart:** Partner app prompted for login again after registration submission upon closing and reopening the app instead of resuming at `/registration-submitted`.
+
+2. **Root Cause Analysis & Fixes Delivered:**
+   - **Admin Console Crash (`admin-frontend/src/routes/partners.tsx`):**
+     - When a partner is selected, `profile = useMemo(...)` rendered before `profile360Query.data` resolved. The initial fallback object lacked `specs`, `kyc`, `wallet`, and `agreement` objects, causing direct property accesses (`profile.specs.floorAreaSqFt`) to throw `TypeError: Cannot read properties of undefined (reading 'floorAreaSqFt')`.
+     - *Fix:* Added complete default fallback objects for `specs`, `kyc`, `wallet`, and `agreement` populated from `selectedPartner` attributes, and applied optional chaining (`profile.specs?.floorAreaSqFt`) across all JSX displays and export functions.
+   - **Missing Imports (`admin-frontend/src/routes/riders.tsx` & `PayoutsCommandCenter.tsx`):**
+     - In `riders.tsx`, `Mail` was rendered at lines 1289 and 3469 without being imported from `lucide-react`, causing `ReferenceError: Mail is not defined`.
+     - In `PayoutsCommandCenter.tsx`, `ShieldCheck` was rendered without being imported from `lucide-react`.
+     - *Fix:* Added `Mail` to `riders.tsx` imports and `ShieldCheck` to `PayoutsCommandCenter.tsx` imports.
+   - **Rider Step 1 Reset (`rider-frontend/src/screens/RiderRegistrationScreen.tsx`):**
+     - The draft auto-save `useEffect` executed on initial mount before state hydration, overwriting `qp_rider_registration_draft_v2` with empty strings and resetting `currentStep: 1`.
+     - *Fix:* Added `isDraftHydrated` state flag. Initial mount effect restores all draft fields and sets `setIsDraftHydrated(true)`. The auto-save effect guards with `if (!isDraftHydrated) return;`. Added all RC, DL, bank, vehicle, and document URLs into draft storage.
+   - **Map Detecting Loop & Header Inset (`partner-frontend/src/shared/ui/google-map.tsx` & `MapPicker.tsx`):**
+     - In `google-map.tsx`, Leaflet listened to `map.on("move", handleMove)`, firing at 60fps on programmatic updates, triggering continuous reverse geocoding and keeping `resolving: true`.
+     - In `MapPicker.tsx`, top header padding was insufficient for mobile status bars, causing the time/clock to overlap the back button.
+     - *Fix:* Replaced Leaflet `move` listener with `dragstart` and `dragend` events. Added `lastResolvedPointRef` coordinate jitter thresholding (<0.0001°). Increased top safe area padding to `pt-[max(2rem,calc(env(safe-area-inset-top)+1rem))]`. Ensured real Google Maps address is always displayed in the bottom sheet, and made "Confirm Shop Location" always immediately clickable.
+   - **Partner Step 4 Item Detail Rate Modal (`BusinessRegistrationScreen.tsx` & `backend-python/app/api/partner.py`):**
+     - Implemented `ServiceDetailModal` opened by tapping any service card or the "Set Rates" button.
+     - Merchants can customize:
+       - Regular price (₹) and billing unit selector (`pc`, `kg`, `pair`, `set`, `meter`, `panel`).
+       - Regular turnaround SLA hours with quick pills (`12h`, `24h`, `36h`, `48h`, `72h`).
+       - Express delivery toggle (⚡) with editable express price (default 1.5x regular price) and express turnaround SLA (`4h`, `6h`, `8h`, `12h`, `18h`).
+       - Partner care notes (e.g. "Steam pressed with wooden hanger & dust cover").
+     - On the service card: displayed master image, title, category badge, regular rate pill, express rate pill, and care note snippet.
+     - Updated `handleSubmitRegistration` to pass full extended attributes.
+     - In `backend-python/app/api/partner.py`: updated onboarding endpoint to persist `regularPrice`, `regularSlaHours`, `expressAvailable`, `expressPrice`, `expressSlaHours`, `unit`, `notes`, and `image` in `partner_services` collection.
+   - **Session Reset on App Restart (`partner-frontend/src/routes/index.tsx` & `partner-auth-api.ts`):**
+     - `PartnerSession` type was missing `token?: string;`, and `toPartnerSession` was stripping it. `computeTargetRoute` bounced users with missing token back to `/auth`.
+     - *Fix:* Added `token` to `PartnerSession`, forwarded `token: session?.token` in `toPartnerSession`, and updated `computeTargetRoute` to read the underlying auth session from storage so onboarded partners are automatically routed to `/registration-submitted` or `/orders`.
+   - **Agreement Screen Safe Area Layout (`PartnerAgreementSigningScreen.tsx` & `RiderAgreementSigningScreen.tsx`):**
+     - Added safe area padding (`pt-[max(1rem,env(safe-area-inset-top))]`) and back arrow button navigating back to `/registration-submitted` (Partner) or `/verification` (Rider).
+
+3. **Verification & Quality Assurance:**
+   - Production builds:
+     - `partner-frontend`: PASSED (`npx vite build` exit code 0).
+     - `admin-frontend`: PASSED (`vite build` exit code 0).
+     - `rider-frontend`: PASSED (`vite build` exit code 0).
+   - Android APK compilation:
+     - `QuickPress-Partner.apk` (19.2 MB) & `QuickPress-Partner.aab` (18.3 MB) generated.
+     - `QuickPress-Captain.apk` (19.2 MB) & `QuickPress-Captain.aab` (18.3 MB) generated.
+   - Artifacts synchronized with latest binaries in conversation artifact directory.
+
+---
+
 ## Session: November 23, 2026 (Part 66)
 
 ### Step 4 Services 2-Tier Redesign with Dynamic Billing Units (Pc/Kg/Pair/Set/Panel/Meter), Real Google Maps Address in MapPicker & Step 3, Registration Crash & Redirect Loop Fix

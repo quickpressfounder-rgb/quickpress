@@ -2595,6 +2595,14 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
             "Bag & Leather Cleaning": {"price": 399, "unit": "pc", "category": "leather", "turnaroundHours": 48, "desc": "Specialized deep restoration and conditioning for leather jackets, handbags and suede."},
         }
         chosen = payload.services if payload.services else ["Wash & Fold", "Steam Ironing", "Dry Cleaning"]
+        # Delete old partner services if resubmitting or replace with fresh configured rates
+        if existing_services:
+            try:
+                for s in existing_services:
+                    await database.delete("partner_services", {"_id": s.get("_id")})
+            except Exception:
+                pass
+
         for idx, svc_item in enumerate(chosen, 1):
             if isinstance(svc_item, dict):
                 svc_name = svc_item.get("name") or "Wash & Fold"
@@ -2605,6 +2613,14 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
                 price = svc_item.get("price") if svc_item.get("price") is not None else info["price"]
                 unit = svc_item.get("unit") or info["unit"]
                 turnaround = svc_item.get("turnaroundHours") or info["turnaroundHours"]
+                reg_price = svc_item.get("regularPrice") or price
+                reg_sla = svc_item.get("regularSlaHours") or turnaround
+                exp_avail = bool(svc_item.get("expressAvailable", False))
+                exp_price = svc_item.get("expressPrice") or int(float(price) * 1.5)
+                exp_sla = svc_item.get("expressSlaHours") or max(4, int(int(turnaround) / 2))
+                notes = str(svc_item.get("notes") or "")
+                image = str(svc_item.get("image") or "")
+                cat = str(svc_item.get("category") or info["category"])
             else:
                 svc_name = str(svc_item)
                 info = _SERVICE_MAP.get(
@@ -2614,30 +2630,38 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
                 price = info["price"]
                 unit = info["unit"]
                 turnaround = info["turnaroundHours"]
+                reg_price = price
+                reg_sla = turnaround
+                exp_avail = False
+                exp_price = int(price * 1.5)
+                exp_sla = max(4, int(turnaround / 2))
+                notes = ""
+                image = ""
+                cat = info["category"]
 
             await database.insert(
                 "partner_services",
                 {
-                    "_id": f"svc-{store_id_str[:8]}-{idx}",
+                    "_id": f"svc-{store_id_str[:8]}-{idx}-{secrets.token_hex(2)}",
                     "partnerId": store_id_str,
                     "name": svc_name,
-                    "category": info["category"],
-                    "price": int(price),
+                    "category": cat,
+                    "price": int(reg_price),
+                    "regularPrice": int(reg_price),
                     "unit": str(unit),
-                    "turnaroundHours": int(turnaround),
+                    "turnaroundHours": int(reg_sla),
+                    "regularSlaHours": int(reg_sla),
+                    "expressAvailable": exp_avail,
+                    "expressPrice": int(exp_price),
+                    "expressSlaHours": int(exp_sla),
+                    "notes": notes,
+                    "image": image,
                     "isActive": True,
                     "enabled": True,
                     "pendingApproval": False,
                     "approvalStatus": "approved",
                     "description": info["desc"],
                 },
-            )
-    else:
-        for s in existing_services:
-            await database.update(
-                "partner_services",
-                {"_id": s.get("_id")},
-                {"isActive": True, "enabled": True, "pendingApproval": False, "approvalStatus": "approved"},
             )
 
     await users.update(

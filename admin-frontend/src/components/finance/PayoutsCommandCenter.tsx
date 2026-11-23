@@ -26,6 +26,7 @@ import {
   Printer,
   Copy,
   UserCheck,
+  ShieldCheck,
   FileSpreadsheet,
   AlertTriangle,
   FileText,

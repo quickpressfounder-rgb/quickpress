@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   AlertCircle,
+  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   ChevronDown,
@@ -320,24 +321,33 @@ export function PartnerAgreementSigningScreen() {
   return (
     <div className="min-h-screen bg-neutral-100/60 pb-12">
       {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-200 px-4 py-3 shadow-2xs">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-black text-sm">
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-200 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 shadow-xs">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <button
+              type="button"
+              aria-label="Back"
+              onClick={() => navigate({ to: partnerRoutes.submitted })}
+              className="flex size-9 items-center justify-center rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition active:scale-95 cursor-pointer shrink-0"
+            >
+              <ArrowLeft className="size-4.5" />
+            </button>
+            <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-black text-sm shrink-0 shadow-2xs">
               QP
             </div>
-            <div>
-              <h1 className="text-xs sm:text-sm font-bold text-neutral-900 leading-tight">
-                QuickPress Master Merchant Partnership Agreement
+            <div className="min-w-0">
+              <h1 className="text-xs sm:text-sm font-black text-neutral-900 leading-tight truncate">
+                Merchant Master Agreement
               </h1>
-              <p className="text-[10px] text-neutral-500 font-medium">
-                Ref: {agreementData.agreementRef} · Version {agreementData.agreementVersion}
+              <p className="text-[10px] text-neutral-500 font-medium truncate">
+                Ref: {agreementData.agreementRef} · v{agreementData.agreementVersion}
               </p>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-200 flex items-center gap-1">
-            <Lock className="w-3 h-3" />
-            Signature Required
+          <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 text-[10px] font-black border border-amber-200/80 flex items-center gap-1 shrink-0">
+            <Lock className="w-3 h-3 text-amber-600" />
+            <span className="hidden sm:inline">Signature Required</span>
+            <span className="sm:hidden">Sign</span>
           </span>
         </div>
       </header>

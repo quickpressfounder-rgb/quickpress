@@ -25,16 +25,36 @@ export const Route = createFileRoute("/")({
 });
 
 export function computeTargetRoute(sess: any): string {
-  if (!sess || !sess.token) {
+  let effectiveToken = sess?.token;
+  let authSess: any = null;
+  if (!effectiveToken && typeof window !== "undefined") {
+    authSess = readSession("partner") || readSession();
+    if (!authSess) {
+      try {
+        const raw =
+          window.localStorage.getItem("quickpress.session.partner") ||
+          window.sessionStorage.getItem("quickpress.session.partner") ||
+          window.localStorage.getItem("quickpress.session") ||
+          window.sessionStorage.getItem("quickpress.session");
+        if (raw) authSess = JSON.parse(raw);
+      } catch {}
+    }
+    effectiveToken = authSess?.token;
+  }
+
+  if (!effectiveToken && !sess?.partnerId && !sess?.phone) {
     return partnerRoutes.auth;
   }
-  if (isPartnerSuspended(sess)) {
+
+  const merged = { ...authSess, ...sess, token: effectiveToken || sess?.token || authSess?.token };
+
+  if (isPartnerSuspended(merged)) {
     return partnerRoutes.suspended;
   }
-  if (!isPartnerOnboarded(sess)) {
+  if (!isPartnerOnboarded(merged)) {
     return partnerRoutes.registration;
   }
-  if (!isPartnerApproved(sess)) {
+  if (!isPartnerApproved(merged)) {
     return partnerRoutes.registrationSubmitted;
   }
   return partnerRoutes.orders;

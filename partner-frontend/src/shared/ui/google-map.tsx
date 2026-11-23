@@ -231,7 +231,13 @@ export function GoogleMapView({
         }
       };
 
-      const handleMove = () => {
+      const handleDragStart = () => {
+        isDraggingRef.current = true;
+      };
+
+      const handleDragEnd = () => {
+        if (!isDraggingRef.current) return;
+        isDraggingRef.current = false;
         if (onCenterChange) {
           const c = map.getCenter();
           if (c) {
@@ -241,13 +247,13 @@ export function GoogleMapView({
       };
 
       map.on("click", handleClick);
-      map.on("move", handleMove);
-      map.on("moveend", handleMove);
+      map.on("dragstart", handleDragStart);
+      map.on("dragend", handleDragEnd);
 
       return () => {
         map.off("click", handleClick);
-        map.off("move", handleMove);
-        map.off("moveend", handleMove);
+        map.off("dragstart", handleDragStart);
+        map.off("dragend", handleDragEnd);
       };
     }
   }, [ready, engine, onPick, onCenterChange]);

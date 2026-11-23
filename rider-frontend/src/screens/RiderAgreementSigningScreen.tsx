@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   AlertCircle,
+  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   ChevronDown,
@@ -234,18 +235,26 @@ export function RiderAgreementSigningScreen() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-neutral-900 pb-16">
       {/* Sticky Top Header */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-200 px-4 py-3 shadow-xs">
-        <div className="max-w-md mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#00C853]/15 flex items-center justify-center">
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-200 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 shadow-xs">
+        <div className="max-w-md mx-auto flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              aria-label="Back"
+              onClick={() => navigate({ to: "/verification" })}
+              className="flex size-9 items-center justify-center rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition active:scale-95 cursor-pointer shrink-0"
+            >
+              <ArrowLeft className="size-4.5" />
+            </button>
+            <div className="w-8 h-8 rounded-full bg-[#00C853]/15 flex items-center justify-center shrink-0">
               <ShieldCheck className="w-4.5 h-4.5 text-[#00C853]" />
             </div>
-            <div>
-              <h1 className="text-xs font-black text-neutral-900 leading-tight">QuickPress Captain</h1>
-              <p className="text-[10px] text-neutral-500 font-medium">Official Partner Agreement</p>
+            <div className="min-w-0">
+              <h1 className="text-xs font-black text-neutral-900 leading-tight truncate">QuickPress Captain</h1>
+              <p className="text-[10px] text-neutral-500 font-medium truncate">Partner Agreement</p>
             </div>
           </div>
-          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
             {agreementData?.agreementRef || "QP-SLA-2026"}
           </span>
         </div>

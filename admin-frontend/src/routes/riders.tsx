@@ -48,6 +48,7 @@ import {
   ExternalLink,
   Calendar,
   Trash2,
+  Mail,
   ArrowLeft,
   ChevronRight,
   ChevronDown,

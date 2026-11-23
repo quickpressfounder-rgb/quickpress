@@ -422,6 +422,7 @@ export function RiderRegistrationScreen() {
     } catch {}
     return 1;
   });
+  const [isDraftHydrated, setIsDraftHydrated] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [uploadingDocs, setUploadingDocs] = useState<Record<string, boolean>>({});
 
@@ -884,9 +885,50 @@ export function RiderRegistrationScreen() {
         if (d.pincode) setPincode(d.pincode);
         if (d.emergencyPhone) setEmergencyPhone(d.emergencyPhone);
         if (d.aadhaarNumber) setAadhaarNumber(d.aadhaarNumber);
+        if (d.aadhaarFrontUrl) setAadhaarFrontUrl(d.aadhaarFrontUrl);
+        if (d.aadhaarBackUrl) setAadhaarBackUrl(d.aadhaarBackUrl);
         if (d.panNumber) setPanNumber(d.panNumber);
+        if (d.panCardUrl) setPanCardUrl(d.panCardUrl);
+        if (d.panVerified) setPanVerified(d.panVerified);
+        if (d.panVerifiedName) setPanVerifiedName(d.panVerifiedName);
+        if (d.selfieUrl) {
+          setSelfieUrl(d.selfieUrl);
+          setSelfieVerified(true);
+        }
+        if (d.vehicleNumber) {
+          setVehicleNumber(d.vehicleNumber);
+          setRcVerified(true);
+        }
+        if (d.vehicleType) setVehicleType(d.vehicleType);
+        if (d.selectedBrand) setSelectedBrand(d.selectedBrand);
+        if (d.selectedModel) setSelectedModel(d.selectedModel);
+        if (d.bikePhotoUrl) setBikePhotoUrl(d.bikePhotoUrl);
+        if (d.rcFrontUrl) setRcFrontUrl(d.rcFrontUrl);
+        if (d.rcBackUrl) setRcBackUrl(d.rcBackUrl);
+        if (d.drivingLicense) {
+          setDrivingLicense(d.drivingLicense);
+          setDlVerified(true);
+        }
+        if (d.dlExpiry) setDlExpiry(d.dlExpiry);
+        if (d.dlFrontUrl) setDlFrontUrl(d.dlFrontUrl);
+        if (d.dlBackUrl) setDlBackUrl(d.dlBackUrl);
+        if (d.selectedBankDropdown) setSelectedBankDropdown(d.selectedBankDropdown);
+        if (d.customBankName) setCustomBankName(d.customBankName);
+        if (d.accountNumber) {
+          setAccountNumber(d.accountNumber);
+          setConfirmAccountNumber(d.accountNumber);
+          setBankVerified(true);
+        }
+        if (d.ifsc) setIfsc(d.ifsc);
+        if (d.passbookUrl) setPassbookUrl(d.passbookUrl);
+        if (d.cancelledChequeUrl) setCancelledChequeUrl(d.cancelledChequeUrl);
+        if (d.upiId) setUpiId(d.upiId);
+        if (d.selectedKitPlan) setSelectedKitPlan(d.selectedKitPlan);
       }
-    } catch {}
+      setIsDraftHydrated(true);
+    } catch {
+      setIsDraftHydrated(true);
+    }
 
     fetchRiderVerificationStatus()
       .then((statusRes) => {
@@ -997,6 +1039,7 @@ export function RiderRegistrationScreen() {
 
   // Auto-Save Rider Draft to LocalStorage
   useEffect(() => {
+    if (!isDraftHydrated) return;
     try {
       const draftPayload = {
         currentStep,
@@ -1010,11 +1053,38 @@ export function RiderRegistrationScreen() {
         pincode,
         emergencyPhone,
         aadhaarNumber,
+        aadhaarFrontUrl,
+        aadhaarBackUrl,
         panNumber,
+        panCardUrl,
+        panVerified,
+        panVerifiedName,
+        selfieUrl,
+        selfieVerified,
+        vehicleNumber,
+        vehicleType,
+        selectedBrand,
+        selectedModel,
+        bikePhotoUrl,
+        rcFrontUrl,
+        rcBackUrl,
+        drivingLicense,
+        dlExpiry,
+        dlFrontUrl,
+        dlBackUrl,
+        selectedBankDropdown,
+        customBankName,
+        accountNumber,
+        ifsc,
+        passbookUrl,
+        cancelledChequeUrl,
+        upiId,
+        selectedKitPlan,
       };
       localStorage.setItem("qp_rider_registration_draft_v2", JSON.stringify(draftPayload));
     } catch {}
   }, [
+    isDraftHydrated,
     currentStep,
     firstName,
     lastName,
@@ -1026,7 +1096,33 @@ export function RiderRegistrationScreen() {
     pincode,
     emergencyPhone,
     aadhaarNumber,
+    aadhaarFrontUrl,
+    aadhaarBackUrl,
     panNumber,
+    panCardUrl,
+    panVerified,
+    panVerifiedName,
+    selfieUrl,
+    selfieVerified,
+    vehicleNumber,
+    vehicleType,
+    selectedBrand,
+    selectedModel,
+    bikePhotoUrl,
+    rcFrontUrl,
+    rcBackUrl,
+    drivingLicense,
+    dlExpiry,
+    dlFrontUrl,
+    dlBackUrl,
+    selectedBankDropdown,
+    customBankName,
+    accountNumber,
+    ifsc,
+    passbookUrl,
+    cancelledChequeUrl,
+    upiId,
+    selectedKitPlan,
   ]);
 
   // Auto-detect live city and pincode from GPS (Matches strictly against Admin Panel operating cities)

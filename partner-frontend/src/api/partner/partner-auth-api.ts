@@ -69,7 +69,8 @@ function toPartnerSession(session: AuthSession): PartnerSession {
   ], "");
 
   return {
-    partnerId: hasRealPartnerId ? acc!.linkedId! : "",
+    token: session?.token,
+    partnerId: hasRealPartnerId ? acc!.linkedId! : (acc?.id || ""),
     phone: acc?.phone ?? "",
     email: acc?.email,
     businessName: resolvedName,

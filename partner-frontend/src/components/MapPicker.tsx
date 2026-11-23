@@ -102,6 +102,7 @@ export function MapPicker({
   const reverseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextReverseRef = useRef(false);
+  const lastResolvedPointRef = useRef<{ latitude: number; longitude: number } | null>(null);
 
   // Lock background scroll while modal is open
   useEffect(() => {
@@ -135,11 +136,20 @@ export function MapPicker({
     if (!point) return;
     let alive = true;
 
+    if (
+      lastResolvedPointRef.current &&
+      Math.abs(lastResolvedPointRef.current.latitude - point.latitude) < 0.0001 &&
+      Math.abs(lastResolvedPointRef.current.longitude - point.longitude) < 0.0001
+    ) {
+      return;
+    }
+
     if (reverseTimeoutRef.current) clearTimeout(reverseTimeoutRef.current);
 
     if (skipNextReverseRef.current) {
       skipNextReverseRef.current = false;
       setResolving(false);
+      lastResolvedPointRef.current = { latitude: point.latitude, longitude: point.longitude };
       return;
     }
 
@@ -221,6 +231,7 @@ export function MapPicker({
 
         if (alive && res) {
           setDetails(res);
+          lastResolvedPointRef.current = { latitude: point.latitude, longitude: point.longitude };
         } else if (alive) {
           setDetails({
             formattedAddress: searchQuery || "Selected Shop Location (Google Maps Pinned)",
@@ -233,6 +244,7 @@ export function MapPicker({
             pincode: "",
             country: "India",
           });
+          lastResolvedPointRef.current = { latitude: point.latitude, longitude: point.longitude };
         }
       } catch {
         if (alive) {
@@ -247,6 +259,7 @@ export function MapPicker({
             pincode: "",
             country: "India",
           });
+          lastResolvedPointRef.current = { latitude: point.latitude, longitude: point.longitude };
         }
       } finally {
         if (alive) setResolving(false);
@@ -477,7 +490,7 @@ export function MapPicker({
       className="fixed inset-0 z-[99999] flex flex-col bg-background select-none overflow-hidden animate-fade-in"
     >
       {/* 1. Header Bar with Clean Single Back Arrow & Status */}
-      <header className="relative z-30 flex items-center justify-between border-b border-border/80 bg-card/95 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 shadow-xs backdrop-blur-xl">
+      <header className="relative z-30 flex items-center justify-between border-b border-border/80 bg-card/95 px-4 pt-[max(2rem,calc(env(safe-area-inset-top)+1rem))] pb-3.5 shadow-xs backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -703,42 +716,32 @@ export function MapPicker({
               <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                 Selected Shop Location
               </span>
-              {resolving ? (
-                <span className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-                  <Loader2 className="size-2.5 animate-spin text-emerald-600" /> Detecting Google Maps address…
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 rounded-full bg-emerald-600/10 px-2 py-0.5 text-[9px] font-black text-emerald-600 dark:text-emerald-400">
-                  <Check className="size-2.5 stroke-[3]" /> PINNED
-                </span>
-              )}
+              <span className="flex items-center gap-1 rounded-full bg-emerald-600/10 px-2 py-0.5 text-[9px] font-black text-emerald-600 dark:text-emerald-400">
+                <Check className="size-2.5 stroke-[3]" /> PINNED
+              </span>
             </div>
 
             <h3 className="truncate text-base font-black text-foreground mt-0.5">
-              {resolving
-                ? "Locating address details…"
-                : details?.area ||
-                  (searchQuery ? searchQuery.split(",")[0].trim() : null) ||
-                  details?.city ||
-                  "Selected Shop Location"}
+              {details?.area ||
+                (searchQuery ? searchQuery.split(",")[0].trim() : null) ||
+                details?.city ||
+                "Selected Shop Location"}
             </h3>
 
             <p className="line-clamp-2 text-xs text-muted-foreground mt-0.5 leading-relaxed font-medium">
-              {resolving
-                ? "Fetching Google Maps street address..."
-                : details?.formattedAddress ||
-                  (searchQuery && searchQuery.trim().length > 3 ? searchQuery.trim() : null) ||
-                  [details?.area, details?.city, details?.state, details?.pincode].filter(Boolean).join(", ") ||
-                  "Real-time street address detected via Google Maps"}
+              {details?.formattedAddress ||
+                (searchQuery && searchQuery.trim().length > 3 ? searchQuery.trim() : null) ||
+                [details?.area, details?.city, details?.state, details?.pincode].filter(Boolean).join(", ") ||
+                "Real-time street address detected via Google Maps"}
             </p>
 
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1 rounded-md bg-emerald-600/10 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
                 <Check className="size-3 stroke-[2.5]" /> Google Maps Verified
               </span>
-              {(details?.city || details?.area) && (
+              {(details?.city || details?.area || searchQuery) && (
                 <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-400">
-                  <MapPin className="size-3" /> {details.area ? `${details.area}, ` : ""}{details.city || "Kasganj"}
+                  <MapPin className="size-3" /> {details?.area || (searchQuery ? searchQuery.split(",")[0].trim() : "")}, {details?.city || "Kasganj"}
                 </span>
               )}
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
@@ -755,12 +758,8 @@ export function MapPicker({
           onClick={handleConfirm}
           className="mt-4 flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-emerald-600 text-base font-extrabold text-white shadow-lg shadow-emerald-600/30 transition-all duration-200 active:scale-[0.98] hover:bg-emerald-500 disabled:opacity-50 disabled:shadow-none cursor-pointer"
         >
-          {resolving ? (
-            <Loader2 className="size-5 animate-spin" />
-          ) : (
-            <Check className="size-5 stroke-[2.5]" />
-          )}
-          <span>{resolving ? "Confirming Location…" : "Confirm Shop Location"}</span>
+          <Check className="size-5 stroke-[2.5]" />
+          <span>Confirm Shop Location</span>
         </button>
       </footer>
     </div>

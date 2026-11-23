@@ -4,6 +4,7 @@
 export type PartnerAuthStep = "phone" | "otp" | "registration" | "ready";
 
 export type PartnerSession = {
+  token?: string;
   partnerId: string;
   phone: string;
   email?: string | null;
@@ -63,7 +64,25 @@ export type BusinessRegistrationPayload = {
   gallery?: string[];
   latitude?: number;
   longitude?: number;
-  services?: Array<string | { name: string; price: number; unit: string; turnaroundHours?: number; enabled?: boolean }>;
+  services?: Array<
+    | string
+    | {
+        id?: string;
+        name: string;
+        price: number;
+        regularPrice?: number;
+        unit: string;
+        turnaroundHours?: number;
+        regularSlaHours?: number;
+        expressAvailable?: boolean;
+        expressPrice?: number;
+        expressSlaHours?: number;
+        notes?: string;
+        category?: string;
+        image?: string;
+        enabled?: boolean;
+      }
+  >;
   agreementSigned?: boolean;
   agreementStatus?: string;
   signatureUrl?: string;
@@ -180,7 +199,13 @@ export type PartnerServiceRate = {
   name: string;
   unit: string;
   price: number;
+  regularPrice?: number;
   turnaroundHours: number;
+  regularSlaHours?: number;
+  expressAvailable?: boolean;
+  expressPrice?: number;
+  expressSlaHours?: number;
+  notes?: string;
   enabled: boolean;
   category: BusinessCategory;
   description?: string;

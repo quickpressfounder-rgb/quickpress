@@ -284,6 +284,35 @@ function PartnersPage() {
         commission: selectedPartner.commission || 0,
       },
       ratings: { average: selectedPartner.rating || 5.0, totalReviews: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }, reviews: [] },
+      specs: profile360Query.data?.specs || {
+        floorAreaSqFt: (selectedPartner as any).floorAreaSqFt || 1200,
+        washersCount: (selectedPartner as any).washersCount || 6,
+        washersCapacityKg: (selectedPartner as any).washersCapacityKg || 60,
+        dryersCount: (selectedPartner as any).dryersCount || 4,
+        dryersCapacityKg: (selectedPartner as any).dryersCapacityKg || 40,
+        ironingTablesCount: (selectedPartner as any).ironingTablesCount || 3,
+        steamBoilerType: (selectedPartner as any).steamBoilerType || "Automatic Boiler",
+        staffCount: (selectedPartner as any).staffCount || 5,
+        dailyProcessingCapacityKg: (selectedPartner as any).dailyProcessingCapacityKg || 150,
+      },
+      kyc: profile360Query.data?.kyc || {
+        gstinVerified: Boolean((selectedPartner as any).gstin),
+        panVerified: Boolean((selectedPartner as any).pan),
+        aadhaarVerified: Boolean((selectedPartner as any).aadhaar),
+        utilityBillVerified: false,
+        chequeVerified: false,
+        bankVerified: false,
+      },
+      wallet: profile360Query.data?.wallet || {
+        balance: 0,
+        currentBalance: 0,
+        totalDisbursed: 0,
+      },
+      agreement: profile360Query.data?.agreement || {
+        signed: false,
+        signedAt: null,
+        ipAddress: "",
+      },
       activities: [],
       orders: [],
       payouts: [],
@@ -879,11 +908,11 @@ function PartnersPage() {
 
   const handleExportPartnerDossier = () => {
     if (!profile) return;
-    const h = profile.header;
-    const s = profile.specs;
-    const k = profile.kyc;
-    const w = profile.wallet;
-    const ag = profile.agreement;
+    const h = profile.header || {};
+    const s = profile.specs || {};
+    const k = profile.kyc || {};
+    const w = profile.wallet || {};
+    const ag = profile.agreement || {};
 
     const sections = [
       "================================================================================",
@@ -1717,12 +1746,29 @@ function PartnersPage() {
                                 {svc.enabled ? "Active" : "Disabled"}
                               </span>
                             </div>
-                            <div className="text-xl font-bold text-emerald-700 mt-2">₹{svc.price}</div>
-                            <p className="text-[11px] text-zinc-500 mt-1">Guaranteed Service Standard</p>
+                            <div className="text-xl font-bold text-emerald-700 mt-2">
+                              ₹{svc.price || (svc as any).regularPrice || 0}
+                              <span className="text-xs font-medium text-zinc-500 ml-1">
+                                / {(svc as any).unit || "pc"}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-zinc-500 mt-1">
+                              {(svc as any).turnaroundHours || (svc as any).regularSlaHours || 24}h Turnaround SLA
+                            </p>
+                            {(svc as any).expressAvailable && (
+                              <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/10 text-amber-800 text-[10px] font-bold">
+                                <span>⚡ Express: ₹{(svc as any).expressPrice} ({(svc as any).expressSlaHours || 12}h)</span>
+                              </div>
+                            )}
+                            {(svc as any).notes && (
+                              <p className="text-[10px] text-zinc-500 italic mt-1 line-clamp-1">
+                                {(svc as any).notes}
+                              </p>
+                            )}
                           </div>
                           <div className="text-[11px] text-zinc-500 mt-3 pt-2 border-t border-zinc-200 flex items-center justify-between">
                             <span>Dispatched:</span>
-                            <span className="font-bold text-zinc-800">{svc.orders} orders</span>
+                            <span className="font-bold text-zinc-800">{svc.orders || 0} orders</span>
                           </div>
                         </div>
                       ))}
@@ -3928,31 +3974,31 @@ function PartnersPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-zinc-50 p-3.5 rounded-xl border border-zinc-200">
                     <div>
                       <span className="text-[10px] font-bold text-zinc-500 block">Workshop Floor Area</span>
-                      <span className="font-bold text-zinc-950">{profile.specs.floorAreaSqFt || 1200} sq. ft.</span>
+                      <span className="font-bold text-zinc-950">{profile.specs?.floorAreaSqFt || 1200} sq. ft.</span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-zinc-500 block">Commercial Washers</span>
-                      <span className="font-bold text-zinc-950">{profile.specs.washersCount || 6} Units ({profile.specs.washersCapacityKg || 60} kg cap)</span>
+                      <span className="font-bold text-zinc-950">{profile.specs?.washersCount || 6} Units ({profile.specs?.washersCapacityKg || 60} kg cap)</span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-zinc-500 block">Industrial Dryers</span>
-                      <span className="font-bold text-zinc-950">{profile.specs.dryersCount || 4} Units ({profile.specs.dryersCapacityKg || 40} kg cap)</span>
+                      <span className="font-bold text-zinc-950">{profile.specs?.dryersCount || 4} Units ({profile.specs?.dryersCapacityKg || 40} kg cap)</span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-zinc-500 block">Steam Ironing Stations</span>
-                      <span className="font-bold text-zinc-950">{profile.specs.ironingTablesCount || 3} Commercial Tables</span>
+                      <span className="font-bold text-zinc-950">{profile.specs?.ironingTablesCount || 3} Commercial Tables</span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-zinc-500 block">Steam Boiler Unit</span>
-                      <span className="font-bold text-zinc-950">{profile.specs.steamBoilerType || "Automatic Boiler"}</span>
+                      <span className="font-bold text-zinc-950">{profile.specs?.steamBoilerType || "Automatic Boiler"}</span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-zinc-500 block">Certified Workshop Staff</span>
-                      <span className="font-bold text-zinc-950">{profile.specs.staffCount || 5} Operations Staff</span>
+                      <span className="font-bold text-zinc-950">{profile.specs?.staffCount || 5} Operations Staff</span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-zinc-500 block">Daily Throughput Cap</span>
-                      <span className="font-bold text-zinc-950">{profile.specs.dailyProcessingCapacityKg || 150} kg / day</span>
+                      <span className="font-bold text-zinc-950">{profile.specs?.dailyProcessingCapacityKg || 150} kg / day</span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-zinc-500 block">Dispatch Radius</span>
