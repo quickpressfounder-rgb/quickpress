@@ -4222,3 +4222,18 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
    - `partner-frontend`: `npm run build` PASSED (exit code 0, 1.91s Nitro bundle).
    - `rider-frontend`: `npm run build` PASSED (exit code 0, 1.73s Nitro bundle).
    - `scratch/master_e2e_platform_test.py`: 6/6 Modules PASSED with 100% success rate (Zero defects).
+
+
+## Session: Permanent Self-Hosted PostgreSQL Migration & Admin UI Fixes
+- **Date**: 2026-11-23
+- **Architectural Shift**:
+  - Migrated production database from rate-limited Supabase (which exhausted its 5 GB egress quota at 458 GB usage and restricted requests) to a dedicated, high-performance PostgreSQL 16 container () hosted locally on EC2 with disk volume persistence ().
+  - Solved container in-memory RAM fallback wipe issue; all Partners, Riders, Customers, Orders, and Settings now persist permanently on disk across container restarts and server updates.
+- **Frontend Bug Fixes**:
+  - Fixed  runtime TypeError () by adding safe null-checks for .
+  - Fixed  runtime TypeError () by ensuring , , and wallet fields fall back to 0.
+  - Ensured  and  default resiliently.
+  - Updated  to silence root monorepo Gradle language server false errors.
+- **Git Commits**:
+  - : fix(admin-finance): resolve cashAndBank, toLocaleString, and specs crashes in partner 360 and balance sheet
+  - : fix(db): support non-SSL connection for local and container postgres
