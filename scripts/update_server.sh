@@ -74,8 +74,8 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 npm run build
-sudo mkdir -p /var/www/quickpress/website
-sudo rm -rf /var/www/quickpress/website/*
+sudo mkdir -p /var/www/quickpress/website/apks
+sudo find /var/www/quickpress/website -mindepth 1 -maxdepth 1 ! -name 'apks' -exec rm -rf {} +
 sudo cp -r dist/* /var/www/quickpress/website/
 sudo chown -R www-data:www-data /var/www/quickpress/website
 

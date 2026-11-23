@@ -1,5 +1,46 @@
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 68)
+
+### Real-Time AWS EC2 Production Sync, APK Distribution Pipeline Hardening, and Live Endpoint Verification
+
+1. **Context & User Directive:**
+   - User directive: *"sath ke sath ec2 update kiya karo"* (Synchronize and deploy updates to AWS EC2 simultaneously with code changes and builds).
+   - User attached screenshot evidence of issues observed on stale EC2 / older mobile builds:
+     1. `Too many redirects` error loop.
+     2. Map picker displaying raw coordinates (`Lat: 27.80830, Lng: 78.64740`) instead of real Google Maps address and localities.
+     3. Partner Step 4 item cards displaying cluttered/redundant text.
+     4. `Mail is not defined` crash on `/registration-submitted`.
+     5. Admin Console `/partners` throwing `Cannot read properties of undefined (reading 'floorAreaSqFt')`.
+
+2. **Root Cause Analysis & Actions Taken:**
+   - **EC2 GitHub Actions Deployment Verification:**
+     - Head commit `90956e3b` was successfully deployed by GitHub Actions (`Deploy QuickPress to AWS EC2`, run #45116113162) to the EC2 server (`65.0.127.43`).
+     - PM2 services `quickpress-admin` (port 8084), `quickpress-partner` (port 8082), and Docker backend `quickpress-backend` (port 8000) restarted and confirmed healthy.
+   - **Stale APK Root Cause Identified:**
+     - Android APKs were gitignored (`*.apk` in `.gitignore`), meaning standard `git pull` on EC2 did not update `/var/www/quickpress/website/apks/`.
+     - Direct inspection of `/var/www/quickpress/website/apks` on EC2 showed the folder was previously unpopulated, causing mobile users downloading from `https://withquickpress.com/apks/` to either hit 404 or run outdated builds.
+   - **Direct EC2 APK Synchronization:**
+     - Uploaded latest built APKs directly to EC2 via SCP:
+       - `QuickPress-Partner.apk` (19.2 MB, Nov 23 10:38)
+       - `QuickPress-Captain.apk` (19.2 MB, Nov 23 10:39)
+       - `QuickPress-Customer.apk` (21.0 MB, Nov 22 21:20)
+     - Set permissions to `www-data:www-data` at `/var/www/quickpress/website/apks/`.
+     - Verified live HTTP 200 responses via Cloudflare/Nginx:
+       - `curl -I https://withquickpress.com/apks/QuickPress-Partner.apk` -> `HTTP/2 200 (19290650 bytes)`
+       - `curl -I https://withquickpress.com/apks/QuickPress-Captain.apk` -> `HTTP/2 200 (19290726 bytes)`
+   - **Automated Pipeline Hardening:**
+     - Updated `build_all_apks.py` (`copy_to_artifacts`): added automatic SCP upload to `ubuntu@65.0.127.43:/var/www/quickpress/website/apks/` so future APK builds are deployed directly to EC2 without manual intervention.
+     - Updated `scripts/update_server.sh`: replaced `sudo rm -rf /var/www/quickpress/website/*` with `sudo find /var/www/quickpress/website -mindepth 1 -maxdepth 1 ! -name 'apks' -exec rm -rf {} +` to ensure APK binaries are permanently preserved across server website rebuilds.
+
+3. **Status & Verification:**
+   - SSH direct connection to EC2 (`ubuntu@65.0.127.43`): Active & verified.
+   - EC2 Git state: Aligned with `origin/main` (`90956e3b`).
+   - PM2 and Docker status: All services online and healthy.
+   - APK downloads: Serving latest builds (HTTP 200).
+
+---
+
 ## Session: November 23, 2026 (Part 67)
 
 ### Admin Console Partner Detail Crash Fix, Missing Icon Imports, Rider Step 1 Persistence, Leaflet Detecting Loop Elimination, Partner Step 4 Item Rate Customization Modal, and Session Resumption

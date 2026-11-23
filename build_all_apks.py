@@ -121,6 +121,24 @@ def copy_to_artifacts(src_apk, apk_name, apks_dir):
         shutil.copy2(src_apk, os.path.join(website_apk_dir, apk_name))
         print(f"✓ Mirrored to website public apks: {apk_name}")
 
+    # Immediately upload to EC2 production server so live download links serve the fresh APK
+    if apk_name.endswith(".apk"):
+        try:
+            print(f"Uploading {apk_name} to EC2 server (/var/www/quickpress/website/apks/)...")
+            res = subprocess.run(
+                f"scp -o ConnectTimeout=10 {src_apk} ubuntu@65.0.127.43:/home/ubuntu/{apk_name} && ssh -o ConnectTimeout=10 ubuntu@65.0.127.43 'sudo mkdir -p /var/www/quickpress/website/apks && sudo cp /home/ubuntu/{apk_name} /var/www/quickpress/website/apks/{apk_name} && sudo chown www-data:www-data /var/www/quickpress/website/apks/{apk_name}'",
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if res.returncode == 0:
+                print(f"✓ Uploaded {apk_name} directly to EC2 (/var/www/quickpress/website/apks/{apk_name})")
+            else:
+                print(f"⚠️ EC2 upload note: {res.stderr}")
+        except Exception as e:
+            print(f"⚠️ EC2 upload skipped: {e}")
+
     if os.path.exists(ARTIFACT_DIR):
         artifact_target = os.path.join(ARTIFACT_DIR, apk_name)
         shutil.copy2(src_apk, artifact_target)
