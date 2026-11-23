@@ -1,5 +1,60 @@
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 76)
+
+### Permanent Database Connectivity Architecture: Docker Network Orphan Endpoint Elimination, Zero Silent In-Memory Degradation, Multi-Host Failover Proxy & Automated Watchdog
+
+1. **Context & Directives:**
+   - **User Directive:** "datebase phir nahi aaraha hai ye problome kaha se ho sakti final dhundo or iska fix batao kiya full softwear ke review kARO BUT ISKO SOLUTION NIKAL MUHGESE BAAR BAAR ALOW KARNE KI PARMISSON EK SATH LE LO JISSE ME OR KOI KAAM BHI KAR SAKE BUT IS PROBLOME ME FINAL FIX KARE JISSE DATABAAR BAAR DISCONNECT NA HO ?"
+   - **Objective:** Perform full-stack root cause analysis on why the PostgreSQL database appeared to repeatedly disconnect or show empty results across server updates and container recreations. Eliminate silent in-memory fallback, guarantee multi-host failover, prevent Docker bridge network isolation, and establish 24/7 automated self-healing.
+
+2. **Root Cause Analysis Identified (What Was Actually Happening):**
+   - **PostgreSQL Data Was Never Lost:**
+     - Inspected `quickpress-postgres` on EC2: All 30 collections (including `partners`, `admin_partners`, `partner_profiles`, `users`, `partner_services`) were 100% intact on disk (`/home/ubuntu/quickpress-data/postgres`).
+   - **Docker Daemon Orphaned Endpoint Conflict:**
+     - Whenever `quickpress-backend` was recreated, Docker daemon kept an orphaned network endpoint on `quickpress-net` (`Error response from daemon: endpoint with name quickpress-backend already exists in network quickpress-net`).
+     - This prevented `quickpress-backend` from joining `quickpress-net`, silently dropping it onto Docker's default `bridge` network (172.17.0.x).
+   - **Default Bridge Network Isolation:**
+     - On default `bridge`, container DNS `quickpress-postgres` is unresolvable (`gaierror -2`), and cross-network routing to `172.18.0.3` is dropped by iptables.
+   - **Silent In-Memory Degradation in `client.py`:**
+     - When `database.connect()` failed after 3 tries, `client.py` logged a warning and switched to `self._engine = "in-memory"`.
+     - Whenever any repository called `database.collection(name)`, it silently returned an empty `InMemoryCollection()`.
+     - The API returned `200 OK` with `{total: 0, items: []}`. To the user and admin console, it appeared as if the entire database was empty / wiped.
+   - **Script Inconsistencies:**
+     - `setup_ec2.sh` lacked `--network quickpress-net`.
+     - `update_server.sh` lacked the forced network disconnection cleanup prior to container recreation.
+
+3. **Permanent Architectural Solutions Implemented:**
+   - **Eliminated Silent In-Memory Fallback (`client.py`):**
+     - Introduced `ReconnectingCollection` and `ReconnectingCursor`.
+     - In production (`APP_ENV=production` or whenever `database_url` is configured), `collection()` NEVER returns empty memory dicts. It actively ensures connection on access.
+     - If the connection was temporarily lost, it awaits `ensure_connected()` and routes directly to live PostgreSQL.
+   - **Multi-Host Candidate Failover Engine:**
+     - Implemented `_build_candidate_urls()` to test candidate network endpoints in priority order:
+       1. `quickpress-postgres:5432` (Docker internal DNS)
+       2. `172.18.0.3:5432` (Docker quickpress-net static IP)
+       3. `127.0.0.1:5432` (Host loopback)
+       4. `host.docker.internal:5432` (Docker host gateway)
+       5. `172.17.0.1:5432` (Docker bridge gateway)
+       6. Supabase Cloud Connection Pooler (`aws-0-ap-south-1.pooler.supabase.com:5432`) as ultimate fail-safe cloud fallback.
+   - **Pool Auto-Reconnect on Query Failure (`supabase_client.py`):**
+     - Enhanced `_fetch_all` and `_save_doc` with an immediate single-retry pool reconstruction if an idle connection drops or PostgreSQL restarts.
+   - **Docker Script Hardening (`setup_ec2.sh` & `update_server.sh`):**
+     - Added `sudo docker network disconnect -f quickpress-net quickpress-backend 2>/dev/null || true` before every container recreation.
+     - Added post-start live query validation directly in the update script.
+   - **24/7 Automated DB Watchdog (`scripts/db_watchdog.sh`):**
+     - Created automated watchdog running via cron (`*/2 * * * *`):
+       - Checks container status, verifies network attachment to `quickpress-net`, and tests `http://127.0.0.1:8000/api/health`.
+       - If database status is ever disconnected, automatically reattaches `quickpress-net` and restarts the backend within 120 seconds.
+
+4. **Live EC2 Verification:**
+   - `quickpress-backend` container `b00c9da66534` running on `quickpress-net`.
+   - Live query test verified: `DATABASE ENGINE: supabase-postgresql`, `VERIFIED PARTNERS COUNT: 2` (PRT-156115 and PRT-KAS-01).
+   - Public health check: `{"status":"ok","service":"quickpress-backend","env":"production","database":"supabase-postgresql","firebase":true}`.
+   - Commits `7a429182` and subsequent pushed to GitHub `main`.
+
+---
+
 ## Session: November 23, 2026 (Part 75)
 
 ### Permanent Session Persistence & Zero Repeated Logouts: 30-Day Access Token TTL, Fail-Safe 401 Interception, Self-Healing Refresh, and Partner Storage Hardening
@@ -211,6 +266,61 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 23, 2026 (Part 76)
+
+### Permanent Database Connectivity Architecture: Docker Network Orphan Endpoint Elimination, Zero Silent In-Memory Degradation, Multi-Host Failover Proxy & Automated Watchdog
+
+1. **Context & Directives:**
+   - **User Directive:** "datebase phir nahi aaraha hai ye problome kaha se ho sakti final dhundo or iska fix batao kiya full softwear ke review kARO BUT ISKO SOLUTION NIKAL MUHGESE BAAR BAAR ALOW KARNE KI PARMISSON EK SATH LE LO JISSE ME OR KOI KAAM BHI KAR SAKE BUT IS PROBLOME ME FINAL FIX KARE JISSE DATABAAR BAAR DISCONNECT NA HO ?"
+   - **Objective:** Perform full-stack root cause analysis on why the PostgreSQL database appeared to repeatedly disconnect or show empty results across server updates and container recreations. Eliminate silent in-memory fallback, guarantee multi-host failover, prevent Docker bridge network isolation, and establish 24/7 automated self-healing.
+
+2. **Root Cause Analysis Identified (What Was Actually Happening):**
+   - **PostgreSQL Data Was Never Lost:**
+     - Inspected `quickpress-postgres` on EC2: All 30 collections (including `partners`, `admin_partners`, `partner_profiles`, `users`, `partner_services`) were 100% intact on disk (`/home/ubuntu/quickpress-data/postgres`).
+   - **Docker Daemon Orphaned Endpoint Conflict:**
+     - Whenever `quickpress-backend` was recreated, Docker daemon kept an orphaned network endpoint on `quickpress-net` (`Error response from daemon: endpoint with name quickpress-backend already exists in network quickpress-net`).
+     - This prevented `quickpress-backend` from joining `quickpress-net`, silently dropping it onto Docker's default `bridge` network (172.17.0.x).
+   - **Default Bridge Network Isolation:**
+     - On default `bridge`, container DNS `quickpress-postgres` is unresolvable (`gaierror -2`), and cross-network routing to `172.18.0.3` is dropped by iptables.
+   - **Silent In-Memory Degradation in `client.py`:**
+     - When `database.connect()` failed after 3 tries, `client.py` logged a warning and switched to `self._engine = "in-memory"`.
+     - Whenever any repository called `database.collection(name)`, it silently returned an empty `InMemoryCollection()`.
+     - The API returned `200 OK` with `{total: 0, items: []}`. To the user and admin console, it appeared as if the entire database was empty / wiped.
+   - **Script Inconsistencies:**
+     - `setup_ec2.sh` lacked `--network quickpress-net`.
+     - `update_server.sh` lacked the forced network disconnection cleanup prior to container recreation.
+
+3. **Permanent Architectural Solutions Implemented:**
+   - **Eliminated Silent In-Memory Fallback (`client.py`):**
+     - Introduced `ReconnectingCollection` and `ReconnectingCursor`.
+     - In production (`APP_ENV=production` or whenever `database_url` is configured), `collection()` NEVER returns empty memory dicts. It actively ensures connection on access.
+     - If the connection was temporarily lost, it awaits `ensure_connected()` and routes directly to live PostgreSQL.
+   - **Multi-Host Candidate Failover Engine:**
+     - Implemented `_build_candidate_urls()` to test candidate network endpoints in priority order:
+       1. `quickpress-postgres:5432` (Docker internal DNS)
+       2. `172.18.0.3:5432` (Docker quickpress-net static IP)
+       3. `127.0.0.1:5432` (Host loopback)
+       4. `host.docker.internal:5432` (Docker host gateway)
+       5. `172.17.0.1:5432` (Docker bridge gateway)
+       6. Supabase Cloud Connection Pooler (`aws-0-ap-south-1.pooler.supabase.com:5432`) as ultimate fail-safe cloud fallback.
+   - **Pool Auto-Reconnect on Query Failure (`supabase_client.py`):**
+     - Enhanced `_fetch_all` and `_save_doc` with an immediate single-retry pool reconstruction if an idle connection drops or PostgreSQL restarts.
+   - **Docker Script Hardening (`setup_ec2.sh` & `update_server.sh`):**
+     - Added `sudo docker network disconnect -f quickpress-net quickpress-backend 2>/dev/null || true` before every container recreation.
+     - Added post-start live query validation directly in the update script.
+   - **24/7 Automated DB Watchdog (`scripts/db_watchdog.sh`):**
+     - Created automated watchdog running via cron (`*/2 * * * *`):
+       - Checks container status, verifies network attachment to `quickpress-net`, and tests `http://127.0.0.1:8000/api/health`.
+       - If database status is ever disconnected, automatically reattaches `quickpress-net` and restarts the backend within 120 seconds.
+
+4. **Live EC2 Verification:**
+   - `quickpress-backend` container `b00c9da66534` running on `quickpress-net`.
+   - Live query test verified: `DATABASE ENGINE: supabase-postgresql`, `VERIFIED PARTNERS COUNT: 2` (PRT-156115 and PRT-KAS-01).
+   - Public health check: `{"status":"ok","service":"quickpress-backend","env":"production","database":"supabase-postgresql","firebase":true}`.
+   - Commits `7a429182` and subsequent pushed to GitHub `main`.
+
+---
 
 ## Session: November 23, 2026 (Part 75)
 
@@ -344,6 +454,61 @@
 
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 76)
+
+### Permanent Database Connectivity Architecture: Docker Network Orphan Endpoint Elimination, Zero Silent In-Memory Degradation, Multi-Host Failover Proxy & Automated Watchdog
+
+1. **Context & Directives:**
+   - **User Directive:** "datebase phir nahi aaraha hai ye problome kaha se ho sakti final dhundo or iska fix batao kiya full softwear ke review kARO BUT ISKO SOLUTION NIKAL MUHGESE BAAR BAAR ALOW KARNE KI PARMISSON EK SATH LE LO JISSE ME OR KOI KAAM BHI KAR SAKE BUT IS PROBLOME ME FINAL FIX KARE JISSE DATABAAR BAAR DISCONNECT NA HO ?"
+   - **Objective:** Perform full-stack root cause analysis on why the PostgreSQL database appeared to repeatedly disconnect or show empty results across server updates and container recreations. Eliminate silent in-memory fallback, guarantee multi-host failover, prevent Docker bridge network isolation, and establish 24/7 automated self-healing.
+
+2. **Root Cause Analysis Identified (What Was Actually Happening):**
+   - **PostgreSQL Data Was Never Lost:**
+     - Inspected `quickpress-postgres` on EC2: All 30 collections (including `partners`, `admin_partners`, `partner_profiles`, `users`, `partner_services`) were 100% intact on disk (`/home/ubuntu/quickpress-data/postgres`).
+   - **Docker Daemon Orphaned Endpoint Conflict:**
+     - Whenever `quickpress-backend` was recreated, Docker daemon kept an orphaned network endpoint on `quickpress-net` (`Error response from daemon: endpoint with name quickpress-backend already exists in network quickpress-net`).
+     - This prevented `quickpress-backend` from joining `quickpress-net`, silently dropping it onto Docker's default `bridge` network (172.17.0.x).
+   - **Default Bridge Network Isolation:**
+     - On default `bridge`, container DNS `quickpress-postgres` is unresolvable (`gaierror -2`), and cross-network routing to `172.18.0.3` is dropped by iptables.
+   - **Silent In-Memory Degradation in `client.py`:**
+     - When `database.connect()` failed after 3 tries, `client.py` logged a warning and switched to `self._engine = "in-memory"`.
+     - Whenever any repository called `database.collection(name)`, it silently returned an empty `InMemoryCollection()`.
+     - The API returned `200 OK` with `{total: 0, items: []}`. To the user and admin console, it appeared as if the entire database was empty / wiped.
+   - **Script Inconsistencies:**
+     - `setup_ec2.sh` lacked `--network quickpress-net`.
+     - `update_server.sh` lacked the forced network disconnection cleanup prior to container recreation.
+
+3. **Permanent Architectural Solutions Implemented:**
+   - **Eliminated Silent In-Memory Fallback (`client.py`):**
+     - Introduced `ReconnectingCollection` and `ReconnectingCursor`.
+     - In production (`APP_ENV=production` or whenever `database_url` is configured), `collection()` NEVER returns empty memory dicts. It actively ensures connection on access.
+     - If the connection was temporarily lost, it awaits `ensure_connected()` and routes directly to live PostgreSQL.
+   - **Multi-Host Candidate Failover Engine:**
+     - Implemented `_build_candidate_urls()` to test candidate network endpoints in priority order:
+       1. `quickpress-postgres:5432` (Docker internal DNS)
+       2. `172.18.0.3:5432` (Docker quickpress-net static IP)
+       3. `127.0.0.1:5432` (Host loopback)
+       4. `host.docker.internal:5432` (Docker host gateway)
+       5. `172.17.0.1:5432` (Docker bridge gateway)
+       6. Supabase Cloud Connection Pooler (`aws-0-ap-south-1.pooler.supabase.com:5432`) as ultimate fail-safe cloud fallback.
+   - **Pool Auto-Reconnect on Query Failure (`supabase_client.py`):**
+     - Enhanced `_fetch_all` and `_save_doc` with an immediate single-retry pool reconstruction if an idle connection drops or PostgreSQL restarts.
+   - **Docker Script Hardening (`setup_ec2.sh` & `update_server.sh`):**
+     - Added `sudo docker network disconnect -f quickpress-net quickpress-backend 2>/dev/null || true` before every container recreation.
+     - Added post-start live query validation directly in the update script.
+   - **24/7 Automated DB Watchdog (`scripts/db_watchdog.sh`):**
+     - Created automated watchdog running via cron (`*/2 * * * *`):
+       - Checks container status, verifies network attachment to `quickpress-net`, and tests `http://127.0.0.1:8000/api/health`.
+       - If database status is ever disconnected, automatically reattaches `quickpress-net` and restarts the backend within 120 seconds.
+
+4. **Live EC2 Verification:**
+   - `quickpress-backend` container `b00c9da66534` running on `quickpress-net`.
+   - Live query test verified: `DATABASE ENGINE: supabase-postgresql`, `VERIFIED PARTNERS COUNT: 2` (PRT-156115 and PRT-KAS-01).
+   - Public health check: `{"status":"ok","service":"quickpress-backend","env":"production","database":"supabase-postgresql","firebase":true}`.
+   - Commits `7a429182` and subsequent pushed to GitHub `main`.
+
+---
+
 ## Session: November 23, 2026 (Part 75)
 
 ### Permanent Session Persistence & Zero Repeated Logouts: 30-Day Access Token TTL, Fail-Safe 401 Interception, Self-Healing Refresh, and Partner Storage Hardening
@@ -555,6 +720,61 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 23, 2026 (Part 76)
+
+### Permanent Database Connectivity Architecture: Docker Network Orphan Endpoint Elimination, Zero Silent In-Memory Degradation, Multi-Host Failover Proxy & Automated Watchdog
+
+1. **Context & Directives:**
+   - **User Directive:** "datebase phir nahi aaraha hai ye problome kaha se ho sakti final dhundo or iska fix batao kiya full softwear ke review kARO BUT ISKO SOLUTION NIKAL MUHGESE BAAR BAAR ALOW KARNE KI PARMISSON EK SATH LE LO JISSE ME OR KOI KAAM BHI KAR SAKE BUT IS PROBLOME ME FINAL FIX KARE JISSE DATABAAR BAAR DISCONNECT NA HO ?"
+   - **Objective:** Perform full-stack root cause analysis on why the PostgreSQL database appeared to repeatedly disconnect or show empty results across server updates and container recreations. Eliminate silent in-memory fallback, guarantee multi-host failover, prevent Docker bridge network isolation, and establish 24/7 automated self-healing.
+
+2. **Root Cause Analysis Identified (What Was Actually Happening):**
+   - **PostgreSQL Data Was Never Lost:**
+     - Inspected `quickpress-postgres` on EC2: All 30 collections (including `partners`, `admin_partners`, `partner_profiles`, `users`, `partner_services`) were 100% intact on disk (`/home/ubuntu/quickpress-data/postgres`).
+   - **Docker Daemon Orphaned Endpoint Conflict:**
+     - Whenever `quickpress-backend` was recreated, Docker daemon kept an orphaned network endpoint on `quickpress-net` (`Error response from daemon: endpoint with name quickpress-backend already exists in network quickpress-net`).
+     - This prevented `quickpress-backend` from joining `quickpress-net`, silently dropping it onto Docker's default `bridge` network (172.17.0.x).
+   - **Default Bridge Network Isolation:**
+     - On default `bridge`, container DNS `quickpress-postgres` is unresolvable (`gaierror -2`), and cross-network routing to `172.18.0.3` is dropped by iptables.
+   - **Silent In-Memory Degradation in `client.py`:**
+     - When `database.connect()` failed after 3 tries, `client.py` logged a warning and switched to `self._engine = "in-memory"`.
+     - Whenever any repository called `database.collection(name)`, it silently returned an empty `InMemoryCollection()`.
+     - The API returned `200 OK` with `{total: 0, items: []}`. To the user and admin console, it appeared as if the entire database was empty / wiped.
+   - **Script Inconsistencies:**
+     - `setup_ec2.sh` lacked `--network quickpress-net`.
+     - `update_server.sh` lacked the forced network disconnection cleanup prior to container recreation.
+
+3. **Permanent Architectural Solutions Implemented:**
+   - **Eliminated Silent In-Memory Fallback (`client.py`):**
+     - Introduced `ReconnectingCollection` and `ReconnectingCursor`.
+     - In production (`APP_ENV=production` or whenever `database_url` is configured), `collection()` NEVER returns empty memory dicts. It actively ensures connection on access.
+     - If the connection was temporarily lost, it awaits `ensure_connected()` and routes directly to live PostgreSQL.
+   - **Multi-Host Candidate Failover Engine:**
+     - Implemented `_build_candidate_urls()` to test candidate network endpoints in priority order:
+       1. `quickpress-postgres:5432` (Docker internal DNS)
+       2. `172.18.0.3:5432` (Docker quickpress-net static IP)
+       3. `127.0.0.1:5432` (Host loopback)
+       4. `host.docker.internal:5432` (Docker host gateway)
+       5. `172.17.0.1:5432` (Docker bridge gateway)
+       6. Supabase Cloud Connection Pooler (`aws-0-ap-south-1.pooler.supabase.com:5432`) as ultimate fail-safe cloud fallback.
+   - **Pool Auto-Reconnect on Query Failure (`supabase_client.py`):**
+     - Enhanced `_fetch_all` and `_save_doc` with an immediate single-retry pool reconstruction if an idle connection drops or PostgreSQL restarts.
+   - **Docker Script Hardening (`setup_ec2.sh` & `update_server.sh`):**
+     - Added `sudo docker network disconnect -f quickpress-net quickpress-backend 2>/dev/null || true` before every container recreation.
+     - Added post-start live query validation directly in the update script.
+   - **24/7 Automated DB Watchdog (`scripts/db_watchdog.sh`):**
+     - Created automated watchdog running via cron (`*/2 * * * *`):
+       - Checks container status, verifies network attachment to `quickpress-net`, and tests `http://127.0.0.1:8000/api/health`.
+       - If database status is ever disconnected, automatically reattaches `quickpress-net` and restarts the backend within 120 seconds.
+
+4. **Live EC2 Verification:**
+   - `quickpress-backend` container `b00c9da66534` running on `quickpress-net`.
+   - Live query test verified: `DATABASE ENGINE: supabase-postgresql`, `VERIFIED PARTNERS COUNT: 2` (PRT-156115 and PRT-KAS-01).
+   - Public health check: `{"status":"ok","service":"quickpress-backend","env":"production","database":"supabase-postgresql","firebase":true}`.
+   - Commits `7a429182` and subsequent pushed to GitHub `main`.
+
+---
 
 ## Session: November 23, 2026 (Part 75)
 
