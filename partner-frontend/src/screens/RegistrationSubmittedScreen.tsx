@@ -36,6 +36,7 @@ import {
 } from "@/api/partner/partner-auth-api";
 import { formatPartnerId } from "../lib/format-ids";
 import { isPartnerApproved } from "../lib/auth-guard";
+import { initPartnerSocket, subscribePartnerStatus } from "../lib/partner-socket";
 
 export function RegistrationSubmittedScreen() {
   const handleGoToResubmit = () => {
@@ -150,7 +151,34 @@ export function RegistrationSubmittedScreen() {
     }
     void checkStatus(false);
 
-    // Continuous auto-polling every 2.5s: as soon as Admin approves, partner screen automatically transitions!
+    // Ensure socket is initialized and connected to partner room
+    initPartnerSocket();
+
+    // Instant real-time socket listener for Admin Approval event
+    const unsubSocket = subscribePartnerStatus((data: any) => {
+      console.log("[RegistrationSubmittedScreen] Realtime partner status event:", data);
+      const isNowActive = data?.status === "active" || data?.status === "ACTIVE" || Boolean(data?.isVerified) || Boolean(data?.isApproved);
+      if (isNowActive && !redirecting) {
+        setIsApproved(true);
+        setRedirecting(true);
+        signIn({
+          partnerId: data.partnerId || data.id || session?.partnerId || "",
+          phone: session?.phone || "",
+          email: session?.email,
+          businessName: data.businessName || session?.businessName || "Your Partner Store",
+          isVerified: true,
+          isOnboarded: true,
+        });
+        toast.success("Congratulations! Your Store has been Approved by Admin!");
+        setTimeout(() => {
+          navigate({ to: partnerRoutes.dashboard, replace: true });
+        }, 500);
+        return;
+      }
+      void checkStatus(false);
+    });
+
+    // Continuous auto-polling every 2.5s as fallback
     const pollInterval = setInterval(() => {
       if (mounted && !isApproved && !redirecting) {
         void checkStatus(false);
@@ -160,8 +188,9 @@ export function RegistrationSubmittedScreen() {
     return () => {
       mounted = false;
       clearInterval(pollInterval);
+      unsubSocket();
     };
-  }, [checkStatus, isApproved, redirecting]);
+  }, [checkStatus, isApproved, redirecting, session, signIn, navigate]);
 
   const handleLogout = async () => {
     try {

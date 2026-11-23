@@ -1,5 +1,54 @@
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 71)
+
+### Instant Real-Time Partner & Rider Approval, Real-Time Admin Request Box Sync, Elimination of Broken Socket Imports, and EC2 Deployment
+
+1. **Context & Directives:**
+   - User directive: *"ab iske ander real time approve banao jisme ki Admin se approve karne par turant approved ho gaye and real time requst box approval"* & *"rider ka bhi karna approval real time"* & *"sath ke sath ec2 update kiya karo"*.
+   - User provided screenshots demonstrating:
+     - Partner registration Step 4 services screen.
+     - Mobile screen displaying `This page didn't load: Mail is not defined` (from previous session before icon imports were compiled).
+     - Admin console displaying `Cannot read properties of undefined (reading 'floorAreaSqFt')` (caused by outdated `.output` on EC2 before recent fixes).
+     - IDE status bar showing Gradle build warnings (addressed via `.vscode/settings.json` excludes).
+
+2. **Root Cause Analysis & Architectural Enhancements:**
+   - **Broken Socket Server Import in Backend (`backend-python`):**
+     - `admin_repositories.py` (lines 2782) and `rider.py` (lines 835, 1360, 1788) had imported `from app.core.socket_manager import sio`. The file `socket_manager.py` did not exist, causing the imports to fail silently inside `except Exception:` blocks, preventing any status change socket events from reaching the client.
+     - *Fix:* Replaced all occurrences with the canonical `from app.services.socket_service import sio, _get_partner_room_variants`.
+   - **Missing Socket Broadcasts on Admin Partner Approval:**
+     - In `admin_partner_repository.approve`, the database records were updated, but no Socket.IO events were emitted to the partner rooms or admin rooms.
+     - *Fix:* Added multi-room real-time emissions (`partner.status_changed`, `partner:approved`, `partner:status_updated`, `admin:request_updated`) targeting `partner:<id>`, `partner:PRT-<id>`, `phone:<phone>`, `partners`, `admins`, and global channels.
+   - **Admin Rider Approval Gate Unblocked (`admin.py`):**
+     - In `approve_rider`, an artificial HTTP 400 gate blocked admin approvals if `agreementStatus != "APPROVED"`.
+     - *Fix:* Admin approval now acts as official authority, ratifying the agreement (`agreementStatus: "APPROVED"`, `agreementApproved: True`), activating the rider, and broadcasting real-time events to the rider app.
+   - **Instant Client Transition on Approval:**
+     - **Partner (`RegistrationSubmittedScreen.tsx`):** Added Socket.IO subscription via `subscribePartnerStatus`. On receiving `partner.status_changed` / `partner:approved` with active/verified status, the screen immediately updates the local session (`isVerified: true`) and navigates to `/dashboard` without requiring page reloads or app restarts.
+     - **Rider (`RiderVerificationScreen.tsx`):** Enhanced `subscribeRiderStatus` listener to immediately update the local rider session store and navigate to `/dashboard` the instant Admin approves the rider.
+   - **Instant Admin Request Box Synchronization:**
+     - **Partner Registration / Resubmission (`partner.py`):** Emits `admin:request_updated`, `partner.registered`, and `partner.resubmitted` to room `admins`.
+     - **Rider Registration / Resubmission (`rider.py`):** Emits `admin:request_updated`, `rider.registered`, and `rider.resubmitted` to room `admins`.
+     - **Admin Console (`partners.tsx`, `-partner-requests-box.tsx`, `riders.tsx`):** Added real-time socket listeners for `admin:request_updated`, `partner.status_changed`, `rider.status_changed`, `partner.registered`, `rider.registered`. TanStack Query caches for `["admin", "partner-approvals"]`, `["admin", "partners"]`, and `["admin", "riders"]` are automatically invalidated in real time, updating the UI dynamically without manual refresh.
+   - **Admin Partner 360 Specs Resilience (`partners.tsx`):**
+     - Wrapped `specs` property fallbacks in `profile` `useMemo` so that `specs.floorAreaSqFt` is always guaranteed to be an integer (default `1200`), completely eliminating any chance of undefined property errors.
+
+3. **Production Builds, APK Compilation & EC2 Deployment:**
+   - Production Builds:
+     - `admin-frontend`: Built successfully (Nitro `.output` generated in 15.19s, exit code 0).
+     - `partner-frontend`: Built successfully (exit code 0).
+     - `rider-frontend`: Built successfully (exit code 0).
+     - `customer-frontend`: Built successfully (exit code 0).
+   - Compiled Android APKs & Play Store AABs:
+     - `QuickPress-Partner.apk` (19.2 MB) & `QuickPress-Partner.aab` (18.3 MB)
+     - `QuickPress-Captain.apk` (19.2 MB) & `QuickPress-Captain.aab` (18.3 MB)
+     - `QuickPress-Customer.apk` (21.0 MB) & `QuickPress-Customer.aab` (20.0 MB)
+   - Synchronized all 3 APKs directly to AWS EC2 `/var/www/quickpress/website/apks/`.
+   - Updated `.vscode/settings.json` to disable Java/Gradle build server errors and nested project discovery.
+
+---
+
+# QuickPress — Engineering Work History
+
 ## Session: November 23, 2026 (Part 70)
 
 ### Resolution of Admin 360 Specs Crash, Missing MapPin Icon, MapPicker Real Address Geocoding, and Full APK/EC2 Sync
@@ -39,6 +88,55 @@
      - `QuickPress-Customer.apk` (21.0 MB) & `QuickPress-Customer.aab` (20.0 MB)
    - Synchronized all 3 APKs directly to AWS EC2 (`65.0.127.43:/var/www/quickpress/website/apks/`) via SCP with `www-data:www-data` ownership.
    - Restarted EC2 PM2 services (`quickpress-admin`, `quickpress-partner`, `quickpress-rider`) and verified live services.
+
+---
+
+# QuickPress — Engineering Work History
+
+## Session: November 23, 2026 (Part 71)
+
+### Instant Real-Time Partner & Rider Approval, Real-Time Admin Request Box Sync, Elimination of Broken Socket Imports, and EC2 Deployment
+
+1. **Context & Directives:**
+   - User directive: *"ab iske ander real time approve banao jisme ki Admin se approve karne par turant approved ho gaye and real time requst box approval"* & *"rider ka bhi karna approval real time"* & *"sath ke sath ec2 update kiya karo"*.
+   - User provided screenshots demonstrating:
+     - Partner registration Step 4 services screen.
+     - Mobile screen displaying `This page didn't load: Mail is not defined` (from previous session before icon imports were compiled).
+     - Admin console displaying `Cannot read properties of undefined (reading 'floorAreaSqFt')` (caused by outdated `.output` on EC2 before recent fixes).
+     - IDE status bar showing Gradle build warnings (addressed via `.vscode/settings.json` excludes).
+
+2. **Root Cause Analysis & Architectural Enhancements:**
+   - **Broken Socket Server Import in Backend (`backend-python`):**
+     - `admin_repositories.py` (lines 2782) and `rider.py` (lines 835, 1360, 1788) had imported `from app.core.socket_manager import sio`. The file `socket_manager.py` did not exist, causing the imports to fail silently inside `except Exception:` blocks, preventing any status change socket events from reaching the client.
+     - *Fix:* Replaced all occurrences with the canonical `from app.services.socket_service import sio, _get_partner_room_variants`.
+   - **Missing Socket Broadcasts on Admin Partner Approval:**
+     - In `admin_partner_repository.approve`, the database records were updated, but no Socket.IO events were emitted to the partner rooms or admin rooms.
+     - *Fix:* Added multi-room real-time emissions (`partner.status_changed`, `partner:approved`, `partner:status_updated`, `admin:request_updated`) targeting `partner:<id>`, `partner:PRT-<id>`, `phone:<phone>`, `partners`, `admins`, and global channels.
+   - **Admin Rider Approval Gate Unblocked (`admin.py`):**
+     - In `approve_rider`, an artificial HTTP 400 gate blocked admin approvals if `agreementStatus != "APPROVED"`.
+     - *Fix:* Admin approval now acts as official authority, ratifying the agreement (`agreementStatus: "APPROVED"`, `agreementApproved: True`), activating the rider, and broadcasting real-time events to the rider app.
+   - **Instant Client Transition on Approval:**
+     - **Partner (`RegistrationSubmittedScreen.tsx`):** Added Socket.IO subscription via `subscribePartnerStatus`. On receiving `partner.status_changed` / `partner:approved` with active/verified status, the screen immediately updates the local session (`isVerified: true`) and navigates to `/dashboard` without requiring page reloads or app restarts.
+     - **Rider (`RiderVerificationScreen.tsx`):** Enhanced `subscribeRiderStatus` listener to immediately update the local rider session store and navigate to `/dashboard` the instant Admin approves the rider.
+   - **Instant Admin Request Box Synchronization:**
+     - **Partner Registration / Resubmission (`partner.py`):** Emits `admin:request_updated`, `partner.registered`, and `partner.resubmitted` to room `admins`.
+     - **Rider Registration / Resubmission (`rider.py`):** Emits `admin:request_updated`, `rider.registered`, and `rider.resubmitted` to room `admins`.
+     - **Admin Console (`partners.tsx`, `-partner-requests-box.tsx`, `riders.tsx`):** Added real-time socket listeners for `admin:request_updated`, `partner.status_changed`, `rider.status_changed`, `partner.registered`, `rider.registered`. TanStack Query caches for `["admin", "partner-approvals"]`, `["admin", "partners"]`, and `["admin", "riders"]` are automatically invalidated in real time, updating the UI dynamically without manual refresh.
+   - **Admin Partner 360 Specs Resilience (`partners.tsx`):**
+     - Wrapped `specs` property fallbacks in `profile` `useMemo` so that `specs.floorAreaSqFt` is always guaranteed to be an integer (default `1200`), completely eliminating any chance of undefined property errors.
+
+3. **Production Builds, APK Compilation & EC2 Deployment:**
+   - Production Builds:
+     - `admin-frontend`: Built successfully (Nitro `.output` generated in 15.19s, exit code 0).
+     - `partner-frontend`: Built successfully (exit code 0).
+     - `rider-frontend`: Built successfully (exit code 0).
+     - `customer-frontend`: Built successfully (exit code 0).
+   - Compiled Android APKs & Play Store AABs:
+     - `QuickPress-Partner.apk` (19.2 MB) & `QuickPress-Partner.aab` (18.3 MB)
+     - `QuickPress-Captain.apk` (19.2 MB) & `QuickPress-Captain.aab` (18.3 MB)
+     - `QuickPress-Customer.apk` (21.0 MB) & `QuickPress-Customer.aab` (20.0 MB)
+   - Synchronized all 3 APKs directly to AWS EC2 `/var/www/quickpress/website/apks/`.
+   - Updated `.vscode/settings.json` to disable Java/Gradle build server errors and nested project discovery.
 
 ---
 

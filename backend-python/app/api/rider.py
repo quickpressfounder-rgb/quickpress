@@ -832,16 +832,23 @@ async def sign_and_approve_agreement(
 
     # Real-time socket broadcast
     try:
-        from app.core.socket_manager import sio
-        await sio.emit("rider:agreement_approved", {
+        from app.services.socket_service import sio
+        agr_payload = {
             "riderId": target_id,
+            "id": target_id,
             "agreementStatus": "APPROVED",
             "signedAt": now_iso,
-        })
-        await sio.emit("rider:status_updated", {
-            "riderId": target_id,
-            "agreementStatus": "APPROVED",
-        })
+        }
+        await sio.emit("rider:agreement_approved", agr_payload, room=f"rider:{target_id}")
+        await sio.emit("rider:agreement_approved", agr_payload, room=f"rider_{target_id}")
+        await sio.emit("rider:status_updated", agr_payload, room=f"rider:{target_id}")
+        await sio.emit("rider:status_updated", agr_payload, room=f"rider_{target_id}")
+        await sio.emit("rider.status_changed", agr_payload, room=f"rider:{target_id}")
+        await sio.emit("admin:request_updated", {"type": "rider", "id": target_id, "action": "agreement_approved"}, room="admins")
+        await sio.emit("rider:agreement_approved", agr_payload, room="admins")
+        await sio.emit("rider:status_updated", agr_payload, room="admins")
+        await sio.emit("rider:agreement_approved", agr_payload)
+        await sio.emit("rider:status_updated", agr_payload)
     except Exception:
         pass
 
@@ -1357,17 +1364,27 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
 
     # Broadcast real-time socket event so Admin Panel updates immediately
     try:
-        from app.core.socket_manager import sio
-        await sio.emit("rider:status_updated", {
+        from app.services.socket_service import sio
+        rider_reg_payload = {
             "riderId": rider_id_str,
+            "id": rider_id_str,
             "status": "pending",
             "kycStatus": "pending",
             "resubmitted": is_resubmission,
             "name": full_name,
             "phone": phone,
-        })
-    except Exception:
-        pass
+        }
+        await sio.emit("admin:request_updated", {
+            "type": "rider",
+            "id": rider_id_str,
+            "action": "resubmitted" if is_resubmission else "registered",
+            "name": full_name,
+        }, room="admins")
+        await sio.emit("rider.registered" if not is_resubmission else "rider.resubmitted", rider_reg_payload, room="admins")
+        await sio.emit("rider.status_changed", rider_reg_payload, room="admins")
+        await sio.emit("rider:status_updated", rider_reg_payload, room="admins")
+    except Exception as exc:
+        logger.warning("Could not emit rider registration socket event: %s", exc)
 
     # Sync candidate full name & linked_id to users collection
     await database.update(
@@ -1785,17 +1802,27 @@ async def submit_registration(body: dict) -> dict:
 
     # Broadcast real-time socket event so Admin Panel updates immediately
     try:
-        from app.core.socket_manager import sio
-        await sio.emit("rider:status_updated", {
+        from app.services.socket_service import sio
+        rider_reg_payload = {
             "riderId": rider_id,
+            "id": rider_id,
             "status": "pending",
             "kycStatus": "pending",
             "resubmitted": is_resubmission,
             "name": full_name,
             "phone": phone,
-        })
-    except Exception:
-        pass
+        }
+        await sio.emit("admin:request_updated", {
+            "type": "rider",
+            "id": rider_id,
+            "action": "resubmitted" if is_resubmission else "registered",
+            "name": full_name,
+        }, room="admins")
+        await sio.emit("rider.registered" if not is_resubmission else "rider.resubmitted", rider_reg_payload, room="admins")
+        await sio.emit("rider.status_changed", rider_reg_payload, room="admins")
+        await sio.emit("rider:status_updated", rider_reg_payload, room="admins")
+    except Exception as exc:
+        logger.warning("Could not emit rider registration socket event: %s", exc)
 
     # Link referral code if provided
     ref_code = str(payload.get("referral_code") or payload.get("referralCode") or payload.get("ref") or "").strip()

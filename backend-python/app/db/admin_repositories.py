@@ -1616,6 +1616,51 @@ class AdminPartnerRepository:
             "reason": "Admin approval",
             "createdAt": now,
         })
+
+        # Broadcast real-time approval events across all partner and admin channels
+        try:
+            from app.services.socket_service import sio, _get_partner_room_variants
+            approval_payload = {
+                "partnerId": pid_clean,
+                "id": pid_clean,
+                "status": "active",
+                "isVerified": True,
+                "isOnboarded": True,
+                "isApproved": True,
+                "approvalStatus": "approved",
+                "agreementStatus": "APPROVED",
+                "agreementApproved": True,
+                "approvedAt": now,
+            }
+            # Instant update for Admin Request Box and Directory
+            await sio.emit("admin:request_updated", {"type": "partner", "id": pid_clean, "action": "approve"}, room="admins")
+            await sio.emit("partner.status_changed", approval_payload, room="admins")
+            await sio.emit("partner:approved", approval_payload, room="admins")
+
+            # Instant update for Partner mobile screens
+            for r in _get_partner_room_variants(pid_clean):
+                await sio.emit("partner.status_changed", approval_payload, room=r)
+                await sio.emit("partner:approved", approval_payload, room=r)
+                await sio.emit("partner:status_updated", approval_payload, room=r)
+
+            if user_phone:
+                clean_ph = str(user_phone).replace("+", "").replace(" ", "").replace("-", "").strip()
+                if clean_ph:
+                    await sio.emit("partner.status_changed", approval_payload, room=f"phone:{clean_ph}")
+                    await sio.emit("partner:approved", approval_payload, room=f"phone:{clean_ph}")
+                    await sio.emit("partner:status_updated", approval_payload, room=f"phone:{clean_ph}")
+                    if len(clean_ph) >= 10:
+                        await sio.emit("partner.status_changed", approval_payload, room=f"phone:{clean_ph[-10:]}")
+                        await sio.emit("partner:approved", approval_payload, room=f"phone:{clean_ph[-10:]}")
+
+            # General channels
+            await sio.emit("partner.status_changed", approval_payload, room="partners")
+            await sio.emit("partner:approved", approval_payload, room="partners")
+            await sio.emit("partner.status_changed", approval_payload)
+            await sio.emit("partner:approved", approval_payload)
+        except Exception as exc:
+            logger.warning("Could not emit partner approval socket event: %s", exc)
+
         return {"ok": True, "status": "ACTIVE", "isVerified": True, "partnerId": pid_clean}
 
     async def suspend(self, partner_id: str, reason: str, start_date: str, end_date: str, internal_note: str, admin_id: str) -> Dict[str, Any]:
@@ -2777,20 +2822,53 @@ class AdminRiderRepository:
             clean_phone = phone.replace("+91", "").replace(" ", "").replace("-", "").strip()
             await database.update("users", {"$or": [{"phone": phone}, {"phone": clean_phone}, {"phone": f"+91{clean_phone}"}], "role": "rider"}, user_changes)
 
-        # 5. Broadcast real-time socket event to instantly notify rider app
+        # 5. Broadcast real-time socket event to instantly notify rider app and admin requests
         try:
-            from app.core.socket_manager import sio
-            await sio.emit("rider:status_updated", {
+            from app.services.socket_service import sio
+            rider_payload = {
                 "riderId": entity_id,
+                "id": entity_id,
                 "status": changes["status"],
                 "kycStatus": changes["kycStatus"],
                 "isVerified": is_active,
                 "isApproved": is_active,
+                "agreementStatus": "APPROVED" if is_active else changes.get("agreementStatus", "PENDING_SIGNATURE"),
+                "agreementApproved": is_active,
                 "rejectionReason": changes.get("rejectionReason"),
                 "rejectedDocuments": changes.get("rejectedDocuments", []),
-            })
-        except Exception:
-            pass
+            }
+            # Admin request box & directory update
+            await sio.emit("admin:request_updated", {"type": "rider", "id": entity_id, "action": changes["status"]}, room="admins")
+            await sio.emit("rider.status_changed", rider_payload, room="admins")
+            await sio.emit("rider:approved", rider_payload, room="admins")
+
+            # Rider rooms
+            await sio.emit("rider:status_updated", rider_payload, room=f"rider:{entity_id}")
+            await sio.emit("rider:status_updated", rider_payload, room=f"rider_{entity_id}")
+            await sio.emit("rider.status_changed", rider_payload, room=f"rider:{entity_id}")
+            await sio.emit("rider.status_changed", rider_payload, room=f"rider_{entity_id}")
+            await sio.emit("rider:approved", rider_payload, room=f"rider:{entity_id}")
+            await sio.emit("rider:approved", rider_payload, room=f"rider_{entity_id}")
+
+            if phone:
+                clean_phone = phone.replace("+91", "").replace("+", "").replace(" ", "").replace("-", "").strip()
+                if clean_phone:
+                    await sio.emit("rider.status_changed", rider_payload, room=f"phone:{clean_phone}")
+                    await sio.emit("rider:approved", rider_payload, room=f"phone:{clean_phone}")
+                    await sio.emit("rider:status_updated", rider_payload, room=f"phone:{clean_phone}")
+                    if len(clean_phone) >= 10:
+                        await sio.emit("rider.status_changed", rider_payload, room=f"phone:{clean_phone[-10:]}")
+                        await sio.emit("rider:approved", rider_payload, room=f"phone:{clean_phone[-10:]}")
+
+            # General rider rooms and broadcast
+            await sio.emit("rider.status_changed", rider_payload, room="riders")
+            await sio.emit("rider:status_updated", rider_payload, room="riders")
+            await sio.emit("rider:approved", rider_payload, room="riders")
+            await sio.emit("rider.status_changed", rider_payload)
+            await sio.emit("rider:status_updated", rider_payload)
+            await sio.emit("rider:approved", rider_payload)
+        except Exception as exc:
+            logger.warning("Could not emit rider status socket event: %s", exc)
 
         return await self.detail(entity_id)
 

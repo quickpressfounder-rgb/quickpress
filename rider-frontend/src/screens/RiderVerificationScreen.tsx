@@ -125,15 +125,42 @@ export function RiderVerificationScreen() {
 
   // Real-time Socket.IO subscription for instant Admin Approval event
   useEffect(() => {
-    const unsub = subscribeRiderStatus((statusData) => {
-      console.log("[RiderVerificationScreen] Realtime rider status:", statusData);
+    const unsub = subscribeRiderStatus((statusData: any) => {
+      console.log("[RiderVerificationScreen] Realtime rider status update:", statusData);
+      const isApprovedNow = statusData?.status === "active" || Boolean(statusData?.isApproved) || Boolean(statusData?.isVerified);
+      if (isApprovedNow) {
+        const current = readSession("rider") || readSession();
+        if (current) {
+          writeSession({
+            ...current,
+            isVerified: true,
+            is_verified: true,
+            isApproved: true,
+            status: "active",
+            kycStatus: "verified",
+            account: {
+              ...(current.account || {}),
+              is_verified: true,
+              isVerified: true,
+              status: "active",
+              kycStatus: "verified",
+            },
+          }, "rider");
+        }
+        triggerHaptic();
+        toast.success("Congratulations! Your Captain account has been approved by Admin!");
+        setTimeout(() => {
+          navigate({ to: "/dashboard", replace: true });
+        }, 500);
+        return;
+      }
       loadStatus(true);
     });
 
     return () => {
       unsub();
     };
-  }, [loadStatus]);
+  }, [loadStatus, navigate]);
 
   const handleLogout = () => {
     triggerHaptic();

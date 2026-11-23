@@ -198,9 +198,13 @@ export function initRiderSocket(): Socket | null {
         handleOrderEvent(data);
       });
 
-      // Rider status & online events
+      // Rider status & online & approval events
       socket.on("rider.status_changed", handleStatus);
       socket.on("rider.online_status", handleStatus);
+      socket.on("rider:status_updated", handleStatus);
+      socket.on("rider:approved", handleStatus);
+      socket.on("rider.approved", handleStatus);
+      socket.on("rider:agreement_approved", handleStatus);
 
       // Order Lifecycle events
       socket.on("order.rider_assigned", handleOrderEvent);

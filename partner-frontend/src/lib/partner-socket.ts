@@ -211,9 +211,13 @@ export function initPartnerSocket(): Socket | null {
       socket.on("order.status_changed", handleOrder);
       socket.on("order.stage_updated", handleOrder);
 
-      // Partner store online/offline events
+      // Partner store online/offline & real-time approval events
       socket.on("partner.status_changed", handleStatus);
       socket.on("partner.online_status", handleStatus);
+      socket.on("partner:approved", handleStatus);
+      socket.on("partner.approved", handleStatus);
+      socket.on("partner:status_updated", handleStatus);
+      socket.on("partner:agreement_approved", handleStatus);
 
       // Notification and Broadcast events
       const handleNotification = (data: any) => {

@@ -207,24 +207,31 @@ export function RidersPage() {
 
   // Real-time fleet synchronization
   useEffect(() => {
-    const unsubStatus = onRealtimeEvent("rider.status_changed", (payload) => {
-      console.log("[AdminRiders] Realtime status event:", payload);
+    const handleRiderUpdate = (payload: any) => {
+      console.log("[AdminRiders] Realtime status/fleet event:", payload);
       queryClient.invalidateQueries({ queryKey: ["admin", "riders"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "riders", "stats"] });
       if (selectedId) queryClient.invalidateQueries({ queryKey: ["admin", "riders", "360", selectedId] });
       queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
-    });
-    const unsubOnline = onRealtimeEvent("rider.online_status", () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "riders"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "riders", "stats"] });
-      if (selectedId) queryClient.invalidateQueries({ queryKey: ["admin", "riders", "360", selectedId] });
-    });
+    };
+
+    const unsubStatus = onRealtimeEvent("rider.status_changed", handleRiderUpdate);
+    const unsubOnline = onRealtimeEvent("rider.online_status", handleRiderUpdate);
+    const unsubApproved = onRealtimeEvent("rider:approved", handleRiderUpdate);
+    const unsubRequestUpdated = onRealtimeEvent("admin:request_updated", handleRiderUpdate);
+    const unsubRegistered = onRealtimeEvent("rider.registered", handleRiderUpdate);
+    const unsubResubmitted = onRealtimeEvent("rider.resubmitted", handleRiderUpdate);
     const unsubLoc = onRealtimeEvent("location.updated", () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "riders"] });
     });
+
     return () => {
       unsubStatus();
       unsubOnline();
+      unsubApproved();
+      unsubRequestUpdated();
+      unsubRegistered();
+      unsubResubmitted();
       unsubLoc();
     };
   }, [queryClient, selectedId]);

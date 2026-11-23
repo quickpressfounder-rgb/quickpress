@@ -23,6 +23,7 @@ OLD_ARTIFACT_DIRS = [
 def get_extended_env():
     env = os.environ.copy()
     node_bins = [
+        "/Users/himanshupal/.nvm/versions/node/v22.23.4/bin",
         "/Users/himanshupal/.nvm/versions/node/v22.23.2/bin",
         "/Users/himanshupal/.nvm/versions/node/v20.20.2/bin",
     ]

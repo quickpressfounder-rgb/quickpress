@@ -2693,7 +2693,7 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
 
     # Realtime broadcast to customer apps, partner apps, and admin panels
     try:
-        from app.services.socket_service import notify_partner_status_changed
+        from app.services.socket_service import notify_partner_status_changed, sio
         await notify_partner_status_changed(
             partner_id=store_id_str,
             is_online=False,
@@ -2711,6 +2711,18 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
                 "area": payload.area,
             },
         )
+        # Instantly update Admin Request Box in real-time
+        await sio.emit("admin:request_updated", {
+            "type": "partner",
+            "id": store_id_str,
+            "action": "resubmitted" if is_resubmission else "registered",
+            "businessName": payload.businessName,
+        }, room="admins")
+        await sio.emit("partner.registered" if not is_resubmission else "partner.resubmitted", {
+            "partnerId": store_id_str,
+            "businessName": payload.businessName,
+            "ownerName": payload.ownerName,
+        }, room="admins")
     except Exception as exc:
         logger.warning("Could not broadcast partner onboarding status change: %s", exc)
 
@@ -2964,16 +2976,21 @@ async def sign_and_approve_partner_agreement(
 
     # Real-time socket broadcast
     try:
-        from app.core.socket_manager import sio
-        await sio.emit("partner:agreement_approved", {
+        from app.services.socket_service import sio, _get_partner_room_variants
+        agr_payload = {
             "partnerId": target_id,
             "agreementStatus": "APPROVED",
             "signedAt": now_iso,
-        })
-        await sio.emit("partner:status_updated", {
-            "partnerId": target_id,
-            "agreementStatus": "APPROVED",
-        })
+        }
+        for r in _get_partner_room_variants(target_id):
+            await sio.emit("partner:agreement_approved", agr_payload, room=r)
+            await sio.emit("partner:status_updated", agr_payload, room=r)
+            await sio.emit("partner.status_changed", agr_payload, room=r)
+        await sio.emit("admin:request_updated", {"type": "partner", "id": target_id, "action": "agreement_approved"}, room="admins")
+        await sio.emit("partner:agreement_approved", agr_payload, room="admins")
+        await sio.emit("partner:status_updated", agr_payload, room="admins")
+        await sio.emit("partner:agreement_approved", agr_payload)
+        await sio.emit("partner:status_updated", agr_payload)
     except Exception:
         pass
 

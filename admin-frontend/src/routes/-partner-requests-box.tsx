@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { onRealtimeEvent } from "../api/core/socket-client";
 import {
   CheckCircle2,
   XCircle,
@@ -158,6 +159,26 @@ export function PartnerRequestsBox({ onSelectPartner }: PartnerRequestsBoxProps)
     queryFn: () => fetchPartnerApprovalRequests("all"),
     refetchInterval: 15000,
   });
+
+  // Real-time synchronization for instant Request Box updates
+  useEffect(() => {
+    const handleUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "partner-approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "partners"] });
+    };
+
+    const unsubReq = onRealtimeEvent("admin:request_updated", handleUpdate);
+    const unsubStatus = onRealtimeEvent("partner.status_changed", handleUpdate);
+    const unsubReg = onRealtimeEvent("partner.registered", handleUpdate);
+    const unsubResub = onRealtimeEvent("partner.resubmitted", handleUpdate);
+
+    return () => {
+      unsubReq();
+      unsubStatus();
+      unsubReg();
+      unsubResub();
+    };
+  }, [queryClient]);
 
   const allRequests = requestsQuery.data ?? [];
 

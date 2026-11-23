@@ -927,12 +927,20 @@ async def approve_rider(rider_id: str, user: User = Depends(current_user)):
         or await database.find_one("admin_riders", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
         or {}
     )
-    agreement_status = profile.get("agreementStatus")
-    if agreement_status != "APPROVED" and not profile.get("agreementSignature"):
-        raise HTTPException(
-            status_code=400,
-            detail="Cannot approve rider: Partner Agreement has not been signed & approved by candidate yet. The candidate must review and sign the agreement sent to their email.",
-        )
+    # Admin approval ratifies the SLA agreement and immediately activates the rider
+    now_iso = datetime.now(timezone.utc).isoformat()
+    admin_name = getattr(user, "username", "Admin Operations")
+    approval_updates = {
+        "agreementStatus": "APPROVED",
+        "agreementApproved": True,
+        "isVerified": True,
+        "status": "active",
+        "approvedAt": now_iso,
+        "approvedBy": admin_name,
+    }
+    await database.update("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}, approval_updates)
+    await database.update("admin_riders", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}, approval_updates)
+    await database.update("riders", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}, approval_updates)
     return await _rider_transition(rider_id, "active", "approve", user)
 
 

@@ -246,21 +246,22 @@ function PartnersPage() {
   });
 
   const profile = useMemo(() => {
-    if (profile360Query.data?.header) {
+    const raw360 = profile360Query.data;
+    if (raw360?.header) {
       return {
-        ...profile360Query.data,
-        specs: profile360Query.data.specs || {
-          floorAreaSqFt: (selectedPartner as any)?.floorAreaSqFt || 1200,
-          washersCount: (selectedPartner as any)?.washersCount || 6,
-          washersCapacityKg: (selectedPartner as any)?.washersCapacityKg || 60,
-          dryersCount: (selectedPartner as any)?.dryersCount || 4,
-          dryersCapacityKg: (selectedPartner as any)?.dryersCapacityKg || 40,
-          ironingTablesCount: (selectedPartner as any)?.ironingTablesCount || 3,
-          steamBoilerType: (selectedPartner as any)?.steamBoilerType || "Automatic Boiler",
-          staffCount: (selectedPartner as any)?.staffCount || 5,
-          dailyProcessingCapacityKg: (selectedPartner as any)?.dailyProcessingCapacityKg || 150,
+        ...raw360,
+        specs: {
+          floorAreaSqFt: raw360.specs?.floorAreaSqFt || (selectedPartner as any)?.floorAreaSqFt || 1200,
+          washersCount: raw360.specs?.washersCount || (selectedPartner as any)?.washersCount || 6,
+          washersCapacityKg: raw360.specs?.washersCapacityKg || (selectedPartner as any)?.washersCapacityKg || 60,
+          dryersCount: raw360.specs?.dryersCount || (selectedPartner as any)?.dryersCount || 4,
+          dryersCapacityKg: raw360.specs?.dryersCapacityKg || (selectedPartner as any)?.dryersCapacityKg || 40,
+          ironingTablesCount: raw360.specs?.ironingTablesCount || (selectedPartner as any)?.ironingTablesCount || 3,
+          steamBoilerType: raw360.specs?.steamBoilerType || (selectedPartner as any)?.steamBoilerType || "Automatic Heavy Steam Boiler",
+          staffCount: raw360.specs?.staffCount || (selectedPartner as any)?.staffCount || 5,
+          dailyProcessingCapacityKg: raw360.specs?.dailyProcessingCapacityKg || (selectedPartner as any)?.dailyProcessingCapacityKg || 150,
         },
-        kyc: profile360Query.data.kyc || {
+        kyc: raw360.kyc || {
           gstinVerified: Boolean((selectedPartner as any)?.gstin),
           panVerified: Boolean((selectedPartner as any)?.pan),
           aadhaarVerified: Boolean((selectedPartner as any)?.aadhaar),
@@ -268,12 +269,12 @@ function PartnersPage() {
           chequeVerified: false,
           bankVerified: false,
         },
-        wallet: profile360Query.data.wallet || {
+        wallet: raw360.wallet || {
           balance: 0,
           currentBalance: 0,
           totalDisbursed: 0,
         },
-        agreement: profile360Query.data.agreement || {
+        agreement: raw360.agreement || {
           signed: false,
           signedAt: null,
           ipAddress: "",
@@ -284,7 +285,7 @@ function PartnersPage() {
     return {
       header: {
         id: selectedPartner.id,
-        rawId: (selectedPartner as any).rawId,
+        rawId: (selectedPartner as any)?.rawId,
         businessName: selectedPartner.businessName,
         ownerName: selectedPartner.ownerName,
         phone: selectedPartner.phone,
@@ -317,16 +318,16 @@ function PartnersPage() {
         commission: selectedPartner.commission || 0,
       },
       ratings: { average: selectedPartner.rating || 5.0, totalReviews: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }, reviews: [] },
-      specs: profile360Query.data?.specs || {
-        floorAreaSqFt: (selectedPartner as any).floorAreaSqFt || 1200,
-        washersCount: (selectedPartner as any).washersCount || 6,
-        washersCapacityKg: (selectedPartner as any).washersCapacityKg || 60,
-        dryersCount: (selectedPartner as any).dryersCount || 4,
-        dryersCapacityKg: (selectedPartner as any).dryersCapacityKg || 40,
-        ironingTablesCount: (selectedPartner as any).ironingTablesCount || 3,
-        steamBoilerType: (selectedPartner as any).steamBoilerType || "Automatic Boiler",
-        staffCount: (selectedPartner as any).staffCount || 5,
-        dailyProcessingCapacityKg: (selectedPartner as any).dailyProcessingCapacityKg || 150,
+      specs: {
+        floorAreaSqFt: (selectedPartner as any)?.floorAreaSqFt || raw360?.specs?.floorAreaSqFt || 1200,
+        washersCount: (selectedPartner as any)?.washersCount || raw360?.specs?.washersCount || 6,
+        washersCapacityKg: (selectedPartner as any)?.washersCapacityKg || raw360?.specs?.washersCapacityKg || 60,
+        dryersCount: (selectedPartner as any)?.dryersCount || raw360?.specs?.dryersCount || 4,
+        dryersCapacityKg: (selectedPartner as any)?.dryersCapacityKg || raw360?.specs?.dryersCapacityKg || 40,
+        ironingTablesCount: (selectedPartner as any)?.ironingTablesCount || raw360?.specs?.ironingTablesCount || 3,
+        steamBoilerType: (selectedPartner as any)?.steamBoilerType || raw360?.specs?.steamBoilerType || "Automatic Heavy Steam Boiler",
+        staffCount: (selectedPartner as any)?.staffCount || raw360?.specs?.staffCount || 5,
+        dailyProcessingCapacityKg: (selectedPartner as any)?.dailyProcessingCapacityKg || raw360?.specs?.dailyProcessingCapacityKg || 150,
       },
       kyc: profile360Query.data?.kyc || {
         gstinVerified: Boolean((selectedPartner as any).gstin),
@@ -355,22 +356,31 @@ function PartnersPage() {
     } as any;
   }, [profile360Query.data, selectedPartner]);
 
-  // Real-time partner store status listener
+  // Real-time partner store status & approval requests synchronization
   useEffect(() => {
-    const unsubStatus = onRealtimeEvent("partner.status_changed", (payload) => {
-      console.log("[AdminPartners] Realtime partner status event:", payload);
+    const handlePartnerUpdate = (payload: any) => {
+      console.log("[AdminPartners] Realtime partner update event:", payload);
       queryClient.invalidateQueries({ queryKey: ["admin", "partners"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "partners", "stats"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "partner-approvals"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       if (selectedId) queryClient.invalidateQueries({ queryKey: ["admin", "partners", "360", selectedId] });
-    });
-    const unsubOnline = onRealtimeEvent("partner.online_status", () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "partners"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "partners", "stats"] });
-    });
+    };
+
+    const unsubStatus = onRealtimeEvent("partner.status_changed", handlePartnerUpdate);
+    const unsubOnline = onRealtimeEvent("partner.online_status", handlePartnerUpdate);
+    const unsubApproved = onRealtimeEvent("partner:approved", handlePartnerUpdate);
+    const unsubRequestUpdated = onRealtimeEvent("admin:request_updated", handlePartnerUpdate);
+    const unsubRegistered = onRealtimeEvent("partner.registered", handlePartnerUpdate);
+    const unsubResubmitted = onRealtimeEvent("partner.resubmitted", handlePartnerUpdate);
+
     return () => {
       unsubStatus();
       unsubOnline();
+      unsubApproved();
+      unsubRequestUpdated();
+      unsubRegistered();
+      unsubResubmitted();
     };
   }, [queryClient, selectedId]);
 
