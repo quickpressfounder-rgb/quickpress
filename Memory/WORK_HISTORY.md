@@ -28,11 +28,19 @@
    - **Suite 2: Customer Website Landing & Navigation (`tests/website.kryptheon.js`):**
      - Navigates to `https://withquickpress.com`.
      - Validates brand title, hero section, and responsive navigation CTAs.
-     - **Result:** PASSED (6.6s).
+     - **Result:** PASSED (5.3s).
+   - **Suite 3: Partner Invalid OTP Handling & Error Banner Alert (`tests/partner-edge-cases.kryptheon.js`):**
+     - Navigates to `https://quickpress.online/auth` and opens phone login.
+     - Submits phone number (`7000000002`).
+     - Intentionally inputs an invalid OTP (`123456`).
+     - Validates that the visual shake error warning banner displays properly on screen.
+     - Enters universal bypass OTP `706513`.
+     - Validates that the error state clears and user is securely routed to `/registration`.
+     - **Result:** PASSED (16.0s).
 
 4. **Kryptheon Test Execution Verdict:**
-   - Total Recorded Suites: 2
-   - **2 working, 0 broken** (100% Pass Rate).
+   - Total Recorded Suites: 3
+   - **3 working, 0 broken** (100% Pass Rate).
    - Historical baselines registered in `~/.kryptheon/projects/officall-main-f762e9eee16c/`.
 
 ## Session: November 22, 2026 (Part 62)

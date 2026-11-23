@@ -12,3 +12,4 @@ test('quickpress customer website landing and responsive navigation', async ({ p
   const downloadLinks = page.locator('a[href*="apk" i], button:has-text("Download"), a:has-text("Get Started")');
   await expect(downloadLinks.first()).toBeVisible();
 });
+
