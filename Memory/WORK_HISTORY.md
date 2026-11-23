@@ -33,6 +33,14 @@
    - `partner-frontend` built cleanly with zero errors (`npm run build` completed, client & SSR Nitro output generated).
    - Committed changes and pushed to `origin main`.
    - Deployed to AWS EC2 (`ubuntu@65.0.127.43`) and restarted `quickpress-partner` via PM2.
+   - **PostgreSQL Database Migration & Profile Restoration:**
+     - Migrated production database to persistent PostgreSQL 16 container (`quickpress-postgres`) on EC2 mounted to `/home/ubuntu/quickpress-data/postgres`.
+     - Reconnected `quickpress-backend` container to Docker network `quickpress-net` with `DATABASE_URL=postgresql://postgres:QuickPressDB2026Secure@quickpress-postgres:5432/quickpress`. Verified health returns `database: supabase-postgresql`.
+     - Restored Partner "LUNDARY KING" (`PRT-156115`, phone `9258730561`, Kasganj) across `partner_profiles`, `admin_partners`, `catalog_partners`, `partner_settings`, and `partner_services`.
+     - Restored Delivery Captain "Captain Rahul" (`RDR-KAS-01`, phone `9258730561`, Kasganj) across `riders`, `admin_riders`, and `rider_profiles`.
+     - Restored Customer "Himanshu Pal" (`CUST-KAS-01`, phone `9258730561`, Kasganj) across `customers`.
+     - Verified `/api/partner/auth/check-registered?phone=9258730561` returns `isRegistered: true, isVerified: true, businessName: "LUNDARY KING"`.
+     - Verified `/api/rider/auth/check-registered?phone=9258730561` returns `isRegistered: true, isVerified: true, name: "Rahul Kumar"`.
 
 ---
 
@@ -162,6 +170,14 @@
    - `partner-frontend` built cleanly with zero errors (`npm run build` completed, client & SSR Nitro output generated).
    - Committed changes and pushed to `origin main`.
    - Deployed to AWS EC2 (`ubuntu@65.0.127.43`) and restarted `quickpress-partner` via PM2.
+   - **PostgreSQL Database Migration & Profile Restoration:**
+     - Migrated production database to persistent PostgreSQL 16 container (`quickpress-postgres`) on EC2 mounted to `/home/ubuntu/quickpress-data/postgres`.
+     - Reconnected `quickpress-backend` container to Docker network `quickpress-net` with `DATABASE_URL=postgresql://postgres:QuickPressDB2026Secure@quickpress-postgres:5432/quickpress`. Verified health returns `database: supabase-postgresql`.
+     - Restored Partner "LUNDARY KING" (`PRT-156115`, phone `9258730561`, Kasganj) across `partner_profiles`, `admin_partners`, `catalog_partners`, `partner_settings`, and `partner_services`.
+     - Restored Delivery Captain "Captain Rahul" (`RDR-KAS-01`, phone `9258730561`, Kasganj) across `riders`, `admin_riders`, and `rider_profiles`.
+     - Restored Customer "Himanshu Pal" (`CUST-KAS-01`, phone `9258730561`, Kasganj) across `customers`.
+     - Verified `/api/partner/auth/check-registered?phone=9258730561` returns `isRegistered: true, isVerified: true, businessName: "LUNDARY KING"`.
+     - Verified `/api/rider/auth/check-registered?phone=9258730561` returns `isRegistered: true, isVerified: true, name: "Rahul Kumar"`.
 
 ---
 
