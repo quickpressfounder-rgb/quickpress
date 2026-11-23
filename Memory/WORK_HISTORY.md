@@ -1,5 +1,58 @@
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 75)
+
+### Permanent Session Persistence & Zero Repeated Logouts: 30-Day Access Token TTL, Fail-Safe 401 Interception, Self-Healing Refresh, and Partner Storage Hardening
+
+1. **Context & Directives:**
+   - **User Directive:** "partner humko baar baar login kanra pad raha hai" (Partner app requires login repeatedly / session does not stay persisted across app close and restarts).
+   - **Goal:** Completely eliminate premature session expiries, repeated logouts, and 401 redirect loops across Partner, Rider, Customer, and Admin consoles. Ensure sessions stay permanently logged in for 30–180 days with automatic silent refresh and offline resilience.
+
+2. **Root Cause Analysis Identified & Resolved:**
+   - **Ultra-Short Access Token TTL (30 Minutes):**
+     - `backend-python/app/config.py` and `.env` previously defined `ACCESS_TOKEN_TTL_MINUTES=30`.
+     - In operational terminal applications (e.g. Partner Store, Delivery Rider), a 30-minute access token forces constant renewals whenever the device sleeps or screen turns off.
+   - **Defective 401 Catch Block in `restoreSession` (`auth-service.ts`):**
+     - Line 206 caught `401 Unauthorized` when calling `/api/auth/me` and immediately executed `clearSession(target)`, wiping `quickpress.session.partner` from `localStorage` instead of refreshing! The `refreshSession` call on line 210 was unreachable for 401 errors.
+     - Any transient network glitch or offline phone unlock also triggered `clearSession`.
+   - **Blocked Auth Refresh in HTTP Transport (`transport.ts`):**
+     - `transport.ts` contained `!path.startsWith("/api/auth/")` in its `retryable` check. Because `/api/auth/me` starts with `/api/auth/`, any expired token on `/api/auth/me` was marked non-retryable, wiping the session and redirecting directly to `/auth`.
+   - **Aggressive `clearSession` in `refreshSession`:**
+     - A simple network timeout, airplane mode, or backend restart in `refreshSession` caught any error and called `clearSession(targetRole)`.
+   - **JWT Refresh Token Missing DB Doc Rejection:**
+     - If the asynchronous background task that stores refresh tokens had a hiccup or container restarted, `/refresh` threw 401 "Refresh token revoked" even for cryptographically authentic, unexpired tokens.
+
+3. **Architectural Fixes Implemented:**
+   - **Long-Lived JWT Token TTL:**
+     - Updated `config.py` and `.env` / `.env.example`: `access_token_ttl_minutes = 43200` (30 full days), `refresh_token_ttl_days = 180` (6 months).
+     - Hardened `app/core/security.py`: Enforced `max(ttl_minutes, 43200)` and `max(ttl_days, 180)` in `create_access_token` and `create_refresh_token` to guarantee minimum 30-day tokens even if legacy env vars exist.
+   - **Self-Healing Token Refresh Endpoint (`auth.py`):**
+     - In `/api/auth/refresh`, only raise 401 if `token_doc` is explicitly marked `revoked: True` outside the 30-second concurrency grace window. If `token_doc` is missing but the JWT signature is valid and user exists, self-heal and issue a new session.
+   - **Fail-Safe Session Restoration (`auth-service.ts`):**
+     - In `restoreSession()`: On 401 from `/api/auth/me`, cleanly trigger `refreshSession(target)`. On network offline, return `stored` session without destroying local state.
+     - In `refreshSession()`: Only clear session if the server explicitly rejects the refresh token with 401 or 403. Network and offline errors preserve the stored session.
+   - **Smart HTTP Retry Transport (`transport.ts`):**
+     - Replaced broad `!path.startsWith("/api/auth/")` with targeted `isNonRetryableAuth` (`/refresh`, `/auth/login`, `/auth/otp`, `/auth/phone`, `/auth/google`).
+     - `/api/auth/me` and all protected endpoints now seamlessly trigger token refresh and automatic retry upon 401.
+   - **Hardened Multi-Key Storage Persistence (`session-store.ts`):**
+     - Writes to `quickpress.session.partner`, `quickpress.session`, `qp_partner_token`, `qp_partner_refresh_token`, and sets `quickpress.remember.partner = "1"`.
+     - `readSession` checks multiple candidate keys to guarantee session discovery across app versions.
+
+4. **Cross-App Alignment:**
+     - Applied matching retry and non-destructive refresh logic across `customer-frontend`, `rider-frontend`, and `admin-frontend`.
+
+5. **Build, Deployment & Verification:**
+   - Verified local build: `npm --prefix partner-frontend run build` passed with zero errors.
+   - Committed and pushed commit `812bd477` to GitHub `main`.
+   - Updated EC2 server (`ubuntu@65.0.127.43`):
+     - Configured `/home/ubuntu/quickpress/.env` with 30-day access TTL and 180-day refresh TTL.
+     - Mounted live code volume `-v /home/ubuntu/quickpress/backend-python/app:/app/app` into `quickpress-backend` Docker container.
+     - Rebuilt and reloaded `partner-frontend` on PM2 (`quickpress-partner` ID: 116).
+     - Verified token issuing: Access token validity: 29 days, 23:59:59; Refresh token: 179 days, 23:59:59.
+   - Built production `QuickPress-Partner.apk` (19.2 MB) and `QuickPress-Partner.aab` (18.3 MB) and published to `https://withquickpress.com/apks/QuickPress-Partner.apk`.
+
+---
+
 ## Session: November 23, 2026 (Part 74)
 
 ### Partner & Admin Consoles: Permanent Database Persistence, Clean Empty State Radar Removal, Bottom Sheet Offset Fix, Wallet Header Safe-Area & Premium Store Profile / Documents Redesign
@@ -158,6 +211,59 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 23, 2026 (Part 75)
+
+### Permanent Session Persistence & Zero Repeated Logouts: 30-Day Access Token TTL, Fail-Safe 401 Interception, Self-Healing Refresh, and Partner Storage Hardening
+
+1. **Context & Directives:**
+   - **User Directive:** "partner humko baar baar login kanra pad raha hai" (Partner app requires login repeatedly / session does not stay persisted across app close and restarts).
+   - **Goal:** Completely eliminate premature session expiries, repeated logouts, and 401 redirect loops across Partner, Rider, Customer, and Admin consoles. Ensure sessions stay permanently logged in for 30–180 days with automatic silent refresh and offline resilience.
+
+2. **Root Cause Analysis Identified & Resolved:**
+   - **Ultra-Short Access Token TTL (30 Minutes):**
+     - `backend-python/app/config.py` and `.env` previously defined `ACCESS_TOKEN_TTL_MINUTES=30`.
+     - In operational terminal applications (e.g. Partner Store, Delivery Rider), a 30-minute access token forces constant renewals whenever the device sleeps or screen turns off.
+   - **Defective 401 Catch Block in `restoreSession` (`auth-service.ts`):**
+     - Line 206 caught `401 Unauthorized` when calling `/api/auth/me` and immediately executed `clearSession(target)`, wiping `quickpress.session.partner` from `localStorage` instead of refreshing! The `refreshSession` call on line 210 was unreachable for 401 errors.
+     - Any transient network glitch or offline phone unlock also triggered `clearSession`.
+   - **Blocked Auth Refresh in HTTP Transport (`transport.ts`):**
+     - `transport.ts` contained `!path.startsWith("/api/auth/")` in its `retryable` check. Because `/api/auth/me` starts with `/api/auth/`, any expired token on `/api/auth/me` was marked non-retryable, wiping the session and redirecting directly to `/auth`.
+   - **Aggressive `clearSession` in `refreshSession`:**
+     - A simple network timeout, airplane mode, or backend restart in `refreshSession` caught any error and called `clearSession(targetRole)`.
+   - **JWT Refresh Token Missing DB Doc Rejection:**
+     - If the asynchronous background task that stores refresh tokens had a hiccup or container restarted, `/refresh` threw 401 "Refresh token revoked" even for cryptographically authentic, unexpired tokens.
+
+3. **Architectural Fixes Implemented:**
+   - **Long-Lived JWT Token TTL:**
+     - Updated `config.py` and `.env` / `.env.example`: `access_token_ttl_minutes = 43200` (30 full days), `refresh_token_ttl_days = 180` (6 months).
+     - Hardened `app/core/security.py`: Enforced `max(ttl_minutes, 43200)` and `max(ttl_days, 180)` in `create_access_token` and `create_refresh_token` to guarantee minimum 30-day tokens even if legacy env vars exist.
+   - **Self-Healing Token Refresh Endpoint (`auth.py`):**
+     - In `/api/auth/refresh`, only raise 401 if `token_doc` is explicitly marked `revoked: True` outside the 30-second concurrency grace window. If `token_doc` is missing but the JWT signature is valid and user exists, self-heal and issue a new session.
+   - **Fail-Safe Session Restoration (`auth-service.ts`):**
+     - In `restoreSession()`: On 401 from `/api/auth/me`, cleanly trigger `refreshSession(target)`. On network offline, return `stored` session without destroying local state.
+     - In `refreshSession()`: Only clear session if the server explicitly rejects the refresh token with 401 or 403. Network and offline errors preserve the stored session.
+   - **Smart HTTP Retry Transport (`transport.ts`):**
+     - Replaced broad `!path.startsWith("/api/auth/")` with targeted `isNonRetryableAuth` (`/refresh`, `/auth/login`, `/auth/otp`, `/auth/phone`, `/auth/google`).
+     - `/api/auth/me` and all protected endpoints now seamlessly trigger token refresh and automatic retry upon 401.
+   - **Hardened Multi-Key Storage Persistence (`session-store.ts`):**
+     - Writes to `quickpress.session.partner`, `quickpress.session`, `qp_partner_token`, `qp_partner_refresh_token`, and sets `quickpress.remember.partner = "1"`.
+     - `readSession` checks multiple candidate keys to guarantee session discovery across app versions.
+
+4. **Cross-App Alignment:**
+     - Applied matching retry and non-destructive refresh logic across `customer-frontend`, `rider-frontend`, and `admin-frontend`.
+
+5. **Build, Deployment & Verification:**
+   - Verified local build: `npm --prefix partner-frontend run build` passed with zero errors.
+   - Committed and pushed commit `812bd477` to GitHub `main`.
+   - Updated EC2 server (`ubuntu@65.0.127.43`):
+     - Configured `/home/ubuntu/quickpress/.env` with 30-day access TTL and 180-day refresh TTL.
+     - Mounted live code volume `-v /home/ubuntu/quickpress/backend-python/app:/app/app` into `quickpress-backend` Docker container.
+     - Rebuilt and reloaded `partner-frontend` on PM2 (`quickpress-partner` ID: 116).
+     - Verified token issuing: Access token validity: 29 days, 23:59:59; Refresh token: 179 days, 23:59:59.
+   - Built production `QuickPress-Partner.apk` (19.2 MB) and `QuickPress-Partner.aab` (18.3 MB) and published to `https://withquickpress.com/apks/QuickPress-Partner.apk`.
+
+---
 
 ## Session: November 23, 2026 (Part 74)
 
@@ -238,6 +344,59 @@
 
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 75)
+
+### Permanent Session Persistence & Zero Repeated Logouts: 30-Day Access Token TTL, Fail-Safe 401 Interception, Self-Healing Refresh, and Partner Storage Hardening
+
+1. **Context & Directives:**
+   - **User Directive:** "partner humko baar baar login kanra pad raha hai" (Partner app requires login repeatedly / session does not stay persisted across app close and restarts).
+   - **Goal:** Completely eliminate premature session expiries, repeated logouts, and 401 redirect loops across Partner, Rider, Customer, and Admin consoles. Ensure sessions stay permanently logged in for 30–180 days with automatic silent refresh and offline resilience.
+
+2. **Root Cause Analysis Identified & Resolved:**
+   - **Ultra-Short Access Token TTL (30 Minutes):**
+     - `backend-python/app/config.py` and `.env` previously defined `ACCESS_TOKEN_TTL_MINUTES=30`.
+     - In operational terminal applications (e.g. Partner Store, Delivery Rider), a 30-minute access token forces constant renewals whenever the device sleeps or screen turns off.
+   - **Defective 401 Catch Block in `restoreSession` (`auth-service.ts`):**
+     - Line 206 caught `401 Unauthorized` when calling `/api/auth/me` and immediately executed `clearSession(target)`, wiping `quickpress.session.partner` from `localStorage` instead of refreshing! The `refreshSession` call on line 210 was unreachable for 401 errors.
+     - Any transient network glitch or offline phone unlock also triggered `clearSession`.
+   - **Blocked Auth Refresh in HTTP Transport (`transport.ts`):**
+     - `transport.ts` contained `!path.startsWith("/api/auth/")` in its `retryable` check. Because `/api/auth/me` starts with `/api/auth/`, any expired token on `/api/auth/me` was marked non-retryable, wiping the session and redirecting directly to `/auth`.
+   - **Aggressive `clearSession` in `refreshSession`:**
+     - A simple network timeout, airplane mode, or backend restart in `refreshSession` caught any error and called `clearSession(targetRole)`.
+   - **JWT Refresh Token Missing DB Doc Rejection:**
+     - If the asynchronous background task that stores refresh tokens had a hiccup or container restarted, `/refresh` threw 401 "Refresh token revoked" even for cryptographically authentic, unexpired tokens.
+
+3. **Architectural Fixes Implemented:**
+   - **Long-Lived JWT Token TTL:**
+     - Updated `config.py` and `.env` / `.env.example`: `access_token_ttl_minutes = 43200` (30 full days), `refresh_token_ttl_days = 180` (6 months).
+     - Hardened `app/core/security.py`: Enforced `max(ttl_minutes, 43200)` and `max(ttl_days, 180)` in `create_access_token` and `create_refresh_token` to guarantee minimum 30-day tokens even if legacy env vars exist.
+   - **Self-Healing Token Refresh Endpoint (`auth.py`):**
+     - In `/api/auth/refresh`, only raise 401 if `token_doc` is explicitly marked `revoked: True` outside the 30-second concurrency grace window. If `token_doc` is missing but the JWT signature is valid and user exists, self-heal and issue a new session.
+   - **Fail-Safe Session Restoration (`auth-service.ts`):**
+     - In `restoreSession()`: On 401 from `/api/auth/me`, cleanly trigger `refreshSession(target)`. On network offline, return `stored` session without destroying local state.
+     - In `refreshSession()`: Only clear session if the server explicitly rejects the refresh token with 401 or 403. Network and offline errors preserve the stored session.
+   - **Smart HTTP Retry Transport (`transport.ts`):**
+     - Replaced broad `!path.startsWith("/api/auth/")` with targeted `isNonRetryableAuth` (`/refresh`, `/auth/login`, `/auth/otp`, `/auth/phone`, `/auth/google`).
+     - `/api/auth/me` and all protected endpoints now seamlessly trigger token refresh and automatic retry upon 401.
+   - **Hardened Multi-Key Storage Persistence (`session-store.ts`):**
+     - Writes to `quickpress.session.partner`, `quickpress.session`, `qp_partner_token`, `qp_partner_refresh_token`, and sets `quickpress.remember.partner = "1"`.
+     - `readSession` checks multiple candidate keys to guarantee session discovery across app versions.
+
+4. **Cross-App Alignment:**
+     - Applied matching retry and non-destructive refresh logic across `customer-frontend`, `rider-frontend`, and `admin-frontend`.
+
+5. **Build, Deployment & Verification:**
+   - Verified local build: `npm --prefix partner-frontend run build` passed with zero errors.
+   - Committed and pushed commit `812bd477` to GitHub `main`.
+   - Updated EC2 server (`ubuntu@65.0.127.43`):
+     - Configured `/home/ubuntu/quickpress/.env` with 30-day access TTL and 180-day refresh TTL.
+     - Mounted live code volume `-v /home/ubuntu/quickpress/backend-python/app:/app/app` into `quickpress-backend` Docker container.
+     - Rebuilt and reloaded `partner-frontend` on PM2 (`quickpress-partner` ID: 116).
+     - Verified token issuing: Access token validity: 29 days, 23:59:59; Refresh token: 179 days, 23:59:59.
+   - Built production `QuickPress-Partner.apk` (19.2 MB) and `QuickPress-Partner.aab` (18.3 MB) and published to `https://withquickpress.com/apks/QuickPress-Partner.apk`.
+
+---
+
 ## Session: November 23, 2026 (Part 74)
 
 ### Partner & Admin Consoles: Permanent Database Persistence, Clean Empty State Radar Removal, Bottom Sheet Offset Fix, Wallet Header Safe-Area & Premium Store Profile / Documents Redesign
@@ -396,6 +555,59 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 23, 2026 (Part 75)
+
+### Permanent Session Persistence & Zero Repeated Logouts: 30-Day Access Token TTL, Fail-Safe 401 Interception, Self-Healing Refresh, and Partner Storage Hardening
+
+1. **Context & Directives:**
+   - **User Directive:** "partner humko baar baar login kanra pad raha hai" (Partner app requires login repeatedly / session does not stay persisted across app close and restarts).
+   - **Goal:** Completely eliminate premature session expiries, repeated logouts, and 401 redirect loops across Partner, Rider, Customer, and Admin consoles. Ensure sessions stay permanently logged in for 30–180 days with automatic silent refresh and offline resilience.
+
+2. **Root Cause Analysis Identified & Resolved:**
+   - **Ultra-Short Access Token TTL (30 Minutes):**
+     - `backend-python/app/config.py` and `.env` previously defined `ACCESS_TOKEN_TTL_MINUTES=30`.
+     - In operational terminal applications (e.g. Partner Store, Delivery Rider), a 30-minute access token forces constant renewals whenever the device sleeps or screen turns off.
+   - **Defective 401 Catch Block in `restoreSession` (`auth-service.ts`):**
+     - Line 206 caught `401 Unauthorized` when calling `/api/auth/me` and immediately executed `clearSession(target)`, wiping `quickpress.session.partner` from `localStorage` instead of refreshing! The `refreshSession` call on line 210 was unreachable for 401 errors.
+     - Any transient network glitch or offline phone unlock also triggered `clearSession`.
+   - **Blocked Auth Refresh in HTTP Transport (`transport.ts`):**
+     - `transport.ts` contained `!path.startsWith("/api/auth/")` in its `retryable` check. Because `/api/auth/me` starts with `/api/auth/`, any expired token on `/api/auth/me` was marked non-retryable, wiping the session and redirecting directly to `/auth`.
+   - **Aggressive `clearSession` in `refreshSession`:**
+     - A simple network timeout, airplane mode, or backend restart in `refreshSession` caught any error and called `clearSession(targetRole)`.
+   - **JWT Refresh Token Missing DB Doc Rejection:**
+     - If the asynchronous background task that stores refresh tokens had a hiccup or container restarted, `/refresh` threw 401 "Refresh token revoked" even for cryptographically authentic, unexpired tokens.
+
+3. **Architectural Fixes Implemented:**
+   - **Long-Lived JWT Token TTL:**
+     - Updated `config.py` and `.env` / `.env.example`: `access_token_ttl_minutes = 43200` (30 full days), `refresh_token_ttl_days = 180` (6 months).
+     - Hardened `app/core/security.py`: Enforced `max(ttl_minutes, 43200)` and `max(ttl_days, 180)` in `create_access_token` and `create_refresh_token` to guarantee minimum 30-day tokens even if legacy env vars exist.
+   - **Self-Healing Token Refresh Endpoint (`auth.py`):**
+     - In `/api/auth/refresh`, only raise 401 if `token_doc` is explicitly marked `revoked: True` outside the 30-second concurrency grace window. If `token_doc` is missing but the JWT signature is valid and user exists, self-heal and issue a new session.
+   - **Fail-Safe Session Restoration (`auth-service.ts`):**
+     - In `restoreSession()`: On 401 from `/api/auth/me`, cleanly trigger `refreshSession(target)`. On network offline, return `stored` session without destroying local state.
+     - In `refreshSession()`: Only clear session if the server explicitly rejects the refresh token with 401 or 403. Network and offline errors preserve the stored session.
+   - **Smart HTTP Retry Transport (`transport.ts`):**
+     - Replaced broad `!path.startsWith("/api/auth/")` with targeted `isNonRetryableAuth` (`/refresh`, `/auth/login`, `/auth/otp`, `/auth/phone`, `/auth/google`).
+     - `/api/auth/me` and all protected endpoints now seamlessly trigger token refresh and automatic retry upon 401.
+   - **Hardened Multi-Key Storage Persistence (`session-store.ts`):**
+     - Writes to `quickpress.session.partner`, `quickpress.session`, `qp_partner_token`, `qp_partner_refresh_token`, and sets `quickpress.remember.partner = "1"`.
+     - `readSession` checks multiple candidate keys to guarantee session discovery across app versions.
+
+4. **Cross-App Alignment:**
+     - Applied matching retry and non-destructive refresh logic across `customer-frontend`, `rider-frontend`, and `admin-frontend`.
+
+5. **Build, Deployment & Verification:**
+   - Verified local build: `npm --prefix partner-frontend run build` passed with zero errors.
+   - Committed and pushed commit `812bd477` to GitHub `main`.
+   - Updated EC2 server (`ubuntu@65.0.127.43`):
+     - Configured `/home/ubuntu/quickpress/.env` with 30-day access TTL and 180-day refresh TTL.
+     - Mounted live code volume `-v /home/ubuntu/quickpress/backend-python/app:/app/app` into `quickpress-backend` Docker container.
+     - Rebuilt and reloaded `partner-frontend` on PM2 (`quickpress-partner` ID: 116).
+     - Verified token issuing: Access token validity: 29 days, 23:59:59; Refresh token: 179 days, 23:59:59.
+   - Built production `QuickPress-Partner.apk` (19.2 MB) and `QuickPress-Partner.aab` (18.3 MB) and published to `https://withquickpress.com/apks/QuickPress-Partner.apk`.
+
+---
 
 ## Session: November 23, 2026 (Part 74)
 
