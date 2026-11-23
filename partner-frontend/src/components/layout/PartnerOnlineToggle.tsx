@@ -64,38 +64,52 @@ export function PartnerOnlineToggle({
           onClick={handleClick}
           disabled={isToggling}
           aria-label={isOnline ? "Switch to Offline" : "Switch to Online"}
-          className={`relative flex items-center justify-between h-8 min-w-[96px] px-2.5 rounded-full cursor-pointer select-none transition-all duration-300 shadow-sm active:scale-95 ${
+          className={`group relative flex items-center h-8.5 px-1.5 rounded-full cursor-pointer select-none transition-all duration-300 ease-out active:scale-95 border ${
             isOnline
-              ? "bg-[#16a34a] hover:bg-[#15803d] text-white"
-              : "bg-zinc-200 hover:bg-zinc-300 text-zinc-700"
+              ? "bg-emerald-600 hover:bg-emerald-700 border-emerald-500/40 text-white shadow-[0_2px_10px_rgba(16,185,129,0.28)]"
+              : "bg-zinc-100 hover:bg-zinc-200/80 border-zinc-200 text-zinc-600 shadow-2xs"
           }`}
+          style={{ minWidth: "108px" }}
         >
-          {/* Label Text */}
-          <span
-            className={`text-[12px] font-black tracking-wide transition-colors duration-200 flex items-center gap-1.5 ${
-              isOnline ? "text-white pl-0.5" : "text-zinc-700 pr-5"
-            }`}
-          >
-            {isOnline && (
-              <span className="size-1.5 rounded-full bg-white animate-pulse" />
-            )}
-            {isOnline ? "Online" : "Offline"}
-          </span>
-
-          {/* Sliding Circular Knob */}
-          <span
-            className={`size-5 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-300 ease-out ${
-              isOnline ? "translate-x-0" : "-translate-x-14"
-            }`}
-          >
-            {isToggling ? (
-              <span className="size-2.5 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
-            ) : isOnline ? (
-              <span className="size-2 rounded-full bg-emerald-600" />
-            ) : (
-              <span className="size-2 rounded-full bg-zinc-400" />
-            )}
-          </span>
+          {isOnline ? (
+            <>
+              {/* Online Label with Pulse */}
+              <div className="flex items-center gap-1.5 pl-2 pr-1 flex-1">
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-200 opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-white" />
+                </span>
+                <span className="text-[11px] font-black uppercase tracking-wider text-white">
+                  Online
+                </span>
+              </div>
+              {/* Sliding Circle Knob on Right */}
+              <span className="size-6 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0 transition-transform duration-300 ease-out">
+                {isToggling ? (
+                  <span className="size-3 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
+                ) : (
+                  <span className="size-2 rounded-full bg-emerald-600" />
+                )}
+              </span>
+            </>
+          ) : (
+            <>
+              {/* Sliding Circle Knob on Left */}
+              <span className="size-6 rounded-full bg-white shadow-sm border border-zinc-200 flex items-center justify-center shrink-0 transition-transform duration-300 ease-out">
+                {isToggling ? (
+                  <span className="size-3 rounded-full border-2 border-zinc-400 border-t-transparent animate-spin" />
+                ) : (
+                  <span className="size-2 rounded-full bg-zinc-400" />
+                )}
+              </span>
+              {/* Offline Label on Right */}
+              <div className="flex items-center gap-1.5 pl-1 pr-2 flex-1 justify-end">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-600">
+                  Offline
+                </span>
+              </div>
+            </>
+          )}
         </button>
 
         {/* Subtle auto store schedule indicator */}

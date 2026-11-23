@@ -126,61 +126,61 @@ export function OrdersScreen() {
       {/* ========================================================================= */}
       <div className="min-h-screen bg-white pb-28 text-black md:hidden">
         {/* Sticky Filter Header with Real [Online ] Switch, Action Icons & Stage Pills */}
-        <header className="sticky top-0 z-20 bg-white border-b border-zinc-200/90 px-4 pb-2.5 shadow-2xs app-header-safe">
+        <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 px-4 pt-3.5 pb-3 shadow-2xs app-header-safe">
           {/* Top Bar Row: Real Online Toggle Switch on Left, Action Icons on Right */}
           <div className="flex items-center justify-between">
             {/* Real Store Online Pill Switch matching Image 4 */}
             <PartnerOnlineToggle showScheduleHint />
 
-            {/* Action Icons: Search, Notifications, App Drawer Grid */}
-            <div className="flex items-center gap-3.5 text-zinc-700">
+            {/* Action Icons: Search, Notifications, App Drawer Grid with transparent hover effect */}
+            <div className="flex items-center gap-1.5 text-zinc-700">
               <button
                 type="button"
                 onClick={() => {
                   const input = document.getElementById("partner-order-search-input");
                   if (input) input.focus();
                 }}
-                className="p-1 hover:text-black transition-colors cursor-pointer"
+                className="size-9 rounded-xl flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/80 active:bg-zinc-200/60 transition-all cursor-pointer"
                 title="Search Orders"
               >
-                <Search className="size-5 stroke-[2.2]" />
+                <Search className="size-4.5 stroke-[2.2]" />
               </button>
 
               <Link
                 to={partnerRoutes.notifications}
-                className="relative p-1 hover:text-black transition-colors cursor-pointer"
+                className="relative size-9 rounded-xl flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/80 active:bg-zinc-200/60 transition-all cursor-pointer"
                 title="Notifications"
               >
-                <Bell className="size-5 stroke-[2.2]" />
-                <span className="absolute top-1 right-1 size-2 rounded-full bg-rose-500" />
+                <Bell className="size-4.5 stroke-[2.2]" />
+                <span className="absolute top-2 right-2 size-2 rounded-full bg-rose-500 ring-2 ring-white" />
               </Link>
 
               <Link
                 to={partnerRoutes.shop}
-                className="p-1 hover:text-black transition-colors cursor-pointer"
+                className="size-9 rounded-xl flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/80 active:bg-zinc-200/60 transition-all cursor-pointer"
                 title="Menu / Outlet Hub"
               >
-                <LayoutGrid className="size-5 stroke-[2.2]" />
+                <LayoutGrid className="size-4.5 stroke-[2.2]" />
               </Link>
             </div>
           </div>
 
-          {/* Working Search Box */}
-          <div className="relative mt-2.5">
-            <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+          {/* Plain Minimalist Search Box */}
+          <div className="relative mt-3">
+            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
             <input
               id="partner-order-search-input"
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by ID (#QP-...), customer, phone or items..."
-              className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50/80 pl-9 pr-8 text-xs font-medium text-black placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none transition-all shadow-2xs"
+              className="h-10 w-full rounded-2xl border border-zinc-200/80 bg-zinc-50/70 hover:bg-zinc-50 focus:bg-white pl-10 pr-9 text-xs font-semibold text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 focus:outline-hidden transition-all shadow-2xs"
             />
             {query ? (
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black cursor-pointer p-0.5"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 size-6 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/60 transition-colors cursor-pointer"
                 title="Clear search"
               >
                 <X className="size-3.5" />

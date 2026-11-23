@@ -776,261 +776,327 @@ export function PartnerProfileScreen() {
 
 
 
-          {/* 2. Section: Outlet & Store Settings */}
+          {/* 2. Section: Outlet & Store Settings - Responsive Auto-Adjusting Grid */}
           <div>
-            <h3 className="px-1 text-xs font-black uppercase tracking-wider text-zinc-600">
-              Outlet &amp; Operations
-            </h3>
-            <div className="mt-2 grid grid-cols-4 gap-2.5">
+            <div className="flex items-center justify-between px-1 mb-2">
+              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">
+                Outlet &amp; Operations
+              </h3>
+              <span className="text-[10px] font-bold text-zinc-400">Settings</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.shop })}
-                className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-xs transition-transform active:scale-95"
+                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-sky-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-50 text-zinc-800">
+                <div className="flex size-11 items-center justify-center rounded-xl bg-sky-50 text-sky-600 transition-colors group-hover:bg-sky-100 group-hover:text-sky-700">
                   <Store className="size-5" />
                 </div>
-                <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-800">
-                  Outlet Info
-                </p>
+                <div className="mt-3 w-full">
+                  <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
+                    Outlet Info
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
+                    Profile &amp; details
+                  </p>
+                </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setShowTimingsModal(true)}
-                className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-xs transition-transform active:scale-95"
+                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-emerald-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-50 text-zinc-800">
+                <div className="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-100 group-hover:text-emerald-700">
                   <Clock className="size-5" />
                 </div>
-                <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-800">
-                  Timings &amp; Slots
-                </p>
+                <div className="mt-3 w-full">
+                  <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
+                    Timings &amp; Slots
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
+                    Open hours &amp; slots
+                  </p>
+                </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setShowRadiusModal(true)}
-                className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-xs transition-transform active:scale-95"
+                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-violet-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-50 text-zinc-800">
+                <div className="flex size-11 items-center justify-center rounded-xl bg-violet-50 text-violet-600 transition-colors group-hover:bg-violet-100 group-hover:text-violet-700">
                   <MapPin className="size-5" />
                 </div>
-                <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-800">
-                  Pickup Radius
-                </p>
+                <div className="mt-3 w-full">
+                  <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
+                    Pickup Radius
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
+                    Delivery coverage
+                  </p>
+                </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleOpenDocuments("documents")}
-                className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50/80 p-3 text-center shadow-xs transition-transform active:scale-95 cursor-pointer hover:bg-zinc-100"
+                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-amber-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-950 text-white shadow-xs">
+                <div className="flex size-11 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-100 group-hover:text-amber-700">
                   <FileCheck2 className="size-5" />
                 </div>
-                <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-900">
-                  Documents &amp; KYC
-                </p>
+                <div className="mt-3 w-full">
+                  <div className="flex items-center justify-between sm:justify-center gap-1">
+                    <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
+                      KYC &amp; Docs
+                    </p>
+                    {isKycVerified ? (
+                      <span className="size-1.5 rounded-full bg-emerald-500" />
+                    ) : (
+                      <span className="size-1.5 rounded-full bg-amber-500" />
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
+                    {isKycVerified ? "Verified" : "Verification"}
+                  </p>
+                </div>
               </button>
             </div>
           </div>
 
-          {/* 4. Section: Finance, Payouts & Settlements */}
+          {/* 3. Section: Finance, Payouts & Settlements - Responsive Auto-Adjusting Grid */}
           <div>
-            <h3 className="px-1 text-xs font-black uppercase tracking-wider text-zinc-600">
-              Finance & Settlements
-            </h3>
-            <div className="mt-2 grid grid-cols-4 gap-2.5">
+            <div className="flex items-center justify-between px-1 mb-2">
+              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">
+                Finance &amp; Settlements
+              </h3>
+              <span className="text-[10px] font-bold text-zinc-400">Ledger</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.earnings })}
-                className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-xs transition-transform active:scale-95"
+                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-emerald-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-800">
+                <div className="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-100 group-hover:text-emerald-700">
                   <Coins className="size-5" />
                 </div>
-                <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-800">
-                  Weekly Payouts
-                </p>
+                <div className="mt-3 w-full">
+                  <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
+                    Weekly Payouts
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
+                    Transfer cycle
+                  </p>
+                </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.earnings })}
-                className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-xs transition-transform active:scale-95"
+                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-amber-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-800">
+                <div className="flex size-11 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-100 group-hover:text-amber-700">
                   <FileText className="size-5" />
                 </div>
-                <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-800">
-                  Settlements
-                </p>
+                <div className="mt-3 w-full">
+                  <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
+                    Settlements
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
+                    Orders reconciled
+                  </p>
+                </div>
               </button>
 
               <button
                 type="button"
                 onClick={handleOpenBank}
-                className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-xs transition-transform active:scale-95"
+                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-indigo-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-800">
+                <div className="flex size-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-colors group-hover:bg-indigo-100 group-hover:text-indigo-700">
                   <CreditCard className="size-5" />
                 </div>
-                <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-800">
-                  Bank Account
-                </p>
+                <div className="mt-3 w-full">
+                  <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
+                    Bank Account
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
+                    Deposit bank info
+                  </p>
+                </div>
               </button>
 
               <button
                 type="button"
                 onClick={handleOpenGst}
-                className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-xs transition-transform active:scale-95"
+                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-rose-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-800">
+                <div className="flex size-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600 transition-colors group-hover:bg-rose-100 group-hover:text-rose-700">
                   <Receipt className="size-5" />
                 </div>
-                <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-800">
-                  GST &amp; Tax Reports
-                </p>
-              </button>
-            </div>
-          </div>
-
-
-          {/* 6. Section: Store Branding & Standee QR */}
-          <div className="rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-purple-50 text-purple-700">
-                  <QrCode className="size-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-zinc-900">Store Counter QR &amp; Share Link</p>
-                  <p className="text-[10px] font-medium text-zinc-400">Scan QR to order or share store profile link</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowQrStandeeModal(true)}
-                className="flex items-center gap-1.5 rounded-full border-2 border-black bg-zinc-100 px-3.5 py-1.5 text-xs font-black text-black active:scale-95 hover:bg-zinc-200 transition-all cursor-pointer"
-              >
-                <QrCode className="size-3.5" />
-                <span>QR &amp; Share</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 6b. Section: Refer & Earn (Partner to Partner) - SIMPLE & MINIMAL THEME */}
-          <div className="rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
-                  <Gift className="size-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-black text-zinc-950">
-                      Refer &amp; Earn ₹{referralHub?.activeRule?.referrerReward ?? 500}
-                    </p>
-                    {referralHub?.claimableBalance && referralHub.claimableBalance > 0 ? (
-                      <span className="rounded-md bg-zinc-900 text-[10px] font-bold text-white px-1.5 py-0.5">
-                        ₹{referralHub.claimableBalance} Ready
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="text-[10px] font-medium text-zinc-500">
-                    Invite a laundromat &amp; get ₹{referralHub?.activeRule?.referrerReward ?? 500} directly in your weekly bank payout
+                <div className="mt-3 w-full">
+                  <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
+                    GST &amp; Taxes
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
+                    Tax invoices &amp; TDS
                   </p>
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowReferralModal(true);
-                  void loadReferralHub();
-                }}
-                className="flex items-center gap-1.5 rounded-full border-2 border-black bg-black px-3.5 py-1.5 text-xs font-black text-white active:scale-95 hover:bg-zinc-800 transition-all cursor-pointer shadow-xs"
-              >
-                <Gift className="size-3.5" />
-                <span>Refer &amp; Earn</span>
               </button>
             </div>
           </div>
 
-          {/* Customer Reviews & Store Ratings */}
-          <div className="rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
-                  <Star className="size-5 fill-amber-400 text-amber-500" />
+          {/* 4. Section: Store Growth & Promotion - Adaptive Cards */}
+          <div className="space-y-3">
+            <h3 className="px-1 text-xs font-black uppercase tracking-wider text-zinc-500">
+              Growth &amp; Marketing
+            </h3>
+
+            {/* Standee QR Card */}
+            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-xs transition-all hover:border-zinc-300 hover:shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-700">
+                    <QrCode className="size-5.5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-zinc-950">Store Counter QR &amp; Standee</p>
+                    <p className="text-[11px] font-medium text-zinc-500 leading-normal">
+                      Scan QR to order or share store profile link with walk-in customers
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-black text-zinc-950">Customer Reviews &amp; Ratings</p>
-                  <p className="text-[10px] font-medium text-zinc-500">View customer feedback, store rating &amp; reply</p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowQrStandeeModal(true)}
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-zinc-900 bg-zinc-950 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer shrink-0"
+                >
+                  <QrCode className="size-3.5" />
+                  <span>QR &amp; Share</span>
+                </button>
               </div>
+            </div>
+
+            {/* Refer & Earn Card */}
+            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-xs transition-all hover:border-zinc-300 hover:shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                    <Gift className="size-5.5" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="text-xs font-black text-zinc-950">
+                        Refer &amp; Earn ₹{referralHub?.activeRule?.referrerReward ?? 500}
+                      </p>
+                      {referralHub?.claimableBalance && referralHub.claimableBalance > 0 ? (
+                        <span className="rounded-md bg-emerald-700 text-[10px] font-bold text-white px-1.5 py-0.5">
+                          ₹{referralHub.claimableBalance} Ready
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="text-[11px] font-medium text-zinc-500 leading-normal">
+                      Invite a laundromat &amp; get ₹{referralHub?.activeRule?.referrerReward ?? 500} directly in your weekly bank payout
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowReferralModal(true);
+                    void loadReferralHub();
+                  }}
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer shrink-0"
+                >
+                  <Gift className="size-3.5" />
+                  <span>Invite &amp; Earn</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Section: Support & Preferences - Unified Grouped Container */}
+          <div>
+            <h3 className="px-1 mb-2 text-xs font-black uppercase tracking-wider text-zinc-500">
+              Support &amp; Feedback
+            </h3>
+
+            <div className="rounded-2xl border border-zinc-200/80 bg-white divide-y divide-zinc-100 shadow-xs overflow-hidden">
+              {/* Customer Reviews & Ratings */}
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.reviews })}
-                className="flex items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-3.5 py-1.5 text-xs font-black text-zinc-900 hover:bg-zinc-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                className="w-full flex items-center justify-between p-3.5 hover:bg-zinc-50/80 active:bg-zinc-100 transition-colors text-left cursor-pointer"
               >
-                <span>View Reviews</span>
-                <ChevronRight className="size-3.5 text-zinc-500" />
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                    <Star className="size-5 fill-amber-400 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-zinc-950">Customer Reviews &amp; Ratings</p>
+                    <p className="text-[10px] font-medium text-zinc-500">View customer feedback, store rating &amp; reply</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-zinc-400">
+                  <span className="text-[11px] font-bold text-zinc-700 hidden sm:inline">Reviews</span>
+                  <ChevronRight className="size-4" />
+                </div>
               </button>
-            </div>
-          </div>
 
-          {/* Help Centre & Support Tickets */}
-          <div className="rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
-                  <HelpCircle className="size-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-zinc-950">Help Centre &amp; Support Tickets</p>
-                  <p className="text-[10px] font-medium text-zinc-500">Order assistance, fleet dispute &amp; ticket tracking</p>
-                </div>
-              </div>
+              {/* Help Centre & Tickets */}
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.help })}
-                className="flex items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-3.5 py-1.5 text-xs font-black text-zinc-900 hover:bg-zinc-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                className="w-full flex items-center justify-between p-3.5 hover:bg-zinc-50/80 active:bg-zinc-100 transition-colors text-left cursor-pointer"
               >
-                <span>Help Centre</span>
-                <ChevronRight className="size-3.5 text-zinc-500" />
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+                    <HelpCircle className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-zinc-950">Help Centre &amp; Support Tickets</p>
+                    <p className="text-[10px] font-medium text-zinc-500">Order assistance, fleet dispute &amp; ticket tracking</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-zinc-400">
+                  <span className="text-[11px] font-bold text-zinc-700 hidden sm:inline">Helpdesk</span>
+                  <ChevronRight className="size-4" />
+                </div>
               </button>
-            </div>
-          </div>
 
-          {/* 7. Support Helpline Card */}
-          <div className="rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
-                  <Headphones className="size-5" />
+              {/* 24/7 Helpline */}
+              <div className="flex items-center justify-between p-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                    <Headphones className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-zinc-950">Partner Help &amp; Support</p>
+                    <p className="text-[10px] font-medium text-zinc-500">Available 24/7 for active laundry partners</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-black text-zinc-900">Partner Help & Support</p>
-                  <p className="text-[10px] font-medium text-zinc-400">Available 24/7 for laundry partners</p>
-                </div>
+                <a
+                  href="tel:18008890123"
+                  className="flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3.5 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all shadow-2xs"
+                >
+                  <PhoneCall className="size-3" />
+                  <span>Call 24/7</span>
+                </a>
               </div>
-              <a
-                href="tel:18008890123"
-                className="flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800 active:scale-95"
-              >
-                <PhoneCall className="size-3.5" />
-                <span>Call</span>
-              </a>
             </div>
           </div>
 
-          {/* 8. Log Out Button */}
+          {/* 6. Section: Log Out Button */}
           <div className="pt-2">
             <button
               type="button"
               onClick={() => setShowLogoutModal(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50/80 py-3.5 text-xs font-black text-red-600 shadow-xs transition-colors active:scale-95"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200/90 bg-red-50/60 hover:bg-red-50 py-3.5 text-xs font-bold text-red-600 shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
             >
               <LogOut className="size-4" />
               <span>Log out from QuickPress Partner</span>

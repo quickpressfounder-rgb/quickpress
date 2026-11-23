@@ -60,13 +60,16 @@ export function OfflineConfirmModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div
-        className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200"
+        className="w-full max-w-md bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border border-zinc-200 overflow-hidden flex flex-col max-h-[88vh] animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Mobile Pull Indicator */}
+        <div className="mx-auto mt-2.5 mb-1 h-1 w-10 rounded-full bg-zinc-300 sm:hidden" />
+
         {/* Top Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-zinc-100">
+        <div className="flex items-center justify-between px-5 pt-3 pb-3 border-b border-zinc-100">
           <div className="flex items-center gap-2.5">
             <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600">
               <ShieldAlert className="size-5" />
@@ -81,15 +84,15 @@ export function OfflineConfirmModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex size-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+            className="flex size-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors cursor-pointer"
           >
             <X className="size-4.5" />
           </button>
         </div>
 
         {/* Reason / Duration Selection */}
-        <div className="p-5 space-y-2.5">
-          <p className="text-xs font-semibold text-zinc-700 mb-2">
+        <div className="p-5 space-y-2.5 overflow-y-auto">
+          <p className="text-xs font-semibold text-zinc-700 mb-1">
             Why are you pausing your store?
           </p>
           {OFFLINE_REASONS.map((reason) => {
@@ -100,18 +103,18 @@ export function OfflineConfirmModal({
                 key={reason.id}
                 type="button"
                 onClick={() => setSelectedReason(reason.id)}
-                className={`flex w-full items-center gap-3.5 rounded-xl p-3 text-left transition-all cursor-pointer border ${
+                className={`flex w-full items-center gap-3.5 rounded-2xl p-3.5 text-left transition-all cursor-pointer border ${
                   isSelected
-                    ? "border-emerald-600 bg-emerald-50/50 shadow-xs"
+                    ? "border-emerald-600 bg-emerald-50/60 shadow-xs"
                     : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
                 }`}
               >
                 <div
-                  className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
-                    isSelected ? "bg-emerald-600 text-white" : "bg-zinc-100 text-zinc-600"
+                  className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${
+                    isSelected ? "bg-emerald-600 text-white shadow-2xs" : "bg-zinc-100 text-zinc-600"
                   }`}
                 >
-                  <Icon className="size-4.5" />
+                  <Icon className="size-5" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
@@ -123,7 +126,7 @@ export function OfflineConfirmModal({
                       {reason.title}
                     </span>
                     <span
-                      className={`size-4 rounded-full border flex items-center justify-center transition-colors ${
+                      className={`size-4.5 rounded-full border flex items-center justify-center transition-colors ${
                         isSelected
                           ? "border-emerald-600 bg-emerald-600"
                           : "border-zinc-300 bg-white"
@@ -139,12 +142,12 @@ export function OfflineConfirmModal({
           })}
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex items-center gap-3 bg-zinc-50 px-5 py-4 border-t border-zinc-100">
+        {/* Footer Actions - Elevated above bottom nav with safe area inset */}
+        <div className="flex items-center gap-3 bg-zinc-50 px-5 pt-3.5 pb-6 sm:pb-4 border-t border-zinc-100">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-xl py-3 text-xs font-bold text-zinc-700 hover:bg-zinc-200/80 transition-colors"
+            className="flex-1 rounded-2xl py-3 text-xs font-bold text-zinc-700 bg-white border border-zinc-200 hover:bg-zinc-100 transition-colors shadow-2xs active:scale-98 cursor-pointer"
           >
             Keep Online
           </button>
@@ -152,7 +155,7 @@ export function OfflineConfirmModal({
             type="button"
             disabled={isLoading}
             onClick={handleConfirm}
-            className="flex-1 rounded-xl bg-rose-600 hover:bg-rose-700 py-3 text-xs font-black text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
+            className="flex-1 rounded-2xl bg-rose-600 hover:bg-rose-700 py-3 text-xs font-black text-white shadow-md shadow-rose-600/20 transition-all active:scale-98 disabled:opacity-50 cursor-pointer"
           >
             {isLoading ? "Going Offline..." : "Confirm Go Offline"}
           </button>
