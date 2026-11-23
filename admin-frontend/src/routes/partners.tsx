@@ -250,6 +250,29 @@ function PartnersPage() {
     if (raw360?.header) {
       return {
         ...raw360,
+        overview: {
+          totalOrders: raw360.overview?.totalOrders ?? (selectedPartner?.totalOrders || 0),
+          completedOrders: raw360.overview?.completedOrders ?? (selectedPartner?.completedOrders || 0),
+          cancelledOrders: raw360.overview?.cancelledOrders ?? (selectedPartner?.cancelledOrders || 0),
+          activeOrders: raw360.overview?.activeOrders ?? (selectedPartner as any)?.activeOrders ?? 0,
+          processingOrders: raw360.overview?.processingOrders ?? 0,
+          delayedOrders: raw360.overview?.delayedOrders ?? 0,
+          revenue: raw360.overview?.revenue ?? raw360.overview?.grossRevenue ?? (selectedPartner?.revenue || 0),
+          grossRevenue: raw360.overview?.grossRevenue ?? raw360.overview?.revenue ?? (selectedPartner?.revenue || 0),
+          earnings: raw360.overview?.earnings ?? raw360.overview?.partnerEarnings ?? (selectedPartner?.partnerEarnings || 0),
+          partnerEarnings: raw360.overview?.partnerEarnings ?? raw360.overview?.earnings ?? (selectedPartner?.partnerEarnings || 0),
+          commission: raw360.overview?.commission ?? raw360.overview?.commissionEarned ?? (selectedPartner?.commission || 0),
+          commissionEarned: raw360.overview?.commissionEarned ?? raw360.overview?.commission ?? (selectedPartner?.commission || 0),
+          pendingPayout: raw360.overview?.pendingPayout ?? 0,
+          aov: raw360.overview?.aov ?? 0,
+          averageOrderValue: raw360.overview?.averageOrderValue ?? 0,
+          avgProcessingTime: raw360.overview?.avgProcessingTime ?? "2.4h",
+          rating: raw360.overview?.rating ?? (selectedPartner?.rating || 5.0),
+          complaintRate: raw360.overview?.complaintRate ?? "0.2%",
+          customerSatisfaction: raw360.overview?.customerSatisfaction ?? "99.8%",
+          lastOrder: raw360.overview?.lastOrder ?? "—",
+          lastActive: raw360.overview?.lastActive ?? selectedPartner?.lastActive ?? "Just now",
+        },
         specs: {
           floorAreaSqFt: raw360.specs?.floorAreaSqFt || (selectedPartner as any)?.floorAreaSqFt || 1200,
           washersCount: raw360.specs?.washersCount || (selectedPartner as any)?.washersCount || 6,
@@ -269,10 +292,11 @@ function PartnersPage() {
           chequeVerified: false,
           bankVerified: false,
         },
-        wallet: raw360.wallet || {
-          balance: 0,
-          currentBalance: 0,
-          totalDisbursed: 0,
+        wallet: {
+          balance: raw360.wallet?.balance ?? (selectedPartner as any)?.walletBalance ?? 0,
+          currentBalance: raw360.wallet?.currentBalance ?? raw360.wallet?.balance ?? (selectedPartner as any)?.walletBalance ?? 0,
+          totalDisbursed: raw360.wallet?.totalDisbursed ?? 0,
+          pendingEarnings: raw360.wallet?.pendingEarnings ?? 0,
         },
         agreement: raw360.agreement || {
           signed: false,
@@ -313,9 +337,24 @@ function PartnersPage() {
         totalOrders: selectedPartner.totalOrders || 0,
         completedOrders: selectedPartner.completedOrders || 0,
         cancelledOrders: selectedPartner.cancelledOrders || 0,
+        activeOrders: (selectedPartner as any)?.activeOrders || 0,
+        processingOrders: 0,
+        delayedOrders: 0,
+        revenue: selectedPartner.revenue || 0,
         grossRevenue: selectedPartner.revenue || 0,
+        earnings: selectedPartner.partnerEarnings || 0,
         partnerEarnings: selectedPartner.partnerEarnings || 0,
         commission: selectedPartner.commission || 0,
+        commissionEarned: selectedPartner.commission || 0,
+        pendingPayout: 0,
+        aov: 0,
+        averageOrderValue: 0,
+        avgProcessingTime: "2.4h",
+        rating: selectedPartner.rating || 5.0,
+        complaintRate: "0.2%",
+        customerSatisfaction: "99.8%",
+        lastOrder: "—",
+        lastActive: selectedPartner.lastActive || "Just now",
       },
       ratings: { average: selectedPartner.rating || 5.0, totalReviews: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }, reviews: [] },
       specs: {
@@ -337,10 +376,11 @@ function PartnersPage() {
         chequeVerified: false,
         bankVerified: false,
       },
-      wallet: profile360Query.data?.wallet || {
-        balance: 0,
-        currentBalance: 0,
+      wallet: {
+        balance: (selectedPartner as any)?.walletBalance || 0,
+        currentBalance: (selectedPartner as any)?.walletBalance || 0,
         totalDisbursed: 0,
+        pendingEarnings: 0,
       },
       agreement: profile360Query.data?.agreement || {
         signed: false,
@@ -1384,17 +1424,17 @@ function PartnersPage() {
                   <div className="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-100">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">Live Wallet Balance</span>
                     <div className="text-lg font-bold text-emerald-950 mt-0.5">
-                      ₹{(profile.wallet.balance ?? profile.wallet.currentBalance).toLocaleString("en-IN")}
+                      ₹{((profile.wallet?.balance ?? profile.wallet?.currentBalance) || 0).toLocaleString("en-IN")}
                     </div>
-                    <p className="text-[11px] text-emerald-700 mt-0.5 font-medium">Pending: ₹{profile.wallet.pendingEarnings || 0}</p>
+                    <p className="text-[11px] text-emerald-700 mt-0.5 font-medium">Pending: ₹{profile.wallet?.pendingEarnings || 0}</p>
                   </div>
 
                   <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200/80">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Gross Store GMV</span>
                     <div className="text-lg font-bold text-zinc-900 mt-0.5">
-                      ₹{profile.overview.revenue.toLocaleString("en-IN")}
+                      ₹{(profile.overview?.revenue ?? profile.overview?.grossRevenue ?? 0).toLocaleString("en-IN")}
                     </div>
-                    <p className="text-[11px] text-emerald-700 mt-0.5 font-medium">Store 82%: ₹{profile.overview.partnerEarnings.toLocaleString("en-IN")}</p>
+                    <p className="text-[11px] text-emerald-700 mt-0.5 font-medium">Store 82%: ₹{(profile.overview?.partnerEarnings ?? profile.overview?.earnings ?? 0).toLocaleString("en-IN")}</p>
                   </div>
 
                   <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200/80">
@@ -1867,7 +1907,7 @@ function PartnersPage() {
                         />
                         <DetailRow
                           label="Available Settlement Balance"
-                          value={`₹${(profile.wallet.balance ?? profile.wallet.currentBalance).toLocaleString("en-IN")}`}
+                          value={`₹${((profile.wallet?.balance ?? profile.wallet?.currentBalance) || 0).toLocaleString("en-IN")}`}
                         />
                       </div>
 
@@ -2444,7 +2484,7 @@ function PartnersPage() {
                             <td className="py-2 font-bold text-zinc-900">{a.city}</td>
                             <td className="py-2 text-right font-black text-zinc-950 tabular-nums">{a.count}</td>
                             <td className="py-2 text-right font-bold text-emerald-700 tabular-nums">{a.active}</td>
-                            <td className="py-2 text-right font-black text-zinc-900 tabular-nums">₹{a.gmv.toLocaleString("en-IN")}</td>
+                            <td className="py-2 text-right font-black text-zinc-900 tabular-nums">₹{(a.gmv || 0).toLocaleString("en-IN")}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -2475,7 +2515,7 @@ function PartnersPage() {
                           <tr key={d.date} className="hover:bg-zinc-50/80 transition-colors">
                             <td className="py-2 font-mono text-zinc-700 font-bold">{d.date}</td>
                             <td className="py-2 text-right font-black text-emerald-700 tabular-nums">+{d.count}</td>
-                            <td className="py-2 text-right font-black text-zinc-950 tabular-nums">₹{d.gmv.toLocaleString("en-IN")}</td>
+                            <td className="py-2 text-right font-black text-zinc-950 tabular-nums">₹{(d.gmv || 0).toLocaleString("en-IN")}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -2758,11 +2798,11 @@ function PartnersPage() {
                   <DollarSign className="size-3.5 text-emerald-600" />
                 </div>
                 <div className="text-xl font-black text-zinc-900">
-                  ₹{cityAreaMetrics.totalRevenue.toLocaleString("en-IN")}
+                  ₹{(cityAreaMetrics.totalRevenue || 0).toLocaleString("en-IN")}
                 </div>
                 <div className="text-[11px] text-emerald-700 font-medium mt-1 flex items-center justify-between">
-                  <span>Payout: ₹{cityAreaMetrics.partnerEarnings.toLocaleString("en-IN")}</span>
-                  <span className="font-semibold text-zinc-500">Comm: ₹{cityAreaMetrics.platformCommission.toLocaleString("en-IN")}</span>
+                  <span>Payout: ₹{(cityAreaMetrics.partnerEarnings || 0).toLocaleString("en-IN")}</span>
+                  <span className="font-semibold text-zinc-500">Comm: ₹{(cityAreaMetrics.platformCommission || 0).toLocaleString("en-IN")}</span>
                 </div>
               </div>
 
@@ -2877,13 +2917,13 @@ function PartnersPage() {
                             {row.dayOrders} orders
                           </td>
                           <td className="py-2.5 px-3 font-bold text-zinc-900">
-                            ₹{row.dayRev.toLocaleString("en-IN")}
+                            ₹{(row.dayRev || 0).toLocaleString("en-IN")}
                           </td>
                           <td className="py-2.5 px-3 text-emerald-700 font-semibold">
-                            ₹{row.dayEarnings.toLocaleString("en-IN")}
+                            ₹{(row.dayEarnings || 0).toLocaleString("en-IN")}
                           </td>
                           <td className="py-2.5 px-3 text-indigo-700 font-semibold">
-                            ₹{row.dayComm.toLocaleString("en-IN")}
+                            ₹{(row.dayComm || 0).toLocaleString("en-IN")}
                           </td>
                           <td className="py-2.5 px-3">
                             <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-semibold text-[11px] border border-purple-200">

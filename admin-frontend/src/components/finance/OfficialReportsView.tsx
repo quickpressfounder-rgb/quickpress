@@ -117,46 +117,53 @@ export function OfficialReportsView() {
     if (!rawPnl) return null;
     return {
       ...rawPnl,
-      gmv: rawPnl.gmv * hubFactor,
-      partnerPayouts: rawPnl.partnerPayouts * hubFactor,
-      riderPayouts: rawPnl.riderPayouts * hubFactor,
-      directExpenses: rawPnl.directExpenses * hubFactor,
-      grossProfit: rawPnl.grossProfit * hubFactor,
-      operatingExpenses: rawPnl.operatingExpenses * hubFactor,
-      netProfit: rawPnl.netProfit * hubFactor,
+      gmv: (rawPnl.gmv ?? 0) * hubFactor,
+      partnerPayouts: (rawPnl.partnerPayouts ?? 0) * hubFactor,
+      riderPayouts: (rawPnl.riderPayouts ?? 0) * hubFactor,
+      directExpenses: (rawPnl.directExpenses ?? 0) * hubFactor,
+      grossProfit: (rawPnl.grossProfit ?? 0) * hubFactor,
+      operatingExpenses: (rawPnl.operatingExpenses ?? 0) * hubFactor,
+      netProfit: (rawPnl.netProfit ?? 0) * hubFactor,
+      marginPercent: rawPnl.marginPercent ?? 0,
     };
   }, [rawPnl, hubFactor]);
 
   // Hub-Apportioned Balance Sheet
   const bs = useMemo(() => {
     if (!rawBs) return null;
+    const assets = rawBs.assets || {};
+    const currentAssets = assets.currentAssets || {};
+    const liabilities = rawBs.liabilities || {};
+    const currentLiabilities = liabilities.currentLiabilities || {};
+    const equity = rawBs.equity || {};
+
     return {
       ...rawBs,
       assets: {
-        ...rawBs.assets,
+        ...assets,
         currentAssets: {
-          ...rawBs.assets.currentAssets,
-          cashAndBank: rawBs.assets.currentAssets.cashAndBank * hubFactor,
-          customerReceivables: rawBs.assets.currentAssets.customerReceivables * hubFactor,
-          gatewayInTransit: rawBs.assets.currentAssets.gatewayInTransit * hubFactor,
-          totalCurrentAssets: rawBs.assets.currentAssets.totalCurrentAssets * hubFactor,
+          ...currentAssets,
+          cashAndBank: (currentAssets.cashAndBank ?? 0) * hubFactor,
+          customerReceivables: (currentAssets.customerReceivables ?? 0) * hubFactor,
+          gatewayInTransit: (currentAssets.gatewayInTransit ?? 0) * hubFactor,
+          totalCurrentAssets: (currentAssets.totalCurrentAssets ?? 0) * hubFactor,
         },
-        totalAssets: rawBs.assets.totalAssets * hubFactor,
+        totalAssets: (assets.totalAssets ?? 0) * hubFactor,
       },
       liabilities: {
-        ...rawBs.liabilities,
+        ...liabilities,
         currentLiabilities: {
-          ...rawBs.liabilities.currentLiabilities,
-          partnerPayables: rawBs.liabilities.currentLiabilities.partnerPayables * hubFactor,
-          riderPayables: rawBs.liabilities.currentLiabilities.riderPayables * hubFactor,
-          taxPayables: rawBs.liabilities.currentLiabilities.taxPayables * hubFactor,
-          totalCurrentLiabilities: rawBs.liabilities.currentLiabilities.totalCurrentLiabilities * hubFactor,
+          ...currentLiabilities,
+          partnerPayables: (currentLiabilities.partnerPayables ?? 0) * hubFactor,
+          riderPayables: (currentLiabilities.riderPayables ?? 0) * hubFactor,
+          taxPayables: (currentLiabilities.taxPayables ?? 0) * hubFactor,
+          totalCurrentLiabilities: (currentLiabilities.totalCurrentLiabilities ?? 0) * hubFactor,
         },
-        totalLiabilities: rawBs.liabilities.totalLiabilities * hubFactor,
+        totalLiabilities: (liabilities.totalLiabilities ?? 0) * hubFactor,
       },
       equity: {
-        ...rawBs.equity,
-        totalEquity: rawBs.equity.totalEquity * hubFactor,
+        ...equity,
+        totalEquity: (equity.totalEquity ?? 0) * hubFactor,
       },
     };
   }, [rawBs, hubFactor]);
@@ -207,16 +214,16 @@ export function OfficialReportsView() {
 
       if (activeReportTab === "balance-sheet" && bs) {
         csvContent += `ASSETS,AMOUNT (INR)\n`;
-        csvContent += `Cash and Bank Escrow,${bs.assets.currentAssets.cashAndBank}\n`;
-        csvContent += `Customer & Gateway Receivables,${bs.assets.currentAssets.customerReceivables + bs.assets.currentAssets.gatewayInTransit}\n`;
-        csvContent += `Total Current Assets,${bs.assets.currentAssets.totalCurrentAssets}\n`;
-        csvContent += `TOTAL ASSETS,${bs.assets.totalAssets}\n\n`;
+        csvContent += `Cash and Bank Escrow,${bs.assets?.currentAssets?.cashAndBank ?? 0}\n`;
+        csvContent += `Customer & Gateway Receivables,${(bs.assets?.currentAssets?.customerReceivables ?? 0) + (bs.assets?.currentAssets?.gatewayInTransit ?? 0)}\n`;
+        csvContent += `Total Current Assets,${bs.assets?.currentAssets?.totalCurrentAssets ?? 0}\n`;
+        csvContent += `TOTAL ASSETS,${bs.assets?.totalAssets ?? 0}\n\n`;
         csvContent += `LIABILITIES & EQUITY,AMOUNT (INR)\n`;
-        csvContent += `Partner Laundry Payables,${bs.liabilities.currentLiabilities.partnerPayables}\n`;
-        csvContent += `Rider Transit Payables,${bs.liabilities.currentLiabilities.riderPayables}\n`;
-        csvContent += `Statutory Tax & GST Payables,${bs.liabilities.currentLiabilities.taxPayables}\n`;
-        csvContent += `Total Liabilities,${bs.liabilities.totalLiabilities}\n`;
-        csvContent += `Retained Earnings,${bs.equity.totalEquity}\n`;
+        csvContent += `Partner Laundry Payables,${bs.liabilities?.currentLiabilities?.partnerPayables ?? 0}\n`;
+        csvContent += `Rider Transit Payables,${bs.liabilities?.currentLiabilities?.riderPayables ?? 0}\n`;
+        csvContent += `Statutory Tax & GST Payables,${bs.liabilities?.currentLiabilities?.taxPayables ?? 0}\n`;
+        csvContent += `Total Liabilities,${bs.liabilities?.totalLiabilities ?? 0}\n`;
+        csvContent += `Retained Earnings,${bs.equity?.totalEquity ?? 0}\n`;
       } else if (activeReportTab === "pnl" && pnl) {
         csvContent += `LINE ITEM,AMOUNT (INR),PERCENTAGE OF GMV\n`;
         csvContent += `Gross Merchandise Value (GMV),${pnl.gmv},100%\n`;
