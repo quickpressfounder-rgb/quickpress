@@ -801,8 +801,8 @@ class SupabaseDatabase:
                 except Exception:
                     settings = None
                 is_prod = (getattr(settings, "app_env", "") or "development").strip().lower() == "production"
-                is_local = "localhost" in self.database_url or "127.0.0.1" in self.database_url
-                ssl_mode = "require" if ("supabase" in self.database_url or "pooler" in self.database_url or "sslmode=require" in self.database_url or (is_prod and not is_local)) else None
+                is_local = "localhost" in self.database_url or "127.0.0.1" in self.database_url or "quickpress-postgres" in self.database_url or "postgres:" in self.database_url
+                ssl_mode = "require" if ("sslmode=require" in self.database_url or ("supabase" in self.database_url and not is_local)) else None
                 self._pool = await asyncpg.create_pool(
                     self.database_url,
                     min_size=1,
