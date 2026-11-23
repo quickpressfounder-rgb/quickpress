@@ -87,16 +87,26 @@ function targetStorage(role: string): Storage | null {
 export function readSession(role: string = activeRole): AuthSession | null {
   const cached = memory.get(role);
   if (cached) return cached;
+  const candidateKeys = [
+    storageKey(role),
+    `${KEY_PREFIX}${role}`,
+    "quickpress.session.partner",
+    "quickpress.session",
+  ];
   for (const store of [local(), session()]) {
     if (!store) continue;
-    try {
-      const raw = store.getItem(storageKey(role));
-      if (!raw) continue;
-      const parsed = JSON.parse(raw) as AuthSession;
-      memory.set(role, parsed);
-      return parsed;
-    } catch {
-      /* try the next storage */
+    for (const key of candidateKeys) {
+      try {
+        const raw = store.getItem(key);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw) as AuthSession;
+        if (parsed && (parsed.token || parsed.refreshToken || (parsed as any).id)) {
+          memory.set(role, parsed);
+          return parsed;
+        }
+      } catch {
+        /* try the next key */
+      }
     }
   }
   return null;
@@ -106,9 +116,22 @@ export function writeSession(session_: AuthSession, role: string = activeRole): 
   memory.set(role, session_);
   // Always write to both localStorage and sessionStorage for permanent persistence
   try {
-    local()?.setItem(storageKey(role), JSON.stringify(session_));
+    const raw = JSON.stringify(session_);
+    local()?.setItem(storageKey(role), raw);
+    local()?.setItem("quickpress.session.partner", raw);
+    local()?.setItem("quickpress.session", raw);
     local()?.setItem(`${REMEMBER_PREFIX}${role}`, "1");
-    session()?.setItem(storageKey(role), JSON.stringify(session_));
+    if (session_?.token) {
+      local()?.setItem("qp_partner_token", session_.token);
+      local()?.setItem(`qp_${role}_token`, session_.token);
+    }
+    if (session_?.refreshToken) {
+      local()?.setItem("qp_partner_refresh_token", session_.refreshToken);
+      local()?.setItem(`qp_${role}_refresh_token`, session_.refreshToken);
+    }
+    session()?.setItem(storageKey(role), raw);
+    session()?.setItem("quickpress.session.partner", raw);
+    session()?.setItem("quickpress.session", raw);
   } catch {
     /* ignore */
   }
@@ -120,6 +143,13 @@ export function clearSession(role: string = activeRole): void {
   for (const store of [local(), session()]) {
     try {
       store?.removeItem(storageKey(role));
+      store?.removeItem(`${KEY_PREFIX}${role}`);
+      store?.removeItem("quickpress.session.partner");
+      store?.removeItem("quickpress.session");
+      store?.removeItem(`qp_${role}_token`);
+      store?.removeItem(`qp_${role}_refresh_token`);
+      store?.removeItem("qp_partner_token");
+      store?.removeItem("qp_partner_refresh_token");
     } catch {
       /* ignore */
     }

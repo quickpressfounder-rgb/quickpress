@@ -142,12 +142,20 @@ export async function apiRequest<T>(
     try {
       result = await runOnce();
     } catch (error) {
+      const isNonRetryableAuth =
+        path.endsWith("/refresh") ||
+        path.includes("/auth/login") ||
+        path.includes("/auth/otp") ||
+        path.includes("/auth/verify") ||
+        path.includes("/auth/phone") ||
+        path.includes("/auth/google");
+
       // Token expired → rotate the JWT once with the refresh token, then retry.
       const retryable =
         !options.anonymous &&
         error instanceof ApiError &&
         error.kind === "unauthorized" &&
-        !path.startsWith("/api/auth/");
+        !isNonRetryableAuth;
       if (!retryable) throw error;
       const { refreshSession } = await import("./auth-service");
       const refreshed = await refreshSession();

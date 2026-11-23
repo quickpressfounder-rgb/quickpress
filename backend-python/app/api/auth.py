@@ -453,7 +453,10 @@ async def refresh(payload: RefreshRequest) -> AuthSessionResponse:
     token_id = str(claims.get("jti"))
     is_valid, token_doc = await refresh_tokens.is_active_or_grace(token_id, grace_seconds=30)
     if not is_valid:
-        raise HTTPException(status_code=401, detail="Refresh token revoked")
+        if token_doc and token_doc.get("revoked", False):
+            raise HTTPException(status_code=401, detail="Refresh token revoked")
+        if not token_doc:
+            _log.info("Self-healing valid refresh token with missing DB doc for user %s", claims.get("sub"))
     user = await users.by_id(str(claims.get("sub")))
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")

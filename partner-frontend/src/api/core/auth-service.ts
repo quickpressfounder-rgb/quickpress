@@ -7,6 +7,7 @@
 
 import type { AccountRole, AuthSession, RequestOtpResult } from "@/shared/types";
 import { ApiError } from "./errors";
+import { isOnline } from "./network";
 import { activeSessionRole, clearSession, readSession, writeSession } from "./session-store";
 import { apiGetJson, apiPostJson } from "./transport";
 import { onesignalLogin, onesignalLogout } from "./onesignal";
@@ -135,8 +136,10 @@ export async function refreshSession(explicitRole?: AccountRole): Promise<AuthSe
         { anonymous: true },
       );
       return persist(next);
-    } catch {
-      clearSession(targetRole);
+    } catch (err: any) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        clearSession(targetRole);
+      }
       return null;
     } finally {
       activeRefreshPromise = null;
@@ -159,11 +162,16 @@ export async function restoreSession(explicitRole?: AccountRole): Promise<AuthSe
   const stored = readSession(target);
   if (!stored) return null;
 
-  if (isExpired(stored)) return refreshSession(target);
+  if (isExpired(stored)) {
+    const refreshed = await refreshSession(target);
+    if (refreshed) return refreshed;
+    if (!isOnline()) return stored;
+  }
 
   try {
     const account = await fetchCurrentUser();
     if (!account || !account.id) {
+      if (stored.account?.id) return stored;
       clearSession(target);
       return null;
     }
@@ -203,16 +211,18 @@ export async function restoreSession(explicitRole?: AccountRole): Promise<AuthSe
       account: mergedAccount,
     });
   } catch (error: any) {
-    if (error instanceof ApiError && (error.kind === "unauthorized" || error.status === 401 || error.status === 403 || error.status === 404)) {
+    if (error instanceof ApiError && (error.status === 401 || error.kind === "unauthorized")) {
+      const refreshed = await refreshSession(target);
+      if (refreshed) return refreshed;
       clearSession(target);
       return null;
     }
-    const refreshed = await refreshSession(target);
-    if (!refreshed) {
+    if (error instanceof ApiError && error.status === 403) {
       clearSession(target);
       return null;
     }
-    return refreshed;
+    // Network errors, server reboots or offline: preserve stored session
+    return stored;
   }
 }
 

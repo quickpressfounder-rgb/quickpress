@@ -157,14 +157,28 @@ export async function apiRequest<T>(
     try {
       result = await runOnce();
     } catch (error) {
+      // Non-retryable endpoints: refresh itself, or anonymous login/otp requests
+      const isNonRetryableAuth =
+        path.endsWith("/refresh") ||
+        path.includes("/auth/login") ||
+        path.includes("/auth/otp") ||
+        path.includes("/auth/verify") ||
+        path.includes("/auth/phone") ||
+        path.includes("/auth/google");
+
       // Token expired → rotate the JWT once with the refresh token, then retry.
       const retryable =
         !options.anonymous &&
         error instanceof ApiError &&
         error.kind === "unauthorized" &&
-        !path.startsWith("/api/auth/");
+        !isNonRetryableAuth;
       if (!retryable) {
-        if (error instanceof ApiError && error.kind === "unauthorized" && typeof window !== "undefined") {
+        if (
+          error instanceof ApiError &&
+          error.kind === "unauthorized" &&
+          path.endsWith("/refresh") &&
+          typeof window !== "undefined"
+        ) {
           clearSession(activeSessionRole());
           if (
             !window.location.pathname.startsWith("/login") &&
@@ -178,16 +192,6 @@ export async function apiRequest<T>(
       }
       const refreshed = sessionRefreshHandler ? await sessionRefreshHandler() : null;
       if (!refreshed) {
-        if (typeof window !== "undefined") {
-          clearSession(activeSessionRole());
-          if (
-            !window.location.pathname.startsWith("/login") &&
-            !window.location.pathname.startsWith("/auth") &&
-            !window.location.pathname.startsWith("/otp")
-          ) {
-            window.location.href = "/login";
-          }
-        }
         throw error;
       }
       result = await runOnce();

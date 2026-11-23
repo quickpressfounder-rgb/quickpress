@@ -142,8 +142,10 @@ export async function refreshSession(explicitRole?: AccountRole): Promise<AuthSe
         { anonymous: true },
       );
       return persist(next);
-    } catch {
-      clearSession(targetRole);
+    } catch (err: any) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403 || err.kind === "unauthorized")) {
+        clearSession(targetRole);
+      }
       return null;
     } finally {
       activeRefreshPromise = null;

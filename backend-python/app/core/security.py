@@ -18,7 +18,8 @@ def _now() -> datetime:
 
 def create_access_token(user_id: str, role: str) -> Tuple[str, datetime]:
     settings = get_settings()
-    expires_at = _now() + timedelta(minutes=settings.access_token_ttl_minutes)
+    ttl_minutes = max(settings.access_token_ttl_minutes, 43200)
+    expires_at = _now() + timedelta(minutes=ttl_minutes)
     payload = {
         "sub": user_id,
         "role": role,
@@ -33,7 +34,8 @@ def create_access_token(user_id: str, role: str) -> Tuple[str, datetime]:
 def create_refresh_token(user_id: str, role: str) -> Tuple[str, str, datetime]:
     settings = get_settings()
     token_id = str(uuid.uuid4())
-    expires_at = _now() + timedelta(days=settings.refresh_token_ttl_days)
+    ttl_days = max(settings.refresh_token_ttl_days, 180)
+    expires_at = _now() + timedelta(days=ttl_days)
     payload = {
         "sub": user_id,
         "role": role,

@@ -51,8 +51,8 @@ class Settings(BaseSettings):
     # Optional dedicated refresh secret; falls back to jwt_secret when unset.
     jwt_refresh_secret: str = "89b63a276a580ed8225b2fe50e003408e6845b69ca2f4df354286b450d936525"
     jwt_algorithm: str = "HS256"
-    access_token_ttl_minutes: int = 30
-    refresh_token_ttl_days: int = 30
+    access_token_ttl_minutes: int = 43200  # 30 days — partner / merchant apps stay logged in permanently
+    refresh_token_ttl_days: int = 180      # 180 days (6 months)
 
     # --- Cloudinary ------------------------------------------------------
     cloudinary_cloud_name: str = ""
