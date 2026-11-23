@@ -1,5 +1,40 @@
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 74)
+
+### Partner & Admin Consoles: Permanent Database Persistence, Clean Empty State Radar Removal, Bottom Sheet Offset Fix, Wallet Header Safe-Area & Premium Store Profile / Documents Redesign
+
+1. **Context & Directives:**
+   - Addressed 5 critical user directives and screenshots:
+     - **Permanent Database Persistence & Admin Partner Directory:** User reported partner data disappearing and Admin console showing 0/1 partner. Bulletproofed PostgreSQL persistence, cleaned junk entries from the database, resolved Docker network isolation, and fixed backend deduplication.
+     - **Image 1 (Orders Screen & Go Offline Modal):** Removed animated radar rings, "Live Order Radar Active" badge, and socket chime alert text; redesigned Go Offline modal into a true bottom sheet pinned to bottom without getting cut off or hidden by the bottom navbar.
+     - **Image 2 (Wallet Screen):** Added top safe-area padding (`pt-12 sm:pt-6`) to eliminate status bar timestamp overlap (`Partner Wallet & Payouts`); completely removed the Statutory TDS (Section 194-O) banner.
+     - **Image 3 (Store Documents & Verification Modal):** Redesigned modal with clean segmented tabs, sleek UIDAI / ITD / Bank document cards, masked numbers with reveal toggle, and modern typography.
+     - **Image 4 (Manage Store Profile Screen):** Redesigned store profile hero, eliminated broken banner image fallback with a branded QuickPress ambient gradient, polished store logo monogram, action buttons, and 3-pillar stats.
+
+2. **Architectural & Database Fixes:**
+   - **PostgreSQL Bulletproof Networking & Persistence:**
+     - Identified that `quickpress-backend` was running on default Docker `bridge` while PostgreSQL container `quickpress-postgres` was on `quickpress-net`, preventing internal DNS resolution (`gaierror -2`).
+     - Recreated `quickpress-backend` with `--network quickpress-net`, verifying persistent disk bind mount `/home/ubuntu/quickpress-data/postgres -> /var/lib/postgresql/data`.
+     - Cleaned 6 empty ghost documents from `quickpress_documents` table in PostgreSQL that were previously upserted with raw MongoDB `$or` queries.
+     - Fixed `backend-python/app/db/admin_repositories.py` to merge user profiles by `linked_id` and discard phantom UUID records without store name or phone.
+     - Verified live backend query: `admin_partner_repository.list()` returns both verified partners (`PRT-156115` LUNDARY KING and `PRT-KAS-01` QuickPress Express Cleaners).
+
+3. **Frontend UI Redesigns & Enhancements:**
+   - **`OrderEmptyState.tsx`:** Replaced noisy concentric pulsing rings and socket alert labels with a calm, aesthetic, minimalist empty state featuring a clean shopping bag icon and elegant typography.
+   - **`OfflineConfirmModal.tsx`:** Standard bottom sheet layout (`flex flex-col justify-end`) with `pb-8 sm:pb-4` safe area and `shrink-0` footer, guaranteeing action buttons ("Keep Online", "Confirm Go Offline") remain 100% visible and accessible above the bottom navigation bar.
+   - **`EarningsScreen.tsx`:** Increased top padding to `pt-12 sm:pt-6 pb-6` so the header clears the Android/iOS status bar notch; removed the Statutory TDS card.
+   - **`PartnerProfileScreen.tsx`:** Redesigned Store Documents modal with sleek segmented control, subtle Dual-Control policy alert, high-finish document cards (UIDAI, ITD, Settlement Bank), masked credentials with reveal toggles, and modern dark footer button.
+   - **`ShopProfileHeader.tsx`:** Replaced broken banner image fallback (`store-1`) with a branded QuickPress gradient with ambient lighting glow, polished logo initials fallback, smooth action buttons ("Edit Store Info", "Status"), and modern stats grid.
+
+4. **Build, Deployment & APK Verification:**
+   - Partner frontend built with zero errors (`npm run build`).
+   - Admin frontend verified on EC2 port 8084 and PM2 service reloaded.
+   - Built production `QuickPress-Partner.apk` (19.2 MB) and `QuickPress-Partner.aab` (18.3 MB) and published to `https://withquickpress.com/apks/QuickPress-Partner.apk`.
+   - Committed changes and pushed directly to GitHub `main` branch (commits `88e2c5dc` and subsequent).
+
+---
+
 ## Session: November 23, 2026 (Part 73)
 
 ### Partner Panel Multi-Page Overhaul: Services Screen Cleanup, Executive Date-Wise Analytics Ledger, Responsive Wallet Auto-Adjustments, Smooth Sliding Toggle, Elevated Offline Sheet & Permanent DB Persistence
@@ -123,6 +158,41 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 23, 2026 (Part 74)
+
+### Partner & Admin Consoles: Permanent Database Persistence, Clean Empty State Radar Removal, Bottom Sheet Offset Fix, Wallet Header Safe-Area & Premium Store Profile / Documents Redesign
+
+1. **Context & Directives:**
+   - Addressed 5 critical user directives and screenshots:
+     - **Permanent Database Persistence & Admin Partner Directory:** User reported partner data disappearing and Admin console showing 0/1 partner. Bulletproofed PostgreSQL persistence, cleaned junk entries from the database, resolved Docker network isolation, and fixed backend deduplication.
+     - **Image 1 (Orders Screen & Go Offline Modal):** Removed animated radar rings, "Live Order Radar Active" badge, and socket chime alert text; redesigned Go Offline modal into a true bottom sheet pinned to bottom without getting cut off or hidden by the bottom navbar.
+     - **Image 2 (Wallet Screen):** Added top safe-area padding (`pt-12 sm:pt-6`) to eliminate status bar timestamp overlap (`Partner Wallet & Payouts`); completely removed the Statutory TDS (Section 194-O) banner.
+     - **Image 3 (Store Documents & Verification Modal):** Redesigned modal with clean segmented tabs, sleek UIDAI / ITD / Bank document cards, masked numbers with reveal toggle, and modern typography.
+     - **Image 4 (Manage Store Profile Screen):** Redesigned store profile hero, eliminated broken banner image fallback with a branded QuickPress ambient gradient, polished store logo monogram, action buttons, and 3-pillar stats.
+
+2. **Architectural & Database Fixes:**
+   - **PostgreSQL Bulletproof Networking & Persistence:**
+     - Identified that `quickpress-backend` was running on default Docker `bridge` while PostgreSQL container `quickpress-postgres` was on `quickpress-net`, preventing internal DNS resolution (`gaierror -2`).
+     - Recreated `quickpress-backend` with `--network quickpress-net`, verifying persistent disk bind mount `/home/ubuntu/quickpress-data/postgres -> /var/lib/postgresql/data`.
+     - Cleaned 6 empty ghost documents from `quickpress_documents` table in PostgreSQL that were previously upserted with raw MongoDB `$or` queries.
+     - Fixed `backend-python/app/db/admin_repositories.py` to merge user profiles by `linked_id` and discard phantom UUID records without store name or phone.
+     - Verified live backend query: `admin_partner_repository.list()` returns both verified partners (`PRT-156115` LUNDARY KING and `PRT-KAS-01` QuickPress Express Cleaners).
+
+3. **Frontend UI Redesigns & Enhancements:**
+   - **`OrderEmptyState.tsx`:** Replaced noisy concentric pulsing rings and socket alert labels with a calm, aesthetic, minimalist empty state featuring a clean shopping bag icon and elegant typography.
+   - **`OfflineConfirmModal.tsx`:** Standard bottom sheet layout (`flex flex-col justify-end`) with `pb-8 sm:pb-4` safe area and `shrink-0` footer, guaranteeing action buttons ("Keep Online", "Confirm Go Offline") remain 100% visible and accessible above the bottom navigation bar.
+   - **`EarningsScreen.tsx`:** Increased top padding to `pt-12 sm:pt-6 pb-6` so the header clears the Android/iOS status bar notch; removed the Statutory TDS card.
+   - **`PartnerProfileScreen.tsx`:** Redesigned Store Documents modal with sleek segmented control, subtle Dual-Control policy alert, high-finish document cards (UIDAI, ITD, Settlement Bank), masked credentials with reveal toggles, and modern dark footer button.
+   - **`ShopProfileHeader.tsx`:** Replaced broken banner image fallback (`store-1`) with a branded QuickPress gradient with ambient lighting glow, polished logo initials fallback, smooth action buttons ("Edit Store Info", "Status"), and modern stats grid.
+
+4. **Build, Deployment & APK Verification:**
+   - Partner frontend built with zero errors (`npm run build`).
+   - Admin frontend verified on EC2 port 8084 and PM2 service reloaded.
+   - Built production `QuickPress-Partner.apk` (19.2 MB) and `QuickPress-Partner.aab` (18.3 MB) and published to `https://withquickpress.com/apks/QuickPress-Partner.apk`.
+   - Committed changes and pushed directly to GitHub `main` branch (commits `88e2c5dc` and subsequent).
+
+---
 
 ## Session: November 23, 2026 (Part 70)
 
@@ -168,6 +238,41 @@
 
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 74)
+
+### Partner & Admin Consoles: Permanent Database Persistence, Clean Empty State Radar Removal, Bottom Sheet Offset Fix, Wallet Header Safe-Area & Premium Store Profile / Documents Redesign
+
+1. **Context & Directives:**
+   - Addressed 5 critical user directives and screenshots:
+     - **Permanent Database Persistence & Admin Partner Directory:** User reported partner data disappearing and Admin console showing 0/1 partner. Bulletproofed PostgreSQL persistence, cleaned junk entries from the database, resolved Docker network isolation, and fixed backend deduplication.
+     - **Image 1 (Orders Screen & Go Offline Modal):** Removed animated radar rings, "Live Order Radar Active" badge, and socket chime alert text; redesigned Go Offline modal into a true bottom sheet pinned to bottom without getting cut off or hidden by the bottom navbar.
+     - **Image 2 (Wallet Screen):** Added top safe-area padding (`pt-12 sm:pt-6`) to eliminate status bar timestamp overlap (`Partner Wallet & Payouts`); completely removed the Statutory TDS (Section 194-O) banner.
+     - **Image 3 (Store Documents & Verification Modal):** Redesigned modal with clean segmented tabs, sleek UIDAI / ITD / Bank document cards, masked numbers with reveal toggle, and modern typography.
+     - **Image 4 (Manage Store Profile Screen):** Redesigned store profile hero, eliminated broken banner image fallback with a branded QuickPress ambient gradient, polished store logo monogram, action buttons, and 3-pillar stats.
+
+2. **Architectural & Database Fixes:**
+   - **PostgreSQL Bulletproof Networking & Persistence:**
+     - Identified that `quickpress-backend` was running on default Docker `bridge` while PostgreSQL container `quickpress-postgres` was on `quickpress-net`, preventing internal DNS resolution (`gaierror -2`).
+     - Recreated `quickpress-backend` with `--network quickpress-net`, verifying persistent disk bind mount `/home/ubuntu/quickpress-data/postgres -> /var/lib/postgresql/data`.
+     - Cleaned 6 empty ghost documents from `quickpress_documents` table in PostgreSQL that were previously upserted with raw MongoDB `$or` queries.
+     - Fixed `backend-python/app/db/admin_repositories.py` to merge user profiles by `linked_id` and discard phantom UUID records without store name or phone.
+     - Verified live backend query: `admin_partner_repository.list()` returns both verified partners (`PRT-156115` LUNDARY KING and `PRT-KAS-01` QuickPress Express Cleaners).
+
+3. **Frontend UI Redesigns & Enhancements:**
+   - **`OrderEmptyState.tsx`:** Replaced noisy concentric pulsing rings and socket alert labels with a calm, aesthetic, minimalist empty state featuring a clean shopping bag icon and elegant typography.
+   - **`OfflineConfirmModal.tsx`:** Standard bottom sheet layout (`flex flex-col justify-end`) with `pb-8 sm:pb-4` safe area and `shrink-0` footer, guaranteeing action buttons ("Keep Online", "Confirm Go Offline") remain 100% visible and accessible above the bottom navigation bar.
+   - **`EarningsScreen.tsx`:** Increased top padding to `pt-12 sm:pt-6 pb-6` so the header clears the Android/iOS status bar notch; removed the Statutory TDS card.
+   - **`PartnerProfileScreen.tsx`:** Redesigned Store Documents modal with sleek segmented control, subtle Dual-Control policy alert, high-finish document cards (UIDAI, ITD, Settlement Bank), masked credentials with reveal toggles, and modern dark footer button.
+   - **`ShopProfileHeader.tsx`:** Replaced broken banner image fallback (`store-1`) with a branded QuickPress gradient with ambient lighting glow, polished logo initials fallback, smooth action buttons ("Edit Store Info", "Status"), and modern stats grid.
+
+4. **Build, Deployment & APK Verification:**
+   - Partner frontend built with zero errors (`npm run build`).
+   - Admin frontend verified on EC2 port 8084 and PM2 service reloaded.
+   - Built production `QuickPress-Partner.apk` (19.2 MB) and `QuickPress-Partner.aab` (18.3 MB) and published to `https://withquickpress.com/apks/QuickPress-Partner.apk`.
+   - Committed changes and pushed directly to GitHub `main` branch (commits `88e2c5dc` and subsequent).
+
+---
+
 ## Session: November 23, 2026 (Part 73)
 
 ### Partner Panel Multi-Page Overhaul: Services Screen Cleanup, Executive Date-Wise Analytics Ledger, Responsive Wallet Auto-Adjustments, Smooth Sliding Toggle, Elevated Offline Sheet & Permanent DB Persistence
@@ -291,6 +396,41 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 23, 2026 (Part 74)
+
+### Partner & Admin Consoles: Permanent Database Persistence, Clean Empty State Radar Removal, Bottom Sheet Offset Fix, Wallet Header Safe-Area & Premium Store Profile / Documents Redesign
+
+1. **Context & Directives:**
+   - Addressed 5 critical user directives and screenshots:
+     - **Permanent Database Persistence & Admin Partner Directory:** User reported partner data disappearing and Admin console showing 0/1 partner. Bulletproofed PostgreSQL persistence, cleaned junk entries from the database, resolved Docker network isolation, and fixed backend deduplication.
+     - **Image 1 (Orders Screen & Go Offline Modal):** Removed animated radar rings, "Live Order Radar Active" badge, and socket chime alert text; redesigned Go Offline modal into a true bottom sheet pinned to bottom without getting cut off or hidden by the bottom navbar.
+     - **Image 2 (Wallet Screen):** Added top safe-area padding (`pt-12 sm:pt-6`) to eliminate status bar timestamp overlap (`Partner Wallet & Payouts`); completely removed the Statutory TDS (Section 194-O) banner.
+     - **Image 3 (Store Documents & Verification Modal):** Redesigned modal with clean segmented tabs, sleek UIDAI / ITD / Bank document cards, masked numbers with reveal toggle, and modern typography.
+     - **Image 4 (Manage Store Profile Screen):** Redesigned store profile hero, eliminated broken banner image fallback with a branded QuickPress ambient gradient, polished store logo monogram, action buttons, and 3-pillar stats.
+
+2. **Architectural & Database Fixes:**
+   - **PostgreSQL Bulletproof Networking & Persistence:**
+     - Identified that `quickpress-backend` was running on default Docker `bridge` while PostgreSQL container `quickpress-postgres` was on `quickpress-net`, preventing internal DNS resolution (`gaierror -2`).
+     - Recreated `quickpress-backend` with `--network quickpress-net`, verifying persistent disk bind mount `/home/ubuntu/quickpress-data/postgres -> /var/lib/postgresql/data`.
+     - Cleaned 6 empty ghost documents from `quickpress_documents` table in PostgreSQL that were previously upserted with raw MongoDB `$or` queries.
+     - Fixed `backend-python/app/db/admin_repositories.py` to merge user profiles by `linked_id` and discard phantom UUID records without store name or phone.
+     - Verified live backend query: `admin_partner_repository.list()` returns both verified partners (`PRT-156115` LUNDARY KING and `PRT-KAS-01` QuickPress Express Cleaners).
+
+3. **Frontend UI Redesigns & Enhancements:**
+   - **`OrderEmptyState.tsx`:** Replaced noisy concentric pulsing rings and socket alert labels with a calm, aesthetic, minimalist empty state featuring a clean shopping bag icon and elegant typography.
+   - **`OfflineConfirmModal.tsx`:** Standard bottom sheet layout (`flex flex-col justify-end`) with `pb-8 sm:pb-4` safe area and `shrink-0` footer, guaranteeing action buttons ("Keep Online", "Confirm Go Offline") remain 100% visible and accessible above the bottom navigation bar.
+   - **`EarningsScreen.tsx`:** Increased top padding to `pt-12 sm:pt-6 pb-6` so the header clears the Android/iOS status bar notch; removed the Statutory TDS card.
+   - **`PartnerProfileScreen.tsx`:** Redesigned Store Documents modal with sleek segmented control, subtle Dual-Control policy alert, high-finish document cards (UIDAI, ITD, Settlement Bank), masked credentials with reveal toggles, and modern dark footer button.
+   - **`ShopProfileHeader.tsx`:** Replaced broken banner image fallback (`store-1`) with a branded QuickPress gradient with ambient lighting glow, polished logo initials fallback, smooth action buttons ("Edit Store Info", "Status"), and modern stats grid.
+
+4. **Build, Deployment & APK Verification:**
+   - Partner frontend built with zero errors (`npm run build`).
+   - Admin frontend verified on EC2 port 8084 and PM2 service reloaded.
+   - Built production `QuickPress-Partner.apk` (19.2 MB) and `QuickPress-Partner.aab` (18.3 MB) and published to `https://withquickpress.com/apks/QuickPress-Partner.apk`.
+   - Committed changes and pushed directly to GitHub `main` branch (commits `88e2c5dc` and subsequent).
+
+---
 
 ## Session: November 23, 2026 (Part 69)
 
