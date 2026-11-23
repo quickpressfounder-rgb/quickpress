@@ -3,11 +3,113 @@ import { readSession } from "../api/core/session-store";
 import { partnerRoutes } from "../navigation/partner-routes";
 
 /**
- * Strict Route Guard for all partner operational screens.
+ * Checks if the partner session is suspended.
+ */
+export function isPartnerSuspended(sess: any): boolean {
+  if (!sess) return false;
+  const acc = sess.account || sess;
+  const status = String(sess.status || acc.status || "").toLowerCase();
+  return status === "suspended" || sess.isSuspended === true || acc.isSuspended === true;
+}
+
+/**
+ * Checks if partner has completed onboarding / registration profile submission.
+ */
+export function isPartnerOnboarded(sess: any): boolean {
+  if (!sess || !sess.token) return false;
+
+  const acc = sess.account || sess;
+
+  // Explicit false flags always mean not onboarded
+  if (acc.isOnboarded === false || acc.is_onboarded === false || sess.isOnboarded === false) {
+    return false;
+  }
+
+  // Explicit true flags mean onboarded
+  if (acc.isOnboarded === true || acc.is_onboarded === true || sess.isOnboarded === true) {
+    return true;
+  }
+
+  // Linked to an established partner store document ID (must not be the auth user ID)
+  const linkedId = acc.linkedId || sess.partnerId;
+  const authUserId = acc.id || sess.id;
+  if (
+    linkedId &&
+    typeof linkedId === "string" &&
+    linkedId.trim().length > 3 &&
+    linkedId !== authUserId &&
+    sess.status !== "not_registered" &&
+    acc.status !== "not_registered"
+  ) {
+    return true;
+  }
+
+  // If approved/verified, partner is definitely onboarded
+  if (
+    sess.isVerified === true ||
+    acc.isVerified === true ||
+    sess.isApproved === true ||
+    acc.isApproved === true ||
+    String(sess.status).toLowerCase() === "approved" ||
+    String(acc.status).toLowerCase() === "approved"
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Checks if the current partner session is fully verified and approved by admin.
+ */
+export function isPartnerApproved(sess: any): boolean {
+  if (!sess || !sess.token) return false;
+
+  const acc = sess.account || sess;
+  const status = String(sess.status || acc.status || "").toLowerCase();
+  const kycStatus = String(
+    sess.kycStatus || acc.kycStatus || sess.kyc_status || acc.kyc_status || ""
+  ).toLowerCase();
+
+  // Suspension, rejection, or not_registered blocks approval
+  if (
+    isPartnerSuspended(sess) ||
+    status === "rejected" ||
+    kycStatus === "rejected" ||
+    status === "not_registered"
+  ) {
+    return false;
+  }
+
+  // Must have completed onboarding before they can be considered approved
+  if (!isPartnerOnboarded(sess)) {
+    return false;
+  }
+
+  // Explicit approval / verification flags
+  if (
+    sess.isVerified === true ||
+    acc.isVerified === true ||
+    sess.isApproved === true ||
+    acc.isApproved === true ||
+    status === "approved" ||
+    kycStatus === "verified" ||
+    kycStatus === "approved" ||
+    (status === "active" && (sess.isVerified === true || acc.isVerified === true || kycStatus === "verified" || kycStatus === "approved"))
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Strict Route Guard for all partner operational screens (/orders, /earnings, /settings, etc.).
  * 1. Blocks unauthenticated access and immediately redirects to /auth.
- * 2. If partner hasn't completed onboarding -> redirects to /registration.
- * 3. If partner is pending Admin verification -> redirects to /registration-submitted.
- * 4. Only allows full dashboard access when BOTH isOnboarded & isVerified are true.
+ * 2. If partner is suspended -> redirects to /suspended.
+ * 3. If partner has NOT completed onboarding -> redirects to /registration.
+ * 4. If partner is onboarded but NOT approved -> redirects to /registration-submitted.
+ * 5. Only allows access when partner is both onboarded & approved.
  */
 export function requirePartnerAuth() {
   if (typeof window === "undefined") return;
@@ -15,52 +117,35 @@ export function requirePartnerAuth() {
   if (!sess || !sess.token) {
     throw redirect({ to: partnerRoutes.auth });
   }
-  if (sess.status === "suspended" || (sess as any).isSuspended) {
+  if (isPartnerSuspended(sess)) {
     throw redirect({ to: partnerRoutes.suspended });
   }
-
-  const acc = sess.account || sess;
-  const hasRealLinkedStore = Boolean(acc?.linkedId && acc?.linkedId !== acc?.id);
-
-  const isVerified = Boolean(
-    sess.isVerified === true ||
-    acc?.isVerified === true ||
-    sess.status === "approved" ||
-    acc?.status === "approved" ||
-    (sess.status === "active" && (sess.isVerified === true || acc?.isVerified === true)) ||
-    (acc?.status === "active" && (sess.isVerified === true || acc?.isVerified === true)) ||
-    (sess as any).kycStatus === "verified" ||
-    (acc as any)?.kycStatus === "verified"
-  );
-
-  const isOnboarded = Boolean(
-    sess.isOnboarded === true ||
-    acc?.isOnboarded === true ||
-    isVerified ||
-    (hasRealLinkedStore && sess.status !== "not_registered")
-  );
-
-  if (!isOnboarded) {
+  if (!isPartnerOnboarded(sess)) {
     throw redirect({ to: partnerRoutes.registration });
   }
-  if (!isVerified) {
+  if (!isPartnerApproved(sess)) {
     throw redirect({ to: partnerRoutes.registrationSubmitted });
   }
-  // Active partner with store access
 }
 
+/**
+ * Requires an active authenticated session for non-guest screens.
+ */
 export function requirePartnerSession() {
   if (typeof window === "undefined") return;
   const sess = readSession("partner");
   if (!sess || !sess.token) {
     throw redirect({ to: partnerRoutes.auth });
   }
+  if (isPartnerSuspended(sess)) {
+    throw redirect({ to: partnerRoutes.suspended });
+  }
 }
 
 /**
  * Route Guard for /registration-submitted.
- * If partner is ALREADY verified or possesses an active linked store,
- * immediately redirects to /dashboard so they NEVER see the approval flash screen.
+ * If partner is ALREADY verified or possesses an active approved store,
+ * immediately redirects to /orders so they NEVER see the approval flash screen.
  */
 export function requirePendingVerification() {
   if (typeof window === "undefined") return;
@@ -68,43 +153,14 @@ export function requirePendingVerification() {
   if (!sess || !sess.token) {
     throw redirect({ to: partnerRoutes.auth });
   }
-  if (sess.status === "suspended" || (sess as any).isSuspended) {
+  if (isPartnerSuspended(sess)) {
     throw redirect({ to: partnerRoutes.suspended });
   }
-
-  const acc = sess.account || sess;
-  const hasRealLinkedStore = Boolean(acc?.linkedId && acc?.linkedId !== acc?.id);
-  const isOnboarded = Boolean(
-    sess.isOnboarded === true ||
-    acc?.isOnboarded === true ||
-    (hasRealLinkedStore && sess.status !== "not_registered")
-  );
-
-  // If partner hasn't completed registration, route to registration
-  if (!isOnboarded) {
+  if (!isPartnerOnboarded(sess)) {
     throw redirect({ to: partnerRoutes.registration });
   }
-
-  const hasLinkedStore = hasRealLinkedStore || Boolean((sess as any).partnerId && (sess as any).partnerId !== acc?.id);
-  const explicitPending =
-    sess.status === "pending_verification" ||
-    sess.account?.status === "pending_verification" ||
-    (sess as any).kycStatus === "pending";
-
-  const isVerified = Boolean(
-    sess.isVerified === true ||
-    sess.account?.isVerified === true ||
-    sess.status === "approved" ||
-    sess.account?.status === "approved" ||
-    (sess.status === "active" && (sess.isVerified === true || sess.account?.isVerified === true)) ||
-    (sess.account?.status === "active" && (sess.isVerified === true || sess.account?.isVerified === true)) ||
-    (sess as any).kycStatus === "verified" ||
-    (sess.account as any)?.kycStatus === "verified" ||
-    (hasLinkedStore && !explicitPending)
-  );
-
-  if (isVerified) {
-    throw redirect({ to: partnerRoutes.dashboard });
+  if (isPartnerApproved(sess)) {
+    throw redirect({ to: partnerRoutes.orders });
   }
 }
 
@@ -126,4 +182,3 @@ export function isOperationalRoute(): boolean {
   }
   return true;
 }
-

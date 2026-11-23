@@ -39,3 +39,4 @@ test('partner invalid OTP handling & error banner visibility', async ({ page }) 
   await page.waitForURL(/.*\/registration.*/, { timeout: 15000 });
   expect(page.url()).toContain('/registration');
 });
+

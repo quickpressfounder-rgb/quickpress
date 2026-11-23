@@ -41,9 +41,14 @@ function toPartnerSession(session: AuthSession): PartnerSession {
     (hasRealPartnerId && acc?.status !== "not_registered" && (session as any).status !== "not_registered")
   );
 
-  const status = isVerified
-    ? "active"
-    : (isOnboarded ? (acc?.status || (session as any).status || "pending_verification") : "not_registered");
+  const isSuspended = Boolean(acc?.status === "suspended" || (session as any)?.status === "suspended");
+  const status = isSuspended
+    ? "suspended"
+    : (isVerified
+        ? "active"
+        : (isOnboarded
+            ? (acc?.status === "rejected" || (session as any)?.status === "rejected" ? "rejected" : "pending_verification")
+            : "not_registered"));
 
   const cached = getCachedPartnerProfile();
   const rawAccountName = acc?.name ?? "";

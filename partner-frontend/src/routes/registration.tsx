@@ -3,6 +3,11 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { BusinessRegistrationScreen } from "../screens/BusinessRegistrationScreen";
 import { readSession } from "../api/core/session-store";
 import { partnerRoutes } from "../navigation/partner-routes";
+import {
+  isPartnerApproved,
+  isPartnerOnboarded,
+  isPartnerSuspended,
+} from "../lib/auth-guard";
 
 export const Route = createFileRoute("/registration")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -15,18 +20,15 @@ export const Route = createFileRoute("/registration")({
     if (!sess || !sess.token) {
       throw redirect({ to: partnerRoutes.auth });
     }
-    const isVerified = Boolean(
-      sess.isVerified === true ||
-      sess.account?.isVerified === true ||
-      sess.status === "approved" ||
-      sess.account?.status === "approved"
-    );
-    if (isVerified) {
+    if (isPartnerSuspended(sess)) {
+      throw redirect({ to: partnerRoutes.suspended });
+    }
+    // If partner is already approved, do not show registration -> go straight to orders
+    if (isPartnerApproved(sess)) {
       throw redirect({ to: partnerRoutes.orders });
     }
-    const isOnboarded = sess.isOnboarded ?? sess.account?.isOnboarded;
-    // If partner already submitted and neither resubmit nor edit is set, redirect to submitted screen
-    if (isOnboarded && !search?.resubmit && !search?.edit && sess.status !== "rejected" && (sess as any).kycStatus !== "rejected") {
+    // If partner already submitted registration and neither resubmit nor edit is set -> go to submitted screen
+    if (isPartnerOnboarded(sess) && !search?.resubmit && !search?.edit) {
       throw redirect({ to: partnerRoutes.registrationSubmitted });
     }
   },

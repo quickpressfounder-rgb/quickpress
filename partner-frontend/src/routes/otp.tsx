@@ -3,6 +3,11 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { OtpVerificationScreen } from "../screens/OtpVerificationScreen";
 import { readSession } from "../api/core/session-store";
 import { partnerRoutes } from "../navigation/partner-routes";
+import {
+  isPartnerApproved,
+  isPartnerOnboarded,
+  isPartnerSuspended,
+} from "../lib/auth-guard";
 
 export const Route = createFileRoute("/otp")({
   beforeLoad: () => {
@@ -15,20 +20,16 @@ export const Route = createFileRoute("/otp")({
         } catch {}
       }
       if (sess && sess.token) {
-        const isVerified = Boolean(
-          sess.isVerified === true ||
-          sess.account?.isVerified === true ||
-          sess.status === "approved" ||
-          sess.account?.status === "approved"
-        );
-        const isOnboarded = sess.isOnboarded ?? sess.account?.isOnboarded;
-        if (!isOnboarded) {
-          throw redirect({ to: partnerRoutes.registration });
-        } else if (!isVerified) {
-          throw redirect({ to: partnerRoutes.registrationSubmitted });
-        } else {
-          throw redirect({ to: partnerRoutes.orders });
+        if (isPartnerSuspended(sess)) {
+          throw redirect({ to: partnerRoutes.suspended });
         }
+        if (!isPartnerOnboarded(sess)) {
+          throw redirect({ to: partnerRoutes.registration });
+        }
+        if (!isPartnerApproved(sess)) {
+          throw redirect({ to: partnerRoutes.registrationSubmitted });
+        }
+        throw redirect({ to: partnerRoutes.orders });
       }
     }
   },
@@ -42,4 +43,3 @@ export const Route = createFileRoute("/otp")({
   }),
   component: OtpVerificationScreen,
 });
-

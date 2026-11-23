@@ -1,5 +1,47 @@
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 64)
+
+### Elimination of Infinite Redirect Loop ("Too Many Redirects") & Route Guard State Machine Harmonization
+
+1. **Context & User Directives:**
+   - User directive: *"isko solve karo"* with mobile screenshot displaying:
+     - Header: "This page didn't load"
+     - Subtitle: "Something went wrong on our end. You can try refreshing or head back home."
+     - Red Alert Banner: `Too many redirects`
+     - Action CTAs: `[ Try again ]` and `[ Go home ]`.
+
+2. **Root Cause Analysis:**
+   - **Cyclic Asymmetry between Route Guards in `partner-frontend`:**
+     - In `partner-frontend/src/lib/auth-guard.ts` (`requirePendingVerification`), the `isVerified` check contained `(hasLinkedStore && !explicitPending)`. Because Supabase user auth accounts standardly carry `status: "active"` and not the explicit string `"pending_verification"`, `!explicitPending` evaluated to `true` for newly registered stores. Consequently, `requirePendingVerification` evaluated `isVerified = true` and threw `redirect({ to: partnerRoutes.dashboard })` (`/dashboard` -> `/orders`).
+     - On `/orders`, `requirePartnerAuth` ran. Its definition of `isVerified` did NOT contain `(hasLinkedStore && !explicitPending)`, evaluating to `false`. It therefore threw `redirect({ to: partnerRoutes.registrationSubmitted })`.
+     - This resulted in an infinite cyclic redirect ping-pong loop: `/registration-submitted` -> `/dashboard` -> `/orders` -> `/registration-submitted`. TanStack Router caught this recursive redirect loop at its threshold and threw `new Error("Too many redirects")`.
+     - Additionally, `/routes/index.tsx`, `/routes/registration.tsx`, and `/routes/otp.tsx` had separate, diverging definitions of `isVerified` and `isOnboarded`.
+
+3. **Engineering Solutions Delivered:**
+   - **Unified Acyclic State Machine (`partner-frontend/src/lib/auth-guard.ts`):**
+     - Centralized and exported three pure canonical predicates:
+       - `isPartnerSuspended(sess)`: detects suspended accounts.
+       - `isPartnerOnboarded(sess)`: evaluates whether the partner completed registration KYC (verifies linked store ID !== auth user ID, or onboarded boolean flags).
+       - `isPartnerApproved(sess)`: strictly checks for verified/approved store status from Admin KYC review; removed the faulty `(hasLinkedStore && !explicitPending)` bypass.
+     - Refactored `requirePartnerAuth` and `requirePendingVerification` to use these exact predicates, guaranteeing that no route can ever redirect to another route that redirects back.
+   - **Synchronized Route Guards Across Portals:**
+     - `partner-frontend/src/routes/index.tsx`: Splash screen `computeTargetRoute` now routes cleanly to `/auth` (unauthenticated) -> `/suspended` (suspended) -> `/registration` (not onboarded) -> `/registration-submitted` (pending review) -> `/orders` (approved).
+     - `partner-frontend/src/routes/registration.tsx`: `beforeLoad` strictly checks `isPartnerApproved` (routes to `/orders`) and `isPartnerOnboarded` (routes to `/registration-submitted` unless `resubmit`/`edit` search params are active).
+     - `partner-frontend/src/routes/otp.tsx`: Routes directly to target without multi-hop redirects.
+     - `partner-frontend/src/navigation/partner-routes.ts`: Mapped `partnerRoutes.dashboard` directly to `/orders` to eliminate the unnecessary intermediate redirect hop from `/dashboard`.
+   - **Session Status Sanitization (`partner-auth-api.ts`):**
+     - In `toPartnerSession`, ensured unverified onboarded accounts strictly receive `status: "pending_verification"` rather than falling back to the auth account's generic `"active"` status.
+   - **Self-Healing Error Boundary (`partner-frontend/src/routes/__root.tsx`):**
+     - Added a "Reset Session & Re-login" CTA to `ErrorComponent` that purges localStorage/sessionStorage keys and navigates directly to `/auth`, enabling mobile users to recover from any cached edge cases with a single tap.
+
+4. **Verification & Quality Assurance:**
+   - `partner-frontend` production build: PASSED (`NITRO_PRESET=node-server vite build` exit code 0).
+   - `rider-frontend` production build: PASSED (`vite build` exit code 0).
+   - Kryptheon automated E2E test suite: PASSED (`Summary: 3 working, 0 broken` with 100% pass rate).
+
+---
+
 ## Session: November 22, 2026 (Part 63)
 
 ### Kryptheon E2E Automated QA Suite Integration, macOS 13 Chrome Engine Adaptation, and Production Regression Verification

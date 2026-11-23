@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import { readSession } from "../api/core/session-store";
 import { restorePartnerSession } from "../api/partner/partner-auth-api";
 import { partnerRoutes } from "../navigation/partner-routes";
+import {
+  isPartnerApproved,
+  isPartnerOnboarded,
+  isPartnerSuspended,
+} from "../lib/auth-guard";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -19,32 +24,19 @@ export const Route = createFileRoute("/")({
   component: PartnerSplashScreen,
 });
 
-function computeTargetRoute(sess: any): string {
+export function computeTargetRoute(sess: any): string {
   if (!sess || !sess.token) {
     return partnerRoutes.auth;
   }
-  const isSuspended =
-    sess.status === "suspended" || sess.isSuspended === true;
-  if (isSuspended) return partnerRoutes.suspended;
-
-  const acc = sess.account || sess;
-  const hasRealLinkedStore = Boolean(acc?.linkedId && acc?.linkedId !== acc?.id);
-
-  const isVerified = Boolean(
-    (sess.isVerified === true || acc?.isVerified === true) &&
-    (sess.status === "approved" || acc?.status === "approved" || sess.status === "active" || acc?.status === "active" || sess.kycStatus === "verified" || acc?.kycStatus === "verified")
-  );
-
-  const isOnboarded = Boolean(
-    sess.isOnboarded === true ||
-    acc?.isOnboarded === true ||
-    isVerified ||
-    (hasRealLinkedStore && sess.status !== "not_registered")
-  );
-
-  if (!isOnboarded) return partnerRoutes.registration;
-  if (!isVerified) return partnerRoutes.registrationSubmitted;
-
+  if (isPartnerSuspended(sess)) {
+    return partnerRoutes.suspended;
+  }
+  if (!isPartnerOnboarded(sess)) {
+    return partnerRoutes.registration;
+  }
+  if (!isPartnerApproved(sess)) {
+    return partnerRoutes.registrationSubmitted;
+  }
   return partnerRoutes.orders;
 }
 
@@ -78,7 +70,7 @@ function PartnerSplashScreen() {
       router.preloadRoute({ to: initialTarget as any });
     } catch {}
 
-    // Splash screen open to close display duration (1.5 seconds)
+    // Splash screen open to close display duration (1.2 seconds)
     const fadeTimer = setTimeout(() => {
       if (!cancelled) setClosing(true);
     }, 1200);

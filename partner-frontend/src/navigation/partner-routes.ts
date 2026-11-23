@@ -30,7 +30,7 @@ export const partnerRoutes = {
   submitted: "/registration-submitted",
   agreementSign: "/agreement/sign",
   suspended: "/suspended",
-  dashboard: "/dashboard",
+  dashboard: "/orders",
   orders: "/orders",
   orderDetails: "/orders/$orderId",
   services: "/services",
