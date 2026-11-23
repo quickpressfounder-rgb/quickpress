@@ -126,7 +126,7 @@ def copy_to_artifacts(src_apk, apk_name, apks_dir):
         try:
             print(f"Uploading {apk_name} to EC2 server (/var/www/quickpress/website/apks/)...")
             res = subprocess.run(
-                f"scp -o ConnectTimeout=10 {src_apk} ubuntu@65.0.127.43:/home/ubuntu/{apk_name} && ssh -o ConnectTimeout=10 ubuntu@65.0.127.43 'sudo mkdir -p /var/www/quickpress/website/apks && sudo cp /home/ubuntu/{apk_name} /var/www/quickpress/website/apks/{apk_name} && sudo chown www-data:www-data /var/www/quickpress/website/apks/{apk_name}'",
+                f'scp -o ConnectTimeout=10 "{src_apk}" ubuntu@65.0.127.43:/home/ubuntu/{apk_name} && ssh -o ConnectTimeout=10 ubuntu@65.0.127.43 "sudo mkdir -p /var/www/quickpress/website/apks && sudo cp /home/ubuntu/{apk_name} /var/www/quickpress/website/apks/{apk_name} && sudo chown www-data:www-data /var/www/quickpress/website/apks/{apk_name}"',
                 shell=True,
                 capture_output=True,
                 text=True,

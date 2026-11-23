@@ -321,6 +321,116 @@ async def verify_kit_payment(payload: VerifyKitPaymentPayload) -> Dict[str, Any]
     return response_data
 
 
+class SkipDeliveryKitPaymentPayload(BaseModel):
+    riderPhone: str = Field(..., description="10-digit mobile number")
+    riderName: Optional[str] = Field("", description="Full name of rider")
+    riderId: Optional[str] = Field(None, description="Optional rider identifier")
+    city: Optional[str] = Field("Kasganj", description="Operating city")
+    paymentType: str = Field("PART_PAYMENT", description="FULL_PAYMENT or PART_PAYMENT")
+    kitId: str = Field("kit_standard", description="Kit identifier")
+    tshirtSize: str = Field("L", description="T-shirt size")
+    deliveryPreference: str = Field("home_delivery", description="Delivery preference")
+    shippingAddress: Optional[Dict[str, Any]] = Field(None, description="Delivery address")
+
+
+@router.post("/skip-payment")
+async def skip_delivery_kit_payment(payload: SkipDeliveryKitPaymentPayload) -> Dict[str, Any]:
+    """Bypasses Razorpay payment for developer/testing mode. Creates a verified kit order."""
+    clean_phone = "".join(c for c in payload.riderPhone if c.isdigit())
+    if len(clean_phone) > 10:
+        clean_phone = clean_phone[-10:]
+
+    now_str = _now_iso()
+    kit_order_id = f"kit-ord-test-{clean_phone}-{uuid.uuid4().hex[:6]}"
+
+    rules = await unified_finance_service.get_active_rules()
+    kit_cfg = (rules.get("deliveryKit") or {}).get("standardKit") or {}
+
+    is_part_payment = payload.paymentType.upper() in ("PART_PAYMENT", "PART", "INSTALLMENT")
+    total_price = float(kit_cfg.get("partPaymentTotalPrice") or 1200.0) if is_part_payment else float(kit_cfg.get("totalPrice") or 999.0)
+
+    kit_doc: Dict[str, Any] = {
+        "_id": kit_order_id,
+        "id": kit_order_id,
+        "riderPhone": clean_phone,
+        "riderName": payload.riderName or "Captain",
+        "riderId": payload.riderId or f"rdr-{clean_phone}",
+        "city": payload.city or "Kasganj",
+        "kitId": payload.kitId or "kit_standard",
+        "kitName": kit_cfg.get("name", "Standard Captain Starter Kit"),
+        "tshirtSize": payload.tshirtSize or "L",
+        "deliveryPreference": payload.deliveryPreference or "home_delivery",
+        "shippingAddress": payload.shippingAddress or {},
+        "pricing": {
+            "totalKitPrice": total_price,
+            "paymentType": "PART_PAYMENT" if is_part_payment else "FULL_PAYMENT",
+            "amountPaid": 0.0,
+            "remainingBalance": 0.0,
+            "upfrontPaid": 0.0,
+            "installmentWeeklyDeduction": 0.0,
+            "installmentWeeks": 0,
+            "installmentsRecovered": 0.0,
+            "fullySettled": True,
+        },
+        "payment": {
+            "gateway": "test_bypass",
+            "status": "PAID",
+            "razorpayOrderId": f"order_test_{uuid.uuid4().hex[:12]}",
+            "razorpayPaymentId": f"pay_test_{uuid.uuid4().hex[:12]}",
+            "razorpaySignature": "test_mode_skipped",
+            "paidAt": now_str,
+            "signatureVerified": True,
+            "testMode": True,
+        },
+        "fulfillment": {
+            "status": "TEST_APPROVED",
+            "courierName": "Self Pickup (Testing)",
+            "trackingNumber": f"TRK-TEST-{clean_phone}",
+            "dispatchedAt": now_str,
+            "deliveredAt": now_str,
+            "deliveredBy": "Testing Mode",
+            "notes": "Payment skipped for testing mode.",
+        },
+        "createdAt": now_str,
+        "updatedAt": now_str,
+    }
+
+    # Upsert kit record in database
+    await database.collection(DELIVERY_KITS_COLLECTION).update_one(
+        {"riderPhone": clean_phone},
+        {"$set": kit_doc},
+        upsert=True,
+    )
+
+    # Link kit status to rider profile if profile exists
+    rider_profile_updates = {
+        "kitOrderId": kit_order_id,
+        "kitPaymentStatus": "PAID",
+        "kitPaymentType": "PART_PAYMENT" if is_part_payment else "FULL_PAYMENT",
+        "kitAmountPaid": 0.0,
+        "kitBalanceRemaining": 0.0,
+        "kitTshirtSize": payload.tshirtSize,
+        "kitDeliveryPreference": payload.deliveryPreference,
+        "isKitOrderPending": False,
+        "updatedAt": now_str,
+    }
+    await database.collection(RIDERS_COLLECTION).update_many(
+        {"$or": [{"phone": clean_phone}, {"phone": f"+91{clean_phone}"}, {"mobile": clean_phone}]},
+        {"$set": rider_profile_updates},
+    )
+
+    return {
+        "ok": True,
+        "status": "PAID",
+        "kitOrderId": kit_order_id,
+        "paymentType": "PART_PAYMENT" if is_part_payment else "FULL_PAYMENT",
+        "amountPaid": 0.0,
+        "remainingBalance": 0.0,
+        "message": "Delivery kit payment skipped for testing mode! Partner agreement is unlocked.",
+        "kitOrder": kit_doc,
+    }
+
+
 @router.get("/my-kit")
 async def get_my_kit_status(phone: str = Query(..., description="Rider 10-digit mobile number")) -> Dict[str, Any]:
     """Retrieves delivery kit order, dispatch status, tracking info, and installment recovery progress."""

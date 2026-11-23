@@ -472,22 +472,7 @@ function PartnersPage() {
     onError: (err: any) => toast.error(err?.message || "Failed to send agreement email."),
   });
 
-  const handleApprovePartner = (id: string, partnerProfile?: Partner360Data) => {
-    const isSigned = Boolean(
-      partnerProfile?.header?.agreementStatus === "APPROVED" ||
-      partnerProfile?.header?.agreementApproved ||
-      partnerProfile?.kyc?.agreementStatus === "APPROVED" ||
-      partnerProfile?.agreement?.signed ||
-      Boolean(partnerProfile?.header?.signatureUrl)
-    );
-
-    if (partnerProfile && !isSigned) {
-      toast.error(
-        "Cannot approve store: Master Merchant Agreement is pending partner's digital signature. Please resend agreement invitation email."
-      );
-      return;
-    }
-
+  const handleApprovePartner = (id: string, _partnerProfile?: Partner360Data) => {
     approveMutation.mutate(id);
   };
 

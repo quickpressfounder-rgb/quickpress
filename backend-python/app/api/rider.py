@@ -507,7 +507,7 @@ async def send_rider_agreement_otp(body: dict) -> dict:
     if len(clean_phone) > 10:
         clean_phone = clean_phone[-10:]
 
-    kit_query: Dict[str, Any] = {"payment.status": {"$in": ["PAID", "PARTIALLY_PAID"]}}
+    kit_query: Dict[str, Any] = {"payment.status": {"$in": ["PAID", "PARTIALLY_PAID", "SKIPPED"]}}
     if clean_phone:
         kit_query["riderPhone"] = clean_phone
     else:
@@ -581,7 +581,7 @@ async def verify_rider_agreement_otp(body: dict) -> dict:
     if len(clean_phone) > 10:
         clean_phone = clean_phone[-10:]
 
-    kit_query: Dict[str, Any] = {"payment.status": {"$in": ["PAID", "PARTIALLY_PAID"]}}
+    kit_query: Dict[str, Any] = {"payment.status": {"$in": ["PAID", "PARTIALLY_PAID", "SKIPPED"]}}
     if clean_phone:
         kit_query["riderPhone"] = clean_phone
     else:

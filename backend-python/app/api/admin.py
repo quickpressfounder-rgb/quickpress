@@ -645,17 +645,6 @@ async def get_partner(partner_id: str, user: User = Depends(current_user)):
 
 @router.post("/partners/{partner_id}/approve")
 async def approve_partner(partner_id: str, user: User = Depends(current_user)):
-    profile = (
-        await database.find_one("partner_profiles", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
-        or await database.find_one("admin_partners", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
-        or {}
-    )
-    agreement_status = profile.get("agreementStatus")
-    if agreement_status != "APPROVED" and not profile.get("agreementApproved") and not profile.get("signatureUrl"):
-        raise HTTPException(
-            status_code=400,
-            detail="Cannot approve partner store: Master Merchant Agreement has not been digitally signed & approved by the store owner yet. The owner must review and sign the agreement sent to their email.",
-        )
     try:
         res = await admin_partner_repository.approve(partner_id, user.id)
     except ValueError as err:

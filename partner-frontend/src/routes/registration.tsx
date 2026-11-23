@@ -27,8 +27,18 @@ export const Route = createFileRoute("/registration")({
     if (isPartnerApproved(sess)) {
       throw redirect({ to: partnerRoutes.orders });
     }
+    const isResubmit =
+      search?.resubmit ||
+      search?.edit ||
+      (typeof window !== "undefined" && (
+        new URLSearchParams(window.location.search).get("resubmit") === "true" ||
+        new URLSearchParams(window.location.search).get("edit") === "true" ||
+        window.sessionStorage?.getItem("qp_partner_resubmit_mode") === "true" ||
+        window.localStorage?.getItem("qp_partner_resubmit_mode") === "true"
+      ));
+
     // If partner already submitted registration and neither resubmit nor edit is set -> go to submitted screen
-    if (isPartnerOnboarded(sess) && !search?.resubmit && !search?.edit) {
+    if (isPartnerOnboarded(sess) && !isResubmit) {
       throw redirect({ to: partnerRoutes.registrationSubmitted });
     }
   },

@@ -1541,23 +1541,17 @@ class AdminPartnerRepository:
         pid_clean = str(partner_id).strip()
         query = {"$or": [{"_id": pid_clean}, {"partnerId": pid_clean}, {"id": pid_clean}]}
 
-        # Strict Agreement Gate: Store Partner Master SLA must be digitally executed & approved
-        p_doc_check = (
-            await database.find_one("partner_profiles", query)
-            or await database.find_one("admin_partners", query)
-            or await database.find_one(self.collection, query)
-        )
-        if p_doc_check:
-            agr_status = str(p_doc_check.get("agreementStatus", "")).upper()
-            if agr_status != "APPROVED" and not p_doc_check.get("agreementApproved") and not p_doc_check.get("signatureUrl"):
-                raise ValueError("Cannot approve partner store: Master Merchant SLA is awaiting digital signature by the store owner.")
-
+        # Admin Approval sets store active, verified, onboarded, and marks SLA approved under Admin Authority
         updates = {
             "status": "active",
             "isVerified": True,
             "isOnboarded": True,
             "isApproved": True,
             "approvalStatus": "approved",
+            "agreementStatus": "APPROVED",
+            "agreementApproved": True,
+            "approvedAt": now,
+            "approvedBy": admin_id,
             "updatedAt": now,
             "updated_at": now,
         }

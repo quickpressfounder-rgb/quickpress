@@ -823,7 +823,13 @@ export function BusinessRegistrationScreen() {
       return;
     }
     const urlParams = new URLSearchParams(window.location.search);
-    const isResubmitParam = urlParams.get("resubmit") === "true" || urlParams.get("edit") === "true";
+    const isResubmitParam =
+      urlParams.get("resubmit") === "true" ||
+      urlParams.get("edit") === "true" ||
+      (typeof window !== "undefined" && (
+        window.sessionStorage?.getItem("qp_partner_resubmit_mode") === "true" ||
+        window.localStorage?.getItem("qp_partner_resubmit_mode") === "true"
+      ));
     if (session.isOnboarded && !session.isVerified && !isResubmitParam && session.status !== "rejected" && (session as any).kycStatus !== "rejected") {
       navigate({ to: partnerRoutes.registrationSubmitted });
       return;
@@ -900,7 +906,13 @@ export function BusinessRegistrationScreen() {
   useEffect(() => {
     let active = true;
     const urlParams = new URLSearchParams(window.location.search);
-    const isResubmitParam = urlParams.get("resubmit") === "true" || urlParams.get("edit") === "true";
+    const isResubmitParam =
+      urlParams.get("resubmit") === "true" ||
+      urlParams.get("edit") === "true" ||
+      (typeof window !== "undefined" && (
+        window.sessionStorage?.getItem("qp_partner_resubmit_mode") === "true" ||
+        window.localStorage?.getItem("qp_partner_resubmit_mode") === "true"
+      ));
 
     // 1. First check LocalStorage draft
     try {
@@ -1581,6 +1593,10 @@ export function BusinessRegistrationScreen() {
       playPartnerOrderChime();
       triggerHaptic();
       localStorage.removeItem(DRAFT_STORAGE_KEY);
+      try {
+        sessionStorage.removeItem("qp_partner_resubmit_mode");
+        localStorage.removeItem("qp_partner_resubmit_mode");
+      } catch {}
 
       toast.success(
         isResubmissionFlow

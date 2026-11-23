@@ -38,6 +38,13 @@ import { formatPartnerId } from "../lib/format-ids";
 import { isPartnerApproved } from "../lib/auth-guard";
 
 export function RegistrationSubmittedScreen() {
+  const handleGoToResubmit = () => {
+    try {
+      sessionStorage.setItem("qp_partner_resubmit_mode", "true");
+      localStorage.setItem("qp_partner_resubmit_mode", "true");
+    } catch {}
+    window.location.href = "/registration?resubmit=true";
+  };
   const navigate = useNavigate();
   const { session, signIn, signOut } = usePartnerContext();
   const [checking, setChecking] = useState(false);
@@ -297,8 +304,8 @@ export function RegistrationSubmittedScreen() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => navigate({ to: partnerRoutes.registration, search: { resubmit: true } })}
-                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-rose-600 py-3 text-xs font-black text-white shadow-cta transition-all hover:bg-rose-700 active:scale-95"
+                  onClick={handleGoToResubmit}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-rose-600 py-3 text-xs font-black text-white shadow-cta transition-all hover:bg-rose-700 active:scale-95 cursor-pointer"
                 >
                   <Edit3 className="size-3.5" />
                   Update &amp; Re-Submit Store Documents
@@ -506,8 +513,8 @@ export function RegistrationSubmittedScreen() {
           {!isApproved && (
             <button
               type="button"
-              onClick={() => navigate({ to: partnerRoutes.registration, search: { resubmit: true } })}
-              className="ripple focus-key flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3.5 text-xs font-bold text-foreground shadow-soft transition-all duration-300 hover:bg-muted active:scale-[0.97]"
+              onClick={handleGoToResubmit}
+              className="ripple focus-key flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3.5 text-xs font-bold text-foreground shadow-soft transition-all duration-300 hover:bg-muted active:scale-[0.97] cursor-pointer"
             >
               <Edit3 className="size-3.5 text-primary" />
               Update / Re-Submit Store Documents

@@ -1,5 +1,47 @@
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 69)
+
+### Admin Approve Store Unblocking, Partner Re-Submit Flow Resiliency, and Rider Kit Razorpay Skip Mode
+
+1. **Context & User Directives:**
+   - User reported 3 operational blockers:
+     1. **Approved Store Button Not Working:** In Admin Console (`/partners`), clicking "Approve Store" was failing or blocked.
+     2. **Re-Submit Button Not Working:** In Partner App (`/registration-submitted`), clicking "Update & Re-Submit Store Documents" was failing or immediately bouncing back to the submitted screen.
+     3. **Rider Kit Razorpay Skip Option:** Need a button to bypass/skip the Step 6 Delivery Kit Razorpay payment for testing rider onboarding and agreement workflows without live transactions.
+
+2. **Root Cause Analysis & Fixes Delivered:**
+   - **Admin Partner Approval Unblocked (`admin-frontend/src/routes/partners.tsx`, `backend-python/app/api/admin.py`, `backend-python/app/db/admin_repositories.py`):**
+     - *Cause:* Both the Admin frontend and backend had a hard-coded gate rejecting store approval if the Master Merchant SLA was not digitally signed by the partner (`agreementStatus !== "APPROVED"`), completely blocking Admin approval during onboarding.
+     - *Fix:*
+       - Removed the hard rejection block from `handleApprovePartner` in `partners.tsx`.
+       - Removed the `HTTPException` and `ValueError` blocks in `admin.py` and `AdminPartnerRepository.approve`.
+       - Under Admin authority, approving the store automatically marks `agreementStatus: "APPROVED"`, `agreementApproved: True`, `approvedBy: admin_id`, `status: "active"`, and `isVerified: True`.
+   - **Partner Re-Submission Flow Resiliency (`partner-frontend/src/screens/RegistrationSubmittedScreen.tsx`, `partner-frontend/src/routes/registration.tsx`, `partner-frontend/src/screens/BusinessRegistrationScreen.tsx`):**
+     - *Cause:* In `RegistrationSubmittedScreen.tsx`, clicking "Update & Re-Submit Store Documents" navigated to `/registration` via in-memory search. `BusinessRegistrationScreen.tsx` read `urlParams` strictly from `window.location.search`, which was empty during client-side router transition, causing `isResubmitParam` to evaluate to `false` and instantly triggering a redirect back to `/registration-submitted`.
+     - *Fix:*
+       - Set `sessionStorage.setItem("qp_partner_resubmit_mode", "true")` and used `window.location.href = "/registration?resubmit=true"` on button clicks.
+       - Updated `registration.tsx` route `beforeLoad` and `BusinessRegistrationScreen.tsx` to recognize `qp_partner_resubmit_mode` in storage.
+       - Cleared the session flag upon successful re-submission in `handleSubmitRegistration`.
+   - **Rider Kit Razorpay Skip Option (`rider-frontend/src/components/registration/DeliveryKitSelectionStep.tsx`, `rider-frontend/src/api/rider/rider-auth-api.ts`, `backend-python/app/api/rider_delivery_kit.py`, `backend-python/app/api/rider.py`):**
+     - Added `POST /api/rider/delivery-kit/skip-payment` endpoint in `rider_delivery_kit.py` which records a test-mode kit order in `rider_delivery_kits` with `payment.status: "PAID"` and updates the rider profile.
+     - Updated agreement OTP validation in `rider.py` to allow `"SKIPPED"` status.
+     - Added `skipDeliveryKitPayment` in `rider-auth-api.ts`.
+     - Added a prominent "⚡ Skip Kit Payment (Testing Mode)" button in `DeliveryKitSelectionStep.tsx` that bypasses the Razorpay checkout and advances directly to the next step.
+
+3. **Verification & Deployment:**
+   - Production Vite Builds:
+     - `partner-frontend`: PASSED
+     - `admin-frontend`: PASSED
+     - `rider-frontend`: PASSED
+   - Compiled Android APKs:
+     - `QuickPress-Partner.apk` (19.2 MB)
+     - `QuickPress-Captain.apk` (19.2 MB)
+     - `QuickPress-Customer.apk` (21.0 MB)
+   - Synchronized APKs directly to EC2 (`65.0.127.43:/var/www/quickpress/website/apks/`) via SCP with `www-data:www-data` permissions.
+
+---
+
 ## Session: November 23, 2026 (Part 68)
 
 ### Real-Time AWS EC2 Production Sync, APK Distribution Pipeline Hardening, and Live Endpoint Verification

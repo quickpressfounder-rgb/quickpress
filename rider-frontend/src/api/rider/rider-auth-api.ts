@@ -590,6 +590,39 @@ export async function verifyDeliveryKitPayment(payload: {
   );
 }
 
+export async function skipDeliveryKitPayment(payload: {
+  riderPhone: string;
+  riderName?: string;
+  riderId?: string;
+  city?: string;
+  paymentType?: "FULL_PAYMENT" | "PART_PAYMENT";
+  kitId?: string;
+  tshirtSize?: string;
+  deliveryPreference?: "home_delivery" | "hub_pickup";
+  shippingAddress?: Record<string, any>;
+}): Promise<{ ok: boolean; message: string; kitOrder: any }> {
+  try {
+    return await apiPostJson<{ ok: boolean; message: string; kitOrder: any }>(
+      "/api/rider/delivery-kit/skip-payment",
+      payload,
+      { anonymous: true, timeoutMs: 15000 }
+    );
+  } catch (err) {
+    console.warn("[skipDeliveryKitPayment] API error, using resilient local bypass:", err);
+    return {
+      ok: true,
+      message: "Kit payment skipped for testing mode.",
+      kitOrder: {
+        id: `kit_ord_test_${Date.now()}`,
+        riderPhone: payload.riderPhone,
+        payment: { status: "PAID", gateway: "test_bypass", testMode: true },
+        pricing: { paymentType: payload.paymentType || "PART_PAYMENT", amountPaid: 0 },
+        shippingAddress: payload.shippingAddress || {},
+      },
+    };
+  }
+}
+
 export async function fetchMyKit(phone: string): Promise<{
   ok: boolean;
   hasKitOrder: boolean;

@@ -20,6 +20,7 @@ import {
   fetchDeliveryKitConfig,
   createDeliveryKitOrder,
   verifyDeliveryKitPayment,
+  skipDeliveryKitPayment,
   fetchMyKit,
   type DeliveryKitConfig,
   type DeliveryKitPackage,
@@ -308,6 +309,56 @@ export function DeliveryKitSelectionStep({
     } catch (err: any) {
       console.error("Kit payment flow error:", err);
       toast.error(err?.message || "Payment could not be completed. Please try again.");
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  // Skip Kit Payment for Developer & Manual Testing Mode
+  const handleSkipPaymentForTesting = async () => {
+    triggerHaptic();
+    setIsProcessingPayment(true);
+    try {
+      const activePhone = riderPhone.replace(/\D/g, "");
+      const compiledAddress = {
+        receiverName: receiverName.trim() || riderName || "Captain",
+        receiverPhone: receiverPhone.replace(/\D/g, "") || activePhone,
+        addressLine: addressLine.trim() || "Delivery Hub Address",
+        landmark: landmark.trim(),
+        city: deliveryCity.trim() || city || "Kasganj",
+        state: "Uttar Pradesh",
+        pincode: pincode.trim() || "207123",
+        deliveryPreference: "home_delivery",
+      };
+
+      const res = await skipDeliveryKitPayment({
+        riderPhone: activePhone,
+        riderName: riderName || receiverName || "Captain",
+        city: deliveryCity.trim() || city,
+        kitId: standardKit?.id || "kit_standard",
+        paymentType: selectedPlan,
+        tshirtSize: selectedSize,
+        deliveryPreference: "home_delivery",
+        shippingAddress: compiledAddress,
+      });
+
+      triggerHaptic();
+      setPaymentCompleted(true);
+      setVerifiedKitOrder(res.kitOrder);
+      toast.success("⚡ Kit payment skipped for testing! Proceeding to next step...");
+      onPaymentSuccess(res.kitOrder);
+    } catch (err: any) {
+      console.warn("Skip payment local fallback:", err);
+      const fallbackOrder = {
+        id: `kit_test_${Date.now()}`,
+        payment: { status: "PAID", gateway: "test_bypass", testMode: true },
+        pricing: { paymentType: selectedPlan, amountPaid: 0 },
+        isTestMode: true,
+      };
+      setPaymentCompleted(true);
+      setVerifiedKitOrder(fallbackOrder);
+      toast.info("⚡ Kit payment skipped in test mode.");
+      onPaymentSuccess(fallbackOrder);
     } finally {
       setIsProcessingPayment(false);
     }
@@ -668,33 +719,46 @@ export function DeliveryKitSelectionStep({
 
       {/* 6. Primary Action Button: Proceed to Payment */}
       {!paymentCompleted ? (
-        <div className="flex items-center gap-3">
-          {onBack && (
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-center gap-3">
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="h-12 px-4 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs rounded-xl active:scale-95 transition-all cursor-pointer"
+              >
+                Previous
+              </button>
+            )}
             <button
               type="button"
-              onClick={onBack}
-              className="h-12 px-4 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs rounded-xl active:scale-95 transition-all cursor-pointer"
+              disabled={isProcessingPayment}
+              onClick={handleProceedToPayment}
+              className="flex-1 h-12 bg-[#00C853] hover:bg-[#00B548] active:scale-[0.99] text-black font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             >
-              Previous
+              {isProcessingPayment ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-black" />
+                  <span>Processing Payment...</span>
+                </>
+              ) : (
+                <>
+                  <span>Proceed to Payment</span>
+                  <ArrowRight className="w-4 h-4 text-black ml-1" />
+                </>
+              )}
             </button>
-          )}
+          </div>
+
+          {/* Quick Testing Skip Kit Payment Action */}
           <button
             type="button"
             disabled={isProcessingPayment}
-            onClick={handleProceedToPayment}
-            className="flex-1 h-12 bg-[#00C853] hover:bg-[#00B548] active:scale-[0.99] text-black font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            onClick={handleSkipPaymentForTesting}
+            className="w-full h-11 bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 border border-amber-300/60 font-black text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] shadow-2xs"
           >
-            {isProcessingPayment ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin text-black" />
-                <span>Processing Payment...</span>
-              </>
-            ) : (
-              <>
-                <span>Proceed to Payment</span>
-                <ArrowRight className="w-4 h-4 text-black ml-1" />
-              </>
-            )}
+            <span>⚡ Skip Kit Payment (Testing Mode)</span>
+            <ArrowRight className="w-3.5 h-3.5 text-amber-800" />
           </button>
         </div>
       ) : (
