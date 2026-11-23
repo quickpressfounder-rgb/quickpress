@@ -408,7 +408,20 @@ export function RiderRegistrationScreen() {
       : "");
 
   // 5 Step Flow: 1. Personal, 2. Aadhaar & Selfie, 3. Vehicle & RC, 4. Driving Licence, 5. Bank
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [currentStep, setCurrentStep] = useState<number>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem("qp_rider_registration_draft_v2");
+        if (raw) {
+          const d = JSON.parse(raw);
+          if (typeof d.currentStep === "number" && d.currentStep >= 1 && d.currentStep <= 6) {
+            return d.currentStep;
+          }
+        }
+      }
+    } catch {}
+    return 1;
+  });
   const [loading, setLoading] = useState<boolean>(false);
   const [uploadingDocs, setUploadingDocs] = useState<Record<string, boolean>>({});
 
@@ -852,6 +865,29 @@ export function RiderRegistrationScreen() {
     const urlParams = new URLSearchParams(window.location.search);
     const isResubmitParam = urlParams.get("resubmit") === "true" || urlParams.get("edit") === "true";
 
+    try {
+      const raw = localStorage.getItem("qp_rider_registration_draft_v2");
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (typeof d.currentStep === "number" && d.currentStep >= 1 && d.currentStep <= 6) {
+          setCurrentStep(d.currentStep);
+        }
+        if (d.firstName && !isGenericRiderName(d.firstName)) setFirstName(d.firstName);
+        if (d.lastName && !isGenericRiderName(d.lastName)) setLastName(d.lastName);
+        if (d.email) {
+          setEmail(d.email);
+          if (d.isEmailVerified) setIsEmailVerified(true);
+        }
+        if (d.gender) setGender(d.gender);
+        if (d.dob) setDob(d.dob);
+        if (d.city) setSelectedCity(d.city);
+        if (d.pincode) setPincode(d.pincode);
+        if (d.emergencyPhone) setEmergencyPhone(d.emergencyPhone);
+        if (d.aadhaarNumber) setAadhaarNumber(d.aadhaarNumber);
+        if (d.panNumber) setPanNumber(d.panNumber);
+      }
+    } catch {}
+
     fetchRiderVerificationStatus()
       .then((statusRes) => {
         if (!active || !statusRes) return;
@@ -958,6 +994,40 @@ export function RiderRegistrationScreen() {
       active = false;
     };
   }, []);
+
+  // Auto-Save Rider Draft to LocalStorage
+  useEffect(() => {
+    try {
+      const draftPayload = {
+        currentStep,
+        firstName,
+        lastName,
+        email,
+        isEmailVerified,
+        gender,
+        dob,
+        city: selectedCity,
+        pincode,
+        emergencyPhone,
+        aadhaarNumber,
+        panNumber,
+      };
+      localStorage.setItem("qp_rider_registration_draft_v2", JSON.stringify(draftPayload));
+    } catch {}
+  }, [
+    currentStep,
+    firstName,
+    lastName,
+    email,
+    isEmailVerified,
+    gender,
+    dob,
+    selectedCity,
+    pincode,
+    emergencyPhone,
+    aadhaarNumber,
+    panNumber,
+  ]);
 
   // Auto-detect live city and pincode from GPS (Matches strictly against Admin Panel operating cities)
   const detectLiveLocation = () => {
@@ -1660,6 +1730,7 @@ export function RiderRegistrationScreen() {
 
       try {
         localStorage.setItem("qp_rider_government_name", officialApplicantName);
+        localStorage.removeItem("qp_rider_registration_draft_v2");
         if (result?.agreementToken) {
           localStorage.setItem("qp_agreement_token", result.agreementToken);
         }

@@ -18,6 +18,11 @@ import { usePartnerContext } from "../context/PartnerContext";
 import { partnerRoutes } from "../navigation/partner-routes";
 import { validateMobile } from "../lib/partner-validation";
 import {
+  isPartnerApproved,
+  isPartnerOnboarded,
+  isPartnerSuspended,
+} from "../lib/auth-guard";
+import {
   areAllMerchantPermissionsGranted,
   hasCompletedPermissionsOnboarding,
 } from "../lib/merchant-device-opt";
@@ -78,11 +83,17 @@ export function PartnerAuthScreen() {
     }
   }, []);
 
-  // Redirect if already authenticated and approved
+  // Redirect immediately if already authenticated
   useEffect(() => {
-    if (hydrating || !session) return;
-    if (session.isVerified) {
+    if (hydrating || !session || !session.token) return;
+    if (isPartnerSuspended(session)) {
+      navigate({ to: partnerRoutes.suspended, replace: true });
+    } else if (isPartnerApproved(session)) {
       navigate({ to: partnerRoutes.orders, replace: true });
+    } else if (isPartnerOnboarded(session)) {
+      navigate({ to: partnerRoutes.registrationSubmitted, replace: true });
+    } else {
+      navigate({ to: partnerRoutes.registration, replace: true });
     }
   }, [hydrating, session, navigate]);
 

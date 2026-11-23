@@ -101,6 +101,7 @@ export function MapPicker({
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reverseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipNextReverseRef = useRef(false);
 
   // Lock background scroll while modal is open
   useEffect(() => {
@@ -111,12 +112,36 @@ export function MapPicker({
     };
   }, []);
 
+  // Close modal on Escape or Android back event
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    const handleAndroidBack = (e: Event) => {
+      e.preventDefault();
+      onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("qp:android-back", handleAndroidBack);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("qp:android-back", handleAndroidBack);
+    };
+  }, [isOpen, onClose]);
+
   // Debounced reverse geocoding whenever the selected point changes
   useEffect(() => {
     if (!point) return;
     let alive = true;
 
     if (reverseTimeoutRef.current) clearTimeout(reverseTimeoutRef.current);
+
+    if (skipNextReverseRef.current) {
+      skipNextReverseRef.current = false;
+      setResolving(false);
+      return;
+    }
 
     setResolving(true);
     setError(null);
@@ -213,37 +238,53 @@ export function MapPicker({
 
   const handleSelectSuggestion = async (suggestion: PlaceSuggestion) => {
     setIsSearchFocused(false);
-    setSearchQuery(suggestion.primaryText || suggestion.description);
+    const placeText = suggestion.primaryText || suggestion.description;
+    setSearchQuery(placeText);
     setSuggestions([]);
     setResolving(true);
     setError(null);
 
     try {
+      let targetLat: number | null = null;
+      let targetLng: number | null = null;
+      let placeDetails: any = null;
+
       if (suggestion.placeId) {
         const place = await fetchPlaceDetails(suggestion.placeId);
         if (place.latitude && place.longitude) {
-          setPoint({ latitude: place.latitude, longitude: place.longitude });
-          setZoomLevel(17);
-          setDetails({
-            formattedAddress: place.formattedAddress,
+          targetLat = place.latitude;
+          targetLng = place.longitude;
+          placeDetails = {
+            formattedAddress: place.formattedAddress || placeText,
             placeId: place.placeId,
             latitude: place.latitude,
             longitude: place.longitude,
-            area: place.area || place.city,
-            city: place.city,
-            state: place.state,
-            pincode: place.pincode,
+            area: place.area || place.city || placeText,
+            city: place.city || "",
+            state: place.state || "",
+            pincode: place.pincode || "",
             country: "India",
-          });
-          return;
+          };
         }
       }
 
-      const geo = await geocodeAddress(suggestion.description || suggestion.primaryText);
-      if (geo.latitude && geo.longitude) {
-        setPoint({ latitude: geo.latitude, longitude: geo.longitude });
+      if (!targetLat || !targetLng) {
+        const geo = await geocodeAddress(placeText);
+        if (geo.latitude && geo.longitude) {
+          targetLat = geo.latitude;
+          targetLng = geo.longitude;
+          placeDetails = geo;
+        }
+      }
+
+      if (targetLat && targetLng) {
+        // Prevent subsequent reverse geocode debounce from erasing resolved details
+        skipNextReverseRef.current = true;
+        setPoint({ latitude: targetLat, longitude: targetLng });
         setZoomLevel(17);
-        setDetails(geo);
+        if (placeDetails) {
+          setDetails(placeDetails);
+        }
       }
     } catch {
       setError("Couldn't jump to this place. You can drop a pin on the map.");
@@ -265,8 +306,17 @@ export function MapPicker({
     if (!point) return;
     const formatted =
       details?.formattedAddress ||
+      (searchQuery && searchQuery.trim().length > 3 ? searchQuery.trim() : null) ||
       [details?.area, details?.city, details?.state, details?.pincode].filter(Boolean).join(", ") ||
       `Selected Location (${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)})`;
+
+    let resolvedCity = details?.city || "";
+    if (!resolvedCity && searchQuery) {
+      const parts = searchQuery.split(",").map((p) => p.trim());
+      if (parts.length >= 2) {
+        resolvedCity = parts[parts.length - 2] || parts[1] || "";
+      }
+    }
 
     const pickedObj: PickedLocation = {
       lat: point.latitude,
@@ -275,8 +325,8 @@ export function MapPicker({
       longitude: point.longitude,
       formattedAddress: formatted,
       address: formatted,
-      area: details?.area || details?.city || "Selected Area",
-      city: details?.city || "",
+      area: details?.area || details?.city || (searchQuery ? searchQuery.split(",")[0].trim() : "Selected Area"),
+      city: resolvedCity,
       state: details?.state || "",
       pincode: details?.pincode || "",
     };
@@ -289,15 +339,20 @@ export function MapPicker({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 z-[99999] flex flex-col bg-background select-none overflow-hidden animate-fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      data-modal="map-picker"
+      className="fixed inset-0 z-[99999] flex flex-col bg-background select-none overflow-hidden animate-fade-in"
+    >
       {/* 1. Header Bar */}
       <header className="relative z-30 flex items-center justify-between border-b border-border/80 bg-card/95 px-4 py-3 shadow-sm backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <button
             type="button"
-            aria-label="Back"
+            aria-label="close"
             onClick={onClose}
-            className="flex size-10 items-center justify-center rounded-2xl bg-muted/80 text-foreground transition-all active:scale-90 hover:bg-muted"
+            className="flex size-10 items-center justify-center rounded-2xl bg-muted/80 text-foreground transition-all active:scale-90 hover:bg-muted cursor-pointer"
           >
             <ArrowLeft className="size-5" />
           </button>
@@ -543,7 +598,7 @@ export function MapPicker({
         {/* Confirm Location CTA Button */}
         <button
           type="button"
-          disabled={!point || resolving}
+          disabled={!point}
           onClick={handleConfirm}
           className="mt-4 flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-emerald-600 text-base font-extrabold text-white shadow-lg shadow-emerald-600/30 transition-all duration-200 active:scale-[0.98] hover:bg-emerald-500 disabled:opacity-50 disabled:shadow-none cursor-pointer"
         >
@@ -552,7 +607,7 @@ export function MapPicker({
           ) : (
             <Check className="size-5 stroke-[2.5]" />
           )}
-          <span>{resolving ? "Locating Address…" : "Confirm Shop Location"}</span>
+          <span>{resolving ? "Confirming Location…" : "Confirm Shop Location"}</span>
         </button>
       </footer>
     </div>

@@ -1,5 +1,54 @@
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 65)
+
+### Partner & Rider Location Picker Fix, Back Navigation Trap Removal, Auth Route Guard Lockdown, & Multi-Step Registration Persistence
+
+1. **Context & User Directives:**
+   - User directive: *"ab iske ander problome hai ki hum store loction pick up work nahi kar raha hai or yaha se back navigation kiya to login screen par pahuch gaya fir login kiya ye problome login hone ke baad jab tak logout nakiya jaye login na aaye or aager form ke bich me band kar diya hai or dubaa open kare to wahi khule ?"* with attached screenshots showing:
+     - Map location picker stuck on "Confirm Shop Location" with infinite loading spinner.
+     - Unintended navigation to `/auth` login screen when pressing Android back button during location selection or registration.
+     - Loss of registration step and entered fields when closing and re-opening the app midway.
+
+2. **Root Cause Analysis:**
+   - **Location Picker Lock (`MapPicker.tsx`):**
+     - Confirm button had `disabled={!point || resolving}` condition. Debounced reverse geocoding request would keep `resolving` true or get stuck when geocoding timed out, preventing user from clicking confirm.
+     - When Google Places suggestions were tapped, subsequent debounced reverse geocoding ran and wiped out the place name and city details.
+     - `handleLocationPicked` in `BusinessRegistrationScreen.tsx` only set `city` if `approvedCities.find(...)` matched; for unapproved/custom cities like Kasganj, `setCity` was omitted, causing city validation failure.
+   - **Back Navigation Loop to Login Screen (`useBackNavigation.ts` & `BusinessRegistrationScreen.tsx`):**
+     - `MapPicker` container lacked modal ARIA identifiers (`role="dialog"`, `aria-modal="true"`, `data-modal="map-picker"`). As a result, `useBackNavigation.ts` failed to detect an open modal on back gesture and fell back to `window.history.back()`.
+     - Because `/registration` was navigated to after `/auth`/`/otp`, `window.history.back()` popped back to `/auth`.
+     - `partner-frontend/src/routes/auth.tsx` lacked a `beforeLoad` guard, permitting authenticated users to access `/auth`.
+   - **Registration Form State & Step Reset:**
+     - `currentStep` was initialized to `1` on mount and was omitted from `draftPayload` saved in `localStorage.setItem(DRAFT_STORAGE_KEY, ...)`.
+     - `pickedLatitude`, `pickedLongitude`, and `isEmailVerified` were also missing from the saved payload, resetting the user back to Step 1 and Kasganj defaults upon re-opening the app.
+
+3. **Engineering Solutions Delivered:**
+   - **Instant Location Confirmation & Robust Geocoding (`MapPicker.tsx` & `BusinessRegistrationScreen.tsx`):**
+     - Set Confirm button to `disabled={!point}`, allowing instant confirmation of selected GPS coordinates without waiting on reverse geocoding network responses.
+     - Added `skipNextReverseRef` to preserve Google Places suggestion details.
+     - Enhanced `handleLocationPicked` in `BusinessRegistrationScreen.tsx` with `setCity(match || detectedCity || loc.city)` fallback to prevent blank city fields.
+     - Added `role="dialog" aria-modal="true" data-modal="map-picker"` and keyboard `Escape` / `qp:android-back` event listeners to close the modal directly.
+   - **Back Navigation Shield (`useBackNavigation.ts` & `BusinessRegistrationScreen.tsx`):**
+     - Updated `useBackNavigation.ts` to prioritize `[data-modal="map-picker"]` and dispatch custom event `qp:partner-registration-back`.
+     - In `BusinessRegistrationScreen.tsx`, `qp:partner-registration-back` intercepts hardware back button: closes map picker -> closes camera -> steps back (`currentStep > 1`). At Step 1, it triggers standard double-tap back to exit (`App.exitApp()`) instead of popping router history to `/auth`.
+     - Added a visible top header back button for `currentStep > 1`.
+   - **Strict Auth Route Guards (`partner-frontend/src/routes/auth.tsx`, `PartnerAuthScreen.tsx`, `rider-frontend/src/routes/auth.tsx`, `RiderAuthScreen.tsx`):**
+     - Added `beforeLoad` in `partner-frontend/src/routes/auth.tsx` redirecting authenticated sessions to `/orders`, `/registration-submitted`, or `/registration`.
+     - Added client-side immediate redirection in `PartnerAuthScreen.tsx`.
+     - Updated `rider-frontend/src/routes/auth.tsx` and `RiderAuthScreen.tsx` so authenticated riders are redirected to `/dashboard`, `/verification`, or `/registration`.
+   - **Multi-Step Form & Location Persistence:**
+     - `currentStep`, `pickedLatitude`, `pickedLongitude`, and `isEmailVerified` are initialized from `localStorage` draft on mount in both partner and rider apps.
+     - Auto-save effects in both `BusinessRegistrationScreen.tsx` and `RiderRegistrationScreen.tsx` persist all fields and active step to `localStorage`. Re-opening the app immediately restores the exact step with all draft data intact.
+
+4. **Verification & Quality Assurance:**
+   - `partner-frontend` production build: PASSED (`vite build` exit code 0).
+   - `rider-frontend` production build: PASSED (`vite build` exit code 0).
+   - `QuickPress-Partner.apk` and `QuickPress-Partner.aab` generated successfully.
+   - `QuickPress-Captain.apk` and `QuickPress-Captain.aab` generated successfully.
+
+---
+
 ## Session: November 23, 2026 (Part 64)
 
 ### Elimination of Infinite Redirect Loop ("Too Many Redirects") & Route Guard State Machine Harmonization

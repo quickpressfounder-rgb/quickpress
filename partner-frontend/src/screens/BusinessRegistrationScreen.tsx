@@ -411,7 +411,20 @@ export function BusinessRegistrationScreen() {
   const { session, signIn, hydrating, phone } = usePartnerContext();
   const { openLanguageModal, language, t } = useLanguage();
 
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [currentStep, setCurrentStep] = useState<number>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (raw) {
+          const d = JSON.parse(raw);
+          if (typeof d.currentStep === "number" && d.currentStep >= 1 && d.currentStep <= 5) {
+            return d.currentStep;
+          }
+        }
+      }
+    } catch {}
+    return 1;
+  });
   const [busy, setBusy] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [missingSummary, setMissingSummary] = useState<string[]>([]);
@@ -463,7 +476,18 @@ export function BusinessRegistrationScreen() {
     return "";
   });
   const [email, setEmail] = useState("");
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isEmailVerified, setIsEmailVerified] = useState<boolean>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (raw) {
+          const d = JSON.parse(raw);
+          if (d.isEmailVerified === true) return true;
+        }
+      }
+    } catch {}
+    return false;
+  });
   const [isSendingEmailOtp, setIsSendingEmailOtp] = useState(false);
   const [isVerifyingEmailOtp, setIsVerifyingEmailOtp] = useState(false);
   const [emailOtp, setEmailOtp] = useState("");
@@ -538,8 +562,30 @@ export function BusinessRegistrationScreen() {
   const [pincode, setPincode] = useState("");
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [pincodeServiceability, setPincodeServiceability] = useState<PincodeServiceabilityResult | null>(null);
-  const [pickedLatitude, setPickedLatitude] = useState<number>(27.8083);
-  const [pickedLongitude, setPickedLongitude] = useState<number>(78.6474);
+  const [pickedLatitude, setPickedLatitude] = useState<number>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (raw) {
+          const d = JSON.parse(raw);
+          if (typeof d.pickedLatitude === "number" && !isNaN(d.pickedLatitude)) return d.pickedLatitude;
+        }
+      }
+    } catch {}
+    return 27.8083;
+  });
+  const [pickedLongitude, setPickedLongitude] = useState<number>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (raw) {
+          const d = JSON.parse(raw);
+          if (typeof d.pickedLongitude === "number" && !isNaN(d.pickedLongitude)) return d.pickedLongitude;
+        }
+      }
+    } catch {}
+    return 78.6474;
+  });
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [openingTime, setOpeningTime] = useState("08:00");
   const [closingTime, setClosingTime] = useState("21:00");
@@ -669,20 +715,71 @@ export function BusinessRegistrationScreen() {
   // Approved cities strictly loaded from server (Zero hardcoded fallback)
   const [approvedCities, setApprovedCities] = useState<string[]>([]);
 
+  // Handle native Android hardware back button and custom dispatch events
+  useEffect(() => {
+    const handleRegistrationBack = (e: CustomEvent) => {
+      // 1. Close map picker if open
+      if (showMapPicker) {
+        e.preventDefault();
+        setShowMapPicker(false);
+        return;
+      }
+      // 2. Close camera modal if open
+      if (isCameraModalOpen) {
+        e.preventDefault();
+        setIsCameraModalOpen(false);
+        return;
+      }
+      // 3. Close email OTP box if open
+      if (showEmailOtpBox) {
+        e.preventDefault();
+        setShowEmailOtpBox(false);
+        return;
+      }
+      // 4. If currentStep > 1, step backwards
+      if (currentStep > 1) {
+        e.preventDefault();
+        setCurrentStep((prev) => prev - 1);
+        triggerHaptic();
+        return;
+      }
+      // 5. At Step 1, do NOT preventDefault: useBackNavigation will prompt double-tap to exit!
+    };
+
+    window.addEventListener("qp:partner-registration-back", handleRegistrationBack as EventListener);
+    return () => {
+      window.removeEventListener("qp:partner-registration-back", handleRegistrationBack as EventListener);
+    };
+  }, [showMapPicker, isCameraModalOpen, showEmailOtpBox, currentStep]);
+
   // Browser / Hardware Popstate Back Button Handling (matching Rider flow)
   useEffect(() => {
     window.history.replaceState({ page: "partner-registration", step: currentStep }, "");
 
     const handlePopState = () => {
+      if (showMapPicker) {
+        setShowMapPicker(false);
+        window.history.pushState({ page: "partner-registration", step: currentStep }, "");
+        return;
+      }
+      if (isCameraModalOpen) {
+        setIsCameraModalOpen(false);
+        window.history.pushState({ page: "partner-registration", step: currentStep }, "");
+        return;
+      }
       if (currentStep > 1) {
         setCurrentStep((prev) => prev - 1);
         window.history.pushState({ page: "partner-registration", step: currentStep - 1 }, "");
+      } else {
+        // Prevent accidental history back navigation to /auth
+        window.history.pushState({ page: "partner-registration", step: 1 }, "");
+        toast("Press back again to exit", { id: "back-exit-toast", duration: 2000 });
       }
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [currentStep]);
+  }, [currentStep, showMapPicker, isCameraModalOpen]);
 
   // Route protection
   useEffect(() => {
@@ -776,6 +873,12 @@ export function BusinessRegistrationScreen() {
       const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
       if (savedDraft) {
         const d = JSON.parse(savedDraft);
+        if (typeof d.currentStep === "number" && d.currentStep >= 1 && d.currentStep <= 5) {
+          setCurrentStep(d.currentStep);
+        }
+        if (d.isEmailVerified === true) setIsEmailVerified(true);
+        if (typeof d.pickedLatitude === "number" && !isNaN(d.pickedLatitude)) setPickedLatitude(d.pickedLatitude);
+        if (typeof d.pickedLongitude === "number" && !isNaN(d.pickedLongitude)) setPickedLongitude(d.pickedLongitude);
         if (d.firstName && !isGenericPartnerName(d.firstName)) setFirstName(d.firstName.trim());
         if (d.lastName && !isGenericPartnerName(d.lastName)) setLastName(d.lastName.trim());
         if (d.ownerName && !d.firstName) setOwnerFullName(d.ownerName);
@@ -805,6 +908,7 @@ export function BusinessRegistrationScreen() {
         if (d.servicePrices) setServicePrices(d.servicePrices);
         if (d.serviceTurnarounds) setServiceTurnarounds(d.serviceTurnarounds);
         if (d.bankName) setBankName(d.bankName);
+        if (d.customBankName) setCustomBankName(d.customBankName);
         if (d.accountHolder) setAccountHolder(d.accountHolder);
         if (d.accountNumber) {
           setAccountNumber(d.accountNumber);
@@ -923,6 +1027,10 @@ export function BusinessRegistrationScreen() {
   // Auto-Save Draft to LocalStorage
   useEffect(() => {
     const draftPayload = {
+      currentStep,
+      pickedLatitude,
+      pickedLongitude,
+      isEmailVerified,
       firstName,
       lastName,
       ownerName,
@@ -952,6 +1060,7 @@ export function BusinessRegistrationScreen() {
       servicePrices,
       serviceTurnarounds,
       bankName,
+      customBankName,
       accountHolder,
       accountNumber,
       ifsc,
@@ -961,6 +1070,12 @@ export function BusinessRegistrationScreen() {
       localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftPayload));
     } catch {}
   }, [
+    currentStep,
+    pickedLatitude,
+    pickedLongitude,
+    isEmailVerified,
+    firstName,
+    lastName,
     ownerName,
     mobile,
     email,
@@ -988,6 +1103,7 @@ export function BusinessRegistrationScreen() {
     servicePrices,
     serviceTurnarounds,
     bankName,
+    customBankName,
     accountHolder,
     accountNumber,
     ifsc,
@@ -1464,20 +1580,24 @@ export function BusinessRegistrationScreen() {
     const lat = loc.lat ?? loc.latitude;
     const lng = loc.lng ?? loc.longitude;
     const addr = loc.address ?? loc.formattedAddress ?? "";
-    setPickedLatitude(lat);
-    setPickedLongitude(lng);
+    if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+      setPickedLatitude(lat);
+      setPickedLongitude(lng);
+    }
     if (addr) {
       setShopAddress(addr);
     }
     if (loc.area) {
       setArea(loc.area);
     }
-    if (loc.pincode && loc.pincode.length === 6) {
-      setPincode(loc.pincode);
+    const cleanPin = (loc.pincode || "").replace(/\D/g, "");
+    if (cleanPin.length === 6) {
+      setPincode(cleanPin);
     }
-    if (loc.city) {
-      const match = approvedCities.find((c) => c.toLowerCase() === loc.city?.toLowerCase());
-      if (match) setCity(match);
+    const detectedCity = loc.city || (loc.area && approvedCities.find((c) => c.toLowerCase() === loc.area?.toLowerCase()));
+    if (detectedCity) {
+      const match = approvedCities.find((c) => c.toLowerCase() === detectedCity.toLowerCase());
+      setCity(match || detectedCity);
     }
     setShowMapPicker(false);
     toast.success("Store GPS coordinates & address updated successfully! ✓");
@@ -1493,6 +1613,19 @@ export function BusinessRegistrationScreen() {
       <div className="sticky top-0 z-40 bg-white border-b border-neutral-200 shadow-xs">
         <header className="px-4 py-3 flex items-center justify-between app-header-safe">
           <div className="flex items-center gap-2 select-none">
+            {currentStep > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic();
+                  setCurrentStep((prev) => Math.max(1, prev - 1));
+                }}
+                className="p-1.5 -ml-1 text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors cursor-pointer"
+                aria-label="Go to previous step"
+              >
+                <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
+              </button>
+            )}
             <div className="flex items-center gap-0.5">
               <span className="text-xl sm:text-2xl font-black tracking-tight text-neutral-950">
                 Quick
