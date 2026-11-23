@@ -33,6 +33,10 @@
      - Updated `useBackNavigation.ts` to prioritize `[data-modal="map-picker"]` and dispatch custom event `qp:partner-registration-back`.
      - In `BusinessRegistrationScreen.tsx`, `qp:partner-registration-back` intercepts hardware back button: closes map picker -> closes camera -> steps back (`currentStep > 1`). At Step 1, it triggers standard double-tap back to exit (`App.exitApp()`) instead of popping router history to `/auth`.
      - Added a visible top header back button for `currentStep > 1`.
+   - **Verification Screen & Language Flow Hardening:**
+     - In `RegistrationSubmittedScreen.tsx`: Replaced legacy `session?.status === "active"` with canonical predicate `isPartnerApproved(session)`, preventing unapproved partners with active auth accounts from prematurely bouncing into `/orders`.
+     - In `RiderOtpScreen.tsx`: Replaced hardcoded `/dashboard` redirect with strict state routing (`!isRiderOnboarded` -> `/registration`, `!isRiderApproved` -> `/verification`, `isRiderApproved` -> `/dashboard`).
+     - In `rider-frontend/src/routes/language.tsx`: Handled token property verification and lifecycle redirection when returning from language selection.
    - **Strict Auth Route Guards (`partner-frontend/src/routes/auth.tsx`, `PartnerAuthScreen.tsx`, `rider-frontend/src/routes/auth.tsx`, `RiderAuthScreen.tsx`):**
      - Added `beforeLoad` in `partner-frontend/src/routes/auth.tsx` redirecting authenticated sessions to `/orders`, `/registration-submitted`, or `/registration`.
      - Added client-side immediate redirection in `PartnerAuthScreen.tsx`.

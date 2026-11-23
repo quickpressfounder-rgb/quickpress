@@ -31,6 +31,7 @@ import {
   resendPartnerAgreementEmail,
 } from "@/api/partner/partner-auth-api";
 import { formatPartnerId } from "../lib/format-ids";
+import { isPartnerApproved } from "../lib/auth-guard";
 
 export function RegistrationSubmittedScreen() {
   const navigate = useNavigate();
@@ -131,12 +132,7 @@ export function RegistrationSubmittedScreen() {
 
   useEffect(() => {
     let mounted = true;
-    const isCurrentlyApproved = Boolean(
-      session?.isVerified ||
-      session?.account?.isVerified ||
-      session?.account?.status === "active" ||
-      session?.status === "active"
-    );
+    const isCurrentlyApproved = isPartnerApproved(session);
     if (isCurrentlyApproved) {
       navigate({ to: partnerRoutes.dashboard, replace: true });
       return;

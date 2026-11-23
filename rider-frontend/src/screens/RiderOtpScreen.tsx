@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useRiderContext } from "../context/RiderContext";
 import { sendOtp, verifyOtp } from "../api/rider/rider-auth-api";
 import { readSession } from "../api/core/session-store";
+import { isRiderApproved, isRiderOnboarded } from "../lib/auth-guard";
 import { QuickPressLogo } from "../components/common/QuickPressLogo";
 import { useLanguage } from "../lib/i18n";
 import { triggerHaptic } from "../lib/captain-audio";
@@ -58,7 +59,13 @@ export function RiderOtpScreen() {
   useEffect(() => {
     const sess = readSession("rider") || readSession();
     if (sess && sess.token) {
-      navigate({ to: "/dashboard", replace: true });
+      if (!isRiderOnboarded(sess)) {
+        navigate({ to: "/registration", replace: true });
+      } else if (!isRiderApproved(sess)) {
+        navigate({ to: "/verification", replace: true });
+      } else {
+        navigate({ to: "/dashboard", replace: true });
+      }
     }
   }, [navigate]);
 
