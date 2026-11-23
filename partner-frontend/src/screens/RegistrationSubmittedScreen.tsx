@@ -4,13 +4,17 @@ import {
   ArrowRight,
   BadgeCheck,
   Check,
+  CheckCircle2,
   Clock3,
   Edit3,
   ExternalLink,
+  FileCheck2,
+  FileText,
   Headphones,
   Loader2,
   Lock,
   LogOut,
+  Mail,
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
@@ -61,7 +65,7 @@ export function RegistrationSubmittedScreen() {
       try {
         const result = await checkPartnerVerificationStatus();
         setLastChecked(new Date());
-        if (result.isOnboarded === false && !result.isVerified) {
+        if (manual && result.isOnboarded === false && !result.isVerified && result.status === "not_registered") {
           navigate({ to: partnerRoutes.registration });
           return;
         }

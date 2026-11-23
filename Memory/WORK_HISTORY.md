@@ -1,5 +1,55 @@
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 66)
+
+### Step 4 Services 2-Tier Redesign with Dynamic Billing Units (Pc/Kg/Pair/Set/Panel/Meter), Real Google Maps Address in MapPicker & Step 3, Registration Crash & Redirect Loop Fix
+
+1. **Context & User Directives:**
+   - User directive: *"iamge 1 me itme slect ka desing ang layout sahi sa banao or isme Pic /kg paire select karne ka option bhi ho iske layout me text idhar udhar bhag rahi hai usko sahi karo imge 2 me iske fix karo loction slecter me lan lit aaye uski ghaja real goole map ka addres aaye or loction pick pahe ha head sahi karo loction ke codnate nahi real loction aaye"* with attached screenshots showing:
+     - **Image 1 / Step 4 Services:** Severely cramped 1-row layout where thumbnail, checkbox, title, description, price (`₹ 15 /per piece`), and SLA dropdown (`24h v`) competed for horizontal space, truncating text ("Prof...", "Cris..."), wrapping awkwardly, and displaying duplicate strings ("Per per piece"). No option existed for merchants to choose their billing unit (Pc, Kg, Pair, Set, etc.).
+     - **Image 2 & 4 / Submitted Screen Crash & Redirect Loop:** `This page didn't load: Mail is not defined` and `This page didn't load: Too many redirects` on `/registration-submitted`.
+     - **Screenshot 3 / Map Location Picker:** Header had cramped buttons with overlapping elements; bottom sheet prominently displayed raw GPS coordinates (`Lat: 27.80830, Lng: 78.64740` and `27.80830°N, 78.64740°E`) instead of the actual Google Maps street address, and Step 3 in the registration form also displayed green mono coordinates.
+
+2. **Root Cause Analysis:**
+   - **Step 4 Services Cramping (`BusinessRegistrationScreen.tsx`):**
+     - Single horizontal flex row (`flex items-start justify-between gap-3`) forced all controls into a 360px viewport, leaving <90px for service title and description.
+     - `unit` was hardcoded in `svc.unit` without merchant selection options.
+     - Line 2677 rendered `Per {svc.unit}` when `svc.unit` was already `"per piece"`, resulting in "Per per piece".
+   - **Crash on `/registration-submitted` (`RegistrationSubmittedScreen.tsx`):**
+     - Missing imports: `Mail, FileCheck2, FileText, CheckCircle2` were referenced in JSX/timeline definitions but not imported from `lucide-react`, causing immediate runtime `ReferenceError: Mail is not defined`.
+   - **"Too Many Redirects" Loop:**
+     - In `RegistrationSubmittedScreen.tsx`, background polling interval (every 2.5s) called `checkPartnerVerificationStatus()`. If `result.isOnboarded === false`, it executed `navigate({ to: partnerRoutes.registration })`. Meanwhile, `/registration` had a `beforeLoad` check and auto-redirect effect bouncing the partner back to `/registration-submitted`, creating a cyclic navigation ping-pong that exceeded TanStack Router's redirect limit.
+   - **Coordinates Displayed Instead of Street Address (`MapPicker.tsx` & `BusinessRegistrationScreen.tsx`):**
+     - `MapPicker.tsx` fell back to raw coordinate strings when `details` was loading or lacked area tags, and rendered a blue coordinate pill (`27.80830°N, 78.64740°E`).
+     - Search input lacked `onKeyDown` Enter support, meaning manual address queries did not geocode unless a suggestion was tapped.
+     - Step 3 in `BusinessRegistrationScreen.tsx` displayed `GPS: {pickedLatitude.toFixed(5)}°N, {pickedLongitude.toFixed(5)}°E` in green monospace.
+
+3. **Engineering Solutions Delivered:**
+   - **Step 4 Service Cards 2-Tier Redesign & Dynamic Unit Selector (`BusinessRegistrationScreen.tsx`):**
+     - **Top Tier:** Checkbox (`size-5`), catalog thumbnail image (`size-11 sm:size-12 rounded-xl`), bold title (`text-xs sm:text-sm font-black`), category badge, and full-width multi-line description (`text-[11px] text-neutral-500 line-clamp-2`), giving title and description over 250px of clean breathing room.
+     - **Bottom Tier (Active on Selection):** Dedicated full-width control bar with:
+       - **Rate Input:** `[ ₹ ] [ input (e.g. 15) ]`
+       - **Unit Selector Dropdown:** Select from `Per Pc (Piece)`, `Per Kg`, `Per Pair`, `Per Set`, `Per Panel`, `Per Meter`.
+       - **Turnaround SLA Select:** `12h (Express)`, `24h (Standard)`, `36h`, `48h (Economy)`, `72h`.
+     - Added `serviceUnits` state with intelligent default mappings, persisted in `localStorage` draft payload, restored on mount, and included in `registerBusiness` submission payload.
+     - Fixed category tab horizontal padding (`px-0.5 scroll-smooth`).
+   - **Crash Fix & Redirect Loop Elimination (`RegistrationSubmittedScreen.tsx`):**
+     - Added `CheckCircle2, FileCheck2, FileText, Mail` to `lucide-react` imports, resolving the `Mail is not defined` crash.
+     - In `checkStatus` polling, restricted redirect to `/registration` to explicit manual user refresh only when `result.status === "not_registered"`, eliminating the automatic ping-pong redirect loop.
+   - **Real Google Maps Address & Header Polish (`MapPicker.tsx` & `BusinessRegistrationScreen.tsx`):**
+     - **Header Bar:** Added safe area top padding (`pt-[max(0.75rem,env(safe-area-inset-top))]`), single sleek back arrow button, title with green "Google Maps" badge, subtitle, and dedicated GPS locate button on the right.
+     - **Search Bar:** Added `onKeyDown` Enter key handler that instantly geocodes typed addresses (e.g., "Soron gate kasganj near Pannala dharam sha") and centers the pin.
+     - **Multi-Tier Reverse Geocoder:** Implemented server geocode -> client `window.google.maps.Geocoder` -> OpenStreetMap Nominatim reverse geocode chain so a human-readable street address with landmark, road, and city is always obtained.
+     - **Bottom Sheet:** Replaced all raw coordinates with real Google Maps street address, area name heading, and badges (`[ ✓ Google Maps Verified ]`, `[ 📍 Area, City ]`, `[ 🚚 Rider Navigation Ready ]`).
+     - **Step 3 Location Card:** Replaced `GPS: ...°N, ...°E` with `Store Location (Google Maps)` showing `shopAddress` and verified pin badge.
+
+4. **Verification & Quality Assurance:**
+   - `partner-frontend` production build: PASSED (`vite build` exit code 0).
+   - Android APK compilation: PASSED (`QuickPress-Partner.apk` 18MB, `QuickPress-Partner.aab` 17MB).
+   - Artifacts synchronized: `QuickPress-Partner.apk` and `QuickPress-Partner.aab` updated in artifact directory.
+
+---
+
 ## Session: November 23, 2026 (Part 65)
 
 ### Partner & Rider Location Picker Fix, Back Navigation Trap Removal, Auth Route Guard Lockdown, & Multi-Step Registration Persistence

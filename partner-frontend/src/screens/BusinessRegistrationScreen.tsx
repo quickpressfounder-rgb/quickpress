@@ -636,6 +636,20 @@ export function BusinessRegistrationScreen() {
     "Sneakers & Sports Shoes Deep Clean": 48,
     "Single Blanket / Quilt Wash": 48,
   });
+  const [serviceUnits, setServiceUnits] = useState<Record<string, string>>({
+    "Wash & Fold (Per Kg)": "kg",
+    "Wash & Steam Iron (Per Kg)": "kg",
+    "Shirt Steam Iron": "pc",
+    "T-Shirt Steam Iron": "pc",
+    "Trouser / Jeans Steam Iron": "pc",
+    "Steam Ironing": "pc",
+    "Shirt Dry Clean": "pc",
+    "Trouser / Jeans Dry Clean": "pc",
+    "2-Piece Suit Dry Clean": "set",
+    "Silk Saree Dry Clean & Roll Polish": "pc",
+    "Sneakers & Sports Shoes Deep Clean": "pair",
+    "Single Blanket / Quilt Wash": "pc",
+  });
   const [pickupRadius, setPickupRadius] = useState<number>(8);
   const [deliveryRadius, setDeliveryRadius] = useState<number>(10);
 
@@ -907,6 +921,7 @@ export function BusinessRegistrationScreen() {
         if (Array.isArray(d.selectedServices)) setSelectedServices(d.selectedServices);
         if (d.servicePrices) setServicePrices(d.servicePrices);
         if (d.serviceTurnarounds) setServiceTurnarounds(d.serviceTurnarounds);
+        if (d.serviceUnits) setServiceUnits(d.serviceUnits);
         if (d.bankName) setBankName(d.bankName);
         if (d.customBankName) setCustomBankName(d.customBankName);
         if (d.accountHolder) setAccountHolder(d.accountHolder);
@@ -1059,6 +1074,7 @@ export function BusinessRegistrationScreen() {
       selectedServices,
       servicePrices,
       serviceTurnarounds,
+      serviceUnits,
       bankName,
       customBankName,
       accountHolder,
@@ -1102,6 +1118,7 @@ export function BusinessRegistrationScreen() {
     selectedServices,
     servicePrices,
     serviceTurnarounds,
+    serviceUnits,
     bankName,
     customBankName,
     accountHolder,
@@ -1498,13 +1515,14 @@ export function BusinessRegistrationScreen() {
           return {
             name: item?.name || sId,
             price: servicePrices[sId] ?? (item?.price || 79),
-            unit: item?.unit || "pc",
+            unit: serviceUnits[sId] || item?.unit || "pc",
             turnaroundHours: serviceTurnarounds[sId] ?? (item?.defaultHours || 24),
             enabled: true,
           };
         }),
         servicePrices,
         serviceTurnarounds,
+        serviceUnits,
         agreementSigned: false,
         agreementStatus: "PENDING_SIGNATURE",
         referral_code: referralCode ? referralCode.trim().toUpperCase() : undefined,
@@ -2477,16 +2495,17 @@ export function BusinessRegistrationScreen() {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-xs font-black text-neutral-900">Store GPS Map Coordinates</p>
+                      <p className="text-xs font-black text-neutral-900">Store Location (Google Maps)</p>
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-600/10 text-emerald-700">
-                        <Check className="size-2.5 stroke-[3]" /> Rider Navigation Ready
+                        <Check className="size-2.5 stroke-[3]" /> Pin Set on Google Maps
                       </span>
                     </div>
-                    <p className="text-[11px] font-mono font-bold text-emerald-800 mt-0.5">
-                      GPS: {pickedLatitude.toFixed(5)}°N, {pickedLongitude.toFixed(5)}°E
+                    <p className="text-xs font-bold text-neutral-800 mt-0.5 line-clamp-2">
+                      {shopAddress || "Location picked accurately on Google Maps"}
                     </p>
-                    <p className="text-[10px] text-neutral-500 truncate mt-0.5">
-                      {shopAddress ? shopAddress : "Used by captains for turn-by-turn navigation directly to your store"}
+                    <p className="text-[10px] text-emerald-700 font-semibold mt-0.5 flex items-center gap-1">
+                      <Check className="size-3 text-emerald-600" />
+                      <span>Captains will navigate directly to your shop entrance</span>
                     </p>
                   </div>
                 </div>
@@ -2586,13 +2605,13 @@ export function BusinessRegistrationScreen() {
               </div>
 
               {/* Category Filter Tabs */}
-              <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              <div className="flex gap-2 overflow-x-auto pb-1.5 pt-0.5 px-0.5 scrollbar-none scroll-smooth">
                 {SERVICE_CATEGORY_TABS.map((cat) => (
                   <button
                     key={cat.id}
                     type="button"
                     onClick={() => setServiceCategoryTab(cat.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
                       serviceCategoryTab === cat.id
                         ? "bg-primary text-white shadow-2xs"
                         : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200/80"
@@ -2616,89 +2635,130 @@ export function BusinessRegistrationScreen() {
               </div>
 
               {/* Service Cards List */}
-              <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
                 {filteredCatalogServices.map((svc) => {
                   const isSelected = selectedServices.includes(svc.id);
                   const price = servicePrices[svc.id] ?? svc.price;
                   const turnaround = serviceTurnarounds[svc.id] ?? svc.defaultHours;
+                  const defaultUnitFallback =
+                    svc.unit?.toLowerCase().includes("kg") || svc.name.toLowerCase().includes("kg")
+                      ? "kg"
+                      : svc.name.toLowerCase().includes("shoe") || svc.name.toLowerCase().includes("sneaker")
+                      ? "pair"
+                      : svc.name.toLowerCase().includes("suit")
+                      ? "set"
+                      : "pc";
+                  const selectedUnit = serviceUnits[svc.id] || defaultUnitFallback;
 
                   return (
                     <div
                       key={svc.id}
-                      className={`p-3 rounded-2xl border transition-all ${
+                      className={`p-3.5 rounded-2xl border transition-all ${
                         isSelected
-                          ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
-                          : "bg-white border-neutral-200 opacity-75 hover:opacity-100"
+                          ? "bg-emerald-500/5 border-emerald-500/30 ring-1 ring-emerald-500/20 shadow-xs"
+                          : "bg-white border-neutral-200 hover:border-neutral-300"
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      {/* Top Row: Checkbox, Thumbnail, Title & Description */}
+                      <div
+                        className="flex items-start gap-3 cursor-pointer"
+                        onClick={() => toggleService(svc.id)}
+                      >
                         <div
-                          className="flex items-start gap-3 flex-1 cursor-pointer min-w-0"
-                          onClick={() => toggleService(svc.id)}
+                          className={`size-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition ${
+                            isSelected ? "bg-emerald-600 border-emerald-600 text-white" : "border-neutral-300 bg-white"
+                          }`}
                         >
-                          <div
-                            className={`size-5 rounded-md border flex items-center justify-center shrink-0 mt-3 transition ${
-                              isSelected ? "bg-primary border-primary text-white" : "border-neutral-300 bg-white"
-                            }`}
-                          >
-                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                          </div>
-
-                          {/* Service Thumbnail (Master Catalog Image) */}
-                          <div className="size-12 rounded-xl overflow-hidden bg-neutral-100 shrink-0 border border-neutral-200/80 relative self-center shadow-2xs">
-                            {svc.image ? (
-                              <img
-                                src={svc.image}
-                                alt={svc.name}
-                                className="size-full object-cover"
-                                loading="lazy"
-                                onError={(e) => {
-                                  (e.currentTarget as HTMLElement).style.display = "none";
-                                }}
-                              />
-                            ) : (
-                              <div className="size-full flex items-center justify-center bg-primary/10 text-primary">
-                                <Sparkles className="size-5" />
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <p className="text-xs font-black text-neutral-900">{svc.name}</p>
-                              {svc.category && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 uppercase tracking-wider">
-                                  {svc.category}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-neutral-500 font-medium line-clamp-1 mt-0.5">{svc.desc}</p>
-                            <p className="text-[9px] text-neutral-400 font-semibold mt-0.5">
-                              SLA: {turnaround}h · Per {svc.unit}
-                            </p>
-                          </div>
+                          {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                         </div>
 
-                        {/* Price & Turnaround controls */}
-                        {isSelected && (
-                          <div className="flex items-center gap-2 shrink-0">
-                            <div className="flex items-center gap-1 bg-white border border-neutral-200 rounded-lg px-2 py-1 shadow-2xs">
-                              <span className="text-[10px] font-bold text-neutral-400">₹</span>
-                              <input
-                                type="number"
-                                min={5}
-                                value={price}
-                                onChange={(e) =>
-                                  setServicePrices((prev) => ({
-                                    ...prev,
-                                    [svc.id]: Number(e.target.value) || 0,
-                                  }))
-                                }
-                                className="w-12 text-xs font-black text-neutral-900 focus:outline-hidden text-right"
-                              />
-                              <span className="text-[10px] text-neutral-500 font-medium">/{svc.unit}</span>
+                        {/* Service Thumbnail (Master Catalog Image) */}
+                        <div className="size-11 sm:size-12 rounded-xl overflow-hidden bg-neutral-100 shrink-0 border border-neutral-200/80 relative self-start shadow-2xs">
+                          {svc.image ? (
+                            <img
+                              src={svc.image}
+                              alt={svc.name}
+                              className="size-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <div className="size-full flex items-center justify-center bg-primary/10 text-primary">
+                              <Sparkles className="size-5" />
                             </div>
+                          )}
+                        </div>
 
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="text-xs sm:text-sm font-black text-neutral-900 leading-snug">{svc.name}</h4>
+                            {svc.category && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 uppercase tracking-wider">
+                                {svc.category}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-neutral-500 font-medium line-clamp-2 mt-0.5 leading-relaxed">{svc.desc}</p>
+                          {isSelected ? (
+                            <p className="text-[10px] text-emerald-700 font-black mt-1">
+                              ₹{price} / {selectedUnit.toUpperCase()} · {turnaround}h turnaround
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-neutral-400 font-semibold mt-0.5">
+                              Tap card to enable service &amp; set custom rate
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Bottom Controls Row: Price, Unit Selector & SLA (Visible when selected) */}
+                      {isSelected && (
+                        <div className="mt-3 pt-2.5 border-t border-emerald-600/10 flex items-center justify-between gap-2 flex-wrap">
+                          {/* Rate input */}
+                          <div className="flex items-center gap-1.5 bg-white border border-neutral-200/90 rounded-xl px-2.5 py-1.5 shadow-2xs">
+                            <span className="text-xs font-bold text-neutral-400">₹</span>
+                            <input
+                              type="number"
+                              min={5}
+                              value={price}
+                              onChange={(e) =>
+                                setServicePrices((prev) => ({
+                                  ...prev,
+                                  [svc.id]: Number(e.target.value) || 0,
+                                }))
+                              }
+                              className="w-14 text-xs font-black text-neutral-900 focus:outline-hidden"
+                              placeholder="Rate"
+                            />
+                          </div>
+
+                          {/* Unit Selector: Pc / Kg / Pair / Set / Panel / Meter */}
+                          <div className="flex items-center gap-1 bg-white border border-neutral-200/90 rounded-xl px-2.5 py-1.5 shadow-2xs">
+                            <span className="text-[10px] font-bold text-neutral-400 uppercase">Unit:</span>
+                            <select
+                              value={selectedUnit}
+                              onChange={(e) =>
+                                setServiceUnits((prev) => ({
+                                  ...prev,
+                                  [svc.id]: e.target.value,
+                                }))
+                              }
+                              className="text-xs font-black text-neutral-900 bg-transparent focus:outline-hidden cursor-pointer"
+                            >
+                              <option value="pc">Per Pc (Piece)</option>
+                              <option value="kg">Per Kg</option>
+                              <option value="pair">Per Pair</option>
+                              <option value="set">Per Set</option>
+                              <option value="panel">Per Panel</option>
+                              <option value="meter">Per Meter</option>
+                            </select>
+                          </div>
+
+                          {/* Turnaround SLA */}
+                          <div className="flex items-center gap-1 bg-white border border-neutral-200/90 rounded-xl px-2 py-1.5 shadow-2xs">
+                            <Clock className="w-3 h-3 text-neutral-400 shrink-0" />
                             <select
                               value={turnaround}
                               onChange={(e) =>
@@ -2707,17 +2767,17 @@ export function BusinessRegistrationScreen() {
                                   [svc.id]: Number(e.target.value) || 24,
                                 }))
                               }
-                              className="text-[10px] font-bold bg-white border border-neutral-200 rounded-lg px-1.5 py-1 text-neutral-700"
+                              className="text-xs font-bold text-neutral-800 bg-transparent focus:outline-hidden cursor-pointer"
                             >
-                              <option value={12}>12h</option>
-                              <option value={24}>24h</option>
+                              <option value={12}>12h (Express)</option>
+                              <option value={24}>24h (Standard)</option>
                               <option value={36}>36h</option>
-                              <option value={48}>48h</option>
+                              <option value={48}>48h (Economy)</option>
                               <option value={72}>72h</option>
                             </select>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

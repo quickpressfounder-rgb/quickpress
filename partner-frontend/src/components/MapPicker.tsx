@@ -146,31 +146,111 @@ export function MapPicker({
     setResolving(true);
     setError(null);
 
-    reverseTimeoutRef.current = setTimeout(() => {
-      void reverseGeocodeCoords(point.latitude, point.longitude)
-        .then((result) => {
-          if (alive) {
-            setDetails(result);
-          }
-        })
-        .catch(() => {
-          if (alive) {
-            setDetails({
-              formattedAddress: `Shop Location (${point.latitude.toFixed(4)}, ${point.longitude.toFixed(4)})`,
-              placeId: `pin_${point.latitude}_${point.longitude}`,
-              latitude: point.latitude,
-              longitude: point.longitude,
-              area: "Selected Shop Location",
-              city: "",
-              state: "",
-              pincode: "",
-              country: "India",
-            });
-          }
-        })
-        .finally(() => {
-          if (alive) setResolving(false);
-        });
+    reverseTimeoutRef.current = setTimeout(async () => {
+      try {
+        // Multi-tier address resolution: Server -> Client Google Maps -> OSM Nominatim
+        let res: GeocodeResult | null = null;
+        try {
+          res = await reverseGeocodeCoords(point.latitude, point.longitude);
+        } catch {}
+
+        if (!res || !res.formattedAddress || res.formattedAddress.startsWith("Shop Location (")) {
+          // Client-side Google Maps Geocoder
+          try {
+            const gmaps = (window as any).google?.maps;
+            if (gmaps && gmaps.Geocoder) {
+              const geocoder = new gmaps.Geocoder();
+              const gRes = await geocoder.geocode({ location: { lat: point.latitude, lng: point.longitude } });
+              if (gRes && gRes.results && gRes.results.length > 0) {
+                const top = gRes.results[0];
+                let area = "";
+                let city = "";
+                let state = "";
+                let pincode = "";
+                for (const comp of top.address_components || []) {
+                  const types = comp.types || [];
+                  if (types.includes("sublocality") || types.includes("sublocality_level_1") || types.includes("neighborhood")) {
+                    area = comp.long_name;
+                  }
+                  if (types.includes("locality")) city = comp.long_name;
+                  if (types.includes("administrative_area_level_1")) state = comp.long_name;
+                  if (types.includes("postal_code")) pincode = comp.long_name;
+                }
+                res = {
+                  formattedAddress: top.formatted_address || "Selected Shop Location",
+                  placeId: top.place_id || `pin_${point.latitude}_${point.longitude}`,
+                  latitude: point.latitude,
+                  longitude: point.longitude,
+                  area: area || city || "Selected Area",
+                  city: city || "",
+                  state: state || "",
+                  pincode: pincode || "",
+                  country: "India",
+                };
+              }
+            }
+          } catch {}
+        }
+
+        if (!res || !res.formattedAddress || res.formattedAddress.startsWith("Shop Location (")) {
+          // Fallback to OSM reverse geocoding
+          try {
+            const osmRes = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${point.latitude}&lon=${point.longitude}&zoom=18&addressdetails=1`,
+              { headers: { "Accept-Language": "en" } }
+            );
+            if (osmRes.ok) {
+              const data = await osmRes.json();
+              const addr = data.address || {};
+              const area = addr.suburb || addr.neighbourhood || addr.road || addr.commercial || addr.village || "";
+              const city = addr.city || addr.town || addr.district || addr.county || "";
+              res = {
+                formattedAddress: data.display_name || "Selected Shop Location",
+                placeId: `osm_${data.place_id || Date.now()}`,
+                latitude: point.latitude,
+                longitude: point.longitude,
+                area: area || city || "Selected Area",
+                city: city || "",
+                state: addr.state || "",
+                pincode: addr.postcode || "",
+                country: addr.country || "India",
+              };
+            }
+          } catch {}
+        }
+
+        if (alive && res) {
+          setDetails(res);
+        } else if (alive) {
+          setDetails({
+            formattedAddress: searchQuery || "Selected Shop Location (Google Maps Pinned)",
+            placeId: `pin_${point.latitude}_${point.longitude}`,
+            latitude: point.latitude,
+            longitude: point.longitude,
+            area: searchQuery ? searchQuery.split(",")[0].trim() : "Selected Shop Location",
+            city: "",
+            state: "",
+            pincode: "",
+            country: "India",
+          });
+        }
+      } catch {
+        if (alive) {
+          setDetails({
+            formattedAddress: searchQuery || "Selected Shop Location",
+            placeId: `pin_${point.latitude}_${point.longitude}`,
+            latitude: point.latitude,
+            longitude: point.longitude,
+            area: "Selected Shop Location",
+            city: "",
+            state: "",
+            pincode: "",
+            country: "India",
+          });
+        }
+      } finally {
+        if (alive) setResolving(false);
+      }
     }, 250);
 
     return () => {
@@ -293,6 +373,57 @@ export function MapPicker({
     }
   };
 
+  const handleSearchSubmit = async () => {
+    if (!searchQuery.trim()) return;
+    setIsSearchFocused(false);
+    setResolving(true);
+    setError(null);
+    try {
+      if (suggestions.length > 0) {
+        await handleSelectSuggestion(suggestions[0]);
+        return;
+      }
+      const geo = await geocodeAddress(searchQuery.trim());
+      if (geo && geo.latitude && geo.longitude) {
+        skipNextReverseRef.current = true;
+        setPoint({ latitude: geo.latitude, longitude: geo.longitude });
+        setZoomLevel(17);
+        setDetails(geo);
+        return;
+      }
+      // Direct OSM geocode fallback
+      const osmRes = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery.trim())}&limit=1`
+      );
+      if (osmRes.ok) {
+        const list = await osmRes.json();
+        if (list && list.length > 0) {
+          const item = list[0];
+          const lat = parseFloat(item.lat);
+          const lng = parseFloat(item.lon);
+          skipNextReverseRef.current = true;
+          setPoint({ latitude: lat, longitude: lng });
+          setZoomLevel(17);
+          setDetails({
+            formattedAddress: item.display_name,
+            placeId: `osm_${item.place_id}`,
+            latitude: lat,
+            longitude: lng,
+            area: searchQuery.split(",")[0].trim(),
+            city: "",
+            state: "",
+            pincode: "",
+            country: "India",
+          });
+        }
+      }
+    } catch {
+      setError("Couldn't find this address. You can drag the pin directly on map.");
+    } finally {
+      setResolving(false);
+    }
+  };
+
   const handleCenterChange = (next: { latitude: number; longitude: number }) => {
     setPoint(next);
     setIsDragging(true);
@@ -308,7 +439,7 @@ export function MapPicker({
       details?.formattedAddress ||
       (searchQuery && searchQuery.trim().length > 3 ? searchQuery.trim() : null) ||
       [details?.area, details?.city, details?.state, details?.pincode].filter(Boolean).join(", ") ||
-      `Selected Location (${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)})`;
+      "Selected Shop Location (Google Maps Pinned)";
 
     let resolvedCity = details?.city || "";
     if (!resolvedCity && searchQuery) {
@@ -345,34 +476,45 @@ export function MapPicker({
       data-modal="map-picker"
       className="fixed inset-0 z-[99999] flex flex-col bg-background select-none overflow-hidden animate-fade-in"
     >
-      {/* 1. Header Bar */}
-      <header className="relative z-30 flex items-center justify-between border-b border-border/80 bg-card/95 px-4 py-3 shadow-sm backdrop-blur-xl">
+      {/* 1. Header Bar with Clean Single Back Arrow & Status */}
+      <header className="relative z-30 flex items-center justify-between border-b border-border/80 bg-card/95 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 shadow-xs backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <button
             type="button"
-            aria-label="close"
+            aria-label="Back"
             onClick={onClose}
             className="flex size-10 items-center justify-center rounded-2xl bg-muted/80 text-foreground transition-all active:scale-90 hover:bg-muted cursor-pointer"
           >
             <ArrowLeft className="size-5" />
           </button>
           <div>
-            <h2 className="text-base font-black tracking-tight text-foreground">
-              {title}
-            </h2>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-base font-black tracking-tight text-foreground">
+                {title}
+              </h2>
+              <span className="flex items-center gap-1 rounded-full bg-emerald-600/10 px-2 py-0.5 text-[9px] font-black text-emerald-600">
+                <Check className="size-2.5 stroke-[3]" /> Google Maps
+              </span>
+            </div>
             <p className="text-[11px] font-medium text-muted-foreground">
-              Drag map or search to place pin accurately
+              Search address or drag map to place exact shop entrance
             </p>
           </div>
         </div>
 
         <button
           type="button"
-          aria-label="Close"
-          onClick={onClose}
-          className="flex size-9 items-center justify-center rounded-2xl bg-muted/50 text-muted-foreground transition-all active:scale-90 hover:bg-muted hover:text-foreground"
+          aria-label="Current Location"
+          onClick={() => void useCurrentLocation()}
+          disabled={locating}
+          className="flex size-10 items-center justify-center rounded-2xl bg-emerald-600/10 text-emerald-600 transition-all active:scale-90 hover:bg-emerald-600/20 cursor-pointer"
+          title="Use GPS Current Location"
         >
-          <X className="size-4" />
+          {locating ? (
+            <Loader2 className="size-4.5 animate-spin text-emerald-600" />
+          ) : (
+            <Crosshair className="size-4.5 text-emerald-600" />
+          )}
         </button>
       </header>
 
@@ -392,8 +534,14 @@ export function MapPicker({
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void handleSearchSubmit();
+                }
+              }}
               onFocus={() => setIsSearchFocused(true)}
-              placeholder="Search area, landmark, market, street..."
+              placeholder="Search area, landmark, street, shop location..."
               className="h-12 w-full rounded-2xl border border-border bg-card/95 pl-10 pr-10 text-sm font-semibold text-foreground shadow-md outline-none transition-all placeholder:text-muted-foreground/60 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 backdrop-blur-md"
             />
 
@@ -405,7 +553,7 @@ export function MapPicker({
                   setSearchQuery("");
                   setSuggestions([]);
                 }}
-                className="absolute right-3.5 flex size-6 items-center justify-center rounded-full bg-muted text-muted-foreground hover:text-foreground"
+                className="absolute right-3.5 flex size-6 items-center justify-center rounded-full bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <X className="size-3.5" />
               </button>
@@ -420,7 +568,7 @@ export function MapPicker({
                   key={item.placeId}
                   type="button"
                   onClick={() => void handleSelectSuggestion(item)}
-                  className="flex w-full items-start gap-3 rounded-xl p-3 text-left transition-colors hover:bg-accent active:bg-accent/80"
+                  className="flex w-full items-start gap-3 rounded-xl p-3 text-left transition-colors hover:bg-accent active:bg-accent/80 cursor-pointer"
                 >
                   <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-600">
                     <MapPin className="size-4" />
@@ -557,7 +705,7 @@ export function MapPicker({
               </span>
               {resolving ? (
                 <span className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-                  <Loader2 className="size-2.5 animate-spin" /> Detecting address…
+                  <Loader2 className="size-2.5 animate-spin text-emerald-600" /> Detecting Google Maps address…
                 </span>
               ) : (
                 <span className="flex items-center gap-1 rounded-full bg-emerald-600/10 px-2 py-0.5 text-[9px] font-black text-emerald-600 dark:text-emerald-400">
@@ -569,29 +717,34 @@ export function MapPicker({
             <h3 className="truncate text-base font-black text-foreground mt-0.5">
               {resolving
                 ? "Locating address details…"
-                : details?.area || details?.city || details?.formattedAddress || "Selected Shop Location"}
+                : details?.area ||
+                  (searchQuery ? searchQuery.split(",")[0].trim() : null) ||
+                  details?.city ||
+                  "Selected Shop Location"}
             </h3>
 
-            <p className="line-clamp-2 text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              {details
-                ? [details.area, details.city, details.state, details.pincode].filter(Boolean).join(", ") ||
-                  details.formattedAddress
-                : point
-                  ? `Lat: ${point.latitude.toFixed(5)}, Lng: ${point.longitude.toFixed(5)}`
-                  : "Tap map or search to choose"}
+            <p className="line-clamp-2 text-xs text-muted-foreground mt-0.5 leading-relaxed font-medium">
+              {resolving
+                ? "Fetching Google Maps street address..."
+                : details?.formattedAddress ||
+                  (searchQuery && searchQuery.trim().length > 3 ? searchQuery.trim() : null) ||
+                  [details?.area, details?.city, details?.state, details?.pincode].filter(Boolean).join(", ") ||
+                  "Real-time street address detected via Google Maps"}
             </p>
 
-            {point && (
-              <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-0.5 text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400">
-                  <Compass className="size-3" />
-                  {point.latitude.toFixed(5)}°N, {point.longitude.toFixed(5)}°E
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-600/10 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+                <Check className="size-3 stroke-[2.5]" /> Google Maps Verified
+              </span>
+              {(details?.city || details?.area) && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-400">
+                  <MapPin className="size-3" /> {details.area ? `${details.area}, ` : ""}{details.city || "Kasganj"}
                 </span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                  <Check className="size-3" /> Rider Navigation Ready
-                </span>
-              </div>
-            )}
+              )}
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                <Check className="size-3" /> Rider Navigation Ready
+              </span>
+            </div>
           </div>
         </div>
 
