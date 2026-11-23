@@ -2724,8 +2724,9 @@ async def get_rider_verification_status(
     kyc_status = str(profile.get("kycStatus") or "pending").lower()
     is_verified = bool(
         profile.get("isVerified", False)
-        or profile_status == "approved"
-        or profile_status == "active"
+        or profile.get("is_verified", False)
+        or profile.get("isApproved", False)
+        or profile_status in ("approved", "active")
         or (profile_status == "active" and kyc_status == "verified")
     )
     is_rejected = profile_status in ("rejected", "suspended") or kyc_status == "rejected"

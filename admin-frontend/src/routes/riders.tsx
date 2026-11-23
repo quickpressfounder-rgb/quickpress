@@ -3458,14 +3458,14 @@ export function RidersPage() {
             </DialogDescription>
           </DialogHeader>
 
-          {!isAgreementApproved ? (
+          {!isAgreementApproved && (
             <div className="p-3 bg-amber-50 rounded-2xl border border-amber-300 text-xs text-amber-950 space-y-2">
               <p className="font-bold flex items-center gap-1.5 text-amber-900">
                 <AlertCircle className="size-4 text-amber-600 shrink-0" />
-                <span>Agreement Not Signed by Candidate</span>
+                <span>Agreement Pending Candidate Signature</span>
               </p>
               <p className="text-[11px] text-amber-800 leading-relaxed">
-                The candidate has not yet digitally signed and approved the Partner Agreement sent to their email ({selectedRider?.email || "on file"}). Compliance policy requires candidate signature before Admin can activate the account.
+                The candidate has not yet signed their email agreement ({selectedRider?.email || "on file"}). Approving now under Admin Authority will ratify the agreement, mark all documents verified, and immediately unlock the Captain Dashboard.
               </p>
               <Button
                 variant="outline"
@@ -3478,7 +3478,8 @@ export function RidersPage() {
                 {resendingAgreement ? "Sending..." : "Resend Agreement Email to Candidate"}
               </Button>
             </div>
-          ) : (
+          )}
+          {isAgreementApproved && (
             <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-900 space-y-1">
               <p className="font-bold flex items-center gap-1.5 text-emerald-950">
                 <Sparkles className="size-3.5 text-emerald-600" />
@@ -3499,7 +3500,7 @@ export function RidersPage() {
               Cancel
             </Button>
             <Button
-              disabled={!isAgreementApproved || decideMutation.isPending}
+              disabled={decideMutation.isPending}
               className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-xs font-bold h-10 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => {
                 if (selectedId) {

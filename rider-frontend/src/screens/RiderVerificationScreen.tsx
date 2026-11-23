@@ -71,7 +71,7 @@ export function RiderVerificationScreen() {
       }
 
       // If approved, update local session store and navigate to dashboard
-      if (res.isApproved || res.isVerified) {
+      if (res.isApproved || res.isVerified || res.status === "active" || res.status === "approved") {
         const current = readSession("rider") || readSession();
         if (current) {
           writeSession({

@@ -2870,7 +2870,17 @@ class AdminRiderRepository:
         except Exception as exc:
             logger.warning("Could not emit rider status socket event: %s", exc)
 
-        return await self.detail(entity_id)
+        res_detail = await self.detail(entity_id)
+        if not res_detail:
+            res_detail = {
+                "id": entity_id,
+                "riderId": entity_id,
+                "status": changes["status"],
+                "kycStatus": changes["kycStatus"],
+                "isVerified": is_active,
+                "isApproved": is_active,
+            }
+        return res_detail
 
     async def adjust_wallet(self, rider_id: str, amount: float, reason: str, admin_id: str = "admin", is_cod_settlement: bool = False) -> Dict[str, Any]:
         now = datetime.now(timezone.utc).isoformat()

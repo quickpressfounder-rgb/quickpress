@@ -20,6 +20,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 
 from app.core.deps import bearer_scheme, current_user, require_roles
 from app.core.redis_cache import hybrid_cache
+from app.db.client import database
 
 
 def now_iso() -> str:
@@ -922,9 +923,18 @@ async def _rider_transition(
 
 @router.post("/riders/{rider_id}/approve")
 async def approve_rider(rider_id: str, user: User = Depends(current_user)):
+    rid_clean = str(rider_id).strip()
+    id_query = {"$or": [
+        {"_id": rid_clean},
+        {"id": rid_clean},
+        {"riderId": rid_clean},
+        {"rider_id": rid_clean},
+        {"userId": rid_clean},
+    ]}
     profile = (
-        await database.find_one("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
-        or await database.find_one("admin_riders", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
+        await database.find_one("rider_profiles", id_query)
+        or await database.find_one("admin_riders", id_query)
+        or await database.find_one("riders", id_query)
         or {}
     )
     # Admin approval ratifies the SLA agreement and immediately activates the rider
@@ -934,21 +944,44 @@ async def approve_rider(rider_id: str, user: User = Depends(current_user)):
         "agreementStatus": "APPROVED",
         "agreementApproved": True,
         "isVerified": True,
+        "isApproved": True,
+        "isOnboarded": True,
         "status": "active",
+        "kycStatus": "verified",
         "approvedAt": now_iso,
         "approvedBy": admin_name,
     }
-    await database.update("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}, approval_updates)
-    await database.update("admin_riders", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}, approval_updates)
-    await database.update("riders", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}, approval_updates)
-    return await _rider_transition(rider_id, "active", "approve", user)
+    await database.update("rider_profiles", id_query, approval_updates)
+    await database.update("admin_riders", id_query, approval_updates)
+    await database.update("riders", id_query, approval_updates)
+
+    # Also activate linked user in users table
+    user_id = profile.get("userId") or profile.get("user_id") or rid_clean
+    phone = profile.get("phone")
+    user_changes = {"is_verified": True, "is_onboarded": True, "status": "active"}
+    await database.update("users", {"_id": user_id}, user_changes)
+    await database.update("users", {"linked_id": user_id}, user_changes)
+    if phone:
+        clean_phone = phone.replace("+91", "").replace(" ", "").replace("-", "").strip()
+        await database.update("users", {"$or": [{"phone": phone}, {"phone": clean_phone}, {"phone": f"+91{clean_phone}"}], "role": "rider"}, user_changes)
+
+    return await _rider_transition(rid_clean, "active", "approve", user)
 
 
 @router.post("/riders/{rider_id}/resend-agreement")
 async def resend_rider_agreement_admin(rider_id: str, user: User = Depends(current_user)):
+    rid_clean = str(rider_id).strip()
+    id_query = {"$or": [
+        {"_id": rid_clean},
+        {"id": rid_clean},
+        {"riderId": rid_clean},
+        {"rider_id": rid_clean},
+        {"userId": rid_clean},
+    ]}
     profile = (
-        await database.find_one("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
-        or await database.find_one("admin_riders", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
+        await database.find_one("rider_profiles", id_query)
+        or await database.find_one("admin_riders", id_query)
+        or await database.find_one("riders", id_query)
     )
     if not profile:
         raise HTTPException(status_code=404, detail="Rider profile not found")
@@ -958,8 +991,9 @@ async def resend_rider_agreement_admin(rider_id: str, user: User = Depends(curre
     
     agreement_token = profile.get("agreementToken") or f"ag_{uuid.uuid4().hex}"
     if not profile.get("agreementToken"):
-        await database.update("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}, {"agreementToken": agreement_token})
-        await database.update("admin_riders", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}, {"agreementToken": agreement_token})
+        await database.update("rider_profiles", id_query, {"agreementToken": agreement_token})
+        await database.update("admin_riders", id_query, {"agreementToken": agreement_token})
+        await database.update("riders", id_query, {"agreementToken": agreement_token})
         
     signing_url = f"https://withquickpress.com/agreement/sign?token={agreement_token}"
     from app.core.email_service import send_rider_agreement_signing_invitation_email
