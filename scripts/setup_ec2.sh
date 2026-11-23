@@ -113,17 +113,23 @@ if [ ! -f .env ]; then
     fi
 fi
 
+# Ensure network exists
+sudo docker network create quickpress-net 2>/dev/null || true
+sudo docker network disconnect -f quickpress-net quickpress-backend 2>/dev/null || true
+
 # Stop existing container if running
 sudo docker stop quickpress-backend 2>/dev/null || true
-sudo docker rm quickpress-backend 2>/dev/null || true
+sudo docker rm -f quickpress-backend 2>/dev/null || true
 
 # Build Docker image
 sudo docker build -t quickpress-api .
 
-# Run container on port 8000
+# Run container on port 8000 attached to quickpress-net
 sudo docker run -d \
     --name quickpress-backend \
     --restart always \
+    --network quickpress-net \
+    --add-host=host.docker.internal:host-gateway \
     --env-file .env \
     -p 127.0.0.1:8000:8000 \
     quickpress-api

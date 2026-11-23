@@ -459,8 +459,20 @@ class SupabaseCollection:
                 self._cache_ts = time.time()
                 return list(docs)
         except Exception as e:
-            logger.warning(f"Fetch error for collection {self._name}: {e}")
-            return list(self._cache or [])
+            logger.warning(f"Fetch error for collection {self._name}: {e}. Retrying with fresh pool...")
+            try:
+                self._db._pool = None
+                pool = await self._db.get_pool()
+                async with pool.acquire() as conn:
+                    sql = "SELECT data FROM quickpress_documents WHERE collection = $1" if self._is_static else "SELECT data FROM quickpress_documents WHERE collection = $1 ORDER BY updated_at DESC LIMIT 500"
+                    rows = await conn.fetch(sql, self._name)
+                    docs = [json.loads(r["data"]) for r in rows]
+                    self._cache = docs
+                    self._cache_ts = time.time()
+                    return list(docs)
+            except Exception as retry_err:
+                logger.error(f"FATAL fetch error for collection {self._name}: {retry_err}")
+                return list(self._cache or [])
 
     async def _save_doc(self, doc: Dict[str, Any]) -> None:
         doc_id = str(doc.get("_id") or doc.get("id") or uuid.uuid4().hex)
@@ -500,7 +512,25 @@ class SupabaseCollection:
                     payload,
                 )
         except Exception as e:
-            logger.warning(f"Save error for {self._name}:{doc_id}: {e}")
+            logger.warning(f"Save error for {self._name}:{doc_id}: {e}. Retrying with fresh pool...")
+            try:
+                self._db._pool = None
+                pool = await self._db.get_pool()
+                async with pool.acquire() as conn:
+                    await conn.execute(
+                        """
+                        INSERT INTO quickpress_documents (id, collection, data, updated_at)
+                        VALUES ($1, $2, $3::jsonb, NOW())
+                        ON CONFLICT (id) DO UPDATE
+                        SET data = EXCLUDED.data, updated_at = NOW();
+                        """,
+                        f"{self._name}:{doc_id}",
+                        self._name,
+                        payload,
+                    )
+            except Exception as retry_err:
+                logger.error(f"FATAL save error for {self._name}:{doc_id}: {retry_err}")
+                raise
 
     async def _delete_doc_id(self, doc_id: str) -> None:
         self._invalidate_query_cache()

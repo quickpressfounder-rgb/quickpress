@@ -107,8 +107,9 @@ if command -v docker &> /dev/null; then
     sudo docker network connect quickpress-net quickpress-postgres 2>/dev/null || true
 
     sudo docker build -t quickpress-api .
+    sudo docker network disconnect -f quickpress-net quickpress-backend 2>/dev/null || true
     sudo docker stop quickpress-backend 2>/dev/null || true
-    sudo docker rm quickpress-backend 2>/dev/null || true
+    sudo docker rm -f quickpress-backend 2>/dev/null || true
     FIREBASE_MOUNT=""
     if [ -f "$REPO_ROOT/quickpress-firebase-service-account.json" ]; then
         FIREBASE_MOUNT="-v $REPO_ROOT/quickpress-firebase-service-account.json:/app/quickpress-firebase-service-account.json"
@@ -120,12 +121,30 @@ if command -v docker &> /dev/null; then
         --add-host=host.docker.internal:host-gateway \
         --env-file .env \
         $FIREBASE_MOUNT \
+        -v /home/ubuntu/quickpress/backend-python/app:/app/app \
         -p 127.0.0.1:8000:8000 \
         quickpress-api
     echo "  -> Verifying backend container health..."
     sleep 4
     if sudo docker ps | grep -q "quickpress-backend"; then
         echo "✅ Backend container running healthy on port 8000."
+        echo "  -> Verifying live PostgreSQL query connection..."
+        if sudo docker exec quickpress-backend python -c "
+import asyncio
+from app.db.client import database
+async def test():
+    await database.connect()
+    assert database.engine_type == 'supabase-postgresql', 'Engine is not postgresql'
+    coll = database.collection('admin_partners')
+    docs = await coll.find({}).to_list(1)
+    print('✅ DB OK: Successfully verified PostgreSQL connection')
+asyncio.run(test())
+"; then
+            echo "✅ Live database verification passed!"
+        else
+            echo "❌ Database verification warning. Dumping logs:"
+            sudo docker logs --tail 25 quickpress-backend || true
+        fi
     else
         echo "⚠️ Warning: Backend container exited. Dumping last logs:"
         sudo docker logs --tail 30 quickpress-backend || true

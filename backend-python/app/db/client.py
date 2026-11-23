@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Protocol
+import re
+from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 from app.config import get_settings
 
@@ -229,6 +230,133 @@ def _with_id(doc: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     return doc
 
 
+def _build_candidate_urls(raw_db_url: str) -> List[str]:
+    candidates: List[str] = []
+    if raw_db_url:
+        candidates.append(raw_db_url)
+        match = re.search(r"postgresql://([^@]+)@([^:/]+)(:\d+)?(/[^?]+)?", raw_db_url)
+        if match:
+            creds = match.group(1)
+            port = match.group(3) or ":5432"
+            dbname = match.group(4) or "/quickpress"
+            for h in ["quickpress-postgres", "172.18.0.3", "127.0.0.1", "host.docker.internal", "172.17.0.1"]:
+                alt = f"postgresql://{creds}@{h}{port}{dbname}"
+                if alt not in candidates:
+                    candidates.append(alt)
+    cloud_url = "postgresql://postgres.acpxzppgjnqqhckzxcmk:QuickPress%408055@aws-0-ap-south-1.pooler.supabase.com:5432/postgres"
+    if cloud_url not in candidates:
+        candidates.append(cloud_url)
+    return candidates
+
+
+class ReconnectingCollection:
+    """Production-grade proxy that ensures live Supabase/PostgreSQL connection on every access.
+    
+    Prevents silent fallback to empty in-memory stores during transient database reconnections.
+    """
+    def __init__(self, db: "Database", name: str) -> None:
+        self._db = db
+        self._name = name
+
+    async def _get_real(self) -> Any:
+        if self._db._supabase is not None:
+            return self._db._supabase.collection(self._name)
+        await self._db.ensure_connected()
+        if self._db._supabase is not None:
+            return self._db._supabase.collection(self._name)
+        raise RuntimeError(f"Database currently unavailable: cannot execute query on collection {self._name}")
+
+    def find(self, query: Optional[Dict[str, Any]] = None) -> Any:
+        if self._db._supabase is not None:
+            return self._db._supabase.collection(self._name).find(query or {})
+        return ReconnectingCursor(self, query or {})
+
+    async def find_one(self, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        coll = await self._get_real()
+        return await coll.find_one(query)
+
+    async def find_many(self, query: Dict[str, Any]) -> List[Dict[str, Any]]:
+        coll = await self._get_real()
+        return await coll.find_many(query)
+
+    async def insert_one(self, doc: Dict[str, Any]) -> Any:
+        coll = await self._get_real()
+        return await coll.insert_one(doc)
+
+    async def insert_many(self, documents: List[Dict[str, Any]]) -> Any:
+        coll = await self._get_real()
+        return await coll.insert_many(documents)
+
+    async def update_one(self, query: Dict[str, Any], update: Dict[str, Any], upsert: bool = False) -> Any:
+        coll = await self._get_real()
+        return await coll.update_one(query, update, upsert=upsert)
+
+    async def update(self, query: Dict[str, Any], update: Dict[str, Any], upsert: bool = False) -> Any:
+        coll = await self._get_real()
+        return await coll.update(query, update, upsert=upsert)
+
+    async def delete_one(self, query: Dict[str, Any]) -> Any:
+        coll = await self._get_real()
+        return await coll.delete_one(query)
+
+    async def delete_many(self, query: Dict[str, Any]) -> Any:
+        coll = await self._get_real()
+        return await coll.delete_many(query)
+
+    async def count_documents(self, query: Optional[Dict[str, Any]] = None) -> int:
+        coll = await self._get_real()
+        return await coll.count_documents(query or {})
+
+    async def distinct(self, key: str, query: Optional[Dict[str, Any]] = None) -> List[Any]:
+        coll = await self._get_real()
+        return await coll.distinct(key, query or {})
+
+
+class ReconnectingCursor:
+    def __init__(self, reconn: ReconnectingCollection, query: Dict[str, Any]) -> None:
+        self._reconn = reconn
+        self._query = query
+        self._skip_val: Optional[int] = None
+        self._limit_val: Optional[int] = None
+        self._sort_spec: Optional[Tuple[Any, int]] = None
+
+    def skip(self, n: int) -> "ReconnectingCursor":
+        self._skip_val = n
+        return self
+
+    def limit(self, n: int) -> "ReconnectingCursor":
+        self._limit_val = n
+        return self
+
+    def sort(self, key: Any, direction: int = 1) -> "ReconnectingCursor":
+        self._sort_spec = (key, direction)
+        return self
+
+    async def to_list(self, length: Optional[int] = None) -> List[Dict[str, Any]]:
+        coll = await self._reconn._get_real()
+        cursor = coll.find(self._query)
+        if self._skip_val is not None:
+            cursor = cursor.skip(self._skip_val)
+        limit = length if length is not None else self._limit_val
+        if limit is not None:
+            cursor = cursor.limit(limit)
+        if self._sort_spec:
+            cursor = cursor.sort(*self._sort_spec)
+        return await cursor.to_list(length=limit)
+
+    def __aiter__(self):
+        self._iter_docs = None
+        return self
+
+    async def __anext__(self):
+        if not hasattr(self, "_iter_docs") or self._iter_docs is None:
+            self._iter_docs = iter(await self.to_list())
+        try:
+            return next(self._iter_docs)
+        except StopIteration:
+            raise StopAsyncIteration
+
+
 class Database:
     """Lazily connected database handle shared by every repository (Supabase PostgreSQL)."""
 
@@ -237,13 +365,25 @@ class Database:
         self._memory: Dict[str, InMemoryCollection] = {}
         self._fallback_in_memory: bool = False
         self._engine: str = "in-memory"
+        self._connect_lock: Optional[asyncio.Lock] = None
+        self._candidate_urls: List[str] = []
+
+    async def ensure_connected(self) -> None:
+        if self._supabase is not None:
+            return
+        if self._connect_lock is None:
+            self._connect_lock = asyncio.Lock()
+        async with self._connect_lock:
+            if self._supabase is not None:
+                return
+            await self.connect()
 
     @property
     def in_memory(self) -> bool:
         if self._supabase is not None:
             return False
         settings = get_settings()
-        if settings.app_env.lower() == "production":
+        if settings.app_env.lower() == "production" or bool(settings.database_url):
             return False
         return settings.use_in_memory_db or self._fallback_in_memory
 
@@ -269,70 +409,61 @@ class Database:
         }
 
     async def connect(self) -> None:
-        """Connect to Supabase PostgreSQL or MongoDB database with multi-host resilience."""
+        """Connect to Supabase PostgreSQL database with multi-host resilience."""
         settings = get_settings()
         import logging
         logger = logging.getLogger(__name__)
 
-        # 1. Connect to Supabase PostgreSQL if configured
         raw_db_url = (getattr(settings, "database_url", None) or "").strip()
-        if raw_db_url:
-            candidate_urls = [raw_db_url]
-            # If URL points to quickpress-postgres, also prepare fallback hosts (direct IP, host gateway, bridge IP, localhost)
-            if "@quickpress-postgres" in raw_db_url:
-                for fallback_host in ["172.18.0.3", "host.docker.internal", "172.17.0.1", "127.0.0.1"]:
-                    alt_url = raw_db_url.replace("@quickpress-postgres", f"@{fallback_host}")
-                    if alt_url not in candidate_urls:
-                        candidate_urls.append(alt_url)
+        self._candidate_urls = _build_candidate_urls(raw_db_url)
 
-            for target_url in candidate_urls:
-                for attempt in range(3):
-                    try:
-                        from app.db.supabase_client import SupabaseDatabase
-                        sb_db = SupabaseDatabase(target_url)
-                        await asyncio.wait_for(sb_db.connect(), timeout=15.0)
-                        self._supabase = sb_db
-                        self._engine = "supabase-postgresql"
-                        self._fallback_in_memory = False
-                        logger.info("Connected to Supabase PostgreSQL successfully via %s.", target_url.split("@")[-1])
-                        return
-                    except Exception as err:
-                        logger.warning(
-                            "PostgreSQL connection attempt %d to %s failed: %s",
-                            attempt + 1,
-                            target_url.split("@")[-1],
-                            repr(err),
-                        )
-                        await asyncio.sleep(1.0)
+        for target_url in self._candidate_urls:
+            for attempt in range(2):
+                try:
+                    from app.db.supabase_client import SupabaseDatabase
+                    sb_db = SupabaseDatabase(target_url)
+                    await asyncio.wait_for(sb_db.connect(), timeout=8.0)
+                    self._supabase = sb_db
+                    self._engine = "supabase-postgresql"
+                    self._fallback_in_memory = False
+                    logger.info("Connected to Supabase PostgreSQL successfully via %s.", target_url.split("@")[-1])
+                    return
+                except Exception as err:
+                    logger.warning(
+                        "PostgreSQL connection attempt %d to %s failed: %s",
+                        attempt + 1,
+                        target_url.split("@")[-1],
+                        repr(err),
+                    )
+                    await asyncio.sleep(0.5)
 
-            # If all immediate attempts fail, enter temporary in-memory fallback AND schedule background reconnect loop
-            logger.error(
-                "CRITICAL: Immediate PostgreSQL connection failed across all candidate hosts. Entering temporary in-memory fallback and starting background auto-reconnect task."
-            )
-            self._fallback_in_memory = True
-            self._engine = "in-memory"
-            asyncio.create_task(self._background_reconnect(candidate_urls))
+        is_production = settings.app_env.lower() == "production" or bool(settings.database_url)
+        if is_production:
+            logger.error("CRITICAL: PostgreSQL connection failed across all candidates. Starting background auto-reconnect.")
+            self._fallback_in_memory = False
+            self._engine = "supabase-postgresql"
+            asyncio.create_task(self._background_reconnect(self._candidate_urls))
             return
 
         self._fallback_in_memory = True
         self._engine = "in-memory"
-        logger.info("Using in-memory database store.")
+        logger.info("Using in-memory database store (development only).")
 
     async def _background_reconnect(self, candidate_urls: list[str]) -> None:
         """Background daemon that keeps trying to restore PostgreSQL connection if server started before DB."""
         import logging
         logger = logging.getLogger(__name__)
-        while self._fallback_in_memory:
-            await asyncio.sleep(5.0)
+        while self._supabase is None:
+            await asyncio.sleep(3.0)
             for target_url in candidate_urls:
                 try:
                     from app.db.supabase_client import SupabaseDatabase
                     sb_db = SupabaseDatabase(target_url)
-                    await asyncio.wait_for(sb_db.connect(), timeout=10.0)
+                    await asyncio.wait_for(sb_db.connect(), timeout=8.0)
                     self._supabase = sb_db
                     self._engine = "supabase-postgresql"
                     self._fallback_in_memory = False
-                    logger.info("Restored PostgreSQL connection in background via %s! Exited in-memory mode.", target_url.split("@")[-1])
+                    logger.info("Restored PostgreSQL connection in background via %s!", target_url.split("@")[-1])
                     return
                 except Exception:
                     continue
@@ -355,6 +486,10 @@ class Database:
             return self._supabase.collection(name)
         if getattr(self, "_db", None) is not None:
             return self._db[name]
+        settings = get_settings()
+        is_production = settings.app_env.lower() == "production" or bool(settings.database_url)
+        if is_production:
+            return ReconnectingCollection(self, name)
         return self._memory.setdefault(name, InMemoryCollection())
 
     def get_collection(self, name: str) -> Any:
