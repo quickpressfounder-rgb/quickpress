@@ -82,16 +82,24 @@ export function ShopProfileHeader({
   const { uploadLogo, uploadBanner, activeServicesCount } = usePartnerShop();
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [bannerError, setBannerError] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
-  const bannerImg = profile.banner || profile.bannerUrl || profile.cover;
-  const logoImg = profile.logo || profile.logoUrl || profile.image;
+  const rawBanner = profile.banner || profile.bannerUrl || profile.cover;
+  const isBannerValid = Boolean(rawBanner && !bannerError && (rawBanner.startsWith("http") || rawBanner.startsWith("data:") || rawBanner.startsWith("/assets")));
+  const bannerImg = isBannerValid ? rawBanner : null;
+
+  const rawLogo = profile.logo || profile.logoUrl || profile.image;
+  const isLogoValid = Boolean(rawLogo && !logoError && (rawLogo.startsWith("http") || rawLogo.startsWith("data:") || rawLogo.startsWith("/assets")));
+  const logoImg = isLogoValid ? rawLogo : null;
 
   const handleBannerSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingBanner(true);
+    setBannerError(false);
     try {
       const dataUrl = await compressImage(file, {
         maxWidth: 1600,
@@ -113,6 +121,7 @@ export function ShopProfileHeader({
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingLogo(true);
+    setLogoError(false);
     try {
       const dataUrl = await compressImage(file, {
         maxWidth: 600,
@@ -149,33 +158,38 @@ export function ShopProfileHeader({
       />
 
       {/* 1. High-Resolution Cover Banner */}
-      <div className="relative h-44 sm:h-56 w-full overflow-hidden rounded-3xl border border-zinc-200/80 bg-zinc-100 shadow-xs">
+      <div className="relative h-48 sm:h-56 w-full overflow-hidden rounded-3xl border border-zinc-200/80 bg-zinc-900 shadow-sm">
         {bannerImg ? (
           <img
             src={bannerImg}
             alt={`${profile.name} banner`}
+            onError={() => setBannerError(true)}
             className="size-full object-cover"
           />
         ) : (
-          <div className="relative flex size-full items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-zinc-50 p-6 text-center border-2 border-dashed border-emerald-200/90 rounded-3xl">
-            <div className="pointer-events-none space-y-1.5">
-              <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-800">
-                <Store className="size-6" />
-              </div>
-              <p className="text-sm font-black tracking-tight text-zinc-950">
-                Upload Storefront Cover
+          <div className="relative flex size-full items-center justify-between bg-gradient-to-br from-emerald-900 via-teal-900 to-zinc-950 p-6 sm:p-8 overflow-hidden">
+            {/* Ambient Lighting & Pattern */}
+            <div className="pointer-events-none absolute -top-12 -right-12 size-56 rounded-full bg-emerald-500/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-10 -left-10 size-48 rounded-full bg-teal-500/20 blur-2xl" />
+            <div className="relative z-10 space-y-1">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300 backdrop-blur-xs">
+                <Sparkles className="size-3" /> QuickPress Partner Hub
+              </span>
+              <p className="text-base sm:text-lg font-black tracking-tight text-white drop-shadow-xs">
+                {profile.name}
               </p>
-              <p className="text-xs text-zinc-600 font-medium">
-                Show customers your storefront & laundry machines
+              <p className="text-xs text-emerald-200/80 font-medium">
+                Professional Garment Care &amp; Express Laundry
               </p>
+            </div>
+            <div className="relative z-10 hidden sm:flex size-14 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white">
+              <Store className="size-7 text-emerald-300" />
             </div>
           </div>
         )}
 
-        {/* Top Vignette Overlay (subtle when image exists) */}
-        {bannerImg ? (
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
-        ) : null}
+        {/* Top Vignette Overlay */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
 
         {/* Top bar over banner: Status pill on left, Upload Cover on right */}
         <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3.5 z-10">
@@ -185,12 +199,12 @@ export function ShopProfileHeader({
             type="button"
             onClick={() => bannerInputRef.current?.click()}
             disabled={uploadingBanner}
-            className="flex items-center gap-1.5 rounded-full bg-white/95 backdrop-blur-md px-3.5 py-1.5 text-xs font-bold text-zinc-900 border border-zinc-200/80 shadow-xs transition-all hover:bg-white active:scale-95 cursor-pointer"
+            className="flex items-center gap-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md px-3.5 py-1.5 text-xs font-bold border border-white/20 shadow-xs transition-all active:scale-95 cursor-pointer"
           >
             {uploadingBanner ? (
               <Loader2 className="size-3.5 animate-spin" />
             ) : (
-              <Camera className="size-3.5 text-emerald-600" />
+              <Camera className="size-3.5 text-emerald-300" />
             )}
             <span>{bannerImg ? "Change Cover" : "Upload Cover"}</span>
           </button>
@@ -203,11 +217,12 @@ export function ShopProfileHeader({
           <div className="flex items-start sm:items-center gap-3.5 min-w-0">
             {/* Store Logo with Camera Trigger */}
             <div className="relative shrink-0">
-              <div className="flex size-18 sm:size-20 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-amber-400 text-zinc-950 font-black text-2xl shadow-xs">
+              <div className="flex size-18 sm:size-20 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-gradient-to-br from-emerald-600 to-teal-800 text-white font-black text-2xl shadow-md">
                 {logoImg ? (
                   <img
                     src={logoImg}
                     alt={`${profile.name} logo`}
+                    onError={() => setLogoError(true)}
                     className="size-full object-cover"
                   />
                 ) : (
@@ -219,12 +234,12 @@ export function ShopProfileHeader({
                 onClick={() => logoInputRef.current?.click()}
                 disabled={uploadingLogo}
                 title="Change Store Logo"
-                className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs transition-all hover:bg-emerald-700 active:scale-90 cursor-pointer"
+                className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full bg-zinc-950 text-white border-2 border-white shadow-xs transition-all hover:bg-zinc-800 active:scale-90 cursor-pointer"
               >
                 {uploadingLogo ? (
                   <Loader2 className="size-3.5 animate-spin" />
                 ) : (
-                  <Camera className="size-3.5" />
+                  <Camera className="size-3.5 text-emerald-400" />
                 )}
               </button>
             </div>

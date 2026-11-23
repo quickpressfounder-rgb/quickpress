@@ -832,14 +832,20 @@ class AdminPartnerRepository:
         )
 
         by_id: Dict[str, Dict[str, Any]] = {}
-        for p in primary + admin_partners + fallback + users:
-            pid = str(p.get("_id") or p.get("id") or p.get("partnerId") or p.get("userId") or "")
+        for p in users + fallback + admin_partners + primary:
+            pid = str(p.get("linked_id") or p.get("partnerId") or p.get("partner_id") or p.get("_id") or p.get("id") or p.get("userId") or "")
             if pid:
                 if pid not in by_id:
                     by_id[pid] = dict(p)
                 else:
                     by_id[pid].update({k: v for k, v in p.items() if v is not None})
-        return list(by_id.values())
+
+        # Keep only partners that have at least a business/store name or phone (filter out phantom UUIDs)
+        valid_partners = [
+            p for p in by_id.values()
+            if p.get("businessName") or p.get("name") or p.get("storeName") or p.get("phone") or p.get("mobile")
+        ]
+        return valid_partners
 
     async def list(self, page: int, page_size: int, q: Optional[str] = None, city: Optional[str] = None, zone: Optional[str] = None, status: Optional[str] = None, kyc_status: Optional[str] = None) -> Dict[str, Any]:
         (

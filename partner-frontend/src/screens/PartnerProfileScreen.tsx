@@ -1451,7 +1451,7 @@ export function PartnerProfileScreen() {
         {/* MODAL 4B: Store Documents, Government KYC & Verification Hub  */}
         {/* ------------------------------------------------------------- */}
         {(showDocumentsModal || showApprovalsModal) && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-zinc-950/70 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-zinc-950/70 backdrop-blur-xs animate-in fade-in duration-200">
             <div
               onClick={() => {
                 setShowDocumentsModal(false);
@@ -1459,23 +1459,23 @@ export function PartnerProfileScreen() {
               }}
               className="absolute inset-0"
             />
-            <div className="relative w-full max-w-xl max-h-[90vh] flex flex-col rounded-3xl bg-white shadow-2xl overflow-hidden border border-zinc-200/90 z-10">
+            <div className="relative w-full max-w-lg max-h-[88vh] flex flex-col rounded-3xl bg-white shadow-2xl overflow-hidden border border-zinc-200/90 z-10 animate-in zoom-in-95 duration-200">
               {/* Header */}
-              <div className="p-4 sm:p-5 border-b border-zinc-200/80 bg-gradient-to-r from-zinc-50 via-white to-blue-50/40 flex items-center justify-between shrink-0">
+              <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between shrink-0 bg-white">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-2xl bg-zinc-950 text-white shadow-sm">
-                    <FileCheck2 className="size-5" />
+                  <div className="flex size-10 items-center justify-center rounded-2xl bg-zinc-950 text-white shadow-xs">
+                    <FileCheck2 className="size-5 text-emerald-400" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm sm:text-base font-black text-zinc-900">
+                      <h3 className="text-sm sm:text-base font-black text-zinc-950 tracking-tight">
                         Store Documents &amp; Verification
                       </h3>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-black border border-emerald-200">
-                        <Check className="size-3" /> Level 2 Verified ✓
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2 py-0.5 text-[10px] font-bold border border-emerald-200/80">
+                        <Check className="size-2.5" /> Level 2 Verified ✓
                       </span>
                     </div>
-                    <p className="text-[11px] text-zinc-500 font-medium">
+                    <p className="text-[11px] text-zinc-400 font-medium mt-0.5">
                       Government KYC, Settlement Bank &amp; SLA Franchise Agreement
                     </p>
                   </div>
@@ -1486,55 +1486,57 @@ export function PartnerProfileScreen() {
                     setShowDocumentsModal(false);
                     setShowApprovalsModal(false);
                   }}
-                  className="rounded-full bg-zinc-100 p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200 transition-colors cursor-pointer"
+                  className="rounded-full size-8 flex items-center justify-center text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors cursor-pointer"
                 >
                   <X className="size-4" />
                 </button>
               </div>
 
-              {/* Navigation Tabs (Uploaded Documents vs Verification & Approvals) */}
-              <div className="flex items-center gap-2 px-4 sm:px-5 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/70 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setActiveKycTab("documents")}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                    activeKycTab === "documents"
-                      ? "border border-emerald-500 bg-emerald-50 text-emerald-950 font-black shadow-xs"
-                      : "bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
-                  }`}
-                >
-                  <FileText className="size-3.5" />
-                  Uploaded Documents (6)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveKycTab("history")}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                    activeKycTab === "history"
-                      ? "border border-emerald-500 bg-emerald-50 text-emerald-950 font-black shadow-xs"
-                      : "bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
-                  }`}
-                >
-                  <ShieldCheck className="size-3.5" />
-                  Verification &amp; Approvals
-                  {approvalRequests.filter((r) => r.status === "pending").length > 0 && (
-                    <span className="rounded-full bg-amber-500 text-white px-1.5 py-0.2 text-[9px] font-black animate-pulse">
-                      {approvalRequests.filter((r) => r.status === "pending").length}
-                    </span>
-                  )}
-                </button>
+              {/* Segmented Tab Bar */}
+              <div className="px-5 pt-3 pb-2 bg-white shrink-0">
+                <div className="flex p-1 rounded-2xl bg-zinc-100 border border-zinc-200/60">
+                  <button
+                    type="button"
+                    onClick={() => setActiveKycTab("documents")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      activeKycTab === "documents"
+                        ? "bg-white text-zinc-950 shadow-xs font-black"
+                        : "text-zinc-500 hover:text-zinc-800"
+                    }`}
+                  >
+                    <FileText className="size-3.5" />
+                    Uploaded Documents (6)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveKycTab("history")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      activeKycTab === "history"
+                        ? "bg-white text-zinc-950 shadow-xs font-black"
+                        : "text-zinc-500 hover:text-zinc-800"
+                    }`}
+                  >
+                    <ShieldCheck className="size-3.5" />
+                    Verification &amp; Approvals
+                    {approvalRequests.filter((r) => r.status === "pending").length > 0 && (
+                      <span className="rounded-full bg-amber-500 text-white px-1.5 py-0.2 text-[9px] font-black animate-pulse">
+                        {approvalRequests.filter((r) => r.status === "pending").length}
+                      </span>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Modal Body Content (Scrollable) */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
                 {/* Dual-Control Policy Callout */}
-                <div className="rounded-2xl border border-blue-200/90 bg-blue-50/70 p-3.5 flex items-start gap-3">
-                  <ShieldAlert className="size-5 text-blue-700 shrink-0 mt-0.5" />
+                <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-3.5 flex items-start gap-3">
+                  <ShieldAlert className="size-4.5 text-sky-600 shrink-0 mt-0.5" />
                   <div className="text-xs space-y-0.5">
-                    <p className="font-black text-blue-950">
+                    <p className="font-bold text-sky-950">
                       Dual-Control Security Policy
                     </p>
-                    <p className="text-[11px] text-blue-800 leading-relaxed">
+                    <p className="text-[11px] text-sky-700 leading-relaxed">
                       All document and banking updates require QuickPress Admin Approval. When you request a change, your current verified account remains active until our compliance team reviews and approves your submission.
                     </p>
                   </div>
@@ -1544,10 +1546,10 @@ export function PartnerProfileScreen() {
                 {activeKycTab === "documents" && (
                   <div className="space-y-3.5">
                     {/* Top Action to Request Edit */}
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
                         Active Verified Documents
-                      </p>
+                      </span>
                       <button
                         type="button"
                         onClick={() => {
@@ -1555,7 +1557,7 @@ export function PartnerProfileScreen() {
                           setShowApprovalsModal(false);
                           setShowKycEditModal(true);
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
                       >
                         <PenTool className="size-3 text-white" />
                         Request Document Edit
@@ -1563,10 +1565,10 @@ export function PartnerProfileScreen() {
                     </div>
 
                     {/* 1. Aadhaar Card */}
-                    <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 space-y-3 shadow-2xs">
+                    <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 space-y-3 shadow-2xs hover:border-zinc-300 transition-colors">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2.5">
-                          <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-700 border border-blue-200 font-black text-xs">
+                          <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-700 border border-blue-200/70 font-black text-[11px]">
                             UIDAI
                           </div>
                           <div>
@@ -1574,7 +1576,7 @@ export function PartnerProfileScreen() {
                             <p className="text-[10px] text-zinc-400">UIDAI Verified Identity Document</p>
                           </div>
                         </div>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-black">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2 py-0.5 text-[10px] font-black">
                           <Check className="size-2.5" /> Verified ✓
                         </span>
                       </div>
@@ -1590,23 +1592,23 @@ export function PartnerProfileScreen() {
                         <button
                           type="button"
                           onClick={() => setShowAadhaarNumber(!showAadhaarNumber)}
-                          className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                          className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
                         >
-                          {showAadhaarNumber ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+                          {showAadhaarNumber ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
                           {showAadhaarNumber ? "Mask" : "Reveal"}
                         </button>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1">
-                        <span>Holder: <strong className="text-zinc-800">{profile?.ownerName || "Registered Partner"}</strong></span>
-                        <span className="text-emerald-700 font-bold text-[10px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">KYC Compliant</span>
+                      <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-0.5">
+                        <span>Holder: <strong className="text-zinc-800">{profile?.ownerName || "Kasganj Express Hub"}</strong></span>
+                        <span className="text-emerald-700 font-bold text-[10px] bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">KYC Compliant</span>
                       </div>
                     </div>
 
                     {/* 2. PAN Card */}
-                    <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 space-y-3 shadow-2xs">
+                    <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 space-y-3 shadow-2xs hover:border-zinc-300 transition-colors">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2.5">
-                          <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-800 border border-amber-200 font-black text-xs">
+                          <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-800 border border-amber-200/70 font-black text-[11px]">
                             ITD
                           </div>
                           <div>
@@ -1614,7 +1616,7 @@ export function PartnerProfileScreen() {
                             <p className="text-[10px] text-zinc-400">Income Tax Department of India</p>
                           </div>
                         </div>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-black">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2 py-0.5 text-[10px] font-black">
                           <Check className="size-2.5" /> Verified ✓
                         </span>
                       </div>
@@ -1630,23 +1632,23 @@ export function PartnerProfileScreen() {
                         <button
                           type="button"
                           onClick={() => setShowPanNumber(!showPanNumber)}
-                          className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                          className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
                         >
-                          {showPanNumber ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+                          {showPanNumber ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
                           {showPanNumber ? "Mask" : "Reveal"}
                         </button>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1">
+                      <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-0.5">
                         <span>Entity: <strong className="text-zinc-800">{storeName}</strong></span>
-                        <span className="text-blue-700 font-bold text-[10px] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">TDS 194O Enabled</span>
+                        <span className="text-blue-700 font-bold text-[10px] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/80">TDS 194O Enabled</span>
                       </div>
                     </div>
 
                     {/* 3. Settlement Bank & Cancelled Cheque */}
-                    <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 space-y-3 shadow-2xs">
+                    <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 space-y-3 shadow-2xs hover:border-zinc-300 transition-colors">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2.5">
-                          <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 font-black text-xs">
+                          <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/70 font-black text-xs">
                             <CreditCard className="size-4" />
                           </div>
                           <div>
@@ -1654,7 +1656,7 @@ export function PartnerProfileScreen() {
                             <p className="text-[10px] text-zinc-400">Direct Weekly Payout Rail (IMPS / NEFT)</p>
                           </div>
                         </div>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-black">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2.5 py-0.5 text-[10px] font-black">
                           <Check className="size-2.5" /> Penny Drop Verified ✓
                         </span>
                       </div>
@@ -1695,10 +1697,10 @@ export function PartnerProfileScreen() {
                     </div>
 
                     {/* 4. GSTIN Certificate */}
-                    <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 space-y-2.5 shadow-2xs">
+                    <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 space-y-2.5 shadow-2xs hover:border-zinc-300 transition-colors">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2.5">
-                          <div className="flex size-9 items-center justify-center rounded-xl bg-purple-50 text-purple-700 border border-purple-200 font-black text-xs">
+                          <div className="flex size-9 items-center justify-center rounded-xl bg-purple-50 text-purple-700 border border-purple-200/70 font-black text-xs">
                             GST
                           </div>
                           <div>
@@ -1706,7 +1708,7 @@ export function PartnerProfileScreen() {
                             <p className="text-[10px] text-zinc-400">Government Tax Compliance Record</p>
                           </div>
                         </div>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 text-[10px] font-black">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200/80 px-2 py-0.5 text-[10px] font-black">
                           {profile?.gstin ? "Registered" : "Exemption Declared"}
                         </span>
                       </div>
@@ -1717,7 +1719,7 @@ export function PartnerProfileScreen() {
                     </div>
 
                     {/* 5. Outlet Frontage Photo */}
-                    <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 space-y-2.5 shadow-2xs">
+                    <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 space-y-2.5 shadow-2xs hover:border-zinc-300 transition-colors">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2.5">
                           <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 border border-zinc-200">
@@ -1728,7 +1730,7 @@ export function PartnerProfileScreen() {
                             <p className="text-[10px] text-zinc-400">Physical Storefront Board &amp; Machinery Photo</p>
                           </div>
                         </div>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-black">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2 py-0.5 text-[10px] font-black">
                           <Check className="size-2.5" /> Inspected ✓
                         </span>
                       </div>
@@ -1871,17 +1873,18 @@ export function PartnerProfileScreen() {
               </div>
 
               {/* Modal Footer */}
-              <div className="p-4 border-t border-zinc-200/80 bg-zinc-50/80 flex items-center justify-between shrink-0">
-                <span className="text-[11px] text-zinc-400 font-semibold">
-                  QuickPress Compliance System
-                </span>
+              <div className="px-5 py-3.5 border-t border-zinc-100 bg-white flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 font-medium">
+                  <ShieldCheck className="size-3.5 text-emerald-600" />
+                  <span>QuickPress Compliance System</span>
+                </div>
                 <button
                   type="button"
                   onClick={() => {
                     setShowDocumentsModal(false);
                     setShowApprovalsModal(false);
                   }}
-                  className="rounded-xl border border-zinc-200 bg-white px-5 py-2 text-xs font-black text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shadow-2xs"
+                  className="rounded-xl bg-zinc-950 hover:bg-zinc-800 px-5 py-2 text-xs font-bold text-white active:scale-95 transition-all cursor-pointer shadow-xs"
                 >
                   Close
                 </button>

@@ -365,7 +365,7 @@ export function EarningsScreen() {
       title="Wallet & Payouts"
       subtitle="Complete bank settlement passbook, double-entry ledger, and GST reconciliation"
     >
-      <div className="mx-auto w-full max-w-7xl px-3.5 sm:px-6 py-4 sm:py-6 space-y-4">
+      <div className="mx-auto w-full max-w-7xl px-3.5 sm:px-6 pt-12 sm:pt-6 pb-6 space-y-4">
 
         {/* ========================================================================= */}
         {/* HEADER BAR: STORE TITLE & ACTION TOOLS                                    */}
@@ -406,21 +406,6 @@ export function EarningsScreen() {
               <RotateCw className={`size-3.5 text-zinc-700 ${isRefreshing ? "animate-spin" : ""}`} />
             </button>
           </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* STATUTORY TDS & PAYOUT SETTLEMENT COMPLIANCE CARD                         */}
-        {/* ========================================================================= */}
-        <div className="flex items-center justify-between gap-2 rounded-xl border border-blue-200/80 bg-blue-50/60 px-3.5 py-2 text-xs text-blue-900 font-medium shadow-2xs">
-          <div className="flex items-center gap-2 min-w-0">
-            <ShieldCheck className="size-4 text-blue-600 shrink-0" />
-            <span className="text-[11.5px] font-bold text-blue-950 truncate">
-              Statutory TDS (Section 194-O, 1%) &amp; Automated Bank Settlement
-            </span>
-          </div>
-          <span className="shrink-0 rounded-full bg-blue-100 border border-blue-200/80 px-2 py-0.5 text-[10px] font-black text-blue-800">
-            Verified ✓
-          </span>
         </div>
 
         {/* ========================================================================= */}

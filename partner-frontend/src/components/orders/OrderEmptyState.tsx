@@ -1,4 +1,4 @@
-import { SearchX, Sparkles, WifiOff, Radio } from "lucide-react";
+import { SearchX, WifiOff, ShoppingBag } from "lucide-react";
 
 export type EmptyVariant = "no-orders" | "no-results" | "offline";
 
@@ -63,7 +63,7 @@ export function OrderEmptyState({
     );
   }
 
-  // Active / Stage Empty State: Premium Live Radar Waiting Screen (No Refresh Button)
+  // Active / Stage Empty State: Clean, minimalist, professional
   let stageDescription = "New customer laundry bookings will appear here the moment they are placed.";
   if (tab === "picked") {
     stageDescription = "Orders picked up by Captains en route to your laundromat will appear here.";
@@ -78,41 +78,18 @@ export function OrderEmptyState({
   }
 
   return (
-    <div className="relative my-6 overflow-hidden rounded-3xl border border-emerald-900/10 bg-gradient-to-b from-white via-emerald-50/20 to-zinc-50/60 p-8 sm:p-12 text-center shadow-xs">
-      {/* Background Animated Concentric Radar Pulse Rings */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
-        <div className="size-72 rounded-full border border-emerald-400/15 animate-[ping_4s_cubic-bezier(0,0,0.2,1)_infinite]" />
-        <div className="absolute size-52 rounded-full border border-emerald-400/20 animate-[pulse_3s_ease-in-out_infinite]" />
-        <div className="absolute size-36 rounded-full border border-emerald-400/25" />
+    <div className="my-6 rounded-3xl border border-zinc-200/80 bg-zinc-50/50 p-8 sm:p-10 text-center shadow-xs">
+      <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-white border border-zinc-200/90 text-zinc-500 shadow-2xs">
+        <ShoppingBag className="size-6 text-zinc-500" />
       </div>
 
-      {/* Central Visual Badge */}
-      <div className="relative mx-auto flex size-18 items-center justify-center rounded-3xl bg-white border border-emerald-200/90 shadow-[0_8px_25px_rgba(16,185,129,0.15)]">
-        <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-          <Radio className="size-6 text-emerald-600 animate-pulse" />
-        </div>
-        <span className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs">
-          <Sparkles className="size-3" />
-        </span>
-      </div>
-
-      {/* Content */}
-      <div className="relative mt-5 space-y-1.5">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/70 border border-emerald-200/80 px-2.5 py-0.5 text-[11px] font-black text-emerald-800">
-          <span className="size-1.5 rounded-full bg-emerald-600 animate-ping" />
-          <span>Live Order Radar Active</span>
-        </div>
-        <h3 className="text-base font-black tracking-tight text-zinc-950 sm:text-lg">
-          Waiting for New Orders
+      <div className="mt-4 space-y-1">
+        <h3 className="text-base font-bold tracking-tight text-zinc-900">
+          No Active Orders
         </h3>
         <p className="mx-auto max-w-xs text-xs font-medium text-zinc-500 leading-relaxed">
           {stageDescription}
         </p>
-      </div>
-
-      {/* Micro Status Hint */}
-      <div className="relative mt-4 flex items-center justify-center gap-1 text-[11px] font-semibold text-zinc-400">
-        <span>● Realtime Socket Connected · Instant Chime Alert</span>
       </div>
     </div>
   );

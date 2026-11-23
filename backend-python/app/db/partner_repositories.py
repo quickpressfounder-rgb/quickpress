@@ -361,7 +361,7 @@ class PartnerRepository:
         # 3. Update partners collection (Legacy / admin sync)
         await database.update(
             "partners",
-            {"$or": [{"_id": partner_id}, {"id": partner_id}]},
+            {"_id": partner_id},
             {"isOnline": is_online_b, "isStoreOpen": is_online_b, "updated_at": now_iso},
             upsert=True,
         )
@@ -369,7 +369,7 @@ class PartnerRepository:
         # 4. Update catalog_partners (Customer marketplace view)
         await database.update(
             "catalog_partners",
-            {"$or": [{"_id": partner_id}, {"id": partner_id}]},
+            {"_id": partner_id},
             {"isOnline": is_online_b, "isStoreOpen": is_online_b, "status": "open" if is_online_b else "closed"},
             upsert=True,
         )

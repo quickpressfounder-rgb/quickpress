@@ -60,16 +60,19 @@ export function OfflineConfirmModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 pb-16 sm:pb-4 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      onClick={onClose}
+    >
       <div
-        className="w-full max-w-md bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border border-zinc-200 overflow-hidden flex flex-col max-h-[85vh] animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200"
+        className="w-full max-w-md mx-auto bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border-t sm:border border-zinc-200 overflow-hidden flex flex-col max-h-[82vh] animate-in slide-in-from-bottom duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile Pull Indicator */}
-        <div className="mx-auto mt-2.5 mb-1 h-1 w-10 rounded-full bg-zinc-300 sm:hidden" />
+        <div className="mx-auto mt-2.5 mb-1 h-1 w-10 rounded-full bg-zinc-300 sm:hidden shrink-0" />
 
         {/* Top Header */}
-        <div className="flex items-center justify-between px-5 pt-3 pb-3 border-b border-zinc-100">
+        <div className="flex items-center justify-between px-5 pt-3 pb-3 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600">
               <ShieldAlert className="size-5" />
@@ -143,7 +146,7 @@ export function OfflineConfirmModal({
         </div>
 
         {/* Footer Actions - Elevated safely above bottom nav with ample padding */}
-        <div className="flex items-center gap-3 bg-zinc-50 px-5 pt-3.5 pb-7 sm:pb-4 border-t border-zinc-100">
+        <div className="flex items-center gap-3 bg-zinc-50 px-5 pt-3.5 pb-8 sm:pb-4 border-t border-zinc-100 shrink-0">
           <button
             type="button"
             onClick={onClose}
