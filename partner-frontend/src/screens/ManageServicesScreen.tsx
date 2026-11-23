@@ -188,24 +188,9 @@ export function ManageServicesScreen() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {/* Modern Online / Offline Toggle Pill */}
-              <button
-                type="button"
-                onClick={handleToggleStore}
-                className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black transition-all active:scale-95 cursor-pointer shadow-2xs ${
-                  isOnline
-                    ? "bg-emerald-50 border-emerald-200 text-emerald-900"
-                    : "bg-zinc-100 border-zinc-200 text-zinc-700"
-                }`}
-              >
-                <span className={`size-2 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-zinc-400"}`} />
-                <span>{isOnline ? "Online" : "Offline"}</span>
-                <span className="text-[10px] text-zinc-400">›</span>
-              </button>
-
               <Link
                 to={partnerRoutes.profile}
-                className="flex size-8 items-center justify-center rounded-xl bg-white border border-zinc-200 text-zinc-800 active:scale-95 shadow-2xs cursor-pointer"
+                className="flex size-9 items-center justify-center rounded-xl bg-white border border-zinc-200 text-zinc-800 active:scale-95 shadow-2xs cursor-pointer hover:bg-zinc-50"
                 title="Store Settings"
               >
                 <Menu className="size-4.5" />
@@ -213,33 +198,15 @@ export function ManageServicesScreen() {
             </div>
           </div>
 
-          {/* Quick Action Toolbar: Custom Service + Catalog Presets + Offer */}
-          <div className="mt-3 grid grid-cols-12 gap-2">
+          {/* Quick Action Toolbar: Clean Add Service Button (Catalog & Offer Removed) */}
+          <div className="mt-3 flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => navigate({ to: partnerRoutes.serviceNew })}
-              className="col-span-5 flex items-center justify-center gap-1.5 rounded-xl bg-[#5B63D3] hover:bg-[#4d54bc] py-2.5 px-2 text-xs font-black text-white shadow-sm active:scale-95 transition-all cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 py-2.5 px-3 text-xs font-bold text-white shadow-xs active:scale-[0.98] transition-all cursor-pointer"
             >
               <Plus className="size-3.5" strokeWidth={2.5} />
               <span>+ Add Service</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setCatalogModalOpen(true)}
-              className="col-span-4 flex items-center justify-center gap-1 rounded-xl border border-zinc-200 bg-white py-2.5 px-2 text-xs font-bold text-zinc-800 shadow-2xs hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer"
-            >
-              <Sparkles className="size-3.5 text-amber-500" />
-              <span>Catalog</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setOfferSheetOpen(true)}
-              className="col-span-3 flex items-center justify-center gap-1 rounded-xl border border-amber-200/80 bg-amber-50 py-2.5 px-2 text-xs font-black text-amber-950 shadow-2xs hover:bg-amber-100 active:scale-95 transition-all cursor-pointer"
-            >
-              <Percent className="size-3.5 text-amber-600" />
-              <span>Offer</span>
             </button>
           </div>
 
@@ -305,10 +272,10 @@ export function ManageServicesScreen() {
               </p>
               <button
                 type="button"
-                onClick={isSearching ? resetSearch : () => setCatalogModalOpen(true)}
+                onClick={isSearching ? resetSearch : () => navigate({ to: partnerRoutes.serviceNew })}
                 className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-zinc-950 px-4 py-2 text-xs font-black text-white active:scale-95 cursor-pointer shadow-2xs"
               >
-                {isSearching ? "Reset filters" : "+ Add from Catalog"}
+                {isSearching ? "Reset filters" : "+ Add Service"}
               </button>
             </div>
           ) : (
@@ -351,7 +318,11 @@ export function ManageServicesScreen() {
                         </span>
                         <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-600 border border-zinc-200/60">
                           <Clock className="size-3 text-zinc-500" />
-                          <span>{svc.turnaroundHours ? `${svc.turnaroundHours}h SLA` : "24h turnaround"}</span>
+                          <span>{svc.turnaroundHours ? `${svc.turnaroundHours}h SLA` : "24h SLA"}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-200/70">
+                          <Zap className="size-3 text-amber-600" />
+                          <span>Express: ₹{Math.round(svc.price * 1.5)} /{svc.unit} (12h)</span>
                         </span>
                       </div>
 
@@ -506,25 +477,9 @@ export function ManageServicesScreen() {
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setOfferSheetOpen(true)}
-                className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-bold tracking-tight text-zinc-800 transition-all hover:bg-zinc-50 active:scale-95 shadow-2xs cursor-pointer"
-              >
-                <Tag className="size-4 text-emerald-600" />
-                <span>Add Offer ({offers.length})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCatalogModalOpen(true)}
-                className="flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-black tracking-tight text-amber-950 shadow-xs transition-all hover:bg-amber-100 active:scale-95 cursor-pointer"
-              >
-                <Sparkles className="size-4 text-amber-600" />
-                <span>Quick Add Catalog</span>
-              </button>
               <Link
                 to={partnerRoutes.serviceNew}
-                className="flex items-center gap-2 rounded-2xl bg-[#5B63D3] hover:bg-[#4d54bc] px-4.5 py-2.5 text-xs font-black tracking-tight text-white shadow-md transition-all active:scale-95 cursor-pointer"
+                className="flex items-center gap-2 rounded-2xl bg-zinc-950 hover:bg-zinc-800 px-4.5 py-2.5 text-xs font-black tracking-tight text-white shadow-md transition-all active:scale-95 cursor-pointer"
               >
                 <Plus className="size-4" />
                 <span>+ Custom Service</span>
@@ -540,7 +495,7 @@ export function ManageServicesScreen() {
             ) : visible.length === 0 ? (
               <ServiceEmptyState
                 variant={isSearching ? "no-results" : "no-services"}
-                onAction={isSearching ? resetSearch : () => setCatalogModalOpen(true)}
+                onAction={isSearching ? resetSearch : () => navigate({ to: partnerRoutes.serviceNew })}
               />
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

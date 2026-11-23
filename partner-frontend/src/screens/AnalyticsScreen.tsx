@@ -262,6 +262,34 @@ export function AnalyticsScreen() {
       dayOrders.push(dayOrdersList.length);
     }
 
+    // Advanced Date-Wise Records (Sorted from newest to oldest)
+    const dateWiseRecords = [];
+    for (let i = 0; i < numDays; i++) {
+      const targetDate = new Date(now);
+      targetDate.setDate(targetDate.getDate() - i);
+      const dateStr = getLocalDateStr(targetDate);
+      const fullDateLabel = targetDate.toLocaleDateString("en-IN", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      });
+      const dayOrdersList = relevantFinancialOrders.filter((o) => parseOrderDateStr(o) === dateStr);
+      const dayRev = dayOrdersList.reduce((sum, o) => sum + (o.amount || 0), 0);
+      const dayNet = Math.round(dayRev * 0.84);
+      const dayExpress = dayOrdersList.filter((o) => o.isExpress || (o as any).expressDelivery).length;
+
+      dateWiseRecords.push({
+        dateStr,
+        label: i === 0 ? "Today" : i === 1 ? "Yesterday" : fullDateLabel,
+        fullDate: fullDateLabel,
+        ordersCount: dayOrdersList.length,
+        grossRevenue: dayRev,
+        netPayout: dayNet,
+        expressOrders: dayExpress,
+        status: i === 0 ? "Accruing" : "Reconciled",
+      });
+    }
+
     return {
       filteredOrders,
       totalOrders: filteredOrders.length,
@@ -283,6 +311,7 @@ export function AnalyticsScreen() {
       dayLabels,
       dayRevenues,
       dayOrders,
+      dateWiseRecords,
     };
   }, [liveContextOrders, period, customStartDate, customEndDate, speedFilter, categoryFilter, paymentFilter, statusFilter]);
 
@@ -445,22 +474,19 @@ Generated live via QuickPress Partner Terminal`;
       <div className="mx-auto w-full max-w-7xl px-3.5 sm:px-6 py-4 sm:py-6 space-y-4">
 
         {/* ========================================================================= */}
-        {/* HEADER BAR: TITLE, SYNC STATUS & ACTION TOOLS                             */}
+        {/* HEADER BAR: TITLE & ACTION TOOLS (Description removed)                    */}
         {/* ========================================================================= */}
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-1">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-1">
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black text-zinc-950 tracking-tight">
                 Store Analytics &amp; Revenue
               </h1>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 text-[11px] font-black text-emerald-800 shadow-2xs">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 shadow-2xs">
                 <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Live Supabase</span>
+                <span>Live Analytics</span>
               </span>
             </div>
-            <p className="mt-0.5 text-xs font-semibold text-zinc-500">
-              Real-time daily sales, double-entry settlement balance, and processing turnarounds
-            </p>
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -642,9 +668,6 @@ Generated live via QuickPress Partner Terminal`;
                   <ArrowUpRight className="size-3.5" /> +14.8% vs prev
                 </span>
               </div>
-              <p className="text-xs text-zinc-500 font-medium">
-                Customer billed order revenue before platform commission &amp; deductions
-              </p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-3 md:pt-0 border-t md:border-t-0 md:border-l border-zinc-100 md:pl-6">
@@ -1213,6 +1236,163 @@ Generated live via QuickPress Partner Terminal`;
             </div>
           </div>
 
+        </div>
+
+        {/* ========================================================================= */}
+        {/* DATE-WISE SALES & SETTLEMENT PERFORMANCE RECORDS                           */}
+        {/* ========================================================================= */}
+        <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-2xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-zinc-100 pb-3">
+            <div className="flex items-center gap-2">
+              <div className="flex size-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                <Calendar className="size-4.5" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-black text-zinc-950">
+                  Daily Performance &amp; Settlement Ledger
+                </h3>
+                <p className="text-[11px] font-medium text-zinc-400">
+                  Day-by-day order volume, gross billing, platform fee (16%), and net partner settlement
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-bold text-zinc-500">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-800 border border-emerald-200/80">
+                <CheckCircle2 className="size-3 text-emerald-600" />
+                <span>Audit-Ready</span>
+              </span>
+              <span className="text-[11px] text-zinc-400">
+                {clientAggregated.dateWiseRecords.length} Days Window
+              </span>
+            </div>
+          </div>
+
+          {/* Desktop Table View (hidden on small mobile) */}
+          <div className="hidden md:block overflow-hidden rounded-xl border border-zinc-200/80">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-zinc-200/80 bg-zinc-50/80 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3 text-center">Orders</th>
+                  <th className="px-4 py-3 text-center">Express</th>
+                  <th className="px-4 py-3 text-right">Gross Sales</th>
+                  <th className="px-4 py-3 text-right">Platform Fee (16%)</th>
+                  <th className="px-4 py-3 text-right">Net Partner Take-Home</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 font-medium">
+                {clientAggregated.dateWiseRecords.map((rec) => {
+                  const platformFee = Math.round(rec.grossRevenue * 0.16);
+                  return (
+                    <tr key={rec.dateStr} className="hover:bg-zinc-50/70 transition-colors">
+                      <td className="px-4 py-3 font-bold text-zinc-900">
+                        <div className="flex items-center gap-2">
+                          <span>{rec.label}</span>
+                          {rec.label !== rec.fullDate && (
+                            <span className="text-[10px] text-zinc-400 font-normal">({rec.fullDate})</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                          rec.ordersCount > 0 ? "bg-zinc-100 text-zinc-900 font-black" : "text-zinc-400"
+                        }`}>
+                          {rec.ordersCount}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {rec.expressOrders > 0 ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] font-black text-amber-800 border border-amber-200">
+                            <Zap className="size-2.5 text-amber-600 fill-amber-600" />
+                            {rec.expressOrders}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-300">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right font-black text-zinc-950">
+                        {inr(rec.grossRevenue)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-zinc-500 font-semibold">
+                        -{inr(platformFee)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-black text-emerald-700">
+                        {inr(rec.netPayout)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                          rec.status === "Accruing"
+                            ? "bg-amber-50 text-amber-800 border border-amber-200"
+                            : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                        }`}>
+                          {rec.status === "Accruing" ? (
+                            <Clock className="size-2.5 text-amber-600" />
+                          ) : (
+                            <CheckCircle2 className="size-2.5 text-emerald-600" />
+                          )}
+                          <span>{rec.status}</span>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card List View (< md) */}
+          <div className="grid grid-cols-1 gap-2.5 md:hidden">
+            {clientAggregated.dateWiseRecords.map((rec) => {
+              const platformFee = Math.round(rec.grossRevenue * 0.16);
+              return (
+                <div
+                  key={rec.dateStr}
+                  className="rounded-xl border border-zinc-200/90 bg-zinc-50/40 p-3 space-y-2 hover:bg-zinc-50 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-zinc-950">{rec.label}</span>
+                      <span className="text-[10px] text-zinc-400">· {rec.fullDate}</span>
+                    </div>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      rec.status === "Accruing"
+                        ? "bg-amber-50 text-amber-800 border border-amber-200"
+                        : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    }`}>
+                      {rec.status === "Accruing" ? (
+                        <Clock className="size-2.5 text-amber-600" />
+                      ) : (
+                        <CheckCircle2 className="size-2.5 text-emerald-600" />
+                      )}
+                      <span>{rec.status}</span>
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 pt-1 border-t border-zinc-100 text-center">
+                    <div className="rounded-lg bg-white p-2 border border-zinc-200/60 shadow-2xs">
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase">Orders</span>
+                      <p className="text-xs font-black text-zinc-900 mt-0.5">{rec.ordersCount}</p>
+                      {rec.expressOrders > 0 && (
+                        <span className="text-[9px] font-bold text-amber-700">({rec.expressOrders} Exp)</span>
+                      )}
+                    </div>
+                    <div className="rounded-lg bg-white p-2 border border-zinc-200/60 shadow-2xs">
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase">Gross</span>
+                      <p className="text-xs font-black text-zinc-900 mt-0.5">{inr(rec.grossRevenue)}</p>
+                      <span className="text-[9px] text-zinc-400">Fee -{inr(platformFee)}</span>
+                    </div>
+                    <div className="rounded-lg bg-emerald-50/60 p-2 border border-emerald-200/60 shadow-2xs">
+                      <span className="text-[10px] font-black text-emerald-800 uppercase">Net (84%)</span>
+                      <p className="text-xs font-black text-emerald-700 mt-0.5">{inr(rec.netPayout)}</p>
+                      <span className="text-[9px] font-semibold text-emerald-600">Settlement</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
       </div>

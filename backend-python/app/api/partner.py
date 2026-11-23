@@ -1735,6 +1735,41 @@ async def verify_dispatch_otp(
 @router.get("/services", response_model=List[PartnerServiceResponse])
 async def list_services(partner_id: str = Depends(_partner_id)) -> List[PartnerServiceResponse]:
     docs = await partner_service_repository.list(partner_id)
+    if not docs:
+        docs = await database.find_many("partner_services", {"$or": [{"partnerId": partner_id}, {"partner_id": partner_id}]})
+    if not docs:
+        prof = await database.find_one("partner_profiles", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
+        if not prof:
+            prof = await database.find_one("admin_partners", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
+        reg_services = (prof or {}).get("services") or ["Wash & Fold", "Steam Ironing", "Dry Cleaning", "Shoe Care"]
+        MASTER_RATES = {
+            "Wash & Fold": {"price": 60, "unit": "kg", "category": "laundry", "turnaroundHours": 24, "expressAvailable": True},
+            "Steam Ironing": {"price": 15, "unit": "piece", "category": "iron", "turnaroundHours": 12, "expressAvailable": True},
+            "Dry Cleaning": {"price": 350, "unit": "suit", "category": "dry-clean", "turnaroundHours": 48, "expressAvailable": True},
+            "Shoe Care": {"price": 299, "unit": "pair", "category": "shoe-care", "turnaroundHours": 36, "expressAvailable": True},
+        }
+        seeded_docs = []
+        for idx, s_name in enumerate(reg_services, start=1):
+            info = MASTER_RATES.get(s_name, {"price": 50, "unit": "piece", "category": "laundry", "turnaroundHours": 24, "expressAvailable": True})
+            s_doc = {
+                "_id": f"srv_{partner_id}_{idx}",
+                "id": f"srv_{partner_id}_{idx}",
+                "partnerId": partner_id,
+                "name": s_name,
+                "price": info["price"],
+                "unit": info["unit"],
+                "category": info["category"],
+                "turnaroundHours": info["turnaroundHours"],
+                "expressAvailable": info["expressAvailable"],
+                "enabled": True,
+                "approvalStatus": "approved"
+            }
+            try:
+                await database.insert("partner_services", s_doc)
+            except Exception:
+                pass
+            seeded_docs.append(s_doc)
+        docs = seeded_docs
     return [_service_response(doc) for doc in docs]
 
 

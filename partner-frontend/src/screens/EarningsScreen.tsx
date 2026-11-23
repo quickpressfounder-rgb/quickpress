@@ -370,16 +370,17 @@ export function EarningsScreen() {
         {/* ========================================================================= */}
         {/* HEADER BAR: STORE TITLE & ACTION TOOLS                                    */}
         {/* ========================================================================= */}
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-1">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-1">
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black text-zinc-950 tracking-tight">
                 Partner Wallet &amp; Payouts
               </h1>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 shadow-2xs">
+                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Live Settlements</span>
+              </span>
             </div>
-            <p className="mt-0.5 text-xs font-semibold text-zinc-500">
-              Double-entry settlement ledger, verified bank transfers, and platform fee breakdown
-            </p>
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -410,32 +411,23 @@ export function EarningsScreen() {
         {/* ========================================================================= */}
         {/* STATUTORY TDS & PAYOUT SETTLEMENT COMPLIANCE CARD                         */}
         {/* ========================================================================= */}
-        <div className="rounded-2xl border border-blue-200/90 bg-blue-50/50 p-4 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs">
-              <ShieldCheck className="size-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs font-black uppercase tracking-wider text-blue-950">
-                  Statutory TDS (Section 194-O) &amp; Payout Consent Active
-                </h3>
-                <span className="rounded-full bg-blue-100 text-blue-800 px-2 py-0.5 text-[10px] font-bold">
-                  Verified
-                </span>
-              </div>
-              <p className="text-[11px] text-blue-900/80 leading-relaxed font-medium mt-0.5">
-                Platform commission and 1% TDS are deducted automatically as per Indian Income Tax regulations. Net earnings settle directly to your verified bank account via automated NEFT every Tuesday.
-              </p>
-            </div>
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-blue-200/80 bg-blue-50/60 px-3.5 py-2 text-xs text-blue-900 font-medium shadow-2xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <ShieldCheck className="size-4 text-blue-600 shrink-0" />
+            <span className="text-[11.5px] font-bold text-blue-950 truncate">
+              Statutory TDS (Section 194-O, 1%) &amp; Automated Bank Settlement
+            </span>
           </div>
+          <span className="shrink-0 rounded-full bg-blue-100 border border-blue-200/80 px-2 py-0.5 text-[10px] font-black text-blue-800">
+            Verified ✓
+          </span>
         </div>
 
         {/* ========================================================================= */}
         {/* HERO PAYOUT & BANK ACCOUNT RECONCILIATION CARD                            */}
         {/* ========================================================================= */}
-        <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs relative overflow-hidden">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+        <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-2xs relative overflow-hidden">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-5">
             {/* Left: Total Lifetime Settled to Bank */}
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -451,15 +443,12 @@ export function EarningsScreen() {
                   {inr(totalBankSettled)}
                 </p>
               </div>
-              <p className="text-xs text-zinc-500 font-medium">
-                Directly credited to verified partner bank account with zero loss
-              </p>
             </div>
 
             {/* Right: Accruing Balance & Verified Bank Account */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-zinc-100 lg:pl-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-zinc-100 lg:pl-6 w-full lg:w-auto">
               {/* Accruing Cycle Box */}
-              <div className="rounded-xl bg-amber-50/70 border border-amber-200/80 p-3.5 min-w-[200px]">
+              <div className="rounded-xl bg-amber-50/70 border border-amber-200/80 p-3.5 w-full sm:w-auto sm:min-w-[190px] flex-1">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-black uppercase tracking-wider text-amber-900">
                     Current Cycle Payout
@@ -478,7 +467,7 @@ export function EarningsScreen() {
               </div>
 
               {/* Verified Bank Account Box */}
-              <div className="rounded-xl bg-zinc-50 border border-zinc-200/80 p-3.5 min-w-[220px]">
+              <div className="rounded-xl bg-zinc-50 border border-zinc-200/80 p-3.5 w-full sm:w-auto sm:min-w-[200px] flex-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <Building2 className="size-4 text-zinc-700" />
@@ -667,7 +656,7 @@ export function EarningsScreen() {
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-3">
+                          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 sm:gap-3">
                             <div className="text-right">
                               <span className="text-xs font-black text-zinc-500">Gross Billed: </span>
                               <span className="text-sm font-black text-zinc-950">{inr(entry.grossAmount)}</span>

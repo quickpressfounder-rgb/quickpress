@@ -1,5 +1,36 @@
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 73)
+
+### Partner Panel Multi-Page Overhaul: Services Screen Cleanup, Executive Date-Wise Analytics Ledger, Responsive Wallet Auto-Adjustments, Smooth Sliding Toggle, Elevated Offline Sheet & Permanent DB Persistence
+
+1. **Context & Directives:**
+   - Addressed user feedback and screenshots across 3 core screens plus previous directives:
+     - **Page 1 (Services Screen):** Removed `+ Catalog` and `% Offer` buttons; removed header `Online` toggle; replaced `+ Add from Catalog` with `+ Add Service`; restricted service display to partner's registered rates with express turnaround tags.
+     - **Page 2 (Analytics Screen):** Stripped wordy descriptive subtitles; introduced an executive Date-Wise Performance & Settlement Ledger displaying daily gross sales, platform fee (16%), net partner take-home (84%), and audit-ready status badges in both tabular and responsive card formats.
+     - **Page 3 (Wallet Screen):** Cleaned header; converted bulky Statutory TDS card into a verified 1-line compliance banner; made Lifetime Settled and Accruing Cycle cards fluidly auto-adjusting for all screen widths (360px+).
+     - **Partner Profile Screen:** Fully redesigned all sections below "OUTLET & OPERATIONS" (Finance 2x2 cards, modern QR/Referral promotion cards, unified Support list with 24/7 Helpline).
+     - **Orders Screen & Toggle:** Enhanced plain minimalist search bar; subtly enlarged header with transparent hover effects; created continuous 60fps sliding transform animation on `PartnerOnlineToggle`.
+     - **Go Offline Modal:** Lifted bottom sheet footer actions (`pb-16` on backdrop, `pb-7` on footer) so action buttons sit completely above the mobile bottom navigation bar.
+     - **Database Data Persistence:** Resolved container environment mismatch; connected production PostgreSQL 16 container (`quickpress-postgres`) on `quickpress-net`; auto-seeded partner service rates on profile lookup so partner data is permanently persistent.
+
+2. **Modified Files:**
+   - `backend-python/app/api/partner.py`: Auto-initializes and persists partner services from profile data if not present.
+   - `partner-frontend/src/screens/ManageServicesScreen.tsx`: Removed Catalog, Offer, and header Online toggle; added express delivery badges.
+   - `partner-frontend/src/screens/AnalyticsScreen.tsx`: Removed wordy descriptions; added Date-Wise Performance & Settlement Ledger.
+   - `partner-frontend/src/screens/EarningsScreen.tsx`: Cleaned header; compacted Statutory TDS card; made payout cards responsive.
+   - `partner-frontend/src/screens/PartnerProfileScreen.tsx`: Redesigned sections below Outlet & Operations for seamless mobile auto-adjustment.
+   - `partner-frontend/src/screens/OrdersScreen.tsx`: Plain minimalist search bar; increased header breathing room; transparent hover effects.
+   - `partner-frontend/src/components/layout/PartnerOnlineToggle.tsx`: Upgraded 60fps sliding transform knob with smooth animations between Online and Offline.
+   - `partner-frontend/src/components/layout/OfflineConfirmModal.tsx`: Elevated bottom clearance to ensure full visibility above bottom navigation bar.
+
+3. **Build & Deployment Verification:**
+   - `partner-frontend` built cleanly with zero errors (`npm run build` completed, SSR Nitro output generated).
+   - Committed changes and pushed directly to GitHub `main` branch.
+   - Deployed on AWS EC2 (`ubuntu@65.0.127.43`), updated git repository, and reloaded PM2.
+
+---
+
 ## Session: November 23, 2026 (Part 72)
 
 ### Partner Panel UI Upgrade: Smooth Animated Toggle, Live Radar Empty Orders State, Safe Modal Offsets & Responsive Auto-Adjusting Profile Layout
@@ -136,6 +167,37 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 23, 2026 (Part 73)
+
+### Partner Panel Multi-Page Overhaul: Services Screen Cleanup, Executive Date-Wise Analytics Ledger, Responsive Wallet Auto-Adjustments, Smooth Sliding Toggle, Elevated Offline Sheet & Permanent DB Persistence
+
+1. **Context & Directives:**
+   - Addressed user feedback and screenshots across 3 core screens plus previous directives:
+     - **Page 1 (Services Screen):** Removed `+ Catalog` and `% Offer` buttons; removed header `Online` toggle; replaced `+ Add from Catalog` with `+ Add Service`; restricted service display to partner's registered rates with express turnaround tags.
+     - **Page 2 (Analytics Screen):** Stripped wordy descriptive subtitles; introduced an executive Date-Wise Performance & Settlement Ledger displaying daily gross sales, platform fee (16%), net partner take-home (84%), and audit-ready status badges in both tabular and responsive card formats.
+     - **Page 3 (Wallet Screen):** Cleaned header; converted bulky Statutory TDS card into a verified 1-line compliance banner; made Lifetime Settled and Accruing Cycle cards fluidly auto-adjusting for all screen widths (360px+).
+     - **Partner Profile Screen:** Fully redesigned all sections below "OUTLET & OPERATIONS" (Finance 2x2 cards, modern QR/Referral promotion cards, unified Support list with 24/7 Helpline).
+     - **Orders Screen & Toggle:** Enhanced plain minimalist search bar; subtly enlarged header with transparent hover effects; created continuous 60fps sliding transform animation on `PartnerOnlineToggle`.
+     - **Go Offline Modal:** Lifted bottom sheet footer actions (`pb-16` on backdrop, `pb-7` on footer) so action buttons sit completely above the mobile bottom navigation bar.
+     - **Database Data Persistence:** Resolved container environment mismatch; connected production PostgreSQL 16 container (`quickpress-postgres`) on `quickpress-net`; auto-seeded partner service rates on profile lookup so partner data is permanently persistent.
+
+2. **Modified Files:**
+   - `backend-python/app/api/partner.py`: Auto-initializes and persists partner services from profile data if not present.
+   - `partner-frontend/src/screens/ManageServicesScreen.tsx`: Removed Catalog, Offer, and header Online toggle; added express delivery badges.
+   - `partner-frontend/src/screens/AnalyticsScreen.tsx`: Removed wordy descriptions; added Date-Wise Performance & Settlement Ledger.
+   - `partner-frontend/src/screens/EarningsScreen.tsx`: Cleaned header; compacted Statutory TDS card; made payout cards responsive.
+   - `partner-frontend/src/screens/PartnerProfileScreen.tsx`: Redesigned sections below Outlet & Operations for seamless mobile auto-adjustment.
+   - `partner-frontend/src/screens/OrdersScreen.tsx`: Plain minimalist search bar; increased header breathing room; transparent hover effects.
+   - `partner-frontend/src/components/layout/PartnerOnlineToggle.tsx`: Upgraded 60fps sliding transform knob with smooth animations between Online and Offline.
+   - `partner-frontend/src/components/layout/OfflineConfirmModal.tsx`: Elevated bottom clearance to ensure full visibility above bottom navigation bar.
+
+3. **Build & Deployment Verification:**
+   - `partner-frontend` built cleanly with zero errors (`npm run build` completed, SSR Nitro output generated).
+   - Committed changes and pushed directly to GitHub `main` branch.
+   - Deployed on AWS EC2 (`ubuntu@65.0.127.43`), updated git repository, and reloaded PM2.
+
+---
 
 ## Session: November 23, 2026 (Part 72)
 

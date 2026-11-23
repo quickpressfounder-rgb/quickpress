@@ -60,9 +60,9 @@ export function OfflineConfirmModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 pb-16 sm:pb-4 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div
-        className="w-full max-w-md bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border border-zinc-200 overflow-hidden flex flex-col max-h-[88vh] animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200"
+        className="w-full max-w-md bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border border-zinc-200 overflow-hidden flex flex-col max-h-[85vh] animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile Pull Indicator */}
@@ -142,8 +142,8 @@ export function OfflineConfirmModal({
           })}
         </div>
 
-        {/* Footer Actions - Elevated above bottom nav with safe area inset */}
-        <div className="flex items-center gap-3 bg-zinc-50 px-5 pt-3.5 pb-6 sm:pb-4 border-t border-zinc-100">
+        {/* Footer Actions - Elevated safely above bottom nav with ample padding */}
+        <div className="flex items-center gap-3 bg-zinc-50 px-5 pt-3.5 pb-7 sm:pb-4 border-t border-zinc-100">
           <button
             type="button"
             onClick={onClose}

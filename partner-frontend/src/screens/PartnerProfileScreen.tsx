@@ -873,24 +873,27 @@ export function PartnerProfileScreen() {
               <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">
                 Finance &amp; Settlements
               </h3>
-              <span className="text-[10px] font-bold text-zinc-400">Ledger</span>
+              <span className="text-[10px] font-bold text-zinc-400">Realtime Ledger</span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.earnings })}
-                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-emerald-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
+                className="group flex flex-col justify-between rounded-2xl border border-zinc-200/90 bg-white p-3.5 sm:p-4 text-left shadow-2xs transition-all hover:border-emerald-300 hover:shadow-xs active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-100 group-hover:text-emerald-700">
-                  <Coins className="size-5" />
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-100 group-hover:text-emerald-700">
+                    <Coins className="size-5" />
+                  </div>
+                  <ChevronRight className="size-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
                 </div>
-                <div className="mt-3 w-full">
-                  <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
+                <div className="mt-3">
+                  <p className="text-xs font-black text-zinc-950 leading-tight">
                     Weekly Payouts
                   </p>
-                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
-                    Transfer cycle
+                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 truncate">
+                    Bank transfer cycle
                   </p>
                 </div>
               </button>
@@ -898,17 +901,20 @@ export function PartnerProfileScreen() {
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.earnings })}
-                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-amber-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
+                className="group flex flex-col justify-between rounded-2xl border border-zinc-200/90 bg-white p-3.5 sm:p-4 text-left shadow-2xs transition-all hover:border-amber-300 hover:shadow-xs active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-11 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-100 group-hover:text-amber-700">
-                  <FileText className="size-5" />
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-100 group-hover:text-amber-700">
+                    <FileText className="size-5" />
+                  </div>
+                  <ChevronRight className="size-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
                 </div>
-                <div className="mt-3 w-full">
-                  <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
+                <div className="mt-3">
+                  <p className="text-xs font-black text-zinc-950 leading-tight">
                     Settlements
                   </p>
-                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
-                    Orders reconciled
+                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 truncate">
+                    Double-entry ledger
                   </p>
                 </div>
               </button>
@@ -916,17 +922,20 @@ export function PartnerProfileScreen() {
               <button
                 type="button"
                 onClick={handleOpenBank}
-                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-indigo-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
+                className="group flex flex-col justify-between rounded-2xl border border-zinc-200/90 bg-white p-3.5 sm:p-4 text-left shadow-2xs transition-all hover:border-indigo-300 hover:shadow-xs active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-colors group-hover:bg-indigo-100 group-hover:text-indigo-700">
-                  <CreditCard className="size-5" />
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-colors group-hover:bg-indigo-100 group-hover:text-indigo-700">
+                    <CreditCard className="size-5" />
+                  </div>
+                  <ChevronRight className="size-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
                 </div>
-                <div className="mt-3 w-full">
-                  <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
+                <div className="mt-3">
+                  <p className="text-xs font-black text-zinc-950 leading-tight">
                     Bank Account
                   </p>
-                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
-                    Deposit bank info
+                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 truncate">
+                    Linked &amp; Verified
                   </p>
                 </div>
               </button>
@@ -934,17 +943,20 @@ export function PartnerProfileScreen() {
               <button
                 type="button"
                 onClick={handleOpenGst}
-                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-rose-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
+                className="group flex flex-col justify-between rounded-2xl border border-zinc-200/90 bg-white p-3.5 sm:p-4 text-left shadow-2xs transition-all hover:border-rose-300 hover:shadow-xs active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600 transition-colors group-hover:bg-rose-100 group-hover:text-rose-700">
-                  <Receipt className="size-5" />
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600 transition-colors group-hover:bg-rose-100 group-hover:text-rose-700">
+                    <Receipt className="size-5" />
+                  </div>
+                  <ChevronRight className="size-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
                 </div>
-                <div className="mt-3 w-full">
-                  <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
+                <div className="mt-3">
+                  <p className="text-xs font-black text-zinc-950 leading-tight">
                     GST &amp; Taxes
                   </p>
-                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
-                    Tax invoices &amp; TDS
+                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 truncate">
+                    18% GST &amp; 1% TDS
                   </p>
                 </div>
               </button>
@@ -958,15 +970,15 @@ export function PartnerProfileScreen() {
             </h3>
 
             {/* Standee QR Card */}
-            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-xs transition-all hover:border-zinc-300 hover:shadow-sm">
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs transition-all hover:border-zinc-300 hover:shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start sm:items-center gap-3">
-                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-700">
+                <div className="flex items-start sm:items-center gap-3 min-w-0">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-700 border border-purple-100">
                     <QrCode className="size-5.5" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs font-black text-zinc-950">Store Counter QR &amp; Standee</p>
-                    <p className="text-[11px] font-medium text-zinc-500 leading-normal">
+                    <p className="text-[11px] font-medium text-zinc-500 leading-normal mt-0.5">
                       Scan QR to order or share store profile link with walk-in customers
                     </p>
                   </div>
@@ -974,7 +986,7 @@ export function PartnerProfileScreen() {
                 <button
                   type="button"
                   onClick={() => setShowQrStandeeModal(true)}
-                  className="flex items-center justify-center gap-1.5 rounded-xl border border-zinc-900 bg-zinc-950 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer shrink-0"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-900 bg-zinc-950 px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer shrink-0 self-start sm:self-auto"
                 >
                   <QrCode className="size-3.5" />
                   <span>QR &amp; Share</span>
@@ -983,13 +995,13 @@ export function PartnerProfileScreen() {
             </div>
 
             {/* Refer & Earn Card */}
-            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-xs transition-all hover:border-zinc-300 hover:shadow-sm">
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs transition-all hover:border-zinc-300 hover:shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start sm:items-center gap-3">
-                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                <div className="flex items-start sm:items-center gap-3 min-w-0">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100">
                     <Gift className="size-5.5" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <p className="text-xs font-black text-zinc-950">
                         Refer &amp; Earn ₹{referralHub?.activeRule?.referrerReward ?? 500}
@@ -1000,7 +1012,7 @@ export function PartnerProfileScreen() {
                         </span>
                       ) : null}
                     </div>
-                    <p className="text-[11px] font-medium text-zinc-500 leading-normal">
+                    <p className="text-[11px] font-medium text-zinc-500 leading-normal mt-0.5">
                       Invite a laundromat &amp; get ₹{referralHub?.activeRule?.referrerReward ?? 500} directly in your weekly bank payout
                     </p>
                   </div>
@@ -1011,7 +1023,7 @@ export function PartnerProfileScreen() {
                     setShowReferralModal(true);
                     void loadReferralHub();
                   }}
-                  className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer shrink-0"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer shrink-0 self-start sm:self-auto"
                 >
                   <Gift className="size-3.5" />
                   <span>Invite &amp; Earn</span>
@@ -1026,24 +1038,27 @@ export function PartnerProfileScreen() {
               Support &amp; Feedback
             </h3>
 
-            <div className="rounded-2xl border border-zinc-200/80 bg-white divide-y divide-zinc-100 shadow-xs overflow-hidden">
+            <div className="rounded-2xl border border-zinc-200/90 bg-white divide-y divide-zinc-100 shadow-2xs overflow-hidden">
               {/* Customer Reviews & Ratings */}
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.reviews })}
                 className="w-full flex items-center justify-between p-3.5 hover:bg-zinc-50/80 active:bg-zinc-100 transition-colors text-left cursor-pointer"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
                     <Star className="size-5 fill-amber-400 text-amber-500" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs font-bold text-zinc-950">Customer Reviews &amp; Ratings</p>
-                    <p className="text-[10px] font-medium text-zinc-500">View customer feedback, store rating &amp; reply</p>
+                    <p className="text-[10px] font-medium text-zinc-500 truncate">View customer feedback, store rating &amp; reply</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 text-zinc-400">
-                  <span className="text-[11px] font-bold text-zinc-700 hidden sm:inline">Reviews</span>
+                <div className="flex items-center gap-1.5 text-zinc-400 shrink-0">
+                  <span className="flex items-center gap-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700">
+                    <Star className="size-2.5 fill-current text-amber-500" />
+                    <span>5.0</span>
+                  </span>
                   <ChevronRight className="size-4" />
                 </div>
               </button>
@@ -1054,35 +1069,34 @@ export function PartnerProfileScreen() {
                 onClick={() => navigate({ to: partnerRoutes.help })}
                 className="w-full flex items-center justify-between p-3.5 hover:bg-zinc-50/80 active:bg-zinc-100 transition-colors text-left cursor-pointer"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
                     <HelpCircle className="size-5" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs font-bold text-zinc-950">Help Centre &amp; Support Tickets</p>
-                    <p className="text-[10px] font-medium text-zinc-500">Order assistance, fleet dispute &amp; ticket tracking</p>
+                    <p className="text-[10px] font-medium text-zinc-500 truncate">Order assistance, fleet dispute &amp; ticket tracking</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 text-zinc-400">
-                  <span className="text-[11px] font-bold text-zinc-700 hidden sm:inline">Helpdesk</span>
+                <div className="flex items-center gap-1 text-zinc-400 shrink-0">
                   <ChevronRight className="size-4" />
                 </div>
               </button>
 
               {/* 24/7 Helpline */}
               <div className="flex items-center justify-between p-3.5">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                     <Headphones className="size-5" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs font-bold text-zinc-950">Partner Help &amp; Support</p>
-                    <p className="text-[10px] font-medium text-zinc-500">Available 24/7 for active laundry partners</p>
+                    <p className="text-[10px] font-medium text-zinc-500 truncate">Available 24/7 for active laundry partners</p>
                   </div>
                 </div>
                 <a
                   href="tel:18008890123"
-                  className="flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3.5 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all shadow-2xs"
+                  className="flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3.5 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all shadow-2xs shrink-0"
                 >
                   <PhoneCall className="size-3" />
                   <span>Call 24/7</span>

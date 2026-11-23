@@ -126,7 +126,7 @@ export function OrdersScreen() {
       {/* ========================================================================= */}
       <div className="min-h-screen bg-white pb-28 text-black md:hidden">
         {/* Sticky Filter Header with Real [Online ] Switch, Action Icons & Stage Pills */}
-        <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 px-4 pt-3.5 pb-3 shadow-2xs app-header-safe">
+        <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 px-4 pt-4 pb-3.5 shadow-2xs app-header-safe">
           {/* Top Bar Row: Real Online Toggle Switch on Left, Action Icons on Right */}
           <div className="flex items-center justify-between">
             {/* Real Store Online Pill Switch matching Image 4 */}
@@ -140,7 +140,7 @@ export function OrdersScreen() {
                   const input = document.getElementById("partner-order-search-input");
                   if (input) input.focus();
                 }}
-                className="size-9 rounded-xl flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/80 active:bg-zinc-200/60 transition-all cursor-pointer"
+                className="size-9 rounded-xl flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/80 active:bg-zinc-200/60 backdrop-blur-xs transition-all cursor-pointer"
                 title="Search Orders"
               >
                 <Search className="size-4.5 stroke-[2.2]" />
@@ -148,7 +148,7 @@ export function OrdersScreen() {
 
               <Link
                 to={partnerRoutes.notifications}
-                className="relative size-9 rounded-xl flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/80 active:bg-zinc-200/60 transition-all cursor-pointer"
+                className="relative size-9 rounded-xl flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/80 active:bg-zinc-200/60 backdrop-blur-xs transition-all cursor-pointer"
                 title="Notifications"
               >
                 <Bell className="size-4.5 stroke-[2.2]" />
@@ -157,7 +157,7 @@ export function OrdersScreen() {
 
               <Link
                 to={partnerRoutes.shop}
-                className="size-9 rounded-xl flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/80 active:bg-zinc-200/60 transition-all cursor-pointer"
+                className="size-9 rounded-xl flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/80 active:bg-zinc-200/60 backdrop-blur-xs transition-all cursor-pointer"
                 title="Menu / Outlet Hub"
               >
                 <LayoutGrid className="size-4.5 stroke-[2.2]" />
@@ -174,7 +174,7 @@ export function OrdersScreen() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by ID (#QP-...), customer, phone or items..."
-              className="h-10 w-full rounded-2xl border border-zinc-200/80 bg-zinc-50/70 hover:bg-zinc-50 focus:bg-white pl-10 pr-9 text-xs font-semibold text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 focus:outline-hidden transition-all shadow-2xs"
+              className="h-10 w-full rounded-2xl border-0 bg-zinc-100/85 hover:bg-zinc-100 focus:bg-white pl-10 pr-9 text-xs font-semibold text-zinc-900 placeholder:text-zinc-400 focus:ring-1.5 focus:ring-zinc-300 focus:outline-hidden transition-all shadow-2xs"
             />
             {query ? (
               <button
