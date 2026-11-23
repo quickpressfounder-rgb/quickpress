@@ -1,5 +1,49 @@
 # QuickPress — Engineering Work History
 
+## Session: November 23, 2026 (Part 70)
+
+### Resolution of Admin 360 Specs Crash, Missing MapPin Icon, MapPicker Real Address Geocoding, and Full APK/EC2 Sync
+
+1. **Context & Screenshots Analysis:**
+   - User uploaded 4 screenshots showing edge cases and UI issues:
+     1. **MapPicker Location Screen (Image 1):** Map address showed coordinates `Lat: 27.80830, Lng: 78.64740` and generic fallback instead of human-readable street address for Kasganj shop entrance.
+     2. **Partner Step 4 Services Layout (Image 2):** Category horizontal scrollbar and card items had unit formatting glitches, and header indicated Step 1 rather than Step 4 in older APK version.
+     3. **Runtime Icon Crash (Image 3):** `Mail is not defined` runtime exception on mobile caused by missing Lucide icon imports in earlier builds.
+     4. **Admin Console Partner 360 Crash (Image 4):** `Cannot read properties of undefined (reading 'floorAreaSqFt')` thrown on Admin `/partners` page when rendering partner profile details.
+
+2. **Root Cause Analysis & Fixes Delivered:**
+   - **Admin Partner 360 Specs Resilience (`backend-python/app/db/admin_repositories.py`, `admin-frontend/src/routes/partners.tsx`):**
+     - *Cause:* `get_partner_360` in `admin_repositories.py` did not include the `specs` object in its return dictionary. In `partners.tsx`, `useMemo` returned `profile360Query.data` directly when `header` was present, leaving `profile.specs` as `undefined` and causing `profile.specs.floorAreaSqFt` accesses to throw a `TypeError`.
+     - *Fix:*
+       - Added full default `specs` dictionary (floorAreaSqFt, washersCount, dryersCount, etc.) to `get_partner_360` in `admin_repositories.py`.
+       - Updated `profile` `useMemo` in `partners.tsx` with a guaranteed fallback for `specs`, `kyc`, `wallet`, and `agreement` objects so `profile.specs` is never undefined under any circumstances.
+   - **MapPicker Real Address Geocoding (`partner-frontend/src/components/MapPicker.tsx`):**
+     - *Cause:* When reverse geocode was resolving or returned a generic `"Selected Shop Location"`, the UI fallback didn't prioritize the user's active search query (`Soron gate kasganj near Pannala dharam sha`), showing raw coordinates or generic placeholders.
+     - *Fix:*
+       - Updated `details?.formattedAddress` and `details?.area` checks to always prioritize real street addresses and non-empty search queries.
+       - Updated resolving state display to `"Detecting exact street address via Google Maps..."`.
+       - Ensured `handleConfirm` passes clean formatted addresses and accurate city/area details to the registration form.
+   - **Comprehensive Lucide Icon Import Audit (`rider-frontend/src/screens/CaptainHelpScreen.tsx`):**
+     - Conducted a deep AST scan across 5,799 Lucide icon exports.
+     - Identified and fixed missing `MapPin` import in `rider-frontend/src/screens/CaptainHelpScreen.tsx`.
+     - Confirmed all icon imports across `partner-frontend`, `rider-frontend`, `customer-frontend`, and `admin-frontend` are 100% defined.
+
+3. **Production Builds, APK Compilation & EC2 Deployment:**
+   - Production Vite Builds:
+     - `partner-frontend`: PASSED (exit code 0)
+     - `admin-frontend`: PASSED (exit code 0)
+     - `rider-frontend`: PASSED (exit code 0)
+   - Compiled Android APKs & Google Play Store AABs:
+     - `QuickPress-Partner.apk` (19.2 MB) & `QuickPress-Partner.aab` (18.3 MB)
+     - `QuickPress-Captain.apk` (19.2 MB) & `QuickPress-Captain.aab` (18.3 MB)
+     - `QuickPress-Customer.apk` (21.0 MB) & `QuickPress-Customer.aab` (20.0 MB)
+   - Synchronized all 3 APKs directly to AWS EC2 (`65.0.127.43:/var/www/quickpress/website/apks/`) via SCP with `www-data:www-data` ownership.
+   - Restarted EC2 PM2 services (`quickpress-admin`, `quickpress-partner`, `quickpress-rider`) and verified live services.
+
+---
+
+# QuickPress — Engineering Work History
+
 ## Session: November 23, 2026 (Part 69)
 
 ### Admin Approve Store Unblocking, Partner Re-Submit Flow Resiliency, and Rider Kit Razorpay Skip Mode

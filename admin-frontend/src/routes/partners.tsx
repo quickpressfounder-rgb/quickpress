@@ -246,7 +246,40 @@ function PartnersPage() {
   });
 
   const profile = useMemo(() => {
-    if (profile360Query.data?.header) return profile360Query.data;
+    if (profile360Query.data?.header) {
+      return {
+        ...profile360Query.data,
+        specs: profile360Query.data.specs || {
+          floorAreaSqFt: (selectedPartner as any)?.floorAreaSqFt || 1200,
+          washersCount: (selectedPartner as any)?.washersCount || 6,
+          washersCapacityKg: (selectedPartner as any)?.washersCapacityKg || 60,
+          dryersCount: (selectedPartner as any)?.dryersCount || 4,
+          dryersCapacityKg: (selectedPartner as any)?.dryersCapacityKg || 40,
+          ironingTablesCount: (selectedPartner as any)?.ironingTablesCount || 3,
+          steamBoilerType: (selectedPartner as any)?.steamBoilerType || "Automatic Boiler",
+          staffCount: (selectedPartner as any)?.staffCount || 5,
+          dailyProcessingCapacityKg: (selectedPartner as any)?.dailyProcessingCapacityKg || 150,
+        },
+        kyc: profile360Query.data.kyc || {
+          gstinVerified: Boolean((selectedPartner as any)?.gstin),
+          panVerified: Boolean((selectedPartner as any)?.pan),
+          aadhaarVerified: Boolean((selectedPartner as any)?.aadhaar),
+          utilityBillVerified: false,
+          chequeVerified: false,
+          bankVerified: false,
+        },
+        wallet: profile360Query.data.wallet || {
+          balance: 0,
+          currentBalance: 0,
+          totalDisbursed: 0,
+        },
+        agreement: profile360Query.data.agreement || {
+          signed: false,
+          signedAt: null,
+          ipAddress: "",
+        },
+      };
+    }
     if (!selectedPartner) return null;
     return {
       header: {

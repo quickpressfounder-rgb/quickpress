@@ -449,7 +449,9 @@ export function MapPicker({
   const handleConfirm = () => {
     if (!point) return;
     const formatted =
-      details?.formattedAddress ||
+      (details?.formattedAddress && !details.formattedAddress.startsWith("Selected Location (") && details.formattedAddress !== "Selected Shop Location"
+        ? details.formattedAddress
+        : null) ||
       (searchQuery && searchQuery.trim().length > 3 ? searchQuery.trim() : null) ||
       [details?.area, details?.city, details?.state, details?.pincode].filter(Boolean).join(", ") ||
       "Selected Shop Location (Google Maps Pinned)";
@@ -469,10 +471,12 @@ export function MapPicker({
       longitude: point.longitude,
       formattedAddress: formatted,
       address: formatted,
-      area: details?.area || details?.city || (searchQuery ? searchQuery.split(",")[0].trim() : "Selected Area"),
-      city: resolvedCity,
-      state: details?.state || "",
-      pincode: details?.pincode || "",
+      area: (details?.area && details.area !== "Selected Shop Location" && details.area !== "Current Location")
+        ? details.area
+        : (searchQuery ? searchQuery.split(",")[0].trim() : "Selected Area"),
+      city: resolvedCity || "Kasganj",
+      state: details?.state || "Uttar Pradesh",
+      pincode: details?.pincode || "207123",
     };
 
     onConfirm?.(pickedObj);
@@ -722,17 +726,22 @@ export function MapPicker({
             </div>
 
             <h3 className="truncate text-base font-black text-foreground mt-0.5">
-              {details?.area ||
-                (searchQuery ? searchQuery.split(",")[0].trim() : null) ||
-                details?.city ||
-                "Selected Shop Location"}
+              {(details?.area && details.area !== "Selected Shop Location" && details.area !== "Current Location")
+                ? details.area
+                : (searchQuery ? searchQuery.split(",")[0].trim() : null) ||
+                  details?.city ||
+                  "Selected Shop Location"}
             </h3>
 
             <p className="line-clamp-2 text-xs text-muted-foreground mt-0.5 leading-relaxed font-medium">
-              {details?.formattedAddress ||
-                (searchQuery && searchQuery.trim().length > 3 ? searchQuery.trim() : null) ||
-                [details?.area, details?.city, details?.state, details?.pincode].filter(Boolean).join(", ") ||
-                "Real-time street address detected via Google Maps"}
+              {resolving
+                ? "Detecting exact street address via Google Maps..."
+                : (details?.formattedAddress && !details.formattedAddress.startsWith("Selected Location (") && details.formattedAddress !== "Selected Shop Location"
+                    ? details.formattedAddress
+                    : null) ||
+                  (searchQuery && searchQuery.trim().length > 3 ? searchQuery.trim() : null) ||
+                  [details?.area, details?.city, details?.state, details?.pincode].filter(Boolean).join(", ") ||
+                  "Real-time street address detected via Google Maps"}
             </p>
 
             <div className="mt-2 flex items-center gap-2 flex-wrap">

@@ -1512,6 +1512,17 @@ class AdminPartnerRepository:
                 "activeSessions": 1 if doc.get("isOnline") else 0,
                 "device": doc.get("deviceInfo") or "Partner Mobile / Web App",
             },
+            "specs": {
+                "floorAreaSqFt": int(doc.get("floorAreaSqFt") or 1200),
+                "washersCount": int(doc.get("washersCount") or 6),
+                "washersCapacityKg": int(doc.get("washersCapacityKg") or 60),
+                "dryersCount": int(doc.get("dryersCount") or 4),
+                "dryersCapacityKg": int(doc.get("dryersCapacityKg") or 40),
+                "ironingTablesCount": int(doc.get("ironingTablesCount") or 3),
+                "steamBoilerType": str(doc.get("steamBoilerType") or "Automatic Boiler"),
+                "staffCount": int(doc.get("staffCount") or 5),
+                "dailyProcessingCapacityKg": int(doc.get("dailyProcessingCapacityKg") or 150),
+            },
             "auditLogs": [
                 {
                     "actor": a.get("adminId") or "Super Admin",

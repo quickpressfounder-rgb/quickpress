@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
   LifeBuoy,
   Mail,
+  MapPin,
   MessageCircle,
   MessageSquare,
   PackageCheck,
