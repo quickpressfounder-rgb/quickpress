@@ -156,6 +156,17 @@ export function CustomersPage() {
   const [reportDateFilter, setReportDateFilter] = useState<"all" | "today" | "week" | "month">("all");
   const [dossierCustomer, setDossierCustomer] = useState<AdminCustomer | null>(null);
 
+  // Lock background body scroll when Customer Dossier Modal is open (Item 44)
+  useEffect(() => {
+    if (dossierCustomer) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [dossierCustomer]);
+
   const allCustomers = customers.data ?? [];
   const stats = statsQuery.data;
 

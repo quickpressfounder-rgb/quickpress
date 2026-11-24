@@ -1071,7 +1071,7 @@ export function RidersPage() {
                               ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                               : selectedRider.live === "On delivery"
                               ? "bg-sky-50 text-sky-700 border border-sky-200"
-                              : "bg-zinc-100 text-zinc-500 border border-zinc-200"
+                              : "bg-zinc-100 text-zinc-800 border border-zinc-300 font-extrabold"
                           }`}
                         >
                           <span
@@ -1936,7 +1936,7 @@ export function RidersPage() {
                               ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                               : selectedRider.live === "On delivery"
                               ? "bg-sky-50 text-sky-700 border border-sky-200 animate-pulse"
-                              : "bg-zinc-100 text-zinc-500 border border-zinc-200"
+                              : "bg-zinc-100 text-zinc-800 border border-zinc-300 font-extrabold"
                           }`}
                         >
                           <span

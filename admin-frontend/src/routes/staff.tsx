@@ -222,6 +222,7 @@ export function StaffPage() {
   // Modals state
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
   const [deletingStaff, setDeletingStaff] = useState<StaffMember | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const allStaff = staff.data ?? [];
   const allRoles = roles.data ?? [];
@@ -1420,8 +1421,16 @@ export function StaffPage() {
             9. REVOKE / DELETE CONFIRMATION DIALOG
         ========================================================================= */}
         {deletingStaff && (
-          <Dialog open={Boolean(deletingStaff)} onOpenChange={(o) => !o && setDeletingStaff(null)}>
-            <DialogContent className="max-w-md rounded-2xl">
+          <Dialog
+            open={Boolean(deletingStaff)}
+            onOpenChange={(o) => {
+              if (!o) {
+                setDeletingStaff(null);
+                setDeleteConfirmText("");
+              }
+            }}
+          >
+            <DialogContent className="max-w-md rounded-2xl border-rose-300">
               <DialogHeader>
                 <DialogTitle className="text-sm font-black flex items-center gap-2 text-rose-600">
                   <ShieldAlert className="size-4" />
@@ -1442,20 +1451,38 @@ export function StaffPage() {
                 </ul>
               </div>
 
+              <div className="space-y-1.5 pt-1">
+                <Label className="text-xs font-bold text-rose-900">
+                  Type <span className="font-mono uppercase underline font-black">REVOKE</span> to confirm permanent deletion:
+                </Label>
+                <Input
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="REVOKE"
+                  className="h-9 text-xs font-mono uppercase font-black border-rose-300 focus:ring-rose-500 bg-rose-50/30"
+                />
+              </div>
+
               <DialogFooter className="pt-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setDeletingStaff(null)}
+                  onClick={() => {
+                    setDeletingStaff(null);
+                    setDeleteConfirmText("");
+                  }}
                   className="h-9 rounded-xl text-xs font-semibold"
                 >
                   Cancel
                 </Button>
                 <Button
                   size="sm"
-                  onClick={() => deleteMutation.mutate(deletingStaff.id)}
-                  disabled={deleteMutation.isPending}
-                  className="h-9 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs font-bold text-white shadow-xs"
+                  onClick={() => {
+                    deleteMutation.mutate(deletingStaff.id);
+                    setDeleteConfirmText("");
+                  }}
+                  disabled={deleteConfirmText.trim().toUpperCase() !== "REVOKE" || deleteMutation.isPending}
+                  className="h-9 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-xs font-bold text-white shadow-xs cursor-pointer"
                 >
                   {deleteMutation.isPending ? "Revoking..." : "Confirm & Revoke Access"}
                 </Button>

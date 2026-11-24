@@ -333,8 +333,25 @@ export function AdminLiveMap({
     markersLayer.clearLayers();
     routesLayer.clearLayers();
 
-    // 1. Render Markers
+    // 1. Render Markers with Spiderfier Coordinate Disambiguation (Item 42)
+    const coordOccurrences = new Map<string, number>();
+
     displayedUnits.forEach((unit) => {
+      // Spatial grid bucket (~20m) to detect overlapping pins
+      const coordKey = `${unit.lat.toFixed(4)}_${unit.lng.toFixed(4)}`;
+      const indexAtCoord = coordOccurrences.get(coordKey) || 0;
+      coordOccurrences.set(coordKey, indexAtCoord + 1);
+
+      // Spiderfier: apply radial fan-out offset if multiple units share identical coordinates
+      let renderLat = unit.lat;
+      let renderLng = unit.lng;
+      if (indexAtCoord > 0) {
+        const angle = indexAtCoord * (Math.PI / 3); // 60 deg spiral step
+        const radius = 0.00028 * Math.ceil(indexAtCoord / 6);
+        renderLat += radius * Math.cos(angle);
+        renderLng += radius * 1.2 * Math.sin(angle);
+      }
+
       let iconHtml = "";
 
       if (unit.type === "rider") {
@@ -382,12 +399,12 @@ export function AdminLiveMap({
         iconAnchor: [18, 18],
       });
 
-      const marker = L.marker([unit.lat, unit.lng], { icon: customIcon });
+      const marker = L.marker([renderLat, renderLng], { icon: customIcon });
 
       // Click to inspect
       marker.on("click", () => {
         setSelectedUnit(unit);
-        map.panTo([unit.lat, unit.lng], { animate: true, duration: 0.5 });
+        map.panTo([renderLat, renderLng], { animate: true, duration: 0.5 });
       });
 
       marker.addTo(markersLayer);

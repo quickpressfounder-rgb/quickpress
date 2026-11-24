@@ -1499,6 +1499,11 @@ function CreateCouponDialog({
       if (type === "flat") valStr = `₹${flatDiscount} OFF`;
       if (type === "free_delivery") valStr = "FREE DELIVERY";
 
+      const todayStr = new Date().toISOString().split("T")[0];
+      if (validTill && validTill < todayStr) {
+        throw new Error("Coupon expiry date cannot be set in the past.");
+      }
+
       return createCoupon({
         code: (code || "NEWPROMO").toUpperCase().trim(),
         type,
@@ -1750,6 +1755,7 @@ function CreateCouponDialog({
               <Label className="text-xs font-bold">Valid Till Date</Label>
               <Input
                 type="date"
+                min={new Date().toISOString().split("T")[0]}
                 value={validTill}
                 onChange={(e) => setValidTill(e.target.value)}
                 className="h-9 text-xs"
@@ -1925,7 +1931,13 @@ function EditCouponDialog({
 
           <div className="space-y-1">
             <Label className="text-xs font-bold">Valid Till Date</Label>
-            <Input type="date" value={validTill} onChange={(e) => setValidTill(e.target.value)} className="h-9 text-xs" />
+            <Input
+              type="date"
+              min={new Date().toISOString().split("T")[0]}
+              value={validTill}
+              onChange={(e) => setValidTill(e.target.value)}
+              className="h-9 text-xs"
+            />
           </div>
 
           <div className="space-y-1">

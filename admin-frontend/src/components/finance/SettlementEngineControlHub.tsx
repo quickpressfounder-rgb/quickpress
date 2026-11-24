@@ -1234,6 +1234,49 @@ export function SettlementEngineControlHub() {
           </DialogHeader>
 
           <div className="space-y-4 py-2 text-xs">
+            {/* Quick-Filter Presets (Item 41) */}
+            <div className="flex items-center gap-1.5 flex-wrap bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+              <span className="text-[10px] font-black uppercase text-slate-500 mr-1">Quick Presets:</span>
+              {[
+                { label: "Today", days: 0 },
+                { label: "Yesterday", days: 1 },
+                { label: "Last 7 Days", days: 7 },
+                { label: "Last 30 Days", days: 30 },
+                { label: "This Month (MTD)", mtd: true },
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    const toStr = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                    if (preset.mtd) {
+                      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+                      setGenStartDate(toStr(first));
+                      setGenEndDate(toStr(now));
+                    } else if (preset.days === 0) {
+                      setGenStartDate(toStr(now));
+                      setGenEndDate(toStr(now));
+                    } else if (preset.days === 1) {
+                      const yest = new Date(now);
+                      yest.setDate(yest.getDate() - 1);
+                      setGenStartDate(toStr(yest));
+                      setGenEndDate(toStr(yest));
+                    } else {
+                      const past = new Date(now);
+                      past.setDate(past.getDate() - preset.days);
+                      setGenStartDate(toStr(past));
+                      setGenEndDate(toStr(now));
+                    }
+                  }}
+                  className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white hover:bg-slate-200 text-slate-700 border border-slate-200 shadow-2xs transition-colors cursor-pointer"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs font-semibold text-slate-700">Start Date</Label>

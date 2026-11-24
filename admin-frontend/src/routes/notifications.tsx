@@ -617,7 +617,12 @@ export function NotificationsPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <Label className="text-xs font-bold text-zinc-900">Message Content / Announcement Description *</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-zinc-900">Message Content / Announcement Description *</Label>
+                    <span className="text-[10px] font-mono font-bold text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200">
+                      {form.body.length} Chars • {Math.ceil(Math.max(form.body.length, 1) / 160)} SMS Segment{Math.ceil(Math.max(form.body.length, 1) / 160) > 1 ? "s" : ""}
+                    </span>
+                  </div>
                   <Textarea
                     placeholder="Enter announcement text, promotional voucher terms, or operational guidelines..."
                     rows={4}
@@ -2035,8 +2040,8 @@ export function NotificationsPage() {
                     <Label className="text-xs font-bold text-zinc-800">
                       SMS Text (GSM 7-bit standard)
                     </Label>
-                    <span className="text-[10px] text-zinc-400 font-mono">
-                      {smsForm.message.length} / 160 Characters (1 SMS Segment)
+                    <span className="text-[10px] text-zinc-600 font-mono font-bold bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200">
+                      {smsForm.message.length} Chars • {Math.ceil(Math.max(smsForm.message.length, 1) / 160)} SMS Segment{Math.ceil(Math.max(smsForm.message.length, 1) / 160) > 1 ? "s" : ""}
                     </span>
                   </div>
                   <Textarea

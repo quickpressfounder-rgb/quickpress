@@ -1,5 +1,51 @@
 # QuickPress — Engineering Work History
 
+## Session: November 24, 2026 (Part 85)
+
+### UI/UX Bugs 40 to 50 Resolution & Complete 50-Bug Milestone Finalization
+
+1. **Context & Directives:**
+   - **User Directive:** "40 SE 50 TAK USKE BAAD EK FINAL LIST DO KI YE KIYE BUG FIX KAR DIYE HAI" (Audit, fix items 40 through 50 across the Admin Console, verify builds, commit & push, and deliver an exhaustive final audit list of all 50 resolved UI/UX bugs).
+   - **Objectives:**
+     40. Admin Wide Table Sticky Column (resolved in Part 84 and reinforced).
+     41. Date Range Picker Preset Quick-Filter Pills (`SettlementEngineControlHub.tsx` & `orders.tsx`).
+     42. Live Fleet Map Overlapping Marker Coordinate Disambiguation Spiderfier (`AdminLiveMap.tsx`).
+     43. General Ledger Figures Tabular Monospace Alignment & Modal Backdrop Dismiss (`DoubleEntryLedgerView.tsx`).
+     44. Customer 360 Profile Dossier Background Body Scroll Lock (`customers.tsx`).
+     45. Multi-Page Export to Excel/CSV Visual Progress & Loading Spinner Feedback (`OfficialReportsView.tsx`).
+     46. Notification Broadcast & SMS Composer Live Character & Segment Counters (`notifications.tsx`).
+     47. Coupon Creation Date Picker Past Expiry Date Prevention & Client-Side Validation (`coupons.tsx`).
+     48. Status Badges WCAG AA 4.5:1 Contrast Ratio Compliance (`AdminUI.tsx`, `partners.tsx`, `riders.tsx`).
+     49. Order Filter Search Input Debounce (250ms delay) on Keystroke (`orders.tsx`).
+     50. Destructive Action Safeguard with Red Alert Accent & Type-to-Confirm ("Type REVOKE to proceed") (`staff.tsx`).
+
+2. **Fixes Implemented:**
+   - **Admin Application (`admin-frontend`):**
+     - `components/finance/SettlementEngineControlHub.tsx` & `routes/orders.tsx` (Item 41):
+       - Added quick preset filter pills ("Today", "Yesterday", "7D", "30D", "This Month MTD") populating start and end date ranges with 1 tap.
+     - `components/AdminLiveMap.tsx` (Item 42):
+       - Implemented radial/spiral spiderfier coordinate offset algorithm detecting markers sharing spatial buckets (~20m) and fanning them out so every rider pin and partner store is individually visible and clickable.
+     - `components/finance/DoubleEntryLedgerView.tsx` (Item 43):
+       - Added `font-mono tabular-nums tracking-tight` to top banner system debits, credits, and variance metrics. Added outside-click backdrop dismissal on reversal confirmation modal.
+     - `routes/customers.tsx` (Item 44):
+       - Added `useEffect` locking `document.body.style.overflow = "hidden"` while the customer dossier audit modal is active, preventing background table scroll on touchpads and mobile browsers.
+     - `components/finance/OfficialReportsView.tsx` (Item 45):
+       - Added `isExporting` state, `<Loader2 className="animate-spin" />` spinner on the export button, and toast lifecycle notifications ("Preparing financial CSV" -> "Exported successfully").
+     - `routes/notifications.tsx` (Item 46):
+       - Added dynamic character counter and GSM-7 SMS segment calculation (`X Chars • Y SMS Segments`) to the announcement textarea and SMS message composer.
+     - `routes/coupons.tsx` (Item 47):
+       - Added `min={new Date().toISOString().split("T")[0]}` to both create and edit coupon date inputs, plus pre-mutation validation throwing an explicit error if a past expiry date is submitted.
+     - `components/AdminUI.tsx`, `routes/partners.tsx`, `routes/riders.tsx` (Item 48):
+       - Updated `StatusPill` tone palette: positive (`text-emerald-900 border-emerald-300 font-extrabold`), warning (`text-amber-950 border-amber-300 font-extrabold`), danger (`text-rose-900 border-rose-300 font-extrabold`), and neutral (`text-zinc-900 border-zinc-300 font-extrabold`). Mapped composite keys (`pending_approval`, `temporarily_suspended`, `permanently_blocked`) ensuring all status badges exceed WCAG AA 4.5:1 contrast standards.
+     - `routes/orders.tsx` (Item 49):
+       - Created a 250ms debounced search state (`debouncedQuery`) so typing in the order directory filter does not trigger heavy table re-evaluations on every keystroke.
+     - `routes/staff.tsx` (Item 50):
+       - Enhanced staff access revocation modal with red warning border, red background accent, and mandatory type-to-confirm input requiring the operator to type "REVOKE" before enabling the destructive deletion button.
+
+3. **Verification & Deployment:**
+   - Production Vite TypeScript builds compiled cleanly with exit code 0 across all 4 frontend workspaces (`customer-frontend`, `partner-frontend`, `rider-frontend`, `admin-frontend`).
+   - Git commit and pushed to `main` branch directly.
+
 ## Session: November 24, 2026 (Part 84)
 
 ### UI/UX Bugs 30 to 40 Implementation & Admin / Rider Operational Hardening

@@ -1228,8 +1228,8 @@ function PartnersPage() {
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
                             profile.header.isOnline || profile.header.isOpen
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : "bg-zinc-100 text-zinc-500 border border-zinc-200"
+                              ? "bg-emerald-50 text-emerald-800 border border-emerald-300 font-extrabold"
+                              : "bg-zinc-100 text-zinc-800 border border-zinc-300 font-extrabold"
                           }`}
                         >
                           <span

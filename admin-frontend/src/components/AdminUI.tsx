@@ -109,29 +109,32 @@ export function KpiGrid({
 /* ---------------------------------------------------------------- status */
 
 const TONES: Record<string, string> = {
-  positive: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  warning: "bg-amber-50 text-amber-900 border-amber-200",
-  danger: "bg-rose-50 text-rose-800 border-rose-200",
-  neutral: "bg-zinc-100 text-zinc-700 border-zinc-200",
+  positive: "bg-emerald-50 text-emerald-900 border-emerald-300 font-extrabold",
+  warning: "bg-amber-50 text-amber-950 border-amber-300 font-extrabold",
+  danger: "bg-rose-50 text-rose-900 border-rose-300 font-extrabold",
+  neutral: "bg-zinc-100 text-zinc-900 border-zinc-300 font-extrabold",
 };
 
 const POSITIVE = new Set([
   "active", "delivered", "live", "verified", "approved", "online", "settled", "resolved", "ready", "paid",
 ]);
 const WARNING = new Set([
-  "pending", "pilot", "in processing", "picked up", "out for delivery", "processing", "in progress", "scheduled",
-  "beta", "invited", "on delivery", "draft", "sending", "queued", "cod", "paused", "hidden", "medium",
+  "pending", "pending approval", "pending review", "pending verification", "kyc pending", "pilot", "in processing",
+  "picked up", "out for delivery", "processing", "in progress", "scheduled", "beta", "invited", "on delivery",
+  "draft", "sending", "queued", "cod", "paused", "hidden", "medium",
 ]);
 const DANGER = new Set([
-  "cancelled", "rejected", "suspended", "blocked", "failed", "expired", "disabled", "high", "refunded", "offline",
+  "cancelled", "rejected", "suspended", "temporarily suspended", "permanently blocked", "blocked", "failed",
+  "expired", "disabled", "high", "refunded", "offline", "inactive",
 ]);
 
 export function statusTone(value?: string): keyof typeof TONES {
   if (!value) return "neutral";
-  const key = String(value).toLowerCase();
-  if (POSITIVE.has(key)) return "positive";
-  if (WARNING.has(key)) return "warning";
-  if (DANGER.has(key)) return "danger";
+  const raw = String(value).toLowerCase().trim();
+  const key = raw.replace(/[_-]/g, " ");
+  if (POSITIVE.has(raw) || POSITIVE.has(key)) return "positive";
+  if (WARNING.has(raw) || WARNING.has(key) || key.includes("pending")) return "warning";
+  if (DANGER.has(raw) || DANGER.has(key) || key.includes("suspend") || key.includes("block")) return "danger";
   return "neutral";
 }
 

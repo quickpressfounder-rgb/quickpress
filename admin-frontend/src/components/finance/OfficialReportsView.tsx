@@ -4,6 +4,7 @@ import {
   FileText,
   Printer,
   Download,
+  Loader2,
   RefreshCw,
   Scale,
   Calendar,
@@ -49,6 +50,7 @@ export function OfficialReportsView() {
 
   const [journalSearch, setJournalSearch] = useState("");
   const [selectedLedgerAccount, setSelectedLedgerAccount] = useState<string>("ALL");
+  const [isExporting, setIsExporting] = useState(false);
 
   // Geographical Hub Configuration & Multipliers
   const hubFactor = useMemo(() => {
@@ -203,8 +205,11 @@ export function OfficialReportsView() {
     window.print();
   };
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    toast.info("Preparing and packaging official financial CSV...", { id: "csv-export" });
     try {
+      await new Promise((r) => setTimeout(r, 400));
       let csvContent = `data:text/csv;charset=utf-8,`;
       csvContent += `QUICKPRESS TECHNOLOGIES PRIVATE LIMITED\n`;
       csvContent += `CIN: U96010UW2026PTC259787 | GSTIN: ${hubGstin}\n`;
@@ -245,9 +250,11 @@ export function OfficialReportsView() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success(`Official ${activeReportTab.toUpperCase()} CSV exported.`);
+      toast.success(`Official ${activeReportTab.toUpperCase()} CSV exported successfully.`, { id: "csv-export" });
     } catch (err: any) {
-      toast.error("Failed to export report CSV.");
+      toast.error("Failed to export report CSV.", { id: "csv-export" });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -433,11 +440,16 @@ export function OfficialReportsView() {
 
             <Button
               onClick={handleExportCSV}
+              disabled={isExporting}
               variant="outline"
               className="h-9 text-xs rounded-xl font-bold gap-1.5 border-zinc-300 hover:bg-zinc-100 cursor-pointer shadow-2xs"
             >
-              <Download className="size-3.5 text-zinc-700" />
-              <span>Export CSV</span>
+              {isExporting ? (
+                <Loader2 className="size-3.5 text-zinc-700 animate-spin" />
+              ) : (
+                <Download className="size-3.5 text-zinc-700" />
+              )}
+              <span>{isExporting ? "Exporting CSV..." : "Export CSV"}</span>
             </Button>
           </div>
         </div>

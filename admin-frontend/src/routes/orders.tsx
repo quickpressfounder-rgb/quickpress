@@ -296,6 +296,14 @@ export function OrdersPage() {
 
   // Filtering & Search state for Directory
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [query]);
   const [activeTab, setActiveTab] = useState("all");
   const [city, setCity] = useState("all");
   const [area, setArea] = useState("all");
@@ -639,9 +647,9 @@ export function OrdersPage() {
     });
   }, [city, area, cityAreaMetrics]);
 
-  // Filtered rows for Directory Table
+  // Filtered rows for Directory Table (Debounced search keystroke - Item 49)
   const rows = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     return scopedOrders.filter((order) => {
       // 1. Full-Text Search Query
       if (q) {
@@ -728,7 +736,7 @@ export function OrdersPage() {
 
       return true;
     });
-  }, [scopedOrders, query, activeTab, serviceFilter, selectedPipelineStage, actionQueue, from, to]);
+  }, [scopedOrders, debouncedQuery, activeTab, serviceFilter, selectedPipelineStage, actionQueue, from, to]);
 
   const handleExportCSV = () => {
     if (rows.length === 0) {
@@ -1560,22 +1568,60 @@ export function OrdersPage() {
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="date"
-                  value={from}
-                  onChange={(e) => setFrom(e.target.value)}
-                  aria-label="From date"
-                  className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-2 text-[11px] text-zinc-700 focus:bg-white focus:border-emerald-600 focus:outline-none"
-                />
-                <span className="text-zinc-400 text-xs font-medium">to</span>
-                <input
-                  type="date"
-                  value={to}
-                  onChange={(e) => setTo(e.target.value)}
-                  aria-label="To date"
-                  className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-2 text-[11px] text-zinc-700 focus:bg-white focus:border-emerald-600 focus:outline-none"
-                />
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-1 justify-between px-0.5">
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase">Dates:</span>
+                  <div className="flex items-center gap-1">
+                    {[
+                      { label: "Today", days: 0 },
+                      { label: "7D", days: 7 },
+                      { label: "30D", days: 30 },
+                      { label: "Clear", clear: true },
+                    ].map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => {
+                          const now = new Date();
+                          const pad = (n: number) => String(n).padStart(2, "0");
+                          const toStr = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                          if (p.clear) {
+                            setFrom("");
+                            setTo("");
+                          } else if (p.days === 0) {
+                            setFrom(toStr(now));
+                            setTo(toStr(now));
+                          } else {
+                            const past = new Date(now);
+                            past.setDate(past.getDate() - p.days);
+                            setFrom(toStr(past));
+                            setTo(toStr(now));
+                          }
+                        }}
+                        className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-zinc-200/70 hover:bg-zinc-300 text-zinc-700 transition-colors"
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="date"
+                    value={from}
+                    onChange={(e) => setFrom(e.target.value)}
+                    aria-label="From date"
+                    className="h-8 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2 text-[10px] text-zinc-700 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                  <span className="text-zinc-400 text-xs font-medium">to</span>
+                  <input
+                    type="date"
+                    value={to}
+                    onChange={(e) => setTo(e.target.value)}
+                    aria-label="To date"
+                    className="h-8 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2 text-[10px] text-zinc-700 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
               </div>
             </div>
           </SectionCard>

@@ -104,7 +104,7 @@ export function DoubleEntryLedgerView() {
             <span className="text-xs font-bold text-zinc-500 uppercase">System Debits</span>
             <Scale className="size-4 text-rose-500" />
           </div>
-          <div className="text-xl font-black text-rose-600">
+          <div className="text-xl font-black text-rose-600 font-mono tabular-nums tracking-tight">
             ₹{coaData?.totalDebit?.toLocaleString("en-IN") ?? "0.00"}
           </div>
           <span className="text-[11px] text-zinc-400">Total Assets & Expenses</span>
@@ -115,7 +115,7 @@ export function DoubleEntryLedgerView() {
             <span className="text-xs font-bold text-zinc-500 uppercase">System Credits</span>
             <Scale className="size-4 text-emerald-500" />
           </div>
-          <div className="text-xl font-black text-emerald-600">
+          <div className="text-xl font-black text-emerald-600 font-mono tabular-nums tracking-tight">
             ₹{coaData?.totalCredit?.toLocaleString("en-IN") ?? "0.00"}
           </div>
           <span className="text-[11px] text-zinc-400">Total Liabilities, Equity & Revenue</span>
@@ -126,7 +126,7 @@ export function DoubleEntryLedgerView() {
             <span className="text-xs font-black text-emerald-900 uppercase">Trial Balance State</span>
             <CheckCircle2 className="size-4 text-emerald-600" />
           </div>
-          <div className="text-xl font-black text-emerald-700">
+          <div className="text-xl font-black text-emerald-700 font-mono tabular-nums tracking-tight">
             {coaData?.isBalanced ? "BALANCED (₹0.00 Variance)" : "UNBALANCED"}
           </div>
           <span className="text-[11px] text-emerald-800 font-semibold">
@@ -337,9 +337,14 @@ export function DoubleEntryLedgerView() {
         )}
       </div>
 
-      {/* Reversal Confirmation Modal */}
+      {/* Reversal Confirmation Modal (Item 43) */}
       {reversalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setReversalTarget(null);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+        >
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
