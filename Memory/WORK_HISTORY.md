@@ -4980,3 +4980,19 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
 - **Verification**:
   - `backend-python/app/api/auth.py`: PyCompile syntax verified (0 errors).
   - `admin-frontend`: Vite production build passed (2726 modules transformed, 0 errors, 2.03s).
+
+---
+
+## Session: Complete Removal of Hardcoded Database Strings (Strictly Environment-Driven)
+- **Date**: 2026-11-24
+- **User Directive**: "OPTION BUT CODE ME Kahi bhi harcodede nahi kanra hai"
+- **Architectural & Security Enhancements**:
+  1. **Purged All Hardcoded Database Credentials**:
+     - `backend-python/app/config.py`: Default values for `supabase_url`, `supabase_anon_key`, `supabase_service_role_key`, and `database_url` set to empty strings (`""`). Everything loads dynamically from `.env`.
+     - `backend-python/app/db/client.py`: Removed static cloud pooler URL and hardcoded host arrays from `_build_candidate_urls`. Database endpoints are strictly derived from `DATABASE_URL` and `SUPABASE_DATABASE_URL` environment variables.
+     - `backend-python/app/db/supabase_client.py`: Removed hardcoded container name checks; SSL detection relies purely on connection string flags (`sslmode=require` / `sslmode=disable`).
+  2. **100% Config-Driven Multi-Tenant & Account Swapping**:
+     - Any new Supabase account can be attached seamlessly simply by updating `.env` on the server without modifying a single line of application source code.
+- **Verification**:
+  - `backend-python`: PyCompile syntax verified (0 errors).
+  - Grep verification across all Python source files confirmed zero residual hardcoded database URIs.

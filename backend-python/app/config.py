@@ -34,11 +34,11 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     cors_origins: str = "https://withquickpress.com,https://www.withquickpress.com,https://quickpress.online,https://www.quickpress.online,https://ops.withquickpress.com,https://admin.withquickpress.com,https://admin.quickpress.online,https://partner.withquickpress.com,https://partner.quickpress.online,https://rider.quickpress.online,https://api.withquickpress.com,https://api.quickpress.online,https://quickpress.in,https://www.quickpress.in"
 
-    # --- Supabase / PostgreSQL Database ------------------------------
-    supabase_url: str = "https://acpxzppgjnqqhckzxcmk.supabase.co"
-    supabase_anon_key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjcHh6cHBnam5xcWhja3p4Y21rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTM5NzksImV4cCI6MjEwMzMyOTk3OX0.EL5oL0v4BQ-4dN58Yeqm-SN6LzyPGv7fpDkZQfIS794"
-    supabase_service_role_key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjcHh6cHBnam5xcWhja3p4Y21rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzc1Mzk3OSwiZXhwIjoyMTAzMzI5OTc5fQ.K-8DkX5NCKuZse6fmemukVfUoRofVpAeY3tH40ZfvXs"
-    database_url: str = "postgresql://postgres.acpxzppgjnqqhckzxcmk:QuickPress%408055@aws-0-ap-south-1.pooler.supabase.com:5432/postgres"
+    # --- Supabase / PostgreSQL Database (Loaded strictly from .env) --
+    supabase_url: str = ""
+    supabase_anon_key: str = ""
+    supabase_service_role_key: str = ""
+    database_url: str = ""
 
     # --- Firebase Admin ----------------------------------------------
     firebase_project_id: str = ""

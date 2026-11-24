@@ -231,21 +231,14 @@ def _with_id(doc: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
 
 
 def _build_candidate_urls(raw_db_url: str) -> List[str]:
+    """Extracts database candidates strictly from environment variables. Zero hardcoded strings."""
     candidates: List[str] = []
-    if raw_db_url:
-        candidates.append(raw_db_url)
-        match = re.search(r"postgresql://([^@]+)@([^:/]+)(:\d+)?(/[^?]+)?", raw_db_url)
-        if match:
-            creds = match.group(1)
-            port = match.group(3) or ":5432"
-            dbname = match.group(4) or "/quickpress"
-            for h in ["quickpress-postgres", "172.18.0.3", "127.0.0.1", "host.docker.internal", "172.17.0.1"]:
-                alt = f"postgresql://{creds}@{h}{port}{dbname}"
-                if alt not in candidates:
-                    candidates.append(alt)
-    cloud_url = "postgresql://postgres.acpxzppgjnqqhckzxcmk:QuickPress%408055@aws-0-ap-south-1.pooler.supabase.com:5432/postgres"
-    if cloud_url not in candidates:
-        candidates.append(cloud_url)
+    if raw_db_url and raw_db_url.strip():
+        candidates.append(raw_db_url.strip())
+    import os
+    backup_url = (os.getenv("SUPABASE_DATABASE_URL") or os.getenv("BACKUP_DATABASE_URL") or "").strip()
+    if backup_url and backup_url not in candidates:
+        candidates.append(backup_url)
     return candidates
 
 
