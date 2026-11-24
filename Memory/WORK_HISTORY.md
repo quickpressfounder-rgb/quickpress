@@ -4959,3 +4959,24 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
 - **Git Commits**:
   - : fix(admin-finance): resolve cashAndBank, toLocaleString, and specs crashes in partner 360 and balance sheet
   - : fix(db): support non-SSL connection for local and container postgres
+
+---
+
+## Session: Dynamic Staff Directory Authentication & Elimination of Hardcoded Emails
+- **Date**: 2026-11-24
+- **User Directive**: "iske ander email id ko hardcodede nahi kana hai jo mere staff me ad karurag un sab se login ho"
+- **Architectural & Security Enhancements**:
+  1. **Complete Elimination of Hardcoded Emails**:
+     - Removed all static email references from `backend-python/app/api/auth.py`, `admin-frontend/src/lib/require-admin-session.ts`, and `admin-frontend/src/routes/__root.tsx`.
+  2. **100% Dynamic Database Staff Authentication**:
+     - All staff logins query the live `admin_staff` database collection dynamically.
+     - Any staff member enrolled via Staff Management (`/staff`) can immediately log in by providing their business email.
+     - Role assignments (`Super Admin`, `Operations`, `Finance`, `Support`, `Hub Manager`) and specific granular permissions (`orders`, `finance`, `customers`, `riders`, etc.) are resolved strictly from the live database document.
+     - Unauthorized or un-enrolled emails receive clear 403 Forbidden feedback (`Access Denied: Email is not enrolled in the QuickPress Staff Directory`).
+     - Suspended or blocked staff members are actively locked out.
+  3. **Interactive Staff Login Form (`admin-frontend/src/routes/__root.tsx`)**:
+     - Built an inline `StaffLoginForm` inside the root error boundary with email input, dynamic status feedback, and automatic session persistence in `localStorage` (`quickpress.last_staff_email`).
+     - Preserves existing sessions and prevents infinite reload loops.
+- **Verification**:
+  - `backend-python/app/api/auth.py`: PyCompile syntax verified (0 errors).
+  - `admin-frontend`: Vite production build passed (2726 modules transformed, 0 errors, 2.03s).

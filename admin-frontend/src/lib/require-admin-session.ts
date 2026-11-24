@@ -30,20 +30,25 @@ export async function requireAdminSession(): Promise<void> {
       return;
     }
   } catch (err: any) {
-    // 2b. Resilient auto-recovery: try fallback handshake with canonical super admin
-    try {
-      const fallbackRes = await fetch("/api/auth/admin/cf-sso?email=official.quickpress@gmail.com", {
-        headers: { Accept: "application/json" },
-        credentials: "include",
-      });
-      if (fallbackRes.ok) {
-        const fallbackSession = await fallbackRes.json();
-        if (fallbackSession?.token) {
-          writeSession(fallbackSession, "admin");
-          return;
-        }
+    // 2b. Dynamic auto-recovery: try validating last authenticated staff email against live admin_staff database
+    if (typeof window !== "undefined") {
+      const lastStaffEmail = localStorage.getItem("quickpress.last_staff_email");
+      if (lastStaffEmail && lastStaffEmail.includes("@")) {
+        try {
+          const fallbackRes = await fetch(`/api/auth/admin/cf-sso?email=${encodeURIComponent(lastStaffEmail.trim().toLowerCase())}`, {
+            headers: { Accept: "application/json" },
+            credentials: "include",
+          });
+          if (fallbackRes.ok) {
+            const fallbackSession = await fallbackRes.json();
+            if (fallbackSession?.token) {
+              writeSession(fallbackSession, "admin");
+              return;
+            }
+          }
+        } catch {}
       }
-    } catch {}
+    }
 
     // Localhost / Development fallback (outside Cloudflare perimeter)
     if (

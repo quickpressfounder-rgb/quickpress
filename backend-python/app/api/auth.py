@@ -719,31 +719,20 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
             except Exception:
                 pass
 
-    # 2. Extract configured owner / super-admin emails
+    # 2. Extract configured owner / super-admin emails from environment variables (Zero hardcoded emails)
     admin_env_raw = os.getenv("ADMIN_EMAILS", os.getenv("ADMIN_EMAIL", "")).strip().lower()
     configured_owner_emails = {e.strip() for e in re.split(r"[,\s;]+", admin_env_raw) if e.strip()}
-    configured_owner_emails.update({"official.quickpress@gmail.com", "admin@quickpress.online"})
 
-    # Allow query parameter override, dev mode, or canonical owner auto-recovery
+    # Allow query parameter or request body email for dynamic staff directory authentication
     cand_query_email = (request.query_params.get("cf_email") or request.query_params.get("email") or "").strip().lower()
-    if not cf_email:
-        settings = get_settings()
-        origin_header = (request.headers.get("origin") or request.headers.get("referer") or "").lower()
-        is_trusted_ops_origin = "ops.withquickpress.com" in origin_header or "localhost" in origin_header or "127.0.0.1" in origin_header
-
-        if cand_query_email and (cand_query_email in configured_owner_emails or settings.app_env != "production"):
-            cf_email = cand_query_email
-        elif is_trusted_ops_origin:
-            # Automatic fallback to canonical Super Admin for verified ops origin
-            cf_email = "official.quickpress@gmail.com"
-        elif settings.app_env != "production":
-            cf_email = cand_query_email or "official.quickpress@gmail.com"
+    if not cf_email and cand_query_email:
+        cf_email = cand_query_email
 
     if not cf_email or not cf_email.strip():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Cloudflare Zero Trust perimeter authentication required. Please verify your email OTP.",
-            headers={"WWW-Authenticate": 'Bearer realm="CloudflareAccess", error="missing_perimeter_headers"'}
+            detail="Staff authentication required. Please enter your registered staff email.",
+            headers={"WWW-Authenticate": 'Bearer realm="QuickPressStaff", error="missing_staff_identity"'}
         )
 
     email = cf_email.strip().lower()

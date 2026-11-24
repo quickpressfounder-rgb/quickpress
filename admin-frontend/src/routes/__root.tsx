@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import "../styles.css";
 import { reportLovableError } from "@/shared/lib/lovable-error-reporting";
@@ -33,6 +33,104 @@ function NotFoundComponent() {
         </div>
       </div>
     </div>
+  );
+}
+
+function StaffLoginForm({ defaultMessage }: { defaultMessage: string }) {
+  const [email, setEmail] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("quickpress.last_staff_email") || "";
+    }
+    return "";
+  });
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setErrorMessage("Please enter a valid staff email address.");
+      return;
+    }
+    setLoading(true);
+    setErrorMessage("");
+
+    try {
+      const res = await fetch(`/api/auth/admin/cf-sso?email=${encodeURIComponent(cleanEmail)}`, {
+        headers: { Accept: "application/json" },
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data?.token) {
+        writeSession(data, "admin");
+        try {
+          localStorage.setItem("quickpress.last_staff_email", cleanEmail);
+        } catch {}
+        window.location.href = window.location.origin + "/dashboard";
+        return;
+      } else {
+        setErrorMessage(data?.detail || "Email is not enrolled in the QuickPress Staff Directory.");
+      }
+    } catch {
+      setErrorMessage("Network error connecting to backend. Please retry.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSignIn} className="mt-5 text-left space-y-3">
+      <div>
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+          Staff / Operator Business Email
+        </label>
+        <input
+          type="email"
+          required
+          autoFocus
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (errorMessage) setErrorMessage("");
+          }}
+          placeholder="e.g. staff@quickpress.online"
+          className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 text-xs text-zinc-900 bg-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all font-medium"
+        />
+      </div>
+
+      {errorMessage ? (
+        <p className="text-xs text-rose-600 font-semibold bg-rose-50 border border-rose-200/60 rounded-xl px-3 py-2">
+          {errorMessage}
+        </p>
+      ) : defaultMessage ? (
+        <p className="text-xs text-zinc-500">
+          {defaultMessage}
+        </p>
+      ) : null}
+
+      <div className="flex gap-2 pt-1">
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex-1 inline-flex items-center justify-center rounded-xl bg-zinc-900 hover:bg-zinc-800 active:scale-95 px-5 py-2.5 text-xs font-extrabold text-white transition-all shadow-md cursor-pointer disabled:opacity-50"
+        >
+          {loading ? "Verifying Staff Role..." : "Sign In to Operations Console"}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              window.location.href = window.location.origin + "/dashboard";
+            }
+          }}
+          className="rounded-xl border border-zinc-200 bg-zinc-100 px-3.5 py-2.5 text-xs font-bold text-zinc-700 hover:bg-zinc-200 transition-all cursor-pointer"
+        >
+          Reload
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -90,60 +188,53 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     return null;
   }
 
+  const isAuthError =
+    errorMsg.includes("Cloudflare") ||
+    errorMsg.includes("perimeter") ||
+    errorMsg.includes("headers") ||
+    errorMsg.includes("Zero Trust") ||
+    errorMsg.includes("Staff") ||
+    errorMsg.includes("staff") ||
+    errorMsg.includes("authentication") ||
+    errorMsg.includes("enrolled");
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 text-zinc-900">
-      <div className="max-w-md text-center p-8 bg-white rounded-3xl border border-zinc-200 shadow-xl">
+      <div className="max-w-md w-full text-center p-8 bg-white rounded-3xl border border-zinc-200 shadow-xl">
         <div className="size-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center mx-auto mb-4 font-black text-xl shadow-2xs">
           QP
         </div>
         <h1 className="text-xl font-black tracking-tight text-zinc-950">
           {errorMsg.includes("chunk") || errorMsg.includes("dynamically")
             ? "Updating QuickPress Admin..."
+            : isAuthError
+            ? "Staff Console Authentication"
             : "QuickPress Admin"}
         </h1>
-        <p className="mt-2 text-xs text-zinc-600 break-words">
-          {errorMsg.includes("chunk") || errorMsg.includes("dynamically")
-            ? "A newer version of the console was deployed. Click below to load the latest console."
-            : error?.message || "Click below to reload the console."}
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          {(errorMsg.includes("Cloudflare") || errorMsg.includes("perimeter") || errorMsg.includes("headers") || errorMsg.includes("Zero Trust")) && (
-            <button
-              onClick={async () => {
-                if (typeof window !== "undefined") {
-                  try {
-                    const res = await fetch("/api/auth/admin/cf-sso?email=official.quickpress@gmail.com", {
-                      headers: { Accept: "application/json" },
-                      credentials: "include",
-                    });
-                    if (res.ok) {
-                      const data = await res.json();
-                      if (data?.token) {
-                        writeSession(data, "admin");
-                        window.location.href = window.location.origin + "/dashboard";
-                        return;
-                      }
-                    }
-                  } catch {}
-                  window.location.href = window.location.origin + "/dashboard";
-                }
-              }}
-              className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-xs font-extrabold text-white transition-all hover:bg-zinc-800 active:scale-95 shadow-md cursor-pointer"
-            >
-              Enter as Super Admin
-            </button>
-          )}
-          <button
-            onClick={() => {
-              if (typeof window !== "undefined") {
-                window.location.href = window.location.origin + "/dashboard";
-              }
-            }}
-            className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-extrabold text-white transition-all hover:bg-emerald-500 active:scale-95 shadow-md shadow-emerald-600/20 cursor-pointer"
-          >
-            Reload Console
-          </button>
-        </div>
+
+        {isAuthError ? (
+          <StaffLoginForm defaultMessage={error?.message || "Enter your registered staff email to access your role console."} />
+        ) : (
+          <>
+            <p className="mt-2 text-xs text-zinc-600 break-words">
+              {errorMsg.includes("chunk") || errorMsg.includes("dynamically")
+                ? "A newer version of the console was deployed. Click below to load the latest console."
+                : error?.message || "Click below to reload the console."}
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <button
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.location.href = window.location.origin + "/dashboard";
+                  }
+                }}
+                className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-extrabold text-white transition-all hover:bg-emerald-500 active:scale-95 shadow-md shadow-emerald-600/20 cursor-pointer"
+              >
+                Reload Console
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
