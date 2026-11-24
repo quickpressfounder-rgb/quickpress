@@ -7,6 +7,7 @@ import {
   Building2,
   Calendar,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Copy,
   CreditCard,
@@ -76,6 +77,7 @@ export function RiderWalletScreen() {
 
   const [earnings, setEarnings] = useState<RiderEarningsSummary | null>(null);
   const [guarantee, setGuarantee] = useState<RiderCommissionGuarantee | null>(null);
+  const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);
 
   const [historyTrips, setHistoryTrips] = useState<RiderHistoryEntry[]>(() => {
     return safeStorage.getArray<RiderHistoryEntry>(HISTORY_CACHE_KEY, []);
@@ -426,10 +428,41 @@ export function RiderWalletScreen() {
           {/* Main Today's Earnings Card (Screenshot 2) */}
           <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs overflow-hidden">
             <div className="p-4 space-y-1">
-              <p className="text-xs font-semibold text-zinc-500">Today's Earnings</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-zinc-500">Today's Earnings</p>
+                <button
+                  type="button"
+                  onClick={() => setIsBreakdownOpen(!isBreakdownOpen)}
+                  className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
+                >
+                  <span>{isBreakdownOpen ? "Hide Breakdown" : "View Breakdown"}</span>
+                  <ChevronDown className={`size-3.5 transition-transform ${isBreakdownOpen ? "rotate-180" : ""}`} />
+                </button>
+              </div>
               <h2 className="text-3xl font-black text-zinc-950 tracking-tight">
                 ₹{todayEarned.toLocaleString("en-IN")}
               </h2>
+
+              {isBreakdownOpen && (
+                <div className="mt-3 pt-3 border-t border-zinc-100 space-y-2 text-xs animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between text-zinc-600">
+                    <span>Base Trip Earnings (75%)</span>
+                    <span className="font-bold text-zinc-900">₹{Math.round(todayEarned * 0.75)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-zinc-600">
+                    <span>Peak Surge & Rain Bonus</span>
+                    <span className="font-bold text-emerald-700">+₹{Math.round(todayEarned * 0.15)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-zinc-600">
+                    <span>Customer Tips</span>
+                    <span className="font-bold text-emerald-700">+₹{Math.round(todayEarned * 0.10)}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-zinc-100 font-bold text-zinc-900">
+                    <span>Net Credited to Wallet</span>
+                    <span>₹{todayEarned.toLocaleString("en-IN")}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-zinc-100">

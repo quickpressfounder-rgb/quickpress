@@ -220,7 +220,10 @@ export const DataTable = React.memo(function DataTable<T extends { id?: string }
               {headers.map((h, idx) => (
                 <TableHead
                   key={idx}
-                  className="text-[11px] font-black uppercase tracking-wider text-zinc-500 py-3.5"
+                  className={cn(
+                    "text-[11px] font-black uppercase tracking-wider text-zinc-500 py-3.5",
+                    idx === 0 && "sticky left-0 z-20 bg-zinc-50/95 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]"
+                  )}
                 >
                   {h}
                 </TableHead>
@@ -239,7 +242,13 @@ export const DataTable = React.memo(function DataTable<T extends { id?: string }
               >
                 {Array.isArray(row) ? (
                   row.map((cell, cIdx) => (
-                    <TableCell key={cIdx} className="py-3.5 text-xs text-zinc-800 font-medium">
+                    <TableCell
+                      key={cIdx}
+                      className={cn(
+                        "py-3.5 text-xs text-zinc-800 font-medium",
+                        cIdx === 0 && "sticky left-0 z-10 bg-white group-hover:bg-zinc-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]"
+                      )}
+                    >
                       {cell ?? "—"}
                     </TableCell>
                   ))
@@ -264,14 +273,18 @@ export const DataTable = React.memo(function DataTable<T extends { id?: string }
       <Table>
         <TableHeader className="bg-zinc-50/80">
           <TableRow className="border-b border-zinc-200 hover:bg-transparent">
-            {safeColumns.map((col) => (
-              <TableHead
-                key={col.key}
-                className={cn("text-[11px] font-black uppercase tracking-wider text-zinc-500 py-3.5", col.className)}
-              >
-                {col.label}
-              </TableHead>
-            ))}
+              {safeColumns.map((col, idx) => (
+                <TableHead
+                  key={col.key}
+                  className={cn(
+                    "text-[11px] font-black uppercase tracking-wider text-zinc-500 py-3.5",
+                    idx === 0 && "sticky left-0 z-20 bg-zinc-50/95 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]",
+                    col.className
+                  )}
+                >
+                  {col.label}
+                </TableHead>
+              ))}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -284,11 +297,18 @@ export const DataTable = React.memo(function DataTable<T extends { id?: string }
                 onRowClick ? "cursor-pointer" : "",
               )}
             >
-              {safeColumns.map((col) => (
-                <TableCell key={col.key} className={cn("py-3.5 text-xs text-zinc-800 font-medium", col.className)}>
-                  {col.render ? col.render(row) : (row as any)[col.key] ?? "—"}
-                </TableCell>
-              ))}
+                {safeColumns.map((col, idx) => (
+                  <TableCell
+                    key={col.key}
+                    className={cn(
+                      "py-3.5 text-xs text-zinc-800 font-medium",
+                      idx === 0 && "sticky left-0 z-10 bg-white group-hover:bg-zinc-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]",
+                      col.className
+                    )}
+                  >
+                    {col.render ? col.render(row) : (row as any)[col.key] ?? "—"}
+                  </TableCell>
+                ))}
             </TableRow>
           ))}
         </TableBody>

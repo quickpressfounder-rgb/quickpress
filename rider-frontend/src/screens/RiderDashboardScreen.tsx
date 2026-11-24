@@ -80,6 +80,17 @@ export function RiderDashboardScreen() {
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
   const [savedActiveOrder, setSavedActiveOrder] = useState<any>(null);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+
+  useEffect(() => {
+    const unsub = riderLocationEngine.subscribe((loc) => {
+      setGpsAccuracy(loc.accuracy);
+      if (loc.lat && loc.lng) {
+        setCurrentCoords({ lat: loc.lat, lng: loc.lng });
+      }
+    });
+    return () => unsub();
+  }, []);
 
   const geoWatchIdRef = useRef<number | null>(null);
 
@@ -394,6 +405,35 @@ export function RiderDashboardScreen() {
         notificationCount={unreadNotifCount}
         loading={dutyLoading}
       />
+
+      {/* Live GPS Accuracy & Signal Indicator when Online */}
+      {isOnline && (
+        <div className="shrink-0 z-20 bg-slate-900 text-white px-3.5 py-1.5 flex items-center justify-between text-[11px] font-bold border-b border-slate-800">
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`size-2 rounded-full ${
+                gpsAccuracy === null
+                  ? "bg-amber-400 animate-pulse"
+                  : gpsAccuracy <= 20
+                  ? "bg-emerald-400 shadow-sm shadow-emerald-400/50"
+                  : gpsAccuracy <= 50
+                  ? "bg-amber-400"
+                  : "bg-rose-500 animate-ping"
+              }`}
+            />
+            <span>
+              {gpsAccuracy === null
+                ? "Calibrating GPS..."
+                : gpsAccuracy <= 20
+                ? `GPS High Accuracy (±${Math.round(gpsAccuracy)}m)`
+                : gpsAccuracy <= 50
+                ? `GPS Moderate (±${Math.round(gpsAccuracy)}m)`
+                : `GPS Weak (±${Math.round(gpsAccuracy)}m) · Keep Battery Saver Off`}
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-medium font-mono">Live Sync</span>
+        </div>
+      )}
 
       {/* 3. Screen Switcher: Offline Home vs Online Map */}
       {!isOnline ? (

@@ -338,6 +338,14 @@ export function RiderIncentivesScreen() {
 
           {/* Stepper Progress Bar */}
           <div className="mt-4 pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-black text-slate-950 font-mono">
+                {completedToday} of 15 Orders Completed
+              </span>
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                {Math.min(100, Math.round((completedToday / 15) * 100))}% Target Reached
+              </span>
+            </div>
             <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1.5">
               <span>0 Rides</span>
               <span className={completedToday >= 5 ? "text-emerald-700 font-black" : ""}>5 (₹100)</span>

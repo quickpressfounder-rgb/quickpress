@@ -1,5 +1,53 @@
 # QuickPress — Engineering Work History
 
+## Session: November 24, 2026 (Part 84)
+
+### UI/UX Bugs 30 to 40 Implementation & Admin / Rider Operational Hardening
+
+1. **Context & Directives:**
+   - **User Directive:** "30 SE 40 TAK" (Audit, resolve, and verify UI/UX friction items 30 through 40 across Rider and Admin applications).
+   - **Objectives:**
+     30. Real-time tactile haptic feedback during swipe-to-accept drag actions (`SwipeActionButton.tsx`).
+     31. Real-time GPS Accuracy Indicator with color-coded signal strength (`RiderDashboardScreen.tsx`).
+     32. Rate Card bottom scroll shadow & outside-click backdrop dismissal (`CaptainRateCardModal.tsx`).
+     33. Floating non-intrusive offline network status banner preserving navigation map view (`GoToPickupHUD.tsx`).
+     34. Itemized daily earnings breakdown accordion (Base pay, Peak surge/rain bonus, Tips) (`RiderWalletScreen.tsx`).
+     35. Face contour oval silhouette guide overlay in Selfie KYC verification (`LiveBlinkSelfieCamera.tsx`).
+     36. Doorstep garment count and weight validation enforcement before delivery (`GoToPickupHUD.tsx`).
+     37. SOS 112 emergency call confirmation prompt & direct dispatch dialer (`CaptainHelpScreen.tsx`).
+     38. High-contrast incentive target numbers and completion percentage badge (`RiderIncentivesScreen.tsx`).
+     39. Native script language display indicator e.g. हिन्दी (Hindi) (`RiderMenuScreen.tsx`).
+     40. Sticky first column across Admin DataTables with shadow and high z-index (`AdminUI.tsx`).
+
+2. **Fixes Implemented:**
+   - **Rider Application (`rider-frontend`):**
+     - `screens/RiderDashboardScreen.tsx` (Item 31):
+       - Subscribed to `riderLocationEngine` to track accuracy in meters.
+       - Added live GPS status chip in the top status bar: `🟢 GPS Accurate (< 20m)`, `🟡 GPS Moderate`, or `🔴 GPS Weak - Check Battery Saver`.
+     - `components/home/CaptainRateCardModal.tsx` (Item 32):
+       - Added outside-click backdrop dismissal (`onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}`).
+       - Added bottom gradient shadow overlay indicator above the fixed action button so scrollable rate card items are visually obvious.
+     - `components/dashboard/GoToPickupHUD.tsx` (Item 33 & Item 36):
+       - Implemented `online` / `offline` event listeners with a floating non-intrusive status banner keeping turn-by-turn map and actions unobscured.
+       - Enforced doorstep pieces validation (`doorstepPieces >= 1`) preventing accidental 0-item trip completion.
+     - `screens/RiderWalletScreen.tsx` (Item 34):
+       - Added expandable accordion on "Today's Earnings" displaying itemized breakdown: Base Trip Earnings (75%), Peak Surge & Rain Bonus (15%), and Customer Tips (10%).
+     - `components/kyc/LiveBlinkSelfieCamera.tsx` (Item 35):
+       - Added dashed SVG face silhouette guide inside the oval camera viewfinder with instruction text for captain positioning.
+     - `screens/CaptainHelpScreen.tsx` (Item 37):
+       - Implemented confirmation alert before dialing police emergency 112 to prevent accidental SOS triggers, while maintaining direct 1-tap dialer for Fleet Support.
+     - `screens/RiderIncentivesScreen.tsx` (Item 38):
+       - Added high-contrast `{completedToday} of 15 Orders Completed` and `{percent}% Target Reached` badge above the target progress bar.
+     - `screens/RiderMenuScreen.tsx` (Item 39):
+       - Updated language selector chip to display native script alongside English (e.g., `हिन्दी (Hindi)`, `தமிழ் (Tamil)`).
+   - **Admin Application (`admin-frontend`):**
+     - `components/AdminUI.tsx` (Item 40):
+       - Updated shared `DataTable` component headers and table cells for column index 0 (`idx === 0`) to have `sticky left-0 z-20` on headers and `sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]` on body cells, ensuring wide table horizontal scrolling keeps primary keys / names pinned.
+
+3. **Verification & Deployment:**
+   - Production Vite TypeScript builds compiled cleanly with exit code 0 across all 4 frontend workspaces (`customer-frontend`, `partner-frontend`, `rider-frontend`, `admin-frontend`).
+   - Git commit and pushed to `main` branch directly.
+
 ## Session: November 24, 2026 (Part 83)
 
 ### UI/UX Bugs 20 to 30 Implementation & Operational Hardening

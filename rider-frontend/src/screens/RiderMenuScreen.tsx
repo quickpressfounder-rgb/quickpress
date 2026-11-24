@@ -579,9 +579,16 @@ export function RiderMenuScreen() {
             }}
             className="w-full flex items-center justify-between p-4 hover:bg-slate-50 active:bg-slate-100 transition cursor-pointer text-left"
           >
-            <span className="text-sm font-bold text-slate-900">
-              Language ({selectedLanguageObj?.nativeName || "English"})
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-slate-900">
+                Language
+              </span>
+              <span className="text-xs font-black text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                {selectedLanguageObj
+                  ? `${selectedLanguageObj.nativeName} (${selectedLanguageObj.englishName})`
+                  : "English"}
+              </span>
+            </div>
             <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
               Change
             </span>

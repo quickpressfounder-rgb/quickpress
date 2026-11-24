@@ -39,7 +39,12 @@ export const CaptainRateCardModal: React.FC<CaptainRateCardModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 select-none animate-in fade-in duration-200">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 select-none animate-in fade-in duration-200"
+    >
       <div
         className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col text-slate-900 font-sans"
         onClick={(e) => e.stopPropagation()}
@@ -133,6 +138,11 @@ export const CaptainRateCardModal: React.FC<CaptainRateCardModalProps> = ({
               Tolls and local parking charges (if applicable) are reimbursed 100% on producing valid digital receipts.
             </p>
           </div>
+        </div>
+
+        {/* Soft bottom gradient shadow indicator for scrollable slabs */}
+        <div className="relative">
+          <div className="pointer-events-none absolute -top-5 inset-x-0 h-5 bg-gradient-to-t from-white to-transparent" />
         </div>
 
         {/* Footer */}

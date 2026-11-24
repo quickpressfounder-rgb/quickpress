@@ -712,10 +712,15 @@ export const CaptainHelpScreen: React.FC<CaptainHelpScreenProps> = ({
               </div>
             </a>
 
-            {/* Emergency SOS 112 */}
+            {/* Emergency SOS 112 & Fleet Dispatch Direct Hotline */}
             <a
               href={`tel:${supportData.emergencySosNumber}`}
-              onClick={() => triggerHaptic(40)}
+              onClick={(e) => {
+                triggerHaptic(40);
+                if (!window.confirm("Call 112 National Police & Medical Emergency SOS?")) {
+                  e.preventDefault();
+                }
+              }}
               className="flex items-center gap-2 p-2.5 rounded-xl bg-rose-50/70 hover:bg-rose-100/70 border border-rose-200 text-rose-900 active:scale-98 transition-all"
             >
               <div className="size-7 rounded-lg bg-rose-600 text-white flex items-center justify-center shrink-0">
@@ -723,7 +728,7 @@ export const CaptainHelpScreen: React.FC<CaptainHelpScreenProps> = ({
               </div>
               <div className="min-w-0">
                 <p className="text-[11px] font-bold text-rose-800 truncate">Emergency SOS</p>
-                <p className="text-[9px] text-rose-600 font-semibold truncate">Police / 112</p>
+                <p className="text-[9px] text-rose-600 font-semibold truncate">Police / 112 (1-Tap)</p>
               </div>
             </a>
           </div>

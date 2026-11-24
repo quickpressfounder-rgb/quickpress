@@ -331,6 +331,16 @@ export function LiveBlinkSelfieCamera({
               <div className="w-2 h-2 rounded-full border border-white" />
             </div>
 
+            {/* SVG Face Silhouette Positioning Outline */}
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none opacity-30 p-6"
+              viewBox="0 0 100 130"
+              fill="none"
+            >
+              <ellipse cx="50" cy="55" rx="30" ry="40" stroke="white" strokeWidth="1.2" strokeDasharray="3 3" />
+              <path d="M 35 88 C 35 100, 65 100, 65 88" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+            </svg>
+
             {/* Verification Spinner / Success Icon */}
             {verifying && (
               <div className="bg-black/70 backdrop-blur-md px-4 py-3 rounded-2xl flex flex-col items-center gap-2 border border-white/20">

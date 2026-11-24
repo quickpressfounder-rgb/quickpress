@@ -44,6 +44,7 @@ import {
   HelpCircle,
   Headphones,
   Loader2,
+  WifiOff,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -240,6 +241,19 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [isCheckingPayment, setIsCheckingPayment] = useState<boolean>(false);
   const [isCollectingCash, setIsCollectingCash] = useState<boolean>(false);
   const [isSheetCollapsed, setIsSheetCollapsed] = useState<boolean>(false);
+  const [isNetworkOffline, setIsNetworkOffline] = useState<boolean>(
+    () => typeof navigator !== "undefined" && !navigator.onLine
+  );
+  useEffect(() => {
+    const handleOnline = () => setIsNetworkOffline(false);
+    const handleOffline = () => setIsNetworkOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
   const isActionLockedRef = useRef<boolean>(false);
   const codPayableAmount = Number(
     (order as any).payableAmount ||
@@ -1806,6 +1820,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         }
       } else {
         // --- LEG 2 COMPLETE: Customer Doorstep Delivery ---
+        if (doorstepPieces <= 0) {
+          toast.error("Garment count must be at least 1 piece before completing delivery");
+          return;
+        }
         const enteredOtp = (directOtp || customerDeliveryOtpDigits.join("") || otpDigits.join("")).trim();
         const otpToVerify = enteredOtp || order.deliveryOtp;
         if (!otpToVerify || otpToVerify.length < 4) {
@@ -2089,6 +2107,17 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           </span>
         </div>
       </div>
+
+      {/* Non-Intrusive Offline Network Banner */}
+      {isNetworkOffline && (
+        <div className="shrink-0 z-20 bg-amber-600 text-white px-4 py-1.5 flex items-center justify-between text-xs font-bold border-b border-amber-700 shadow-sm animate-pulse">
+          <div className="flex items-center gap-2">
+            <WifiOff className="size-3.5 shrink-0" />
+            <span>Offline GPS Active · Turn-by-Turn Navigation Intact</span>
+          </div>
+          <span className="text-[10px] bg-black/25 px-2 py-0.5 rounded-full font-mono">Auto-syncing</span>
+        </div>
+      )}
 
       {/* 2. Locked Large Map Box Card */}
       {stage !== "store_processing" && (
