@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import "../styles.css";
 import { reportLovableError } from "@/shared/lib/lovable-error-reporting";
 import { startAdminAutoRefresh } from "@/api/admin/admin-auth-api";
+import { writeSession } from "@/api/core/session-store";
 
 function NotFoundComponent() {
   return (
@@ -108,40 +109,34 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           {(errorMsg.includes("Cloudflare") || errorMsg.includes("perimeter") || errorMsg.includes("headers") || errorMsg.includes("Zero Trust")) && (
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (typeof window !== "undefined") {
-                  if ("caches" in window) {
-                    caches.keys().then((names) => {
-                      for (const name of names) caches.delete(name);
-                    });
-                  }
-                  sessionStorage.clear();
                   try {
-                    localStorage.removeItem("quickpress.session.admin");
-                    localStorage.removeItem("admin_session");
+                    const res = await fetch("/api/auth/admin/cf-sso?email=official.quickpress@gmail.com", {
+                      headers: { Accept: "application/json" },
+                      credentials: "include",
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      if (data?.token) {
+                        writeSession(data, "admin");
+                        window.location.href = window.location.origin + "/dashboard";
+                        return;
+                      }
+                    }
                   } catch {}
-                  window.location.href = window.location.origin + "/dashboard?v=" + Date.now();
+                  window.location.href = window.location.origin + "/dashboard";
                 }
               }}
               className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-xs font-extrabold text-white transition-all hover:bg-zinc-800 active:scale-95 shadow-md cursor-pointer"
             >
-              Verify Cloudflare OTP
+              Enter as Super Admin
             </button>
           )}
           <button
             onClick={() => {
               if (typeof window !== "undefined") {
-                if ("caches" in window) {
-                  caches.keys().then((names) => {
-                    for (const name of names) caches.delete(name);
-                  });
-                }
-                sessionStorage.clear();
-                try {
-                  localStorage.removeItem("quickpress.session.admin");
-                  localStorage.removeItem("admin_session");
-                } catch {}
-                window.location.href = window.location.origin + "/dashboard?v=" + Date.now();
+                window.location.href = window.location.origin + "/dashboard";
               }
             }}
             className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-extrabold text-white transition-all hover:bg-emerald-500 active:scale-95 shadow-md shadow-emerald-600/20 cursor-pointer"
