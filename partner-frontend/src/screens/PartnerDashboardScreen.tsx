@@ -797,9 +797,23 @@ export function PartnerDashboardScreen() {
 
                   <button
                     type="button"
+                    onClick={() => {
+                      playPartnerOrderChime();
+                      toast.success("Order alert audio active & unmuted!");
+                    }}
+                    title="Test Alert Chime"
+                    aria-label="Test Alert Chime"
+                    className="flex size-8.5 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shadow-2xs"
+                  >
+                    <Volume2 className="size-3.5 text-blue-600" />
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={refresh}
                     disabled={isLoading}
                     title="Refresh Live Data"
+                    aria-label="Refresh Live Data"
                     className="flex size-8.5 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shadow-2xs"
                   >
                     <RotateCcw className={`size-3.5 ${isLoading ? "animate-spin text-emerald-600" : ""}`} />

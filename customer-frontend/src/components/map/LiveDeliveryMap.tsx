@@ -472,16 +472,18 @@ export function LiveDeliveryMap({
           <button
             type="button"
             onClick={handleRecenter}
-            className="flex size-8 items-center justify-center rounded-xl bg-background/90 dark:bg-card/90 backdrop-blur-md text-foreground shadow-md border border-border/60 hover:bg-muted active:scale-95 transition-transform cursor-pointer"
+            className="flex size-8.5 items-center justify-center rounded-xl bg-background/90 dark:bg-card/90 backdrop-blur-md text-foreground shadow-md border border-border/60 hover:bg-muted active:scale-95 transition-transform cursor-pointer"
             title="Recenter Full Route"
+            aria-label="Recenter Full Route"
           >
             <Crosshair className="size-4 text-brand-green" />
           </button>
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex size-8 items-center justify-center rounded-xl bg-background/90 dark:bg-card/90 backdrop-blur-md text-foreground shadow-md border border-border/60 hover:bg-muted active:scale-95 transition-transform cursor-pointer"
+            className="flex size-8.5 items-center justify-center rounded-xl bg-background/90 dark:bg-card/90 backdrop-blur-md text-foreground shadow-md border border-border/60 hover:bg-muted active:scale-95 transition-transform cursor-pointer"
             title={`Map Theme: ${currentTheme.toUpperCase()} (Click to toggle)`}
+            aria-label="Toggle Map Theme"
           >
             {currentTheme === "voyager" ? (
               <Layers className="size-4 text-emerald-600" />
@@ -494,16 +496,18 @@ export function LiveDeliveryMap({
           <button
             type="button"
             onClick={handleZoomIn}
-            className="flex size-8 items-center justify-center rounded-xl bg-background/90 dark:bg-card/90 backdrop-blur-md text-foreground shadow-md border border-border/60 hover:bg-muted active:scale-95 transition-transform cursor-pointer"
+            className="flex size-8.5 items-center justify-center rounded-xl bg-background/90 dark:bg-card/90 backdrop-blur-md text-foreground shadow-md border border-border/60 hover:bg-muted active:scale-95 transition-transform cursor-pointer"
             title="Zoom in"
+            aria-label="Zoom in"
           >
             <ZoomIn className="size-4" />
           </button>
           <button
             type="button"
             onClick={handleZoomOut}
-            className="flex size-8 items-center justify-center rounded-xl bg-background/90 dark:bg-card/90 backdrop-blur-md text-foreground shadow-md border border-border/60 hover:bg-muted active:scale-95 transition-transform cursor-pointer"
+            className="flex size-8.5 items-center justify-center rounded-xl bg-background/90 dark:bg-card/90 backdrop-blur-md text-foreground shadow-md border border-border/60 hover:bg-muted active:scale-95 transition-transform cursor-pointer"
             title="Zoom out"
+            aria-label="Zoom out"
           >
             <ZoomOut className="size-4" />
           </button>

@@ -1477,10 +1477,19 @@ function AddressPickerModal({
             {addresses.map((addr) => (
               <div
                 key={addr.id}
+                role="radio"
+                aria-checked={addr.id === selectedId}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(addr.id);
+                  }
+                }}
                 onClick={() => onSelect(addr.id)}
-                className={`p-3 rounded-xl border flex items-start justify-between cursor-pointer transition-colors ${
+                className={`p-3 rounded-xl border flex items-start justify-between cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#0c831f] ${
                   addr.id === selectedId
-                    ? "border-[#0c831f] bg-emerald-50/50"
+                    ? "border-[#0c831f] bg-emerald-50/50 shadow-2xs"
                     : "border-zinc-200 hover:bg-zinc-50"
                 }`}
               >

@@ -259,25 +259,40 @@ function HistoryScreen() {
               ))}
             </div>
           ) : visible.length === 0 ? (
-            <div className="card-soft mt-6 border border-border px-5 py-10 text-center">
-              <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-secondary/10 text-brand-green">
-                <Clock className="size-6" />
-              </span>
-              <p className="mt-4 text-sm font-bold text-foreground">
-                {hasSearch ? "No matching orders" : "No orders yet"}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
+            <div className="card-soft mt-6 border border-border/80 bg-card/60 p-8 text-center rounded-3xl shadow-sm">
+              <div className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-emerald-500/10 text-brand-green border border-emerald-500/20 shadow-xs mb-3">
+                <Clock className="size-8 stroke-[1.8]" />
+              </div>
+              <h2 className="text-base font-black tracking-tight text-foreground">
+                {hasSearch ? "No matching orders found" : "No laundry orders yet"}
+              </h2>
+              <p className="mt-1.5 text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
                 {hasSearch
-                  ? "Try a different search term or filter."
-                  : "Your laundry orders will appear here once you book a pickup."}
+                  ? "We couldn't find any orders matching your search or status filter. Try clearing filters."
+                  : "Ready for fresh, professionally cleaned clothes? Book your first pickup in seconds!"}
               </p>
-              <button
-                type="button"
-                onClick={() => navigate({ to: "/home" })}
-                className="mt-5 rounded-full bg-gradient-to-r from-brand-green to-primary px-6 py-3 text-sm font-black tracking-tight text-background shadow-cta transition-transform duration-300 active:scale-[0.96]"
-              >
-                Book a pickup
-              </button>
+              <div className="mt-5 flex items-center justify-center gap-2.5">
+                {hasSearch ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilter("all");
+                      setQuery("");
+                      setTerm("");
+                    }}
+                    className="rounded-full bg-muted px-5 py-2.5 text-xs font-bold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer"
+                  >
+                    Clear Filters
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: "/home" })}
+                  className="rounded-full bg-brand-green hover:bg-emerald-700 px-6 py-2.5 text-xs font-black text-white shadow-md active:scale-95 transition-all cursor-pointer"
+                >
+                  Book a Pickup
+                </button>
+              </div>
             </div>
           ) : (
             <div className="stagger-children mt-5 space-y-3">

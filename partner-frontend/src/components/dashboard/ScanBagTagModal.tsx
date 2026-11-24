@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   QrCode,
@@ -25,6 +25,16 @@ export function ScanBagTagModal({ orders, onClose, onSelectOrder }: ScanBagTagMo
   const [tokenInput, setTokenInput] = useState("");
   const [matchedOrder, setMatchedOrder] = useState<ManagedOrder | null>(null);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   const handleSearch = (query: string) => {
     setTokenInput(query);
     const q = query.trim().toUpperCase();
@@ -50,7 +60,12 @@ export function ScanBagTagModal({ orders, onClose, onSelectOrder }: ScanBagTagMo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+    >
       <div className="relative w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">

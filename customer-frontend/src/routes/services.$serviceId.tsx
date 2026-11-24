@@ -391,8 +391,13 @@ function ServiceListingScreen() {
 
       {/* Special Care Consultation Modal */}
       {showConsultModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 cursor-pointer"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowConsultModal(false);
+          }}
+        >
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 cursor-default">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="size-5 text-amber-500" />

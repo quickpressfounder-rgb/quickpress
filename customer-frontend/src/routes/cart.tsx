@@ -155,9 +155,12 @@ function CartPage() {
     setCartState({ instructions: text });
   };
 
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
   const handleApplyCoupon = (code: string) => {
     const clean = code.trim().toUpperCase();
-    if (!clean) return;
+    if (!clean || isApplyingCoupon) return;
+    setIsApplyingCoupon(true);
     if (clean === "WELCOME50" || clean === "QUICK50") {
       setAppliedCoupon(clean);
       setCouponDiscount(50);
@@ -171,6 +174,7 @@ function CartPage() {
     } else {
       toast.error("Invalid coupon code. Try WELCOME50");
     }
+    setTimeout(() => setIsApplyingCoupon(false), 300);
   };
 
   const handleRemoveCoupon = () => {
@@ -405,10 +409,11 @@ function CartPage() {
               />
               <button
                 type="button"
+                disabled={isApplyingCoupon}
                 onClick={() => handleApplyCoupon(couponInput)}
-                className="rounded-xl bg-[#0c831f] hover:bg-emerald-800 px-4 py-2 text-xs font-black text-white active:scale-95 transition-transform cursor-pointer"
+                className="rounded-xl bg-[#0c831f] hover:bg-emerald-800 disabled:opacity-50 px-4 py-2 text-xs font-black text-white active:scale-95 transition-all cursor-pointer"
               >
-                Apply
+                {isApplyingCoupon ? "Applying..." : "Apply"}
               </button>
             </div>
           )}
@@ -552,7 +557,14 @@ function CartItemRow({
           <button
             type="button"
             aria-label="Decrease quantity"
-            onClick={() => (item.qty === 1 ? onRemove() : onStep(-1))}
+            onClick={() => {
+              try {
+                if (typeof window !== "undefined" && window.navigator && "vibrate" in window.navigator) {
+                  window.navigator.vibrate(15);
+                }
+              } catch {}
+              item.qty === 1 ? onRemove() : onStep(-1);
+            }}
             className="flex size-7 items-center justify-center rounded-lg text-zinc-700 hover:bg-zinc-100 transition-all active:scale-85 cursor-pointer touch-manipulation"
           >
             {item.qty === 1 ? <Trash2 className="size-3.5 text-red-500" /> : <Minus className="size-3.5 stroke-[2.5]" />}
@@ -563,7 +575,14 @@ function CartItemRow({
           <button
             type="button"
             aria-label="Increase quantity"
-            onClick={() => onStep(1)}
+            onClick={() => {
+              try {
+                if (typeof window !== "undefined" && window.navigator && "vibrate" in window.navigator) {
+                  window.navigator.vibrate(15);
+                }
+              } catch {}
+              onStep(1);
+            }}
             className="flex size-7 items-center justify-center rounded-lg bg-[#0c831f] text-white hover:bg-emerald-800 transition-all active:scale-85 cursor-pointer touch-manipulation shadow-2xs"
           >
             <Plus className="size-3.5 stroke-[2.5]" />

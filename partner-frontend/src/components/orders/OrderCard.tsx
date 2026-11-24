@@ -5,6 +5,7 @@ import {
   Clock,
   FileText,
   IndianRupee,
+  Loader2,
   MapPin,
   MoreVertical,
   Package,
@@ -453,7 +454,10 @@ export const OrderCard = React.memo(function OrderCard({
           }`}
         >
           {busyAction ? (
-            <span>Updating order...</span>
+            <span className="flex items-center justify-center gap-1.5">
+              <Loader2 className="size-4 animate-spin shrink-0" />
+              <span>Updating order...</span>
+            </span>
           ) : isNew ? (
             <span>Accept Order (01:45)</span>
           ) : isAwaitingCaptainDrop ? (
