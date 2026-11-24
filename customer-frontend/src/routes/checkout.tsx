@@ -1239,7 +1239,7 @@ export function CheckoutPage() {
       </div>
 
       {/* SECTION 8: STICKY BOTTOM ACTION BAR */}
-      <aside className="fixed inset-x-0 bottom-0 z-40 bg-white border-t border-zinc-200/90 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+      <aside className="fixed inset-x-0 bottom-0 z-40 bg-white border-t border-zinc-200/90 px-4 pt-3.5 pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         {/* Pre-order Legal Disclosure (Implied Tap Consent) */}
         <p className="pb-2 text-center text-[10.5px] leading-relaxed text-zinc-500">
           By placing this order, you agree to QuickPress{" "}
@@ -1346,8 +1346,13 @@ export function CheckoutPage() {
 
       {/* Fabric Care & Risk Consent Policy Modal */}
       {showFabricPolicyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 cursor-pointer"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowFabricPolicyModal(false);
+          }}
+        >
+          <div className="w-full max-w-md bg-white rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 cursor-default">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="size-5 text-[#0c831f]" />
@@ -1356,7 +1361,7 @@ export function CheckoutPage() {
               <button
                 type="button"
                 onClick={() => setShowFabricPolicyModal(false)}
-                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 cursor-pointer"
+                className="flex size-7 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-200 transition-colors cursor-pointer"
               >
                 <X className="size-4" />
               </button>
@@ -1435,8 +1440,13 @@ function AddressPickerModal({
   onAddNew?: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl p-5 space-y-4 shadow-2xl animate-in slide-in-from-bottom duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs p-4 cursor-pointer"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-md bg-white rounded-3xl p-5 space-y-4 shadow-2xl animate-in slide-in-from-bottom duration-200 cursor-default">
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
           <h2 className="text-sm font-black text-zinc-900">{title}</h2>
           <button

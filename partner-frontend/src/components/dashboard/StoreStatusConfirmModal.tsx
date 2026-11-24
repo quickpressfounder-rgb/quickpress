@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { CheckCircle2, Loader2, PowerOff, Radio, X } from "lucide-react";
 
 interface StoreStatusConfirmModalProps {
@@ -22,6 +23,15 @@ export function StoreStatusConfirmModal({
   onConfirm,
   isLoading = false,
 }: StoreStatusConfirmModalProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isLoading) onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isLoading, onClose]);
+
   if (!isOpen) return null;
 
   return (

@@ -599,7 +599,7 @@ function HomeScreen() {
                               decoding="async"
                             />
                           </div>
-                          <span className="text-[12px] font-black leading-tight tracking-tight text-foreground group-hover:text-zinc-950 dark:group-hover:text-zinc-100 transition-colors">
+                          <span className="text-[12px] font-black leading-tight tracking-tight text-foreground group-hover:text-zinc-950 dark:group-hover:text-zinc-100 transition-colors line-clamp-2 min-h-[28px] flex items-center justify-center">
                             {category.title}
                           </span>
                           <span className="text-[10px] font-medium leading-tight text-muted-foreground">

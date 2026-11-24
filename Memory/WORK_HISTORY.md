@@ -1,5 +1,53 @@
 # QuickPress — Engineering Work History
 
+## Session: November 24, 2026 (Part 81)
+
+### Platform-Wide UI/UX Enhancements & Interaction Hardening
+
+1. **Context & Directives:**
+   - **User Directive:** "haan" (Proceed to fix identified UI/UX friction points across QuickPress frontends).
+   - **Objectives:**
+     1. Address high-priority UI/UX bugs in Customer, Partner, Rider, and Admin apps.
+     2. Fix sticky bottom bar padding on mobile devices (Android 3-button & iPhone gesture bar).
+     3. Fix modal backdrop dismissals, coupon auto-uppercase/trimming, and stepper touch ergonomics.
+     4. Enable native OTP SMS autofill suggestions on Rider app.
+     5. Improve accessibility labels and tabular financial alignment.
+     6. Verify production builds across all 4 frontends and commit/push directly to `main` (Rule 4 & 5).
+
+2. **Fixes Implemented:**
+   - **Customer Frontend (`customer-frontend`):**
+     - `routes/cart.tsx`:
+       - Added safe-area inset bottom padding to sticky bottom checkout bar: `pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))]`.
+       - Added `autoCapitalize="characters"`, `autoCorrect="off"`, `spellCheck={false}`, and real-time uppercase trimming to coupon code input.
+       - Upgraded stepper buttons to size-7 (28px) with `touch-manipulation` for easier mobile tap ergonomics.
+     - `routes/checkout.tsx`:
+       - Added safe-area inset bottom padding to sticky bottom action bar.
+       - Added backdrop outside-click dismissal to `FabricPolicyModal` and `AddressPickerModal`.
+       - Enhanced modal close button styling for high contrast.
+     - `routes/home.tsx`:
+       - Applied `line-clamp-2 min-h-[28px]` to category card titles for consistent alignment on narrow mobile viewports.
+   - **Partner Frontend (`partner-frontend`):**
+     - `components/dashboard/StoreStatusConfirmModal.tsx`:
+       - Added keyboard `Escape` key event listener to dismiss confirmation dialog.
+     - `screens/PartnerDashboardScreen.tsx`:
+       - Added `aria-label="Card Grid View"` and `aria-label="Table Layout View"` for mobile accessibility.
+   - **Rider Frontend (`rider-frontend`):**
+     - `screens/RiderOtpScreen.tsx`:
+       - Added `pattern="[0-9]*"` and `autoComplete={idx === 0 ? "one-time-code" : "off"}` for native Android & iOS SMS autofill integration.
+   - **Admin Frontend (`admin-frontend`):**
+     - `components/finance/DoubleEntryLedgerView.tsx`:
+       - Added `font-mono tabular-nums` to Debit and Credit amounts for clean decimal alignment.
+
+3. **Verification & Deployment:**
+   - Verified clean production builds across all 4 applications:
+     - `customer-frontend`: Exit code 0
+     - `partner-frontend`: Exit code 0
+     - `rider-frontend`: Exit code 0
+     - `admin-frontend`: Exit code 0
+   - Committed and pushed directly to GitHub `origin/main` (Rule 4).
+
+---
+
 ## Session: November 24, 2026 (Part 80)
 
 ### Comprehensive Cross-Platform Bug Audit & Stability Hardening
@@ -402,6 +450,54 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 24, 2026 (Part 81)
+
+### Platform-Wide UI/UX Enhancements & Interaction Hardening
+
+1. **Context & Directives:**
+   - **User Directive:** "haan" (Proceed to fix identified UI/UX friction points across QuickPress frontends).
+   - **Objectives:**
+     1. Address high-priority UI/UX bugs in Customer, Partner, Rider, and Admin apps.
+     2. Fix sticky bottom bar padding on mobile devices (Android 3-button & iPhone gesture bar).
+     3. Fix modal backdrop dismissals, coupon auto-uppercase/trimming, and stepper touch ergonomics.
+     4. Enable native OTP SMS autofill suggestions on Rider app.
+     5. Improve accessibility labels and tabular financial alignment.
+     6. Verify production builds across all 4 frontends and commit/push directly to `main` (Rule 4 & 5).
+
+2. **Fixes Implemented:**
+   - **Customer Frontend (`customer-frontend`):**
+     - `routes/cart.tsx`:
+       - Added safe-area inset bottom padding to sticky bottom checkout bar: `pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))]`.
+       - Added `autoCapitalize="characters"`, `autoCorrect="off"`, `spellCheck={false}`, and real-time uppercase trimming to coupon code input.
+       - Upgraded stepper buttons to size-7 (28px) with `touch-manipulation` for easier mobile tap ergonomics.
+     - `routes/checkout.tsx`:
+       - Added safe-area inset bottom padding to sticky bottom action bar.
+       - Added backdrop outside-click dismissal to `FabricPolicyModal` and `AddressPickerModal`.
+       - Enhanced modal close button styling for high contrast.
+     - `routes/home.tsx`:
+       - Applied `line-clamp-2 min-h-[28px]` to category card titles for consistent alignment on narrow mobile viewports.
+   - **Partner Frontend (`partner-frontend`):**
+     - `components/dashboard/StoreStatusConfirmModal.tsx`:
+       - Added keyboard `Escape` key event listener to dismiss confirmation dialog.
+     - `screens/PartnerDashboardScreen.tsx`:
+       - Added `aria-label="Card Grid View"` and `aria-label="Table Layout View"` for mobile accessibility.
+   - **Rider Frontend (`rider-frontend`):**
+     - `screens/RiderOtpScreen.tsx`:
+       - Added `pattern="[0-9]*"` and `autoComplete={idx === 0 ? "one-time-code" : "off"}` for native Android & iOS SMS autofill integration.
+   - **Admin Frontend (`admin-frontend`):**
+     - `components/finance/DoubleEntryLedgerView.tsx`:
+       - Added `font-mono tabular-nums` to Debit and Credit amounts for clean decimal alignment.
+
+3. **Verification & Deployment:**
+   - Verified clean production builds across all 4 applications:
+     - `customer-frontend`: Exit code 0
+     - `partner-frontend`: Exit code 0
+     - `rider-frontend`: Exit code 0
+     - `admin-frontend`: Exit code 0
+   - Committed and pushed directly to GitHub `origin/main` (Rule 4).
+
+---
 
 ## Session: November 24, 2026 (Part 80)
 
@@ -726,6 +822,54 @@
 
 # QuickPress — Engineering Work History
 
+## Session: November 24, 2026 (Part 81)
+
+### Platform-Wide UI/UX Enhancements & Interaction Hardening
+
+1. **Context & Directives:**
+   - **User Directive:** "haan" (Proceed to fix identified UI/UX friction points across QuickPress frontends).
+   - **Objectives:**
+     1. Address high-priority UI/UX bugs in Customer, Partner, Rider, and Admin apps.
+     2. Fix sticky bottom bar padding on mobile devices (Android 3-button & iPhone gesture bar).
+     3. Fix modal backdrop dismissals, coupon auto-uppercase/trimming, and stepper touch ergonomics.
+     4. Enable native OTP SMS autofill suggestions on Rider app.
+     5. Improve accessibility labels and tabular financial alignment.
+     6. Verify production builds across all 4 frontends and commit/push directly to `main` (Rule 4 & 5).
+
+2. **Fixes Implemented:**
+   - **Customer Frontend (`customer-frontend`):**
+     - `routes/cart.tsx`:
+       - Added safe-area inset bottom padding to sticky bottom checkout bar: `pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))]`.
+       - Added `autoCapitalize="characters"`, `autoCorrect="off"`, `spellCheck={false}`, and real-time uppercase trimming to coupon code input.
+       - Upgraded stepper buttons to size-7 (28px) with `touch-manipulation` for easier mobile tap ergonomics.
+     - `routes/checkout.tsx`:
+       - Added safe-area inset bottom padding to sticky bottom action bar.
+       - Added backdrop outside-click dismissal to `FabricPolicyModal` and `AddressPickerModal`.
+       - Enhanced modal close button styling for high contrast.
+     - `routes/home.tsx`:
+       - Applied `line-clamp-2 min-h-[28px]` to category card titles for consistent alignment on narrow mobile viewports.
+   - **Partner Frontend (`partner-frontend`):**
+     - `components/dashboard/StoreStatusConfirmModal.tsx`:
+       - Added keyboard `Escape` key event listener to dismiss confirmation dialog.
+     - `screens/PartnerDashboardScreen.tsx`:
+       - Added `aria-label="Card Grid View"` and `aria-label="Table Layout View"` for mobile accessibility.
+   - **Rider Frontend (`rider-frontend`):**
+     - `screens/RiderOtpScreen.tsx`:
+       - Added `pattern="[0-9]*"` and `autoComplete={idx === 0 ? "one-time-code" : "off"}` for native Android & iOS SMS autofill integration.
+   - **Admin Frontend (`admin-frontend`):**
+     - `components/finance/DoubleEntryLedgerView.tsx`:
+       - Added `font-mono tabular-nums` to Debit and Credit amounts for clean decimal alignment.
+
+3. **Verification & Deployment:**
+   - Verified clean production builds across all 4 applications:
+     - `customer-frontend`: Exit code 0
+     - `partner-frontend`: Exit code 0
+     - `rider-frontend`: Exit code 0
+     - `admin-frontend`: Exit code 0
+   - Committed and pushed directly to GitHub `origin/main` (Rule 4).
+
+---
+
 ## Session: November 24, 2026 (Part 80)
 
 ### Comprehensive Cross-Platform Bug Audit & Stability Hardening
@@ -1128,6 +1272,54 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 24, 2026 (Part 81)
+
+### Platform-Wide UI/UX Enhancements & Interaction Hardening
+
+1. **Context & Directives:**
+   - **User Directive:** "haan" (Proceed to fix identified UI/UX friction points across QuickPress frontends).
+   - **Objectives:**
+     1. Address high-priority UI/UX bugs in Customer, Partner, Rider, and Admin apps.
+     2. Fix sticky bottom bar padding on mobile devices (Android 3-button & iPhone gesture bar).
+     3. Fix modal backdrop dismissals, coupon auto-uppercase/trimming, and stepper touch ergonomics.
+     4. Enable native OTP SMS autofill suggestions on Rider app.
+     5. Improve accessibility labels and tabular financial alignment.
+     6. Verify production builds across all 4 frontends and commit/push directly to `main` (Rule 4 & 5).
+
+2. **Fixes Implemented:**
+   - **Customer Frontend (`customer-frontend`):**
+     - `routes/cart.tsx`:
+       - Added safe-area inset bottom padding to sticky bottom checkout bar: `pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))]`.
+       - Added `autoCapitalize="characters"`, `autoCorrect="off"`, `spellCheck={false}`, and real-time uppercase trimming to coupon code input.
+       - Upgraded stepper buttons to size-7 (28px) with `touch-manipulation` for easier mobile tap ergonomics.
+     - `routes/checkout.tsx`:
+       - Added safe-area inset bottom padding to sticky bottom action bar.
+       - Added backdrop outside-click dismissal to `FabricPolicyModal` and `AddressPickerModal`.
+       - Enhanced modal close button styling for high contrast.
+     - `routes/home.tsx`:
+       - Applied `line-clamp-2 min-h-[28px]` to category card titles for consistent alignment on narrow mobile viewports.
+   - **Partner Frontend (`partner-frontend`):**
+     - `components/dashboard/StoreStatusConfirmModal.tsx`:
+       - Added keyboard `Escape` key event listener to dismiss confirmation dialog.
+     - `screens/PartnerDashboardScreen.tsx`:
+       - Added `aria-label="Card Grid View"` and `aria-label="Table Layout View"` for mobile accessibility.
+   - **Rider Frontend (`rider-frontend`):**
+     - `screens/RiderOtpScreen.tsx`:
+       - Added `pattern="[0-9]*"` and `autoComplete={idx === 0 ? "one-time-code" : "off"}` for native Android & iOS SMS autofill integration.
+   - **Admin Frontend (`admin-frontend`):**
+     - `components/finance/DoubleEntryLedgerView.tsx`:
+       - Added `font-mono tabular-nums` to Debit and Credit amounts for clean decimal alignment.
+
+3. **Verification & Deployment:**
+   - Verified clean production builds across all 4 applications:
+     - `customer-frontend`: Exit code 0
+     - `partner-frontend`: Exit code 0
+     - `rider-frontend`: Exit code 0
+     - `admin-frontend`: Exit code 0
+   - Committed and pushed directly to GitHub `origin/main` (Rule 4).
+
+---
 
 ## Session: November 24, 2026 (Part 80)
 

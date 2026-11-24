@@ -396,7 +396,10 @@ function CartPage() {
               <input
                 type="text"
                 value={couponInput}
-                onChange={(e) => setCouponInput(e.target.value)}
+                onChange={(e) => setCouponInput(e.target.value.toUpperCase().trim())}
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
                 placeholder="Enter promo code (e.g. WELCOME50)"
                 className="flex-1 rounded-xl border border-zinc-200 px-3 py-2 text-xs font-bold uppercase placeholder:normal-case placeholder:font-normal text-zinc-900 focus:border-[#0c831f] focus:outline-hidden"
               />
@@ -495,7 +498,7 @@ function CartPage() {
       </div>
 
       {/* Sticky Bottom Bar */}
-      <aside className="fixed inset-x-0 bottom-0 z-40 bg-white border-t border-zinc-200 p-4 shadow-xl">
+      <aside className="fixed inset-x-0 bottom-0 z-40 bg-white border-t border-zinc-200 px-4 pt-3.5 pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] shadow-xl">
         <div className="mx-auto max-w-md flex items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Grand Total</p>
@@ -545,25 +548,25 @@ function CartItemRow({
 
       <div className="flex items-center gap-2.5 shrink-0">
         {/* Quantity Stepper */}
-        <div className="flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-1.5 shadow-2xs">
+        <div className="flex h-9 items-center gap-1 rounded-xl border border-zinc-200 bg-white px-1 shadow-2xs">
           <button
             type="button"
             aria-label="Decrease quantity"
             onClick={() => (item.qty === 1 ? onRemove() : onStep(-1))}
-            className="flex size-6 items-center justify-center rounded-md text-zinc-700 hover:bg-zinc-100 transition-transform active:scale-90 cursor-pointer"
+            className="flex size-7 items-center justify-center rounded-lg text-zinc-700 hover:bg-zinc-100 transition-all active:scale-85 cursor-pointer touch-manipulation"
           >
-            {item.qty === 1 ? <Trash2 className="size-3 text-red-500" /> : <Minus className="size-3 stroke-[2.5]" />}
+            {item.qty === 1 ? <Trash2 className="size-3.5 text-red-500" /> : <Minus className="size-3.5 stroke-[2.5]" />}
           </button>
-          <span className="w-5 text-center text-xs font-black text-zinc-900 tabular-nums">
+          <span className="w-6 text-center text-xs font-black text-zinc-900 tabular-nums">
             {item.qty}
           </span>
           <button
             type="button"
             aria-label="Increase quantity"
             onClick={() => onStep(1)}
-            className="flex size-6 items-center justify-center rounded-md bg-[#0c831f] text-white transition-transform active:scale-90 cursor-pointer"
+            className="flex size-7 items-center justify-center rounded-lg bg-[#0c831f] text-white hover:bg-emerald-800 transition-all active:scale-85 cursor-pointer touch-manipulation shadow-2xs"
           >
-            <Plus className="size-3 stroke-[2.5]" />
+            <Plus className="size-3.5 stroke-[2.5]" />
           </button>
         </div>
 

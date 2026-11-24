@@ -964,6 +964,7 @@ export function PartnerDashboardScreen() {
                           : "text-zinc-500 hover:text-zinc-900"
                       }`}
                       title="Card Grid"
+                      aria-label="Card Grid View"
                     >
                       <LayoutGrid className="size-3.5" />
                       <span className="hidden sm:inline">Cards</span>
@@ -977,6 +978,7 @@ export function PartnerDashboardScreen() {
                           : "text-zinc-500 hover:text-zinc-900"
                       }`}
                       title="Table Layout"
+                      aria-label="Table Layout View"
                     >
                       <LayoutList className="size-3.5" />
                       <span className="hidden sm:inline">Table</span>

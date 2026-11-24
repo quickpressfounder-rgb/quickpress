@@ -267,14 +267,14 @@ export function DoubleEntryLedgerView() {
                   <td className="py-3 px-4 text-zinc-600 max-w-xs truncate">
                     {entry.description}
                   </td>
-                  <td className="py-3 px-4 text-right font-black">
+                  <td className="py-3 px-4 text-right font-black font-mono tabular-nums">
                     {entry.debit > 0 ? (
                       <span className="text-rose-600">₹{entry.debit.toFixed(2)}</span>
                     ) : (
                       <span className="text-zinc-300">-</span>
                     )}
                   </td>
-                  <td className="py-3 px-4 text-right font-black">
+                  <td className="py-3 px-4 text-right font-black font-mono tabular-nums">
                     {entry.credit > 0 ? (
                       <span className="text-emerald-600">₹{entry.credit.toFixed(2)}</span>
                     ) : (
