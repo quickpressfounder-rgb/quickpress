@@ -4996,3 +4996,20 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
 - **Verification**:
   - `backend-python`: PyCompile syntax verified (0 errors).
   - Grep verification across all Python source files confirmed zero residual hardcoded database URIs.
+
+---
+
+## Session: Successful Migration to New Supabase Project & Zero-Data-Loss Migration
+- **Date**: 2026-11-24
+- **User Directive**: Switched to fresh Supabase Cloud project (`amqwiplknadnkqirjxhc`) using Transaction Pooler (`aws-1-ap-south-1.pooler.supabase.com:6543`).
+- **Architectural & Migration Accomplishments**:
+  1. **Zero Data Loss Migration**:
+     - Migrated all 135 live business records across all collections (`partners`, `partner_profiles`, `partner_services`, `admin_cities`, `admin_services`, `admin_staff`, `customers`, `riders`, `users`, `wallets`) directly into the new Supabase Cloud database (`amqwiplknadnkqirjxhc`).
+     - Established primary key constraint `PRIMARY KEY (id)` for seamless `ON CONFLICT (id) DO UPDATE` document synchronization.
+  2. **Production High-Performance Transaction Pooler**:
+     - Configured Transaction Pooler port `6543` (`aws-1-ap-south-1.pooler.supabase.com:6543`) with `statement_cache_size=0`, eliminating session client exhaustion limits.
+     - Updated `DATABASE_URL` and `SUPABASE_URL` across server `.env` files on EC2 and local environment.
+  3. **Verification**:
+     - API health check verified live: `{"status":"ok","service":"quickpress-backend","env":"production","database":"supabase-postgresql","firebase":true}`.
+     - Admin SSO verified and returned authenticated session with 30 days token expiry.
+     - Partner stores verified live in new Supabase (`LUNDARY KING`, `QuickPress Express Cleaners`).
