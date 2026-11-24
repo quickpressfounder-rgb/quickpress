@@ -1,5 +1,49 @@
 # QuickPress — Engineering Work History
 
+## Session: November 24, 2026 (Part 78)
+
+### Full Platform Mobile APK & Google Play AAB Build & Direct Public Deployment
+
+1. **Context & Directives:**
+   - **User Directive:** "apk"
+   - **Objective:** Generate fresh, production-ready Android APKs and Google Play Store AAB bundles for all 3 QuickPress mobile platforms (**QuickPress Customer App**, **QuickPress Partner Hub**, **QuickPress Captain Fleet App**). Ensure native assets reflect all latest frontend modifications, Supabase live database synchronization, radar removal, offline bottom sheets, and statutory TDS removals. Deliver direct public download links via EC2 production server (`https://withquickpress.com/apks/`).
+
+2. **Automated Toolchain & Multi-Platform Compilation:**
+   - Executed `python3 build_all_apks.py all` with complete toolchain configuration (Node v22, Java 17 LTS, Android SDK):
+     - **Web Production Bundling:** Vite SSR bundles built with `NITRO_PRESET=node-server` and `VITE_API_BASE_URL=https://api.withquickpress.com`.
+     - **Capacitor Asset Synchronization:** Native Android assets synchronized, stripping external server URLs for pure offline-ready native performance.
+     - **Gradle Compilation:** Executed `./gradlew clean assembleDebug` and `./gradlew bundleDebug` across all 3 platforms.
+   - **Generated Artifacts:**
+     - **QuickPress Customer App:** `QuickPress-Customer.apk` (21 MB) & `QuickPress-Customer.aab` (20 MB)
+     - **QuickPress Partner Hub App:** `QuickPress-Partner.apk` (19 MB) & `QuickPress-Partner.aab` (18 MB)
+     - **QuickPress Captain Fleet App:** `QuickPress-Captain.apk` (19 MB) & `QuickPress-Captain.aab` (18 MB)
+
+3. **Public Deployment & Verification:**
+   - Uploaded all fresh `.apk` and `.aab` artifacts to EC2 production directory: `/var/www/quickpress/website/apks/` (and linked to `/var/www/withquickpress.com/apks/`).
+   - Verified live HTTP/2 200 responses with exact Content-Lengths from Cloudflare edge:
+     - `https://withquickpress.com/apks/QuickPress-Partner.apk` (200 OK)
+     - `https://withquickpress.com/apks/QuickPress-Customer.apk` (200 OK)
+     - `https://withquickpress.com/apks/QuickPress-Captain.apk` (200 OK)
+   - Synchronized all 6 artifacts into active conversation brain storage.
+
+---
+
+## Session: November 24, 2026 (Part 77)
+
+### Fresh Supabase Cloud Migration, Zero-Data-Loss Migration, and Dynamic Database-Driven Auth
+
+1. **Context & Directives:**
+   - **User Directives:** Migration to fresh Supabase project (`amqwiplknadnkqirjxhc`), absolute zero hardcoded credentials/emails in codebase, and 100% environment-driven configuration.
+   - **Database Architecture:**
+     - Switched to dual-stack IPv4 Supabase Connection Pooler: `aws-1-ap-south-1.pooler.supabase.com:6543/postgres` (transaction mode).
+     - Migrated all 135 live documents from EC2 to new Supabase Cloud database with zero data loss.
+     - Configured `PRIMARY KEY (id)` constraint on `quickpress_documents` for atomic `ON CONFLICT (id)` operations.
+   - **Zero Hardcoding Enforcement:**
+     - Removed hardcoded credentials from `backend-python/app/config.py`, `client.py`, and `supabase_client.py`.
+     - Removed hardcoded admin emails from `admin-frontend/src/routes/__root.tsx` and `require-admin-session.ts`, replacing with dynamic database authentication against `admin_staff`.
+
+---
+
 ## Session: November 23, 2026 (Part 76)
 
 ### Permanent Database Connectivity Architecture: Docker Network Orphan Endpoint Elimination, Zero Silent In-Memory Degradation, Multi-Host Failover Proxy & Automated Watchdog
@@ -266,6 +310,50 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 24, 2026 (Part 78)
+
+### Full Platform Mobile APK & Google Play AAB Build & Direct Public Deployment
+
+1. **Context & Directives:**
+   - **User Directive:** "apk"
+   - **Objective:** Generate fresh, production-ready Android APKs and Google Play Store AAB bundles for all 3 QuickPress mobile platforms (**QuickPress Customer App**, **QuickPress Partner Hub**, **QuickPress Captain Fleet App**). Ensure native assets reflect all latest frontend modifications, Supabase live database synchronization, radar removal, offline bottom sheets, and statutory TDS removals. Deliver direct public download links via EC2 production server (`https://withquickpress.com/apks/`).
+
+2. **Automated Toolchain & Multi-Platform Compilation:**
+   - Executed `python3 build_all_apks.py all` with complete toolchain configuration (Node v22, Java 17 LTS, Android SDK):
+     - **Web Production Bundling:** Vite SSR bundles built with `NITRO_PRESET=node-server` and `VITE_API_BASE_URL=https://api.withquickpress.com`.
+     - **Capacitor Asset Synchronization:** Native Android assets synchronized, stripping external server URLs for pure offline-ready native performance.
+     - **Gradle Compilation:** Executed `./gradlew clean assembleDebug` and `./gradlew bundleDebug` across all 3 platforms.
+   - **Generated Artifacts:**
+     - **QuickPress Customer App:** `QuickPress-Customer.apk` (21 MB) & `QuickPress-Customer.aab` (20 MB)
+     - **QuickPress Partner Hub App:** `QuickPress-Partner.apk` (19 MB) & `QuickPress-Partner.aab` (18 MB)
+     - **QuickPress Captain Fleet App:** `QuickPress-Captain.apk` (19 MB) & `QuickPress-Captain.aab` (18 MB)
+
+3. **Public Deployment & Verification:**
+   - Uploaded all fresh `.apk` and `.aab` artifacts to EC2 production directory: `/var/www/quickpress/website/apks/` (and linked to `/var/www/withquickpress.com/apks/`).
+   - Verified live HTTP/2 200 responses with exact Content-Lengths from Cloudflare edge:
+     - `https://withquickpress.com/apks/QuickPress-Partner.apk` (200 OK)
+     - `https://withquickpress.com/apks/QuickPress-Customer.apk` (200 OK)
+     - `https://withquickpress.com/apks/QuickPress-Captain.apk` (200 OK)
+   - Synchronized all 6 artifacts into active conversation brain storage.
+
+---
+
+## Session: November 24, 2026 (Part 77)
+
+### Fresh Supabase Cloud Migration, Zero-Data-Loss Migration, and Dynamic Database-Driven Auth
+
+1. **Context & Directives:**
+   - **User Directives:** Migration to fresh Supabase project (`amqwiplknadnkqirjxhc`), absolute zero hardcoded credentials/emails in codebase, and 100% environment-driven configuration.
+   - **Database Architecture:**
+     - Switched to dual-stack IPv4 Supabase Connection Pooler: `aws-1-ap-south-1.pooler.supabase.com:6543/postgres` (transaction mode).
+     - Migrated all 135 live documents from EC2 to new Supabase Cloud database with zero data loss.
+     - Configured `PRIMARY KEY (id)` constraint on `quickpress_documents` for atomic `ON CONFLICT (id)` operations.
+   - **Zero Hardcoding Enforcement:**
+     - Removed hardcoded credentials from `backend-python/app/config.py`, `client.py`, and `supabase_client.py`.
+     - Removed hardcoded admin emails from `admin-frontend/src/routes/__root.tsx` and `require-admin-session.ts`, replacing with dynamic database authentication against `admin_staff`.
+
+---
 
 ## Session: November 23, 2026 (Part 76)
 
@@ -454,6 +542,50 @@
 
 # QuickPress — Engineering Work History
 
+## Session: November 24, 2026 (Part 78)
+
+### Full Platform Mobile APK & Google Play AAB Build & Direct Public Deployment
+
+1. **Context & Directives:**
+   - **User Directive:** "apk"
+   - **Objective:** Generate fresh, production-ready Android APKs and Google Play Store AAB bundles for all 3 QuickPress mobile platforms (**QuickPress Customer App**, **QuickPress Partner Hub**, **QuickPress Captain Fleet App**). Ensure native assets reflect all latest frontend modifications, Supabase live database synchronization, radar removal, offline bottom sheets, and statutory TDS removals. Deliver direct public download links via EC2 production server (`https://withquickpress.com/apks/`).
+
+2. **Automated Toolchain & Multi-Platform Compilation:**
+   - Executed `python3 build_all_apks.py all` with complete toolchain configuration (Node v22, Java 17 LTS, Android SDK):
+     - **Web Production Bundling:** Vite SSR bundles built with `NITRO_PRESET=node-server` and `VITE_API_BASE_URL=https://api.withquickpress.com`.
+     - **Capacitor Asset Synchronization:** Native Android assets synchronized, stripping external server URLs for pure offline-ready native performance.
+     - **Gradle Compilation:** Executed `./gradlew clean assembleDebug` and `./gradlew bundleDebug` across all 3 platforms.
+   - **Generated Artifacts:**
+     - **QuickPress Customer App:** `QuickPress-Customer.apk` (21 MB) & `QuickPress-Customer.aab` (20 MB)
+     - **QuickPress Partner Hub App:** `QuickPress-Partner.apk` (19 MB) & `QuickPress-Partner.aab` (18 MB)
+     - **QuickPress Captain Fleet App:** `QuickPress-Captain.apk` (19 MB) & `QuickPress-Captain.aab` (18 MB)
+
+3. **Public Deployment & Verification:**
+   - Uploaded all fresh `.apk` and `.aab` artifacts to EC2 production directory: `/var/www/quickpress/website/apks/` (and linked to `/var/www/withquickpress.com/apks/`).
+   - Verified live HTTP/2 200 responses with exact Content-Lengths from Cloudflare edge:
+     - `https://withquickpress.com/apks/QuickPress-Partner.apk` (200 OK)
+     - `https://withquickpress.com/apks/QuickPress-Customer.apk` (200 OK)
+     - `https://withquickpress.com/apks/QuickPress-Captain.apk` (200 OK)
+   - Synchronized all 6 artifacts into active conversation brain storage.
+
+---
+
+## Session: November 24, 2026 (Part 77)
+
+### Fresh Supabase Cloud Migration, Zero-Data-Loss Migration, and Dynamic Database-Driven Auth
+
+1. **Context & Directives:**
+   - **User Directives:** Migration to fresh Supabase project (`amqwiplknadnkqirjxhc`), absolute zero hardcoded credentials/emails in codebase, and 100% environment-driven configuration.
+   - **Database Architecture:**
+     - Switched to dual-stack IPv4 Supabase Connection Pooler: `aws-1-ap-south-1.pooler.supabase.com:6543/postgres` (transaction mode).
+     - Migrated all 135 live documents from EC2 to new Supabase Cloud database with zero data loss.
+     - Configured `PRIMARY KEY (id)` constraint on `quickpress_documents` for atomic `ON CONFLICT (id)` operations.
+   - **Zero Hardcoding Enforcement:**
+     - Removed hardcoded credentials from `backend-python/app/config.py`, `client.py`, and `supabase_client.py`.
+     - Removed hardcoded admin emails from `admin-frontend/src/routes/__root.tsx` and `require-admin-session.ts`, replacing with dynamic database authentication against `admin_staff`.
+
+---
+
 ## Session: November 23, 2026 (Part 76)
 
 ### Permanent Database Connectivity Architecture: Docker Network Orphan Endpoint Elimination, Zero Silent In-Memory Degradation, Multi-Host Failover Proxy & Automated Watchdog
@@ -720,6 +852,50 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 24, 2026 (Part 78)
+
+### Full Platform Mobile APK & Google Play AAB Build & Direct Public Deployment
+
+1. **Context & Directives:**
+   - **User Directive:** "apk"
+   - **Objective:** Generate fresh, production-ready Android APKs and Google Play Store AAB bundles for all 3 QuickPress mobile platforms (**QuickPress Customer App**, **QuickPress Partner Hub**, **QuickPress Captain Fleet App**). Ensure native assets reflect all latest frontend modifications, Supabase live database synchronization, radar removal, offline bottom sheets, and statutory TDS removals. Deliver direct public download links via EC2 production server (`https://withquickpress.com/apks/`).
+
+2. **Automated Toolchain & Multi-Platform Compilation:**
+   - Executed `python3 build_all_apks.py all` with complete toolchain configuration (Node v22, Java 17 LTS, Android SDK):
+     - **Web Production Bundling:** Vite SSR bundles built with `NITRO_PRESET=node-server` and `VITE_API_BASE_URL=https://api.withquickpress.com`.
+     - **Capacitor Asset Synchronization:** Native Android assets synchronized, stripping external server URLs for pure offline-ready native performance.
+     - **Gradle Compilation:** Executed `./gradlew clean assembleDebug` and `./gradlew bundleDebug` across all 3 platforms.
+   - **Generated Artifacts:**
+     - **QuickPress Customer App:** `QuickPress-Customer.apk` (21 MB) & `QuickPress-Customer.aab` (20 MB)
+     - **QuickPress Partner Hub App:** `QuickPress-Partner.apk` (19 MB) & `QuickPress-Partner.aab` (18 MB)
+     - **QuickPress Captain Fleet App:** `QuickPress-Captain.apk` (19 MB) & `QuickPress-Captain.aab` (18 MB)
+
+3. **Public Deployment & Verification:**
+   - Uploaded all fresh `.apk` and `.aab` artifacts to EC2 production directory: `/var/www/quickpress/website/apks/` (and linked to `/var/www/withquickpress.com/apks/`).
+   - Verified live HTTP/2 200 responses with exact Content-Lengths from Cloudflare edge:
+     - `https://withquickpress.com/apks/QuickPress-Partner.apk` (200 OK)
+     - `https://withquickpress.com/apks/QuickPress-Customer.apk` (200 OK)
+     - `https://withquickpress.com/apks/QuickPress-Captain.apk` (200 OK)
+   - Synchronized all 6 artifacts into active conversation brain storage.
+
+---
+
+## Session: November 24, 2026 (Part 77)
+
+### Fresh Supabase Cloud Migration, Zero-Data-Loss Migration, and Dynamic Database-Driven Auth
+
+1. **Context & Directives:**
+   - **User Directives:** Migration to fresh Supabase project (`amqwiplknadnkqirjxhc`), absolute zero hardcoded credentials/emails in codebase, and 100% environment-driven configuration.
+   - **Database Architecture:**
+     - Switched to dual-stack IPv4 Supabase Connection Pooler: `aws-1-ap-south-1.pooler.supabase.com:6543/postgres` (transaction mode).
+     - Migrated all 135 live documents from EC2 to new Supabase Cloud database with zero data loss.
+     - Configured `PRIMARY KEY (id)` constraint on `quickpress_documents` for atomic `ON CONFLICT (id)` operations.
+   - **Zero Hardcoding Enforcement:**
+     - Removed hardcoded credentials from `backend-python/app/config.py`, `client.py`, and `supabase_client.py`.
+     - Removed hardcoded admin emails from `admin-frontend/src/routes/__root.tsx` and `require-admin-session.ts`, replacing with dynamic database authentication against `admin_staff`.
+
+---
 
 ## Session: November 23, 2026 (Part 76)
 
