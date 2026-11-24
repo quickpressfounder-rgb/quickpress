@@ -128,10 +128,13 @@ export async function refreshSession(explicitRole?: AccountRole): Promise<AuthSe
       return persist(next);
     } catch (err: any) {
       if (err instanceof ApiError && (err.status === 401 || err.kind === "unauthorized")) {
-        clearSession(target);
-        return null;
+        const msg = String(err.message || "").toLowerCase();
+        if (msg.includes("terminated") || msg.includes("not found") || msg.includes("suspended") || msg.includes("blocked")) {
+          clearSession(target);
+          return null;
+        }
       }
-      // Network timeout / restart: preserve current session
+      // Network timeout / restart / transient: preserve current session
       return current;
     } finally {
       activeRefreshPromise = null;

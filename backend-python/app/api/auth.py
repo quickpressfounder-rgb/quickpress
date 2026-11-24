@@ -54,6 +54,43 @@ async def _enrich_account(account: AccountResponse, user: User) -> AccountRespon
                 "analytics", "notifications", "support", "staff", "settings"
             ]
 
+    # Attach Customer Real Identity & Onboarding Status
+    if user.role == Role.customer:
+        try:
+            cust = await database.find_one(
+                "customers",
+                {
+                    "$or": [
+                        {"userId": user.id},
+                        {"user_id": user.id},
+                        {"_id": user.id},
+                        {"_id": user.linked_id},
+                        *([{"phone": user.phone}, {"mobile": user.phone}] if user.phone else []),
+                        *([{"phone": user.phone.replace("+91", "").strip()}, {"mobile": user.phone.replace("+91", "").strip()}] if user.phone else []),
+                    ]
+                },
+            )
+            if cust:
+                cust_name = cust.get("name") or cust.get("fullName")
+                if cust_name and str(cust_name).strip():
+                    real_c_name = str(cust_name).strip()
+                    account.name = real_c_name
+                    # Also keep users table in sync if user.display_name is empty or an email
+                    if not user.display_name or "@" in user.display_name:
+                        try:
+                            await database.update(
+                                "users",
+                                {"_id": user.id},
+                                {"$set": {"display_name": real_c_name}},
+                            )
+                        except Exception:
+                            pass
+                if cust.get("city") and not account.city:
+                    account.city = str(cust.get("city"))
+                account.isOnboarded = True
+        except Exception as c_exc:
+            _log.warning("Customer account enrichment error: %s", c_exc)
+
     # Attach Partner Real Identity, Store Name & Verification / Onboarding Status
     if user.role == Role.partner:
         try:
@@ -449,30 +486,72 @@ async def get_me(user: User = Depends(current_user)) -> AccountResponse:
 
 @router.post("/refresh", response_model=AuthSessionResponse)
 async def refresh(payload: RefreshRequest) -> AuthSessionResponse:
-    claims = decode_token(payload.refresh_token, expected_type="refresh")
-    token_id = str(claims.get("jti"))
-    is_valid, token_doc = await refresh_tokens.is_active_or_grace(token_id, grace_seconds=30)
-    if not is_valid:
-        if token_doc and token_doc.get("revoked", False):
-            raise HTTPException(status_code=401, detail="Refresh token revoked")
-        if not token_doc:
-            _log.info("Self-healing valid refresh token with missing DB doc for user %s", claims.get("sub"))
-    user = await users.by_id(str(claims.get("sub")))
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    raw_token = payload.get_token()
+    if not raw_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Refresh token is required",
+        )
 
-    new_session = await _issue_session(user)
-
-    # If token was active (not yet rotated), mark it revoked and track child token
-    if token_doc and not token_doc.get("revoked", False):
+    claims = None
+    try:
+        claims = decode_token(raw_token, expected_type="refresh")
+    except HTTPException:
         try:
-            new_claims = decode_token(new_session.refreshToken, expected_type="refresh")
-            new_token_id = str(new_claims.get("jti"))
+            claims = decode_token(raw_token, expected_type="access")
         except Exception:
-            new_token_id = None
-        await refresh_tokens.revoke(token_id, replaced_by=new_token_id)
+            pass
 
-    return new_session
+    if not claims:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
+
+    sub = str(claims.get("sub") or "")
+    if not sub:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token claims")
+
+    user = await users.by_id(sub)
+    if user is None:
+        user = await users.by_email(sub)
+    if user is None:
+        staff_doc = await database.find_one("admin_staff", {"_id": sub}) or await database.find_one("admin_staff", {"email": sub})
+        if staff_doc:
+            user = User(
+                id=str(staff_doc.get("_id") or staff_doc.get("id")),
+                email=staff_doc.get("email", ""),
+                phone=staff_doc.get("phone", ""),
+                display_name=staff_doc.get("name") or staff_doc.get("fullName", "Admin"),
+                role=Role.admin,
+                status=UserStatus.active,
+                is_verified=True,
+                is_onboarded=True,
+            )
+
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account not found")
+
+    if user.status in (UserStatus.suspended, UserStatus.blocked):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account has been suspended or blocked")
+
+    # Instant session termination: reject tokens issued before user's last logout
+    iat = claims.get("iat", 0)
+    if getattr(user, "logged_out_at", None):
+        try:
+            lo_dt = user.logged_out_at
+            lo_ts = lo_dt.timestamp() if hasattr(lo_dt, "timestamp") else 0
+            if iat and lo_ts and iat < int(lo_ts):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Session has been terminated. Please log in again.",
+                )
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+
+    return await _issue_session(user)
 
 
 # =========================================================================

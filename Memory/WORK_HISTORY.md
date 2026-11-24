@@ -1,5 +1,56 @@
 # QuickPress — Engineering Work History
 
+## Session: November 24, 2026 (Part 79)
+
+### Resolution of Repeated Login Name Prompts, Resilient Refresh Token Engine & Permanent Session Persistence
+
+1. **Context & Directives:**
+   - **User Directive:** "ab iske ander login ke time har baar name mang raha hai iso solve karo or refresh token kaam nahi kar raha hsayad pata nahi bahut jaldi logout ho jaa raha hai"
+   - **Objectives:**
+     1. Eliminate repeated name prompt on login: ensure existing users, onboarded accounts, and Google/social logins are never trapped in a mandatory name entry flow.
+     2. Fix refresh token expiration & race conditions: prevent premature logouts, eliminate false-positive 401 "Refresh token revoked" errors, and guarantee permanent session persistence across app backgrounding, WebView sleep, and device restarts.
+     3. Recompile and deploy updated Android APKs and Play Store AAB bundles.
+
+2. **Root Cause Analysis Identified:**
+   - **Issue A: Name Prompt Loop on Login (`customer-frontend/src/routes/login.tsx`):**
+     - `isGenericName()` previously contained `if (clean.includes("@")) return true;`, which flagged ANY user whose display name was an email (common in Google sign-in) as an invalid generic name.
+     - `_enrich_account()` in `backend-python/app/api/auth.py` did not check the `customers` database collection, leaving customer `account.name` defaulted to email/phone even when customer document (`CUST-KAS-01`) already had `'Himanshu Pal'`.
+     - In `customer-frontend/src/routes/login.tsx`, `restoreCustomerSession()` auto-login intercepted returning users and diverted them into `setStep("name")`.
+     - Name dismissal was stored only in ephemeral `sessionStorage`, which was wiped whenever Android cleared WebView memory.
+   - **Issue B: Premature Logouts & Refresh Token Failures (`backend-python/app/api/auth.py`):**
+     - Refresh tokens were being aggressively single-use rotated and marked `revoked: True` after a strict 30-second grace window (`grace_seconds=30`).
+     - Any mobile background wake-up, network delay, or concurrent request using the prior token was hit with `HTTPException(401, detail="Refresh token revoked")`.
+     - Client `auth-service.ts` immediately cleared stored sessions on ANY 401 response from `/refresh`, kicking the user out to the login screen.
+     - `RefreshRequest` schema expected strictly `refresh_token` (snake_case), causing 422 errors if camelCase was dispatched.
+
+3. **Engineering Fixes Applied:**
+   - **Backend (`backend-python`):**
+     - `app/api/auth.py`:
+       - Enhanced `_enrich_account()` to check `customers` collection by `userId`, `_id`, and phone candidates. Syncs real name (`Himanshu Pal`) to `users` collection and sets `account.isOnboarded = True`.
+       - Overhauled `POST /api/auth/refresh` to be completely resilient: decodes cryptographically signed refresh tokens directly, verifies active user account status and explicit logout timestamps (`logged_out_at`), and reissues fresh sessions without 30s rotation dropoffs.
+     - `app/models/auth.py`:
+       - Updated `RefreshRequest` and `LogoutRequest` to accept both `refresh_token` and `refreshToken` with `.get_token()` helper.
+     - `app/db/profile_repositories.py`:
+       - Synchronized profile updates to both `users` and `customers` collections.
+     - Deployed backend updates to EC2 (`quickpress-backend` container) and verified with automated test: `Account name returned: Himanshu Pal, isNewUser: False, Second refresh with same token OK`.
+   - **Frontend (`customer-frontend`, `partner-frontend`, `rider-frontend`, `admin-frontend`):**
+     - `customer-frontend/src/routes/login.tsx`:
+       - Removed email `@` check from `isGenericName`.
+       - Guarded `handleAuthSuccess` so only brand new, non-onboarded, non-dismissed accounts with missing names see the prompt.
+       - Updated `restoreCustomerSession()` auto-login to route directly to destination without intercepting into name prompt.
+       - Stored dismissal in persistent `localStorage`.
+     - `api/core/auth-service.ts`:
+       - Guarded `refreshSession` in all apps so sessions are ONLY cleared on explicit permanent terminations (`terminated`, `not found`, `suspended`, `blocked`), protecting against transient network blips and retry windows.
+     - `customer-frontend/src/api/core/session-store.ts`:
+       - Guaranteed `writeSession` writes directly to `localStorage` for permanent mobile persistence.
+
+4. **Multi-Platform Compilation & Verification:**
+   - Compiled all 3 Android APKs and Play Store AAB bundles via `python3 build_all_apks.py all`.
+   - Deployed all binaries to EC2 `/var/www/quickpress/website/apks/`.
+   - Verified live HTTP/2 200 responses with exact Content-Lengths on `https://withquickpress.com/apks/`.
+
+---
+
 ## Session: November 24, 2026 (Part 78)
 
 ### Full Platform Mobile APK & Google Play AAB Build & Direct Public Deployment
@@ -310,6 +361,57 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 24, 2026 (Part 79)
+
+### Resolution of Repeated Login Name Prompts, Resilient Refresh Token Engine & Permanent Session Persistence
+
+1. **Context & Directives:**
+   - **User Directive:** "ab iske ander login ke time har baar name mang raha hai iso solve karo or refresh token kaam nahi kar raha hsayad pata nahi bahut jaldi logout ho jaa raha hai"
+   - **Objectives:**
+     1. Eliminate repeated name prompt on login: ensure existing users, onboarded accounts, and Google/social logins are never trapped in a mandatory name entry flow.
+     2. Fix refresh token expiration & race conditions: prevent premature logouts, eliminate false-positive 401 "Refresh token revoked" errors, and guarantee permanent session persistence across app backgrounding, WebView sleep, and device restarts.
+     3. Recompile and deploy updated Android APKs and Play Store AAB bundles.
+
+2. **Root Cause Analysis Identified:**
+   - **Issue A: Name Prompt Loop on Login (`customer-frontend/src/routes/login.tsx`):**
+     - `isGenericName()` previously contained `if (clean.includes("@")) return true;`, which flagged ANY user whose display name was an email (common in Google sign-in) as an invalid generic name.
+     - `_enrich_account()` in `backend-python/app/api/auth.py` did not check the `customers` database collection, leaving customer `account.name` defaulted to email/phone even when customer document (`CUST-KAS-01`) already had `'Himanshu Pal'`.
+     - In `customer-frontend/src/routes/login.tsx`, `restoreCustomerSession()` auto-login intercepted returning users and diverted them into `setStep("name")`.
+     - Name dismissal was stored only in ephemeral `sessionStorage`, which was wiped whenever Android cleared WebView memory.
+   - **Issue B: Premature Logouts & Refresh Token Failures (`backend-python/app/api/auth.py`):**
+     - Refresh tokens were being aggressively single-use rotated and marked `revoked: True` after a strict 30-second grace window (`grace_seconds=30`).
+     - Any mobile background wake-up, network delay, or concurrent request using the prior token was hit with `HTTPException(401, detail="Refresh token revoked")`.
+     - Client `auth-service.ts` immediately cleared stored sessions on ANY 401 response from `/refresh`, kicking the user out to the login screen.
+     - `RefreshRequest` schema expected strictly `refresh_token` (snake_case), causing 422 errors if camelCase was dispatched.
+
+3. **Engineering Fixes Applied:**
+   - **Backend (`backend-python`):**
+     - `app/api/auth.py`:
+       - Enhanced `_enrich_account()` to check `customers` collection by `userId`, `_id`, and phone candidates. Syncs real name (`Himanshu Pal`) to `users` collection and sets `account.isOnboarded = True`.
+       - Overhauled `POST /api/auth/refresh` to be completely resilient: decodes cryptographically signed refresh tokens directly, verifies active user account status and explicit logout timestamps (`logged_out_at`), and reissues fresh sessions without 30s rotation dropoffs.
+     - `app/models/auth.py`:
+       - Updated `RefreshRequest` and `LogoutRequest` to accept both `refresh_token` and `refreshToken` with `.get_token()` helper.
+     - `app/db/profile_repositories.py`:
+       - Synchronized profile updates to both `users` and `customers` collections.
+     - Deployed backend updates to EC2 (`quickpress-backend` container) and verified with automated test: `Account name returned: Himanshu Pal, isNewUser: False, Second refresh with same token OK`.
+   - **Frontend (`customer-frontend`, `partner-frontend`, `rider-frontend`, `admin-frontend`):**
+     - `customer-frontend/src/routes/login.tsx`:
+       - Removed email `@` check from `isGenericName`.
+       - Guarded `handleAuthSuccess` so only brand new, non-onboarded, non-dismissed accounts with missing names see the prompt.
+       - Updated `restoreCustomerSession()` auto-login to route directly to destination without intercepting into name prompt.
+       - Stored dismissal in persistent `localStorage`.
+     - `api/core/auth-service.ts`:
+       - Guarded `refreshSession` in all apps so sessions are ONLY cleared on explicit permanent terminations (`terminated`, `not found`, `suspended`, `blocked`), protecting against transient network blips and retry windows.
+     - `customer-frontend/src/api/core/session-store.ts`:
+       - Guaranteed `writeSession` writes directly to `localStorage` for permanent mobile persistence.
+
+4. **Multi-Platform Compilation & Verification:**
+   - Compiled all 3 Android APKs and Play Store AAB bundles via `python3 build_all_apks.py all`.
+   - Deployed all binaries to EC2 `/var/www/quickpress/website/apks/`.
+   - Verified live HTTP/2 200 responses with exact Content-Lengths on `https://withquickpress.com/apks/`.
+
+---
 
 ## Session: November 24, 2026 (Part 78)
 
@@ -542,6 +644,57 @@
 
 # QuickPress — Engineering Work History
 
+## Session: November 24, 2026 (Part 79)
+
+### Resolution of Repeated Login Name Prompts, Resilient Refresh Token Engine & Permanent Session Persistence
+
+1. **Context & Directives:**
+   - **User Directive:** "ab iske ander login ke time har baar name mang raha hai iso solve karo or refresh token kaam nahi kar raha hsayad pata nahi bahut jaldi logout ho jaa raha hai"
+   - **Objectives:**
+     1. Eliminate repeated name prompt on login: ensure existing users, onboarded accounts, and Google/social logins are never trapped in a mandatory name entry flow.
+     2. Fix refresh token expiration & race conditions: prevent premature logouts, eliminate false-positive 401 "Refresh token revoked" errors, and guarantee permanent session persistence across app backgrounding, WebView sleep, and device restarts.
+     3. Recompile and deploy updated Android APKs and Play Store AAB bundles.
+
+2. **Root Cause Analysis Identified:**
+   - **Issue A: Name Prompt Loop on Login (`customer-frontend/src/routes/login.tsx`):**
+     - `isGenericName()` previously contained `if (clean.includes("@")) return true;`, which flagged ANY user whose display name was an email (common in Google sign-in) as an invalid generic name.
+     - `_enrich_account()` in `backend-python/app/api/auth.py` did not check the `customers` database collection, leaving customer `account.name` defaulted to email/phone even when customer document (`CUST-KAS-01`) already had `'Himanshu Pal'`.
+     - In `customer-frontend/src/routes/login.tsx`, `restoreCustomerSession()` auto-login intercepted returning users and diverted them into `setStep("name")`.
+     - Name dismissal was stored only in ephemeral `sessionStorage`, which was wiped whenever Android cleared WebView memory.
+   - **Issue B: Premature Logouts & Refresh Token Failures (`backend-python/app/api/auth.py`):**
+     - Refresh tokens were being aggressively single-use rotated and marked `revoked: True` after a strict 30-second grace window (`grace_seconds=30`).
+     - Any mobile background wake-up, network delay, or concurrent request using the prior token was hit with `HTTPException(401, detail="Refresh token revoked")`.
+     - Client `auth-service.ts` immediately cleared stored sessions on ANY 401 response from `/refresh`, kicking the user out to the login screen.
+     - `RefreshRequest` schema expected strictly `refresh_token` (snake_case), causing 422 errors if camelCase was dispatched.
+
+3. **Engineering Fixes Applied:**
+   - **Backend (`backend-python`):**
+     - `app/api/auth.py`:
+       - Enhanced `_enrich_account()` to check `customers` collection by `userId`, `_id`, and phone candidates. Syncs real name (`Himanshu Pal`) to `users` collection and sets `account.isOnboarded = True`.
+       - Overhauled `POST /api/auth/refresh` to be completely resilient: decodes cryptographically signed refresh tokens directly, verifies active user account status and explicit logout timestamps (`logged_out_at`), and reissues fresh sessions without 30s rotation dropoffs.
+     - `app/models/auth.py`:
+       - Updated `RefreshRequest` and `LogoutRequest` to accept both `refresh_token` and `refreshToken` with `.get_token()` helper.
+     - `app/db/profile_repositories.py`:
+       - Synchronized profile updates to both `users` and `customers` collections.
+     - Deployed backend updates to EC2 (`quickpress-backend` container) and verified with automated test: `Account name returned: Himanshu Pal, isNewUser: False, Second refresh with same token OK`.
+   - **Frontend (`customer-frontend`, `partner-frontend`, `rider-frontend`, `admin-frontend`):**
+     - `customer-frontend/src/routes/login.tsx`:
+       - Removed email `@` check from `isGenericName`.
+       - Guarded `handleAuthSuccess` so only brand new, non-onboarded, non-dismissed accounts with missing names see the prompt.
+       - Updated `restoreCustomerSession()` auto-login to route directly to destination without intercepting into name prompt.
+       - Stored dismissal in persistent `localStorage`.
+     - `api/core/auth-service.ts`:
+       - Guarded `refreshSession` in all apps so sessions are ONLY cleared on explicit permanent terminations (`terminated`, `not found`, `suspended`, `blocked`), protecting against transient network blips and retry windows.
+     - `customer-frontend/src/api/core/session-store.ts`:
+       - Guaranteed `writeSession` writes directly to `localStorage` for permanent mobile persistence.
+
+4. **Multi-Platform Compilation & Verification:**
+   - Compiled all 3 Android APKs and Play Store AAB bundles via `python3 build_all_apks.py all`.
+   - Deployed all binaries to EC2 `/var/www/quickpress/website/apks/`.
+   - Verified live HTTP/2 200 responses with exact Content-Lengths on `https://withquickpress.com/apks/`.
+
+---
+
 ## Session: November 24, 2026 (Part 78)
 
 ### Full Platform Mobile APK & Google Play AAB Build & Direct Public Deployment
@@ -852,6 +1005,57 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 24, 2026 (Part 79)
+
+### Resolution of Repeated Login Name Prompts, Resilient Refresh Token Engine & Permanent Session Persistence
+
+1. **Context & Directives:**
+   - **User Directive:** "ab iske ander login ke time har baar name mang raha hai iso solve karo or refresh token kaam nahi kar raha hsayad pata nahi bahut jaldi logout ho jaa raha hai"
+   - **Objectives:**
+     1. Eliminate repeated name prompt on login: ensure existing users, onboarded accounts, and Google/social logins are never trapped in a mandatory name entry flow.
+     2. Fix refresh token expiration & race conditions: prevent premature logouts, eliminate false-positive 401 "Refresh token revoked" errors, and guarantee permanent session persistence across app backgrounding, WebView sleep, and device restarts.
+     3. Recompile and deploy updated Android APKs and Play Store AAB bundles.
+
+2. **Root Cause Analysis Identified:**
+   - **Issue A: Name Prompt Loop on Login (`customer-frontend/src/routes/login.tsx`):**
+     - `isGenericName()` previously contained `if (clean.includes("@")) return true;`, which flagged ANY user whose display name was an email (common in Google sign-in) as an invalid generic name.
+     - `_enrich_account()` in `backend-python/app/api/auth.py` did not check the `customers` database collection, leaving customer `account.name` defaulted to email/phone even when customer document (`CUST-KAS-01`) already had `'Himanshu Pal'`.
+     - In `customer-frontend/src/routes/login.tsx`, `restoreCustomerSession()` auto-login intercepted returning users and diverted them into `setStep("name")`.
+     - Name dismissal was stored only in ephemeral `sessionStorage`, which was wiped whenever Android cleared WebView memory.
+   - **Issue B: Premature Logouts & Refresh Token Failures (`backend-python/app/api/auth.py`):**
+     - Refresh tokens were being aggressively single-use rotated and marked `revoked: True` after a strict 30-second grace window (`grace_seconds=30`).
+     - Any mobile background wake-up, network delay, or concurrent request using the prior token was hit with `HTTPException(401, detail="Refresh token revoked")`.
+     - Client `auth-service.ts` immediately cleared stored sessions on ANY 401 response from `/refresh`, kicking the user out to the login screen.
+     - `RefreshRequest` schema expected strictly `refresh_token` (snake_case), causing 422 errors if camelCase was dispatched.
+
+3. **Engineering Fixes Applied:**
+   - **Backend (`backend-python`):**
+     - `app/api/auth.py`:
+       - Enhanced `_enrich_account()` to check `customers` collection by `userId`, `_id`, and phone candidates. Syncs real name (`Himanshu Pal`) to `users` collection and sets `account.isOnboarded = True`.
+       - Overhauled `POST /api/auth/refresh` to be completely resilient: decodes cryptographically signed refresh tokens directly, verifies active user account status and explicit logout timestamps (`logged_out_at`), and reissues fresh sessions without 30s rotation dropoffs.
+     - `app/models/auth.py`:
+       - Updated `RefreshRequest` and `LogoutRequest` to accept both `refresh_token` and `refreshToken` with `.get_token()` helper.
+     - `app/db/profile_repositories.py`:
+       - Synchronized profile updates to both `users` and `customers` collections.
+     - Deployed backend updates to EC2 (`quickpress-backend` container) and verified with automated test: `Account name returned: Himanshu Pal, isNewUser: False, Second refresh with same token OK`.
+   - **Frontend (`customer-frontend`, `partner-frontend`, `rider-frontend`, `admin-frontend`):**
+     - `customer-frontend/src/routes/login.tsx`:
+       - Removed email `@` check from `isGenericName`.
+       - Guarded `handleAuthSuccess` so only brand new, non-onboarded, non-dismissed accounts with missing names see the prompt.
+       - Updated `restoreCustomerSession()` auto-login to route directly to destination without intercepting into name prompt.
+       - Stored dismissal in persistent `localStorage`.
+     - `api/core/auth-service.ts`:
+       - Guarded `refreshSession` in all apps so sessions are ONLY cleared on explicit permanent terminations (`terminated`, `not found`, `suspended`, `blocked`), protecting against transient network blips and retry windows.
+     - `customer-frontend/src/api/core/session-store.ts`:
+       - Guaranteed `writeSession` writes directly to `localStorage` for permanent mobile persistence.
+
+4. **Multi-Platform Compilation & Verification:**
+   - Compiled all 3 Android APKs and Play Store AAB bundles via `python3 build_all_apks.py all`.
+   - Deployed all binaries to EC2 `/var/www/quickpress/website/apks/`.
+   - Verified live HTTP/2 200 responses with exact Content-Lengths on `https://withquickpress.com/apks/`.
+
+---
 
 ## Session: November 24, 2026 (Part 78)
 

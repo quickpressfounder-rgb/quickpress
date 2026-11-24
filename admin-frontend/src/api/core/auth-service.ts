@@ -135,9 +135,15 @@ export async function refreshSession(explicitRole?: AccountRole): Promise<AuthSe
         { anonymous: true },
       );
       return persist(next);
-    } catch {
-      clearSession(targetRole);
-      return null;
+    } catch (err: any) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        const msg = String(err.message || "").toLowerCase();
+        if (msg.includes("terminated") || msg.includes("not found") || msg.includes("suspended") || msg.includes("blocked")) {
+          clearSession(targetRole);
+          return null;
+        }
+      }
+      return current;
     } finally {
       activeRefreshPromise = null;
     }

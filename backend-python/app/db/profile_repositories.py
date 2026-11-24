@@ -81,6 +81,21 @@ class ProfileRepository:
             changes["display_name"] = name_val
             changes["name"] = name_val
             changes["is_onboarded"] = True
+            try:
+                await database.collection("customers").update_many(
+                    {
+                        "$or": [
+                            {"_id": user.id},
+                            {"userId": user.id},
+                            {"user_id": user.id},
+                            *([{"phone": user.phone}, {"mobile": user.phone}] if user.phone else []),
+                            *([{"phone": user.phone.replace("+91", "").strip()}, {"mobile": user.phone.replace("+91", "").strip()}] if user.phone else []),
+                        ]
+                    },
+                    {"$set": {"name": name_val, "fullName": name_val}},
+                )
+            except Exception:
+                pass
         if payload.email is not None:
             changes["email"] = payload.email.strip()
         if payload.city is not None:

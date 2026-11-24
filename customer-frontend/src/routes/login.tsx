@@ -80,11 +80,9 @@ export function isGenericName(name?: string | null): boolean {
   if (!name) return true;
   const clean = name.trim().toLowerCase();
   if (clean.length < 2) return true;
-  // If numeric or phone number string
+  // If purely numeric or phone number string
   if (/^\+?\d+$/.test(clean.replace(/\s+/g, ""))) return true;
-  // If email format
-  if (clean.includes("@")) return true;
-  return GENERIC_NAMES.some((g) => clean === g || clean.startsWith(g));
+  return GENERIC_NAMES.some((g) => clean === g);
 }
 
 /** Typographic brand lockup — wordmark instead of a logo mark. */
@@ -151,10 +149,15 @@ function AuthScreen() {
 
     const candidateName = session.account?.name || "";
     const isNew = Boolean(session.account?.isNewUser);
-    const isGeneric = isGenericName(candidateName);
+    const isOnboarded = Boolean(session.account?.isOnboarded);
+    const isDismissed =
+      typeof window !== "undefined" &&
+      (localStorage.getItem("qp_name_prompt_dismissed") === "true" ||
+        sessionStorage.getItem("qp_name_prompt_dismissed") === "true");
 
-    if (isNew || isGeneric) {
-      setInitialSuggestedName(isGeneric ? "" : candidateName);
+    // Only prompt name if brand NEW user AND not onboarded AND not dismissed AND name is truly missing or generic
+    if (isNew && !isOnboarded && !isDismissed && isGenericName(candidateName)) {
+      setInitialSuggestedName(isGenericName(candidateName) ? "" : candidateName);
       setStep("name");
     } else {
       void navigate({
@@ -277,9 +280,7 @@ function PhoneStep({
     void restoreCustomerSession()
       .then((restored) => {
         if (active && restored) {
-          if (isGenericName(restored.account?.name)) {
-            onSuccessSession(restored);
-          } else if (redirectTarget) {
+          if (redirectTarget) {
             void navigate({ to: redirectTarget as any });
           } else {
             void navigate({ to: "/home" });
@@ -290,7 +291,7 @@ function PhoneStep({
     return () => {
       active = false;
     };
-  }, [navigate, redirectTarget, onSuccessSession]);
+  }, [navigate, redirectTarget]);
 
   /** Firebase social sign in → FastAPI exchange → QuickPress JWT session. */
   const signInWithProvider = async (provider: "google" | "apple") => {
@@ -871,7 +872,10 @@ function NameStep({
         });
       }
 
-      sessionStorage.setItem("qp_name_prompt_dismissed", "true");
+      if (typeof window !== "undefined") {
+        localStorage.setItem("qp_name_prompt_dismissed", "true");
+        sessionStorage.setItem("qp_name_prompt_dismissed", "true");
+      }
 
       // 4. Notify app components & trigger native device permissions
       window.dispatchEvent(new Event("qp:request-post-login-permissions"));
@@ -892,7 +896,10 @@ function NameStep({
   };
 
   const handleSkip = () => {
-    sessionStorage.setItem("qp_name_prompt_dismissed", "true");
+    if (typeof window !== "undefined") {
+      localStorage.setItem("qp_name_prompt_dismissed", "true");
+      sessionStorage.setItem("qp_name_prompt_dismissed", "true");
+    }
     window.dispatchEvent(new Event("qp:request-post-login-permissions"));
     window.dispatchEvent(new Event("qp:login-success"));
     void navigate({

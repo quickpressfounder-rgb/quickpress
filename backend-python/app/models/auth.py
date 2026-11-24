@@ -39,11 +39,19 @@ class SocialLoginRequest(BaseModel):
 
 
 class RefreshRequest(BaseModel):
-    refresh_token: str
+    refresh_token: Optional[str] = None
+    refreshToken: Optional[str] = None
+
+    def get_token(self) -> str:
+        return (self.refresh_token or self.refreshToken or "").strip()
 
 
 class LogoutRequest(BaseModel):
     refresh_token: Optional[str] = None
+    refreshToken: Optional[str] = None
+
+    def get_token(self) -> str:
+        return (self.refresh_token or self.refreshToken or "").strip()
 
 
 class AccountResponse(BaseModel):
