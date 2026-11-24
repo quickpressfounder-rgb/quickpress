@@ -300,10 +300,17 @@ export function PrewashDefectModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPhotoDataUrl("")}
-                      className="rounded-lg bg-red-600/90 p-1 text-white hover:bg-red-700 transition-colors"
+                      onClick={() => {
+                        if (window.confirm("Are you sure you want to delete this defect photo?")) {
+                          setPhotoDataUrl("");
+                          toast.info("Defect photo removed");
+                        }
+                      }}
+                      title="Delete photo"
+                      className="rounded-lg bg-red-600/90 hover:bg-red-700 px-2 py-1 text-[10px] font-bold text-white transition-colors flex items-center gap-1 shadow-xs cursor-pointer ml-1"
                     >
-                      <Trash2 className="size-3.5" />
+                      <Trash2 className="size-3" />
+                      <span>Delete</span>
                     </button>
                   </div>
                 </div>

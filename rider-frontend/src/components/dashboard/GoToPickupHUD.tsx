@@ -239,6 +239,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [paymentMethodUsed, setPaymentMethodUsed] = useState<"razorpay_upi" | "cash">("razorpay_upi");
   const [isCheckingPayment, setIsCheckingPayment] = useState<boolean>(false);
   const [isCollectingCash, setIsCollectingCash] = useState<boolean>(false);
+  const [isSheetCollapsed, setIsSheetCollapsed] = useState<boolean>(false);
   const isActionLockedRef = useRef<boolean>(false);
   const codPayableAmount = Number(
     (order as any).payableAmount ||
@@ -2207,7 +2208,24 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       )}
 
       {/* 3. Bottom Sheet Card (Locked at bottom, scrollable internally if needed) */}
-      <div className={`relative z-20 bg-white ${stage === "store_processing" ? "flex-1 max-h-none overflow-y-auto p-4 space-y-4" : "border-t border-slate-200/90 shadow-2xl shrink-0 flex flex-col max-h-[46vh] overflow-y-auto"}`}>
+      <div className={`relative z-20 bg-white transition-all duration-300 ${stage === "store_processing" ? "flex-1 max-h-none overflow-y-auto p-4 space-y-4" : isSheetCollapsed ? "border-t border-slate-200/90 shadow-2xl shrink-0 flex flex-col max-h-24 overflow-hidden" : "border-t border-slate-200/90 shadow-2xl shrink-0 flex flex-col max-h-[46vh] overflow-y-auto"}`}>
+        {/* Peek / Full Map View Toggle Bar on Small Screens */}
+        {stage !== "store_processing" && (
+          <div className="flex items-center justify-between px-4 py-1.5 border-b border-slate-100 bg-slate-50/90">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+              {isSheetCollapsed ? "Peek Mode (Full Map Visible)" : "Order & Navigation Sheet"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsSheetCollapsed((prev) => !prev)}
+              className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
+              aria-label={isSheetCollapsed ? "Expand sheet details" : "Collapse sheet for full map route"}
+            >
+              <span>{isSheetCollapsed ? "Expand Sheet" : "Peek Map"}</span>
+              <ChevronDown className={`size-3.5 transition-transform ${isSheetCollapsed ? "rotate-180" : ""}`} />
+            </button>
+          </div>
+        )}
         {/* Customer / Store Information Card */}
         {stage !== "store_processing" && (
           <div className="px-4 py-3 border-b border-zinc-100">

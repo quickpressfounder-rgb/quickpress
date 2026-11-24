@@ -303,6 +303,17 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
     }
   };
 
+  const handleInitiateCall = (name: string, phone: string, role: string) => {
+    const clean = phone.replace(/\s/g, "");
+    if (!clean || clean.includes("••")) {
+      toast.error("Phone number is masked or not available");
+      return;
+    }
+    if (window.confirm(`Call ${name} (${role}) at ${phone}?`)) {
+      window.open(`tel:${clean}`);
+    }
+  };
+
   const stageLabel = order ? (STAGE_LABEL[order.stage] || order.stage || "Active") : "";
   const placedInfo = formatOrderPlacedTime((order as any)?.placedAt || (order as any)?.placedAtRaw || order?.placedAt);
   const items = order?.items || [];
@@ -482,7 +493,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                     onClick={() => {
                       setMenuOpen(false);
                       if (order?.customerPhone) {
-                        window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
+                        handleInitiateCall(order.customerName || "Customer", order.customerPhone, "Customer");
                       }
                     }}
                     className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left font-bold text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
@@ -495,7 +506,9 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                       type="button"
                       onClick={() => {
                         setMenuOpen(false);
-                        window.open(`tel:${riderPhone.replace(/\s/g, "")}`);
+                        if (riderPhone) {
+                          handleInitiateCall(riderName, riderPhone, "Captain");
+                        }
                       }}
                       className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left font-bold text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
                     >
@@ -850,8 +863,8 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                   <button
                     type="button"
                     onClick={() => {
-                      if (order.customerPhone && !order.customerPhone.includes("••")) {
-                        window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
+                      if (order.customerPhone) {
+                        handleInitiateCall(order.customerName || "Customer", order.customerPhone, "Customer");
                       }
                     }}
                     title="Call Customer"
@@ -1223,8 +1236,8 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                   <button
                     type="button"
                     onClick={() => {
-                      if (order.customerPhone && !order.customerPhone.includes("••")) {
-                        window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
+                      if (order.customerPhone) {
+                        handleInitiateCall(order.customerName || "Customer", order.customerPhone, "Customer");
                       }
                     }}
                     className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all shadow-2xs cursor-pointer"
@@ -1502,8 +1515,8 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                       <button
                         type="button"
                         onClick={() => {
-                          if (order.customerPhone && !order.customerPhone.includes("••")) {
-                            window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
+                          if (order.customerPhone) {
+                            handleInitiateCall(order.customerName || "Customer", order.customerPhone, "Customer");
                           }
                         }}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all cursor-pointer"

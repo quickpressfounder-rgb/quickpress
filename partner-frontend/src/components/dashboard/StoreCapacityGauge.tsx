@@ -20,8 +20,9 @@ export function StoreCapacityGauge({ orders, maxCapacity = 50 }: StoreCapacityGa
   const activeCount = activeOrders.length;
   const loadPercentage = Math.min(100, Math.round((activeCount / maxCapacity) * 100));
 
-  const isHighLoad = loadPercentage >= 80;
-  const isMediumLoad = loadPercentage >= 50 && loadPercentage < 80;
+  const isCriticalLoad = loadPercentage >= 90;
+  const isHighLoad = loadPercentage >= 75 && loadPercentage < 90;
+  const isMediumLoad = loadPercentage >= 50 && loadPercentage < 75;
 
   const toggleBusyMode = () => {
     const next = !busyMode;
@@ -45,7 +46,9 @@ export function StoreCapacityGauge({ orders, maxCapacity = 50 }: StoreCapacityGa
         <div className="flex items-center gap-3">
           <span
             className={`flex size-10 items-center justify-center rounded-2xl border shadow-2xs ${
-              isHighLoad
+              isCriticalLoad
+                ? "bg-rose-50 text-rose-600 border-rose-300 animate-pulse"
+                : isHighLoad
                 ? "bg-amber-50 text-amber-600 border-amber-200"
                 : "bg-blue-50 text-blue-600 border-blue-200"
             }`}
@@ -62,14 +65,16 @@ export function StoreCapacityGauge({ orders, maxCapacity = 50 }: StoreCapacityGa
                 className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase border ${
                   busyMode
                     ? "bg-amber-50 border-amber-200 text-amber-800"
+                    : isCriticalLoad
+                    ? "bg-rose-50 border-rose-300 text-rose-700 animate-pulse"
                     : isHighLoad
-                    ? "bg-rose-50 border-rose-200 text-rose-700"
+                    ? "bg-amber-50 border-amber-200 text-amber-700"
                     : isMediumLoad
                     ? "bg-blue-50 border-blue-200 text-blue-700"
                     : "bg-emerald-50 border-emerald-200 text-emerald-700"
                 }`}
               >
-                {busyMode ? "Busy Surge" : isHighLoad ? "Near Max" : "Optimal Load"}
+                {busyMode ? "Busy Surge" : isCriticalLoad ? "Critical Load (Over 90%)" : isHighLoad ? "High Load (Over 75%)" : "Optimal Load"}
               </span>
             </div>
 
@@ -86,7 +91,9 @@ export function StoreCapacityGauge({ orders, maxCapacity = 50 }: StoreCapacityGa
             <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
-                  isHighLoad
+                  isCriticalLoad
+                    ? "bg-rose-500 animate-pulse"
+                    : isHighLoad
                     ? "bg-amber-500"
                     : isMediumLoad
                     ? "bg-blue-600"

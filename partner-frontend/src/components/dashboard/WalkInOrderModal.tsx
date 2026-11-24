@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   Plus,
@@ -11,6 +11,7 @@ import {
   Printer,
   CheckCircle2,
   Tag,
+  Scale,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ManagedOrder } from "../../data/partner-orders-mock";
@@ -42,12 +43,23 @@ export function WalkInOrderModal({ onClose, onOrderCreated }: WalkInOrderModalPr
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [selectedService, setSelectedService] = useState("wash_iron");
+  const [orderMode, setOrderMode] = useState<"garments" | "weight">("garments");
+  const [weightKg, setWeightKg] = useState<number>(3.5);
+  const [ratePerKg, setRatePerKg] = useState<number>(79);
   const [quantities, setQuantities] = useState<Record<string, number>>({
     shirt: 2,
     trouser: 1,
   });
   const [paymentMode, setPaymentMode] = useState<"cash" | "upi" | "unpaid">("cash");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const handleQtyChange = (id: string, delta: number) => {
     setQuantities((prev) => {
@@ -61,12 +73,15 @@ export function WalkInOrderModal({ onClose, onOrderCreated }: WalkInOrderModalPr
 
   const totalGarments = Object.values(quantities).reduce((a, b) => a + b, 0);
 
-  const computedTotal = Math.round(
+  const computedGarmentsTotal = Math.round(
     COMMON_GARMENTS.reduce((sum, item) => {
       const qty = quantities[item.id] || 0;
       return sum + qty * item.price * currentMult;
     }, 0)
   );
+
+  const computedWeightTotal = Math.round(weightKg * ratePerKg * currentMult);
+  const computedTotal = orderMode === "weight" ? computedWeightTotal : computedGarmentsTotal;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,7 +190,12 @@ export function WalkInOrderModal({ onClose, onOrderCreated }: WalkInOrderModalPr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+    >
       <div className="relative w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -263,53 +283,106 @@ export function WalkInOrderModal({ onClose, onOrderCreated }: WalkInOrderModalPr
             </div>
           </div>
 
-          {/* Garment Quick Counter */}
-          <div>
-            <label className="text-xs font-black uppercase tracking-wider text-slate-700 block mb-1.5">
-              Garments & Quantities ({totalGarments} items)
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {COMMON_GARMENTS.map((item) => {
-                const qty = quantities[item.id] || 0;
-                return (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/50 p-2 text-xs"
-                  >
-                    <div className="min-w-0 pr-1">
-                      <p className="font-bold text-slate-900 truncate">
-                        <span className="mr-1">{item.icon}</span>
-                        {item.name.split("/")[0]}
-                      </p>
-                      <p className="text-[10px] text-slate-500 font-semibold">
-                        ₹{Math.round(item.price * currentMult)}/pc
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleQtyChange(item.id, -1)}
-                        className="flex size-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 font-black active:scale-95"
-                      >
-                        <Minus className="size-3" />
-                      </button>
-                      <span className="w-4 text-center font-black text-slate-900 text-xs">
-                        {qty}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleQtyChange(item.id, 1)}
-                        className="flex size-6 items-center justify-center rounded-lg bg-zinc-950 text-white font-black hover:bg-zinc-800 active:scale-95"
-                      >
-                        <Plus className="size-3" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          {/* Intake Calculation Mode: Garments vs Weight */}
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+            <span className="text-[11px] font-bold text-slate-500">Calculate By:</span>
+            <button
+              type="button"
+              onClick={() => setOrderMode("garments")}
+              className={`rounded-xl px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
+                orderMode === "garments"
+                  ? "bg-zinc-950 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              Piece Count ({totalGarments})
+            </button>
+            <button
+              type="button"
+              onClick={() => setOrderMode("weight")}
+              className={`rounded-xl px-3 py-1 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                orderMode === "weight"
+                  ? "bg-zinc-950 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              <Scale className="size-3" />
+              <span>Weight ({weightKg} Kg)</span>
+            </button>
           </div>
+
+          {orderMode === "weight" ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-700">
+                  Laundry Weight (Kg)
+                </label>
+                <span className="text-xs font-black text-blue-600">Rate: ₹{ratePerKg}/Kg</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0.5"
+                  step="0.5"
+                  value={weightKg || ""}
+                  onChange={(e) => setWeightKg(Math.max(0, parseFloat(e.target.value) || 0))}
+                  placeholder="Enter laundry weight in Kg..."
+                  className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-900 focus:outline-none focus:border-blue-600"
+                />
+                <span className="text-xs font-black text-slate-600">Kg</span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium">
+                Live calculation: {weightKg} Kg × ₹{ratePerKg}/Kg × {currentMult} = <span className="font-bold text-slate-900">{inr(computedWeightTotal)}</span>
+              </p>
+            </div>
+          ) : (
+            <div>
+              <label className="text-xs font-black uppercase tracking-wider text-slate-700 block mb-1.5">
+                Garments & Quantities ({totalGarments} items)
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {COMMON_GARMENTS.map((item) => {
+                  const qty = quantities[item.id] || 0;
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/50 p-2 text-xs"
+                    >
+                      <div className="min-w-0 pr-1">
+                        <p className="font-bold text-slate-900 truncate">
+                          <span className="mr-1">{item.icon}</span>
+                          {item.name.split("/")[0]}
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-semibold">
+                          ₹{Math.round(item.price * currentMult)}/pc
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleQtyChange(item.id, -1)}
+                          className="flex size-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 font-black active:scale-95"
+                        >
+                          <Minus className="size-3" />
+                        </button>
+                        <span className="w-4 text-center font-black text-slate-900 text-xs">
+                          {qty}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleQtyChange(item.id, 1)}
+                          className="flex size-6 items-center justify-center rounded-lg bg-zinc-950 text-white font-black hover:bg-zinc-800 active:scale-95"
+                        >
+                          <Plus className="size-3" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Payment Method */}
           <div>

@@ -92,6 +92,10 @@ export function OfferSheet({
           id="offer-value"
           label={isFlat ? "Discount Amount" : "Discount Percentage"}
           prefix={isFlat ? "₹" : "%"}
+          type="number"
+          min="1"
+          max={isFlat ? undefined : 90}
+          step="1"
           inputMode="numeric"
           placeholder={isFlat ? "50" : "15"}
           value={value}

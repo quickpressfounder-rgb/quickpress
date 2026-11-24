@@ -98,6 +98,13 @@ export function SwipeActionButton({
     const maxDrag = Math.max(1, rect.width - thumbWidth - 8);
     const currentDrag = clientX - rect.left - thumbWidth / 2;
     const progress = Math.max(0, Math.min(1, currentDrag / maxDrag));
+    if (progress >= 0.72 && dragProgress < 0.72) {
+      try {
+        if (typeof navigator !== "undefined" && navigator.vibrate) {
+          navigator.vibrate(35);
+        }
+      } catch {}
+    }
     setDragProgress(progress);
   };
 

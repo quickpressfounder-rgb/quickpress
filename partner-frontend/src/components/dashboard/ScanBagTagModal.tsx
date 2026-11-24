@@ -164,13 +164,13 @@ export function ScanBagTagModal({ orders, onClose, onSelectOrder }: ScanBagTagMo
               No active order found matching "{tokenInput}". Check tag barcode number.
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center text-slate-400">
-              <QrCode className="size-10 mx-auto text-slate-300 stroke-[1.5]" />
-              <p className="mt-2 text-xs font-bold text-slate-600">
-                Scan barcode using handheld USB scanner or webcam
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-5 text-center text-slate-400 space-y-1.5">
+              <QrCode className="size-9 mx-auto text-slate-400 stroke-[1.5]" />
+              <p className="text-xs font-bold text-slate-700">
+                Scan barcode using camera or handheld scanner
               </p>
-              <p className="text-[11px] text-slate-400 font-medium">
-                Input field receives hardware barcode scan keystrokes automatically.
+              <p className="text-[11px] text-slate-500 font-medium max-w-xs mx-auto leading-relaxed">
+                If camera permission is denied, please allow camera access in browser/app settings or type the tag/order code directly in the search box above.
               </p>
             </div>
           )}

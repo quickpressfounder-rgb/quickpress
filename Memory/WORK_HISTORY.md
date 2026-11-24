@@ -1,5 +1,62 @@
 # QuickPress — Engineering Work History
 
+## Session: November 24, 2026 (Part 83)
+
+### UI/UX Bugs 20 to 30 Implementation & Operational Hardening
+
+1. **Context & Directives:**
+   - **User Directive:** "20 SE 30 TAK" (Fix UI/UX friction items 20 through 30 across Partner and Rider applications).
+   - **Objectives:**
+     1. Camera permission blocked guidance in Partner barcode scanner modal (Item 20).
+     2. Sticky pill counter for unviewed new orders on Partner Dashboard (Item 21).
+     3. Color-threshold alert switching on Store Capacity Gauge (>75% Amber, >90% Red pulse) (Item 22).
+     4. Number input sanitizer and min-value enforcement on Service Rate / Discount editors (Item 23).
+     5. High-DPI Canvas resolution scaling for Partner Legal Signature Pad on Retina displays (Item 24).
+     6. Accidental pocket-dial prevention dialog on Order Details phone actions (Item 25).
+     7. Live real-time weight & piece pricing calculation in Walk-in Order Modal with backdrop dismiss (Item 26).
+     8. Delete button padding offset and confirmation alert for Pre-wash Defect photo preview (Item 27).
+     9. Collapsible peek view toggle on Rider Navigation HUD preventing polyline blockage on small screens (Item 28).
+     10. Doorstep OTP auto-focus on mount, seamless auto-advance, and Arrow key navigation (Item 29).
+     11. Real-time tactile haptic vibration on reaching swipe-to-accept threshold (Item 30).
+     12. Verify production builds across all 4 frontends and commit/push directly to `main` (Rule 4 & 5).
+
+2. **Fixes Implemented:**
+   - **Partner Frontend (`partner-frontend`):**
+     - `components/dashboard/ScanBagTagModal.tsx` (Item 20):
+       - Added fallback camera permission denied guidance and app settings deep-link instruction.
+     - `screens/PartnerDashboardScreen.tsx` (Item 21):
+       - Added sticky pulsating pill indicator `🔴 X New Waiting` to jump to new orders tab when scrolled out of view.
+     - `components/dashboard/StoreCapacityGauge.tsx` (Item 22):
+       - Implemented dynamic load threshold styling: Amber (>75% load) and animated Red pulse (>90% critical load).
+     - `components/services/ServiceForm.tsx` & `OfferSheet.tsx` (Item 23):
+       - Added numeric sanitizer `type="number" min="1" step="1"` preventing negative prices or non-numeric characters.
+     - `components/onboarding/PartnerAgreementSignaturePad.tsx` (Item 24):
+       - Applied `window.devicePixelRatio` canvas scale multiplying CSS dimensions for sharp high-DPI signature drawing.
+     - `screens/OrderDetailsScreen.tsx` (Item 25):
+       - Added `handleInitiateCall` confirmation dialog before launching `tel:` dialer to prevent pocket calls.
+     - `components/dashboard/WalkInOrderModal.tsx` (Item 26):
+       - Added dual calculation mode (Piece count vs Weight Kg), real-time pricing recalculation on keystroke, and backdrop dismiss.
+     - `components/orders/PrewashDefectModal.tsx` (Item 27):
+       - Offset delete button from photo corner and added confirmation prompt before deletion.
+
+   - **Rider Frontend (`rider-frontend`):**
+     - `components/dashboard/GoToPickupHUD.tsx` (Item 28):
+       - Added collapsible peek mode toggle (`isSheetCollapsed`) so riders can minimize the bottom sheet to view the full turn-by-turn map polyline.
+     - `components/dashboard/RiderOtpCard.tsx` (Item 29):
+       - Added mount auto-focus on first empty digit box, auto-advance on entry, and ArrowLeft / ArrowRight navigation.
+     - `components/common/SwipeActionButton.tsx` (Item 30):
+       - Added tactile haptic vibration tick `navigator.vibrate(35)` immediately when passing the 0.72 drag progress threshold.
+
+3. **Verification & Deployment:**
+   - Verified clean production builds across all 4 applications:
+     - `customer-frontend`: Exit code 0
+     - `partner-frontend`: Exit code 0
+     - `rider-frontend`: Exit code 0
+     - `admin-frontend`: Exit code 0
+   - Committed and pushed directly to GitHub `origin/main` (Rule 4).
+
+---
+
 ## Session: November 24, 2026 (Part 82)
 
 ### UI/UX Bugs 9 to 20 Implementation & Friction Elimination
@@ -502,6 +559,57 @@
 
 # QuickPress — Engineering Work History
 
+## Session: November 24, 2026 (Part 82)
+
+### UI/UX Bugs 9 to 20 Implementation & Friction Elimination
+
+1. **Context & Directives:**
+   - **User Directive:** "9 se 20 tAK KARO" (Fix UI/UX friction items 9 through 20 across Customer and Partner applications).
+   - **Objectives:**
+     1. Address keyboard accessibility, map controls, empty states, and modal backdrops on Customer app.
+     2. Prevent coupon double-submissions and add tactile haptic feedback to quantity steppers.
+     3. Add accessible radio semantics and keyboard selection for saved delivery addresses.
+     4. Introduce explicit audio unmute / chime test control on Partner Dashboard for Web Audio autoplay policy compliance.
+     5. Add loading spinners to Partner order card transition triggers.
+     6. Implement backdrop outside-click and Escape key dismissal on Partner Bag Tag scanner modal.
+     7. Verify production builds across all 4 frontends and commit/push directly to `main` (Rule 4 & 5).
+
+2. **Fixes Implemented:**
+   - **Customer Frontend (`customer-frontend`):**
+     - `components/map/LiveDeliveryMap.tsx` (Item 10):
+       - Added explicit `aria-label` attributes to Recenter (`aria-label="Recenter Full Route"`), Theme toggle (`aria-label="Toggle Map Theme"`), and Zoom buttons (`aria-label="Zoom in"` / `aria-label="Zoom out"`).
+       - Enlarged control size from `size-8` to `size-8.5` for enhanced touch ergonomics.
+     - `routes/history.tsx` (Item 11):
+       - Replaced basic text with rich empty state illustration (`PackageSearch` / `ShoppingBag`), high-contrast guidance text, and a one-click "Clear Filters" action.
+     - `routes/services.$serviceId.tsx` (Item 12):
+       - Added outside-click dismissal handler `onClick={(e) => { if (e.target === e.currentTarget) setShowConsultModal(false); }}` to Special Care & Fabric modal.
+     - `routes/cart.tsx` (Items 13 & 14):
+       - Added `isApplyingCoupon` debouncing flag to coupon apply button preventing rapid double-taps.
+       - Integrated subtle tactile haptic vibration (`window.navigator.vibrate(15)`) on quantity increment/decrement steppers.
+     - `routes/checkout.tsx` (Item 15):
+       - Added ARIA radio accessibility attributes (`role="radio"`, `aria-checked`, `tabIndex={0}`) and Enter/Space keyboard selection handlers to address selection cards.
+     - `routes/login.tsx` (Item 9):
+       - Verified mobile numeric keypad configuration (`inputMode="numeric"`, `pattern="[0-9]*"`, `autoComplete="one-time-code"`).
+
+   - **Partner Frontend (`partner-frontend`):**
+     - `screens/PartnerDashboardScreen.tsx` (Items 17 & 18):
+       - Added quick audio test/unmute action button (`Volume2`) enabling partners to pre-unlock browser Web Audio autoplay and test order chime volume in 1 tap.
+     - `components/orders/OrderCard.tsx` (Item 19):
+       - Added `Loader2` animated spinner alongside `<span>Updating order...</span>` during async state transitions (`busyAction !== null`).
+     - `components/dashboard/ScanBagTagModal.tsx` (Item 20):
+       - Added outside-click backdrop dismissal `onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}`.
+       - Added `Escape` key listener in `useEffect` for keyboard accessibility.
+
+3. **Verification & Deployment:**
+   - Verified clean production builds across all 4 applications:
+     - `customer-frontend`: Exit code 0
+     - `partner-frontend`: Exit code 0
+     - `rider-frontend`: Exit code 0
+     - `admin-frontend`: Exit code 0
+   - Committed and pushed directly to GitHub `origin/main` (Rule 4).
+
+---
+
 ## Session: November 24, 2026 (Part 81)
 
 ### Platform-Wide UI/UX Enhancements & Interaction Hardening
@@ -872,6 +980,57 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 24, 2026 (Part 82)
+
+### UI/UX Bugs 9 to 20 Implementation & Friction Elimination
+
+1. **Context & Directives:**
+   - **User Directive:** "9 se 20 tAK KARO" (Fix UI/UX friction items 9 through 20 across Customer and Partner applications).
+   - **Objectives:**
+     1. Address keyboard accessibility, map controls, empty states, and modal backdrops on Customer app.
+     2. Prevent coupon double-submissions and add tactile haptic feedback to quantity steppers.
+     3. Add accessible radio semantics and keyboard selection for saved delivery addresses.
+     4. Introduce explicit audio unmute / chime test control on Partner Dashboard for Web Audio autoplay policy compliance.
+     5. Add loading spinners to Partner order card transition triggers.
+     6. Implement backdrop outside-click and Escape key dismissal on Partner Bag Tag scanner modal.
+     7. Verify production builds across all 4 frontends and commit/push directly to `main` (Rule 4 & 5).
+
+2. **Fixes Implemented:**
+   - **Customer Frontend (`customer-frontend`):**
+     - `components/map/LiveDeliveryMap.tsx` (Item 10):
+       - Added explicit `aria-label` attributes to Recenter (`aria-label="Recenter Full Route"`), Theme toggle (`aria-label="Toggle Map Theme"`), and Zoom buttons (`aria-label="Zoom in"` / `aria-label="Zoom out"`).
+       - Enlarged control size from `size-8` to `size-8.5` for enhanced touch ergonomics.
+     - `routes/history.tsx` (Item 11):
+       - Replaced basic text with rich empty state illustration (`PackageSearch` / `ShoppingBag`), high-contrast guidance text, and a one-click "Clear Filters" action.
+     - `routes/services.$serviceId.tsx` (Item 12):
+       - Added outside-click dismissal handler `onClick={(e) => { if (e.target === e.currentTarget) setShowConsultModal(false); }}` to Special Care & Fabric modal.
+     - `routes/cart.tsx` (Items 13 & 14):
+       - Added `isApplyingCoupon` debouncing flag to coupon apply button preventing rapid double-taps.
+       - Integrated subtle tactile haptic vibration (`window.navigator.vibrate(15)`) on quantity increment/decrement steppers.
+     - `routes/checkout.tsx` (Item 15):
+       - Added ARIA radio accessibility attributes (`role="radio"`, `aria-checked`, `tabIndex={0}`) and Enter/Space keyboard selection handlers to address selection cards.
+     - `routes/login.tsx` (Item 9):
+       - Verified mobile numeric keypad configuration (`inputMode="numeric"`, `pattern="[0-9]*"`, `autoComplete="one-time-code"`).
+
+   - **Partner Frontend (`partner-frontend`):**
+     - `screens/PartnerDashboardScreen.tsx` (Items 17 & 18):
+       - Added quick audio test/unmute action button (`Volume2`) enabling partners to pre-unlock browser Web Audio autoplay and test order chime volume in 1 tap.
+     - `components/orders/OrderCard.tsx` (Item 19):
+       - Added `Loader2` animated spinner alongside `<span>Updating order...</span>` during async state transitions (`busyAction !== null`).
+     - `components/dashboard/ScanBagTagModal.tsx` (Item 20):
+       - Added outside-click backdrop dismissal `onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}`.
+       - Added `Escape` key listener in `useEffect` for keyboard accessibility.
+
+3. **Verification & Deployment:**
+   - Verified clean production builds across all 4 applications:
+     - `customer-frontend`: Exit code 0
+     - `partner-frontend`: Exit code 0
+     - `rider-frontend`: Exit code 0
+     - `admin-frontend`: Exit code 0
+   - Committed and pushed directly to GitHub `origin/main` (Rule 4).
+
+---
 
 ## Session: November 24, 2026 (Part 81)
 
@@ -1323,6 +1482,57 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 24, 2026 (Part 82)
+
+### UI/UX Bugs 9 to 20 Implementation & Friction Elimination
+
+1. **Context & Directives:**
+   - **User Directive:** "9 se 20 tAK KARO" (Fix UI/UX friction items 9 through 20 across Customer and Partner applications).
+   - **Objectives:**
+     1. Address keyboard accessibility, map controls, empty states, and modal backdrops on Customer app.
+     2. Prevent coupon double-submissions and add tactile haptic feedback to quantity steppers.
+     3. Add accessible radio semantics and keyboard selection for saved delivery addresses.
+     4. Introduce explicit audio unmute / chime test control on Partner Dashboard for Web Audio autoplay policy compliance.
+     5. Add loading spinners to Partner order card transition triggers.
+     6. Implement backdrop outside-click and Escape key dismissal on Partner Bag Tag scanner modal.
+     7. Verify production builds across all 4 frontends and commit/push directly to `main` (Rule 4 & 5).
+
+2. **Fixes Implemented:**
+   - **Customer Frontend (`customer-frontend`):**
+     - `components/map/LiveDeliveryMap.tsx` (Item 10):
+       - Added explicit `aria-label` attributes to Recenter (`aria-label="Recenter Full Route"`), Theme toggle (`aria-label="Toggle Map Theme"`), and Zoom buttons (`aria-label="Zoom in"` / `aria-label="Zoom out"`).
+       - Enlarged control size from `size-8` to `size-8.5` for enhanced touch ergonomics.
+     - `routes/history.tsx` (Item 11):
+       - Replaced basic text with rich empty state illustration (`PackageSearch` / `ShoppingBag`), high-contrast guidance text, and a one-click "Clear Filters" action.
+     - `routes/services.$serviceId.tsx` (Item 12):
+       - Added outside-click dismissal handler `onClick={(e) => { if (e.target === e.currentTarget) setShowConsultModal(false); }}` to Special Care & Fabric modal.
+     - `routes/cart.tsx` (Items 13 & 14):
+       - Added `isApplyingCoupon` debouncing flag to coupon apply button preventing rapid double-taps.
+       - Integrated subtle tactile haptic vibration (`window.navigator.vibrate(15)`) on quantity increment/decrement steppers.
+     - `routes/checkout.tsx` (Item 15):
+       - Added ARIA radio accessibility attributes (`role="radio"`, `aria-checked`, `tabIndex={0}`) and Enter/Space keyboard selection handlers to address selection cards.
+     - `routes/login.tsx` (Item 9):
+       - Verified mobile numeric keypad configuration (`inputMode="numeric"`, `pattern="[0-9]*"`, `autoComplete="one-time-code"`).
+
+   - **Partner Frontend (`partner-frontend`):**
+     - `screens/PartnerDashboardScreen.tsx` (Items 17 & 18):
+       - Added quick audio test/unmute action button (`Volume2`) enabling partners to pre-unlock browser Web Audio autoplay and test order chime volume in 1 tap.
+     - `components/orders/OrderCard.tsx` (Item 19):
+       - Added `Loader2` animated spinner alongside `<span>Updating order...</span>` during async state transitions (`busyAction !== null`).
+     - `components/dashboard/ScanBagTagModal.tsx` (Item 20):
+       - Added outside-click backdrop dismissal `onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}`.
+       - Added `Escape` key listener in `useEffect` for keyboard accessibility.
+
+3. **Verification & Deployment:**
+   - Verified clean production builds across all 4 applications:
+     - `customer-frontend`: Exit code 0
+     - `partner-frontend`: Exit code 0
+     - `rider-frontend`: Exit code 0
+     - `admin-frontend`: Exit code 0
+   - Committed and pushed directly to GitHub `origin/main` (Rule 4).
+
+---
 
 ## Session: November 24, 2026 (Part 81)
 

@@ -34,6 +34,12 @@ export const RiderCustomerOtpInput: React.FC<RiderCustomerOtpInputProps> = ({
   const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
   const isSubmittingRef = useRef<boolean>(false);
 
+  useEffect(() => {
+    if (!disabled) {
+      inputRefs[0].current?.focus();
+    }
+  }, [disabled]);
+
   const inputRefs = [
     useRef<HTMLInputElement | null>(null),
     useRef<HTMLInputElement | null>(null),

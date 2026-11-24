@@ -908,6 +908,17 @@ export function PartnerDashboardScreen() {
               {/* 2. Canonical Zomato Stage Navigation Tabs & Search */}
               <div className="flex flex-col gap-3.5 border-b border-zinc-200 pb-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pb-1">
+                  {selectedTab !== "new" && zomatoStageCounts.new > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTab("new")}
+                      className="shrink-0 flex items-center gap-1.5 rounded-xl bg-rose-600 px-3 py-2 text-xs font-black text-white shadow-xs hover:bg-rose-700 animate-pulse cursor-pointer border border-rose-700"
+                      title="Switch to New Orders"
+                    >
+                      <span className="size-2 rounded-full bg-white animate-ping" />
+                      <span>{zomatoStageCounts.new} New Waiting</span>
+                    </button>
+                  )}
                   {[
                     { id: "new", label: "New Orders", count: zomatoStageCounts.new, alert: zomatoStageCounts.new > 0 },
                     { id: "processing", label: "In Processing", count: zomatoStageCounts.processing },

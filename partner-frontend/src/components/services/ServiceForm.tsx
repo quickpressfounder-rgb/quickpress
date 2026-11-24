@@ -133,6 +133,9 @@ export function ServiceForm({
           id="service-price"
           label="Base Price"
           prefix="₹"
+          type="number"
+          min="1"
+          step="1"
           inputMode="numeric"
           placeholder="79"
           value={values.price}
