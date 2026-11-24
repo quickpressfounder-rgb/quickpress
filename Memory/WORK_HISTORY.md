@@ -1,5 +1,46 @@
 # QuickPress — Engineering Work History
 
+## Session: November 24, 2026 (Part 80)
+
+### Comprehensive Cross-Platform Bug Audit & Stability Hardening
+
+1. **Context & Directives:**
+   - **User Directive:** "iske ander bug find karo and error bhi fina karo"
+   - **Objectives:**
+     1. Perform a thorough cross-platform bug audit covering all 4 frontend applications (`admin-frontend`, `customer-frontend`, `partner-frontend`, `rider-frontend`) and `backend-python`.
+     2. Fix all detected runtime errors, missing imports, unhandled exceptions, and schema mismatches.
+     3. Verify clean compilation and successful production builds across all 4 frontend applications and backend Python bytecode.
+     4. Deploy backend fixes to EC2, commit all changes, and push directly to `origin/main` (Core Engineering Rules 4 & 5).
+
+2. **Bugs Identified & Resolved:**
+   - **Bug 1: `ReferenceError: clearSession is not defined` (`admin-frontend/src/api/core/transport.ts`)**
+     - *Issue:* Lines 94–95 invoked `clearSession(activeSessionRole())` and `clearSession("admin")` on HTTP 401 handling, but `clearSession` was missing from the import declaration from `./session-store`. Any unauthenticated or expired request caused a fatal `ReferenceError` unhandled exception.
+     - *Fix:* Added `clearSession` to the import list in `admin-frontend/src/api/core/transport.ts`.
+   - **Bug 2: B2B Query Filter Ignored / Typo in Transport Options (`admin-frontend/src/api/b2b-admin-api.ts`)**
+     - *Issue:* `fetchB2BClients`, `fetchB2BOrders`, and `fetchB2BInvoices` passed `{ query: params }` to `apiGetJson()`. However, `RequestOptions` in transport only accepts `params?: QueryParams`. Because of this key mismatch, query parameters were silently ignored, causing B2B filtering by status/category to fail.
+     - *Fix:* Updated lines 202, 235, and 289 to pass `{ params: params as any }`.
+   - **Bug 3: Parameter Mismatch in Customer API (`admin-frontend/src/api/customers.ts`)**
+     - *Issue:* `admin-frontend/src/api/crm.ts` invoked `fetchCustomers(1, 100)`, but `fetchCustomers` in `customers.ts` was declared with 0 parameters (`export async function fetchCustomers(): Promise<AdminCustomer[]>`).
+     - *Fix:* Updated signature to `export async function fetchCustomers(page: number = 1, pageSize: number = 100): Promise<AdminCustomer[]>` and parameterized the API call (`/api/admin/customers?page=${page}&pageSize=${pageSize}`).
+   - **Bug 4: Account Type Schema Mismatch Across Frontends (`src/shared/types/account.ts`)**
+     - *Issue:* Frontend `Account` and `AuthSession` interfaces were missing `status?: string;` and index signatures, causing typing conflicts with the live FastAPI backend user response (which provides `account.status` like `"active"`, `"approved"`, `"pending"`).
+     - *Fix:* Aligned `Account` and `AuthSession` contracts in `admin-frontend`, `partner-frontend`, and `customer-frontend` with backend schemas and indexed properties.
+   - **Bug 5: Localhost Redis Socket Latency & Log Flooding (`backend-python/app/core/redis_limiter.py`)**
+     - *Issue:* Standard Redis client lacked an offline circuit breaker. When Redis was not listening on `127.0.0.1:6379`, every incoming request attempted a socket connection, suffered connection-refused latency, and flooded Docker logs with `Standard Redis command failed (Error 111 connecting to 127.0.0.1:6379)`.
+     - *Fix:* Implemented `_standard_redis_offline_until` and `_mark_standard_redis_offline(seconds=60.0)` circuit breaker. When a Redis command or pipeline fails, standard Redis is marked offline for 60 seconds and requests immediately route to Upstash / in-memory without connection delays.
+   - **Bug 6: Premature Abort in SMS OTP Gateway Cascade (`backend-python/app/core/twilio_sms.py`)**
+     - *Issue:* In `send_twilio_sms_otp()`, when Twilio Verify returned an error or Twilio Programmable SMS encountered a trial template restriction (HTTP 400), the function immediately aborted with `return False, ...`, preventing execution of downstream gateways (Fast2SMS, 2Factor).
+     - *Fix:* Updated the waterfall dispatch so that failures in Twilio Verify or Twilio SMS log a warning and cascade to the next configured gateway.
+
+3. **Verification & Deployment:**
+   - **Frontend Builds:** Executed production builds for all 4 applications (`admin-frontend`, `customer-frontend`, `partner-frontend`, `rider-frontend`) — all built with exit code 0.
+   - **Backend Bytecode Compilation:** Ran `python3 -m py_compile` across all backend Python files — exit code 0.
+   - **EC2 Backend Deployment:** Synced updated `redis_limiter.py` and `twilio_sms.py` to EC2 `quickpress-backend` container, restarted the container, and verified live health response:
+     - `{"status":"ok","service":"quickpress-backend","env":"production","database":"supabase-postgresql","firebase":true}`
+     - Verified log flood eliminated.
+
+---
+
 ## Session: November 24, 2026 (Part 79)
 
 ### Resolution of Repeated Login Name Prompts, Resilient Refresh Token Engine & Permanent Session Persistence
@@ -361,6 +402,47 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 24, 2026 (Part 80)
+
+### Comprehensive Cross-Platform Bug Audit & Stability Hardening
+
+1. **Context & Directives:**
+   - **User Directive:** "iske ander bug find karo and error bhi fina karo"
+   - **Objectives:**
+     1. Perform a thorough cross-platform bug audit covering all 4 frontend applications (`admin-frontend`, `customer-frontend`, `partner-frontend`, `rider-frontend`) and `backend-python`.
+     2. Fix all detected runtime errors, missing imports, unhandled exceptions, and schema mismatches.
+     3. Verify clean compilation and successful production builds across all 4 frontend applications and backend Python bytecode.
+     4. Deploy backend fixes to EC2, commit all changes, and push directly to `origin/main` (Core Engineering Rules 4 & 5).
+
+2. **Bugs Identified & Resolved:**
+   - **Bug 1: `ReferenceError: clearSession is not defined` (`admin-frontend/src/api/core/transport.ts`)**
+     - *Issue:* Lines 94–95 invoked `clearSession(activeSessionRole())` and `clearSession("admin")` on HTTP 401 handling, but `clearSession` was missing from the import declaration from `./session-store`. Any unauthenticated or expired request caused a fatal `ReferenceError` unhandled exception.
+     - *Fix:* Added `clearSession` to the import list in `admin-frontend/src/api/core/transport.ts`.
+   - **Bug 2: B2B Query Filter Ignored / Typo in Transport Options (`admin-frontend/src/api/b2b-admin-api.ts`)**
+     - *Issue:* `fetchB2BClients`, `fetchB2BOrders`, and `fetchB2BInvoices` passed `{ query: params }` to `apiGetJson()`. However, `RequestOptions` in transport only accepts `params?: QueryParams`. Because of this key mismatch, query parameters were silently ignored, causing B2B filtering by status/category to fail.
+     - *Fix:* Updated lines 202, 235, and 289 to pass `{ params: params as any }`.
+   - **Bug 3: Parameter Mismatch in Customer API (`admin-frontend/src/api/customers.ts`)**
+     - *Issue:* `admin-frontend/src/api/crm.ts` invoked `fetchCustomers(1, 100)`, but `fetchCustomers` in `customers.ts` was declared with 0 parameters (`export async function fetchCustomers(): Promise<AdminCustomer[]>`).
+     - *Fix:* Updated signature to `export async function fetchCustomers(page: number = 1, pageSize: number = 100): Promise<AdminCustomer[]>` and parameterized the API call (`/api/admin/customers?page=${page}&pageSize=${pageSize}`).
+   - **Bug 4: Account Type Schema Mismatch Across Frontends (`src/shared/types/account.ts`)**
+     - *Issue:* Frontend `Account` and `AuthSession` interfaces were missing `status?: string;` and index signatures, causing typing conflicts with the live FastAPI backend user response (which provides `account.status` like `"active"`, `"approved"`, `"pending"`).
+     - *Fix:* Aligned `Account` and `AuthSession` contracts in `admin-frontend`, `partner-frontend`, and `customer-frontend` with backend schemas and indexed properties.
+   - **Bug 5: Localhost Redis Socket Latency & Log Flooding (`backend-python/app/core/redis_limiter.py`)**
+     - *Issue:* Standard Redis client lacked an offline circuit breaker. When Redis was not listening on `127.0.0.1:6379`, every incoming request attempted a socket connection, suffered connection-refused latency, and flooded Docker logs with `Standard Redis command failed (Error 111 connecting to 127.0.0.1:6379)`.
+     - *Fix:* Implemented `_standard_redis_offline_until` and `_mark_standard_redis_offline(seconds=60.0)` circuit breaker. When a Redis command or pipeline fails, standard Redis is marked offline for 60 seconds and requests immediately route to Upstash / in-memory without connection delays.
+   - **Bug 6: Premature Abort in SMS OTP Gateway Cascade (`backend-python/app/core/twilio_sms.py`)**
+     - *Issue:* In `send_twilio_sms_otp()`, when Twilio Verify returned an error or Twilio Programmable SMS encountered a trial template restriction (HTTP 400), the function immediately aborted with `return False, ...`, preventing execution of downstream gateways (Fast2SMS, 2Factor).
+     - *Fix:* Updated the waterfall dispatch so that failures in Twilio Verify or Twilio SMS log a warning and cascade to the next configured gateway.
+
+3. **Verification & Deployment:**
+   - **Frontend Builds:** Executed production builds for all 4 applications (`admin-frontend`, `customer-frontend`, `partner-frontend`, `rider-frontend`) — all built with exit code 0.
+   - **Backend Bytecode Compilation:** Ran `python3 -m py_compile` across all backend Python files — exit code 0.
+   - **EC2 Backend Deployment:** Synced updated `redis_limiter.py` and `twilio_sms.py` to EC2 `quickpress-backend` container, restarted the container, and verified live health response:
+     - `{"status":"ok","service":"quickpress-backend","env":"production","database":"supabase-postgresql","firebase":true}`
+     - Verified log flood eliminated.
+
+---
 
 ## Session: November 24, 2026 (Part 79)
 
@@ -644,6 +726,47 @@
 
 # QuickPress — Engineering Work History
 
+## Session: November 24, 2026 (Part 80)
+
+### Comprehensive Cross-Platform Bug Audit & Stability Hardening
+
+1. **Context & Directives:**
+   - **User Directive:** "iske ander bug find karo and error bhi fina karo"
+   - **Objectives:**
+     1. Perform a thorough cross-platform bug audit covering all 4 frontend applications (`admin-frontend`, `customer-frontend`, `partner-frontend`, `rider-frontend`) and `backend-python`.
+     2. Fix all detected runtime errors, missing imports, unhandled exceptions, and schema mismatches.
+     3. Verify clean compilation and successful production builds across all 4 frontend applications and backend Python bytecode.
+     4. Deploy backend fixes to EC2, commit all changes, and push directly to `origin/main` (Core Engineering Rules 4 & 5).
+
+2. **Bugs Identified & Resolved:**
+   - **Bug 1: `ReferenceError: clearSession is not defined` (`admin-frontend/src/api/core/transport.ts`)**
+     - *Issue:* Lines 94–95 invoked `clearSession(activeSessionRole())` and `clearSession("admin")` on HTTP 401 handling, but `clearSession` was missing from the import declaration from `./session-store`. Any unauthenticated or expired request caused a fatal `ReferenceError` unhandled exception.
+     - *Fix:* Added `clearSession` to the import list in `admin-frontend/src/api/core/transport.ts`.
+   - **Bug 2: B2B Query Filter Ignored / Typo in Transport Options (`admin-frontend/src/api/b2b-admin-api.ts`)**
+     - *Issue:* `fetchB2BClients`, `fetchB2BOrders`, and `fetchB2BInvoices` passed `{ query: params }` to `apiGetJson()`. However, `RequestOptions` in transport only accepts `params?: QueryParams`. Because of this key mismatch, query parameters were silently ignored, causing B2B filtering by status/category to fail.
+     - *Fix:* Updated lines 202, 235, and 289 to pass `{ params: params as any }`.
+   - **Bug 3: Parameter Mismatch in Customer API (`admin-frontend/src/api/customers.ts`)**
+     - *Issue:* `admin-frontend/src/api/crm.ts` invoked `fetchCustomers(1, 100)`, but `fetchCustomers` in `customers.ts` was declared with 0 parameters (`export async function fetchCustomers(): Promise<AdminCustomer[]>`).
+     - *Fix:* Updated signature to `export async function fetchCustomers(page: number = 1, pageSize: number = 100): Promise<AdminCustomer[]>` and parameterized the API call (`/api/admin/customers?page=${page}&pageSize=${pageSize}`).
+   - **Bug 4: Account Type Schema Mismatch Across Frontends (`src/shared/types/account.ts`)**
+     - *Issue:* Frontend `Account` and `AuthSession` interfaces were missing `status?: string;` and index signatures, causing typing conflicts with the live FastAPI backend user response (which provides `account.status` like `"active"`, `"approved"`, `"pending"`).
+     - *Fix:* Aligned `Account` and `AuthSession` contracts in `admin-frontend`, `partner-frontend`, and `customer-frontend` with backend schemas and indexed properties.
+   - **Bug 5: Localhost Redis Socket Latency & Log Flooding (`backend-python/app/core/redis_limiter.py`)**
+     - *Issue:* Standard Redis client lacked an offline circuit breaker. When Redis was not listening on `127.0.0.1:6379`, every incoming request attempted a socket connection, suffered connection-refused latency, and flooded Docker logs with `Standard Redis command failed (Error 111 connecting to 127.0.0.1:6379)`.
+     - *Fix:* Implemented `_standard_redis_offline_until` and `_mark_standard_redis_offline(seconds=60.0)` circuit breaker. When a Redis command or pipeline fails, standard Redis is marked offline for 60 seconds and requests immediately route to Upstash / in-memory without connection delays.
+   - **Bug 6: Premature Abort in SMS OTP Gateway Cascade (`backend-python/app/core/twilio_sms.py`)**
+     - *Issue:* In `send_twilio_sms_otp()`, when Twilio Verify returned an error or Twilio Programmable SMS encountered a trial template restriction (HTTP 400), the function immediately aborted with `return False, ...`, preventing execution of downstream gateways (Fast2SMS, 2Factor).
+     - *Fix:* Updated the waterfall dispatch so that failures in Twilio Verify or Twilio SMS log a warning and cascade to the next configured gateway.
+
+3. **Verification & Deployment:**
+   - **Frontend Builds:** Executed production builds for all 4 applications (`admin-frontend`, `customer-frontend`, `partner-frontend`, `rider-frontend`) — all built with exit code 0.
+   - **Backend Bytecode Compilation:** Ran `python3 -m py_compile` across all backend Python files — exit code 0.
+   - **EC2 Backend Deployment:** Synced updated `redis_limiter.py` and `twilio_sms.py` to EC2 `quickpress-backend` container, restarted the container, and verified live health response:
+     - `{"status":"ok","service":"quickpress-backend","env":"production","database":"supabase-postgresql","firebase":true}`
+     - Verified log flood eliminated.
+
+---
+
 ## Session: November 24, 2026 (Part 79)
 
 ### Resolution of Repeated Login Name Prompts, Resilient Refresh Token Engine & Permanent Session Persistence
@@ -1005,6 +1128,47 @@
 ---
 
 # QuickPress — Engineering Work History
+
+## Session: November 24, 2026 (Part 80)
+
+### Comprehensive Cross-Platform Bug Audit & Stability Hardening
+
+1. **Context & Directives:**
+   - **User Directive:** "iske ander bug find karo and error bhi fina karo"
+   - **Objectives:**
+     1. Perform a thorough cross-platform bug audit covering all 4 frontend applications (`admin-frontend`, `customer-frontend`, `partner-frontend`, `rider-frontend`) and `backend-python`.
+     2. Fix all detected runtime errors, missing imports, unhandled exceptions, and schema mismatches.
+     3. Verify clean compilation and successful production builds across all 4 frontend applications and backend Python bytecode.
+     4. Deploy backend fixes to EC2, commit all changes, and push directly to `origin/main` (Core Engineering Rules 4 & 5).
+
+2. **Bugs Identified & Resolved:**
+   - **Bug 1: `ReferenceError: clearSession is not defined` (`admin-frontend/src/api/core/transport.ts`)**
+     - *Issue:* Lines 94–95 invoked `clearSession(activeSessionRole())` and `clearSession("admin")` on HTTP 401 handling, but `clearSession` was missing from the import declaration from `./session-store`. Any unauthenticated or expired request caused a fatal `ReferenceError` unhandled exception.
+     - *Fix:* Added `clearSession` to the import list in `admin-frontend/src/api/core/transport.ts`.
+   - **Bug 2: B2B Query Filter Ignored / Typo in Transport Options (`admin-frontend/src/api/b2b-admin-api.ts`)**
+     - *Issue:* `fetchB2BClients`, `fetchB2BOrders`, and `fetchB2BInvoices` passed `{ query: params }` to `apiGetJson()`. However, `RequestOptions` in transport only accepts `params?: QueryParams`. Because of this key mismatch, query parameters were silently ignored, causing B2B filtering by status/category to fail.
+     - *Fix:* Updated lines 202, 235, and 289 to pass `{ params: params as any }`.
+   - **Bug 3: Parameter Mismatch in Customer API (`admin-frontend/src/api/customers.ts`)**
+     - *Issue:* `admin-frontend/src/api/crm.ts` invoked `fetchCustomers(1, 100)`, but `fetchCustomers` in `customers.ts` was declared with 0 parameters (`export async function fetchCustomers(): Promise<AdminCustomer[]>`).
+     - *Fix:* Updated signature to `export async function fetchCustomers(page: number = 1, pageSize: number = 100): Promise<AdminCustomer[]>` and parameterized the API call (`/api/admin/customers?page=${page}&pageSize=${pageSize}`).
+   - **Bug 4: Account Type Schema Mismatch Across Frontends (`src/shared/types/account.ts`)**
+     - *Issue:* Frontend `Account` and `AuthSession` interfaces were missing `status?: string;` and index signatures, causing typing conflicts with the live FastAPI backend user response (which provides `account.status` like `"active"`, `"approved"`, `"pending"`).
+     - *Fix:* Aligned `Account` and `AuthSession` contracts in `admin-frontend`, `partner-frontend`, and `customer-frontend` with backend schemas and indexed properties.
+   - **Bug 5: Localhost Redis Socket Latency & Log Flooding (`backend-python/app/core/redis_limiter.py`)**
+     - *Issue:* Standard Redis client lacked an offline circuit breaker. When Redis was not listening on `127.0.0.1:6379`, every incoming request attempted a socket connection, suffered connection-refused latency, and flooded Docker logs with `Standard Redis command failed (Error 111 connecting to 127.0.0.1:6379)`.
+     - *Fix:* Implemented `_standard_redis_offline_until` and `_mark_standard_redis_offline(seconds=60.0)` circuit breaker. When a Redis command or pipeline fails, standard Redis is marked offline for 60 seconds and requests immediately route to Upstash / in-memory without connection delays.
+   - **Bug 6: Premature Abort in SMS OTP Gateway Cascade (`backend-python/app/core/twilio_sms.py`)**
+     - *Issue:* In `send_twilio_sms_otp()`, when Twilio Verify returned an error or Twilio Programmable SMS encountered a trial template restriction (HTTP 400), the function immediately aborted with `return False, ...`, preventing execution of downstream gateways (Fast2SMS, 2Factor).
+     - *Fix:* Updated the waterfall dispatch so that failures in Twilio Verify or Twilio SMS log a warning and cascade to the next configured gateway.
+
+3. **Verification & Deployment:**
+   - **Frontend Builds:** Executed production builds for all 4 applications (`admin-frontend`, `customer-frontend`, `partner-frontend`, `rider-frontend`) — all built with exit code 0.
+   - **Backend Bytecode Compilation:** Ran `python3 -m py_compile` across all backend Python files — exit code 0.
+   - **EC2 Backend Deployment:** Synced updated `redis_limiter.py` and `twilio_sms.py` to EC2 `quickpress-backend` container, restarted the container, and verified live health response:
+     - `{"status":"ok","service":"quickpress-backend","env":"production","database":"supabase-postgresql","firebase":true}`
+     - Verified log flood eliminated.
+
+---
 
 ## Session: November 24, 2026 (Part 79)
 

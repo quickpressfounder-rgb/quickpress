@@ -91,10 +91,10 @@ function toAdminCustomer(row: any): AdminCustomer {
   };
 }
 
-/** GET /api/admin/customers — pulls every page so console-side search/filter still works. */
-export async function fetchCustomers(): Promise<AdminCustomer[]> {
+/** GET /api/admin/customers — pulls requested or all pages so console-side search/filter still works. */
+export async function fetchCustomers(page: number = 1, pageSize: number = 100): Promise<AdminCustomer[]> {
   try {
-    const first = await apiGetJson<any>("/api/admin/customers?page=1&pageSize=100");
+    const first = await apiGetJson<any>(`/api/admin/customers?page=${page}&pageSize=${pageSize}`);
     let items: any[] = [];
     if (Array.isArray(first)) {
       items = first;

@@ -18,11 +18,13 @@ export type Account = {
   /** Partner/rider onboarding state; always true for customers and admins. */
   isOnboarded: boolean;
   isVerified: boolean;
+  status?: string;
   /** Partner store id / rider profile id this login owns (partner & rider roles). */
   linkedId?: string;
   permissions?: string[];
   departmentRole?: string;
   scope?: string;
+  [key: string]: any;
 };
 
 export type AuthSession = {
@@ -30,6 +32,10 @@ export type AuthSession = {
   refreshToken: string;
   expiresAt: string;
   account: Account;
+  status?: string;
+  isVerified?: boolean;
+  isOnboarded?: boolean;
+  [key: string]: any;
 };
 
 export type RequestOtpPayload = { phone: string; role: AccountRole };

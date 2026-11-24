@@ -14,7 +14,7 @@
 import { apiBaseUrl, apiTimeoutMs, appEnvironment, isApiConfigured } from "../customer/api/config";
 import { isOnline } from "../customer/api/network";
 import { ApiError } from "./errors";
-import { activeSessionRole, readToken } from "./session-store";
+import { activeSessionRole, clearSession, readToken } from "./session-store";
 import { recordApiCall } from "./api-inspector";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";

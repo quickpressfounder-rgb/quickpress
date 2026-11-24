@@ -127,11 +127,9 @@ async def send_twilio_sms_otp(phone: str, role: str = "customer") -> Tuple[bool,
                     _log.info("Twilio Verify SMS dispatched successfully to %s", phone)
                     return True, "twilio_verify", None
                 error_text = resp.text
-                _log.warning("Twilio Verify API returned %s: %s", resp.status_code, error_text)
-                return False, "twilio_verify_error", error_text
+                _log.warning("Twilio Verify API returned %s: %s. Falling back to SMS.", resp.status_code, error_text)
         except Exception as exc:
-            _log.error("Twilio Verify request failed: %s", exc)
-            return False, "twilio_verify_error", str(exc)
+            _log.warning("Twilio Verify request failed (%s). Falling back to SMS.", exc)
 
     # 2. Twilio Programmable SMS API (Direct SMS dispatch)
     if twilio_sid and twilio_token and twilio_number:
@@ -153,11 +151,9 @@ async def send_twilio_sms_otp(phone: str, role: str = "customer") -> Tuple[bool,
                     _log.info("Twilio SMS OTP %s dispatched successfully to %s", otp_code, phone)
                     return True, "twilio_sms", None
                 error_body = resp.text
-                _log.warning("Twilio Programmable SMS API returned %s: %s", resp.status_code, error_body)
-                return False, "twilio_error", error_body
+                _log.warning("Twilio Programmable SMS API returned %s: %s. Falling back to alternate gateways.", resp.status_code, error_body)
         except Exception as exc:
-            _log.error("Twilio SMS request failed: %s", exc)
-            return False, "twilio_error", str(exc)
+            _log.warning("Twilio SMS request failed (%s). Falling back to alternate gateways.", exc)
 
     # 3. Indian Gateway: Fast2SMS (Optional fallback if configured)
     clean_digits = "".join(filter(str.isdigit, phone))
@@ -182,11 +178,9 @@ async def send_twilio_sms_otp(phone: str, role: str = "customer") -> Tuple[bool,
                     _log.info("Fast2SMS OTP %s dispatched successfully to %s", otp_code, phone)
                     return True, "fast2sms", None
                 err_msg = str(data.get("message") or resp.text)
-                _log.warning("Fast2SMS API returned: %s", data)
-                return False, "fast2sms_error", err_msg
+                _log.warning("Fast2SMS API returned: %s. Falling back to next gateway.", data)
         except Exception as exc:
-            _log.error("Fast2SMS request failed: %s", exc)
-            return False, "fast2sms_error", str(exc)
+            _log.warning("Fast2SMS request failed (%s). Falling back to next gateway.", exc)
 
     # 4. Indian Gateway: 2Factor.in (Optional fallback if configured)
     twofactor_key = (os.getenv("TWOFACTOR_API_KEY") or os.getenv("TWO_FACTOR_API_KEY") or "").strip()

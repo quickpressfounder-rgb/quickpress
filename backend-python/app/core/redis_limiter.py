@@ -29,11 +29,23 @@ _upstash_client_loop: Any = None
 # Standard Redis client (REDIS_URL)
 _standard_redis_client: Any = None
 _standard_redis_loop: Any = None
+_standard_redis_offline_until: float = 0.0
+
+
+def _mark_standard_redis_offline(seconds: float = 60.0) -> None:
+    global _standard_redis_offline_until
+    _standard_redis_offline_until = time.time() + seconds
+
+
+def _is_standard_redis_offline() -> bool:
+    return time.time() < _standard_redis_offline_until
 
 
 def _get_standard_redis() -> Any:
     """Returns or creates standard redis.asyncio client if REDIS_URL is configured."""
     global _standard_redis_client, _standard_redis_loop
+    if _is_standard_redis_offline():
+        return None
     try:
         settings = get_settings()
     except Exception:
@@ -130,7 +142,8 @@ async def _upstash_pipeline(commands: List[List[Any]]) -> Optional[List[Any]]:
             results = await pipe.execute()
             return list(results)
         except Exception as exc:
-            _log.warning("Standard Redis pipeline failed (%s). Checking Upstash/in-memory.", exc)
+            _mark_standard_redis_offline(60.0)
+            _log.warning("Standard Redis pipeline failed (%s). Backing off for 60s, checking Upstash/in-memory.", exc)
 
     client = _get_upstash_client()
     if client is None:
@@ -158,7 +171,8 @@ async def _upstash_command(*args: Any) -> Optional[Any]:
             cmd_args = args[1:]
             return await std_redis.execute_command(cmd, *cmd_args)
         except Exception as exc:
-            _log.warning("Standard Redis command failed (%s). Checking Upstash/in-memory.", exc)
+            _mark_standard_redis_offline(60.0)
+            _log.warning("Standard Redis command failed (%s). Backing off for 60s, checking Upstash/in-memory.", exc)
 
     client = _get_upstash_client()
     if client is None:

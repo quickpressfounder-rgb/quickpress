@@ -199,7 +199,7 @@ export async function fetchB2BClients(params?: {
   category?: string;
 }): Promise<{ total: number; items: B2BClient[] }> {
   return apiGetJson<{ total: number; items: B2BClient[] }>("/api/b2b/admin/clients", {
-    query: params,
+    params: params as any,
   });
 }
 
@@ -232,7 +232,7 @@ export async function fetchB2BOrders(params?: {
   b2b_id?: string;
 }): Promise<{ total: number; items: B2BOrder[] }> {
   return apiGetJson<{ total: number; items: B2BOrder[] }>("/api/b2b/admin/orders", {
-    query: params,
+    params: params as any,
   });
 }
 
@@ -286,7 +286,7 @@ export async function fetchB2BInvoices(params?: {
   status?: string;
 }): Promise<{ total: number; items: B2BInvoice[] }> {
   return apiGetJson<{ total: number; items: B2BInvoice[] }>("/api/b2b/admin/invoices", {
-    query: params,
+    params: params as any,
   });
 }
 
