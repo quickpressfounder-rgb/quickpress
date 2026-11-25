@@ -123,7 +123,13 @@ function toLine(item: CartItem): CartLine {
 }
 
 function emit() {
-  listeners.forEach((fn) => fn());
+  if (typeof queueMicrotask === "function") {
+    queueMicrotask(() => {
+      listeners.forEach((fn) => fn());
+    });
+  } else {
+    listeners.forEach((fn) => fn());
+  }
 }
 
 function computeOptimisticTotals(lines: CartLine[], currentCharges?: Charges, currentTotals?: Totals): Totals {

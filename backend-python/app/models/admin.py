@@ -301,7 +301,7 @@ class SupportReplyPayload(BaseModel):
 
 
 class SupportStatusPayload(BaseModel):
-    status: str
+    status: str = "closed"
     resolutionReason: Optional[str] = None
     resolutionNotes: Optional[str] = None
 

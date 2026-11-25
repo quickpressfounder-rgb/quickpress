@@ -3925,10 +3925,19 @@ async def accept_order(order_id: str, user: User = Depends(current_user)) -> dic
                 ord_doc = await lifecycle.find_order(canonical_ord_id)
                 if ord_doc:
                     return lifecycle.to_rider_delivery(ord_doc)
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="This trip has already been accepted by another Captain.",
-            )
+            err_str = str(err)
+            if "RIDE_ALREADY_ASSIGNED" in err_str:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="This trip has already been accepted by another Captain.",
+                )
+            try:
+                return await _rider_action(rider_delivery_repository.accept, canonical_ord_id, user)
+            except Exception:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=err_str,
+                )
 
     return await _rider_action(rider_delivery_repository.accept, canonical_ord_id, user)
 
@@ -4146,6 +4155,7 @@ async def drop_at_partner(
 
 @router.post("/orders/{order_id}/start-delivery")
 @router.post("/orders/{order_id}/verify-dispatch-otp")
+@router.post("/orders/{order_id}/dispatch")
 async def start_delivery(
     order_id: str, body: dict | None = None, user: User = Depends(current_user)
 ) -> dict:

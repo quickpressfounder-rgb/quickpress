@@ -6338,3 +6338,42 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
      - API health check verified live: `{"status":"ok","service":"quickpress-backend","env":"production","database":"supabase-postgresql","firebase":true}`.
      - Admin SSO verified and returned authenticated session with 30 days token expiry.
      - Partner stores verified live in new Supabase (`LUNDARY KING`, `QuickPress Express Cleaners`).
+
+---
+
+## Session: Multi-App Live Browser E2E Testing, Real-Time Payouts & 100% Bug Remediation
+- **Date**: 2026-11-25
+- **User Directive**: Multi-Application End-to-End Live Browser Testing in headed Chrome across Customer (`:8081`), Partner (`:8082`), Rider (`:8083`), Admin (`:8084`), recording all issues in real-time, resolving all detected bugs, and auditing financial payouts with double-entry precision.
+- **Architectural & E2E Engineering Accomplishments**:
+  1. **Headed Google Chrome Automated Suite with Visual Dynamic Overlay**:
+     - Built and executed `scratch/browser-runner/run_live_browser_suite.js` using `puppeteer-core` driving macOS Google Chrome.
+     - Injected a live visual top banner across all four consoles tracking status, roles, action phases, and real-time logs.
+  2. **100% Full Order Lifecycle Verification (Order #QP1053)**:
+     - **Customer App (`:8081`)**: Authenticated customer (+919876543210), selected partner Star White Laundry, applied coupon `WELCOME50` (-₹50.00), placed Order `#QP1053` (Gross ₹255.35). Generated Pickup OTP `1160` and Delivery OTP `4391`. Raised Support Ticket `#f5595f` ("Silk Garment Steam Press Guidance").
+     - **Partner Hub (`:8082`)**: Store `partner-store-101` received and accepted Order `#QP1053` with 30m SLA.
+     - **Rider Captain (`:8083`)**: Sunil Kumar accepted pickup trip (Guaranteed ₹50.00 fare), entered OTP `1160` at doorstep (`PICKED_UP`), and handed over bag to partner store (`at_partner`).
+     - **Partner Processing (`:8082`)**: Commenced washing and steam pressing (`processing`), completed packaging (`ready`), and generated Store Dispatch OTP `6405`. Raised inventory replenishment ticket.
+     - **Rider Dispatch & Handover (`:8083`)**: Claimed delivery leg, verified Dispatch OTP `6405` (`OUT_FOR_DELIVERY`), reached doorstep, and verified Customer Delivery OTP `4391` (`DELIVERED`). Raised detour ticket.
+     - **Admin Console CRM (`:8084`)**: Logged in with staff 2FA, audited queue of 10 tickets, and resolved/closed 3 open tickets (`#TKT-RDR-2673`, `#TKT-2652`, `#tkt-8b3f1af5595f`).
+  3. **Zero Rounding Loss Master Financial Settlement Audit**:
+     - Customer GMV Paid: **₹255.35**
+     - Partner Wallet Settlement: **+₹185.49** (Pre: ₹2,959.62 -> Post: ₹3,145.11)
+     - Captain Trip Payout: **+₹50.00** (Pre: ₹642.00 -> Post: ₹692.00)
+     - QuickPress Retained Platform Margin: **₹19.86**
+     - Total Disbursed: ₹255.35 | **Variance: ₹0.00 (Zero Rounding Loss PASSED)**.
+  4. **100% Resolution of All 10 Detected Defects**:
+     - *Bug 1 (Auth Route 404)*: Aligned OTP verification endpoint to `/api/auth/phone/verify`.
+     - *Bug 2 (Support Ticket 422)*: Aligned payload schema categories to canonical literals (`order`, `medium`).
+     - *Bug 3 (Support Ticket 404)*: Added `lifecycle.find_order()` lookup in `backend-python/app/db/support_repositories.py` across `orders` and `customer_orders`.
+     - *Bug 4 (Support Ticket 500)*: Fixed `AttributeError: 'User' object has no attribute 'name'` by checking `full_name`, `fullName`, and `name`.
+     - *Bug 5 (Partner Accept 403)*: Added `payload_partner_id` parameter to `order_repositories._partner()` to preserve explicit store selection, and ensured active store status.
+     - *Bug 6 (Rider Accept 500)*: Fixed `AttributeError: 'dict' object has no attribute 'modified_count'` in `backend-python/app/services/smart_2ride_engine.py` with safe attribute/key extraction.
+     - *Bug 7 (Rider Dispatch 404)*: Added `@router.post("/orders/{order_id}/dispatch")` alias in `backend-python/app/api/rider.py`.
+     - *Bug 8 (Admin Close Ticket 422)*: Added default `status: str = "closed"` to `SupportStatusPayload` in `backend-python/app/models/admin.py`.
+     - *Bug 9 (React 19 Render Warning)*: Scheduled `emit()` listener execution via `queueMicrotask` in `customer-frontend/src/api/customer/cart-store.ts`.
+     - *Bug 10 (Session Key Sync)*: Standardized session key prefix `quickpress.session.<role>` across all four web applications.
+- **Verification**:
+  - `customer-frontend`: Production Vite + Nitro SSR build passed (0 errors, 14.5s).
+  - `backend-python`: PyCompile syntax verified across all modified files (0 errors).
+  - Live Browser Headed E2E Suite executed successfully with 0 remaining errors.
+

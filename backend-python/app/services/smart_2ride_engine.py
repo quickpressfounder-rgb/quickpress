@@ -1289,7 +1289,12 @@ class Smart2RideEngine:
                     },
                 },
             )
-            if update_res.modified_count == 0:
+            modified_cnt = (
+                getattr(update_res, "modified_count", None)
+                if hasattr(update_res, "modified_count")
+                else (update_res.get("modified_count") if isinstance(update_res, dict) else (update_res.get("modifiedCount") if isinstance(update_res, dict) else 1))
+            )
+            if modified_cnt is not None and modified_cnt == 0:
                 curr = await database.find_one(RIDES_COLLECTION, {"_id": ride_id})
                 if curr and curr.get("riderId") == rider_id:
                     return curr

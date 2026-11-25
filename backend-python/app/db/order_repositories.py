@@ -600,7 +600,7 @@ class OrderRepository:
         if not (address.line.strip() and address.phone.strip()):
             raise ValueError("The selected pickup address is incomplete")
 
-        partner = await self._partner(items)
+        partner = await self._partner(items, payload_partner_id=payload.partnerId)
         code = await self.next_number()
         created = _iso(_now())
         pickup = OrderPickup(
@@ -1159,8 +1159,8 @@ class OrderRepository:
             )
         return order
 
-    async def _partner(self, items: List[CartLineResponse]) -> OrderPartnerParty:
-        partner_id = next((item.partnerId for item in items if item.partnerId), None)
+    async def _partner(self, items: List[CartLineResponse], payload_partner_id: Optional[str] = None) -> OrderPartnerParty:
+        partner_id = payload_partner_id or next((item.partnerId for item in items if item.partnerId), None)
         if not partner_id and items:
             for it in items:
                 svc = await database.find_one("partner_services", {"_id": it.id}) or await database.find_one("partner_services", {"id": it.id})

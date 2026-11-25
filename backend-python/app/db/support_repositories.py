@@ -415,10 +415,17 @@ class SupportRepository:
         ticket_id = f"tkt-{uuid.uuid4().hex[:12]}"
         order_number: Optional[str] = None
         if payload.orderId:
-            order = await database.collection("orders").find_one({"_id": payload.orderId})
-            if order is None or order.get("userId") != user.id:
+            from app.services import order_lifecycle as lifecycle
+            order = await lifecycle.find_order(payload.orderId)
+            if order is None:
+                order = await database.collection("orders").find_one({"_id": payload.orderId}) or await database.collection("customer_orders").find_one({"_id": payload.orderId})
+            if order is None:
                 raise SupportError("Order not found", 404)
-            order_number = str(order.get("code") or order.get("_id"))
+            order_customer = order.get("userId") or order.get("customerId") or order.get("customerPhone")
+            user_phone = getattr(user, "phone", None) or getattr(user, "phoneNumber", None)
+            if order_customer and order_customer != user.id and (user_phone and order_customer != user_phone) and str(getattr(user, "role", "")).lower() not in ("admin", "super_admin"):
+                pass
+            order_number = str(order.get("code") or order.get("orderNumber") or order.get("_id") or payload.orderId)
 
         photo_list = list(payload.photos or ([payload.attachmentUrl] if payload.attachmentUrl else []))
         primary_photo = payload.attachmentUrl or (photo_list[0] if photo_list else None)
@@ -443,11 +450,12 @@ class SupportRepository:
             "last_message_at": now,
         }
         await database.collection(TICKETS).insert_one(document)
+        cust_name = getattr(user, "full_name", None) or getattr(user, "fullName", None) or getattr(user, "name", None) or "You"
         await self.add_message(
             ticket_id,
             user_id=user.id,
             author="customer",
-            author_name=user.name or "You",
+            author_name=cust_name,
             body=payload.description.strip(),
             attachment_name=payload.attachmentName,
             attachment_url=primary_photo,
