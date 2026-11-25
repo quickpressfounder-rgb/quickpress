@@ -1018,6 +1018,8 @@ class SettlementEngine:
 
         return settlement_doc
 
+    settle_order = settle_order_on_completion
+
     async def get_admin_settlements_overview(self) -> Dict[str, Any]:
         """Master admin settlement control center:
         - Total Partner Payouts (Settled & Pending)
