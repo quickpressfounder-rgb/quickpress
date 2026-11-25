@@ -6377,3 +6377,32 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
   - `backend-python`: PyCompile syntax verified across all modified files (0 errors).
   - Live Browser Headed E2E Suite executed successfully with 0 remaining errors.
 
+---
+
+## Session: Production Android APK and Google Play AAB Bundle Release
+- **Date**: 2026-11-25
+- **User Directive**: "apk relese karo"
+- **Build & Release Accomplishments**:
+  1. **Full Mobile Platform Build Execution**:
+     - Executed automated compilation across all three mobile client applications using `build_all_apks.py all`.
+     - Built fresh SSR production assets with `VITE_API_BASE_URL=https://api.withquickpress.com`.
+     - Extracted static HTML fallbacks via local micro-server for reliable offline/native WebView initialization.
+     - Synchronized web distributions with Android Capacitor assets (`android/app/src/main/assets/public`).
+  2. **Release Artifacts Generated & Mirrored**:
+     - **QuickPress Customer**:
+       - APK: `QuickPress-Customer.apk` (20 MB)
+       - AAB: `QuickPress-Customer.aab` (19 MB)
+     - **QuickPress Partner**:
+       - APK: `QuickPress-Partner.apk` (18 MB)
+       - AAB: `QuickPress-Partner.aab` (18 MB)
+     - **QuickPress Captain (Rider)**:
+       - APK: `QuickPress-Captain.apk` (18 MB)
+       - AAB: `QuickPress-Captain.aab` (18 MB)
+  3. **Multi-Target Distribution**:
+     - Saved locally to `./apks/` and `./website/public/apks/`.
+     - Mirrored directly to the conversation artifact directory (`/Users/himanshupal/.gemini/antigravity/brain/05c3991a-4437-4fdf-9278-c9fe73a12ca7/`).
+     - Auto-uploaded directly to production EC2 server (`/var/www/quickpress/website/apks/`) for live over-the-air web downloads.
+  4. **iOS Capacitor Sync**:
+     - Synchronized iOS plugins and web assets for Rider and Customer projects (`npx cap sync ios`).
+
+
