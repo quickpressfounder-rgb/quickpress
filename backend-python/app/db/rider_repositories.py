@@ -101,6 +101,9 @@ class RiderProfileRepository:
                 rider_id = linked
         if not rider_id:
             rider_id = getattr(user, "id", "")
+        existing_prof = await database.find_one(PROFILES, {"$or": [{"_id": str(rider_id)}, {"riderId": str(rider_id)}]})
+        if existing_prof:
+            return str(existing_prof.get("_id") or existing_prof.get("riderId") or rider_id)
         from app.core.identifiers import format_captain_id
         return format_captain_id(str(rider_id))
 

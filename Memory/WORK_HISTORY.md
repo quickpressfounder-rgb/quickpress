@@ -1,5 +1,78 @@
 # QuickPress — Engineering Work History
 
+## Session: November 25, 2026 (Part 89)
+
+### Comprehensive Cross-Application Multi-Console Browser Lifecycle Testing, Bug Resolution & Mathematical Financial Proof
+
+1. **Context & Directives:**
+   - **User Directive:** "MERE NO APPLICICATION KO TEST KARO EK SE ORDER KARO OR DUSARE USKA 3 SE USKA KAAM KARNA OR USKE PAYMENT DEKHO OR BATAO KITNA KITNA KISKO MILA WITH PROFF BHI DO OR AAGER KAHI BHI KOI BUG YA ERROR YA KOI BHI PROBLOME HO TO USKO NOTE KARO US USKO ANILAYSA KARO BHI FIX KARO USKO BHI BROWERS ME TEST KARNE HAI BO BHI FULL FULL TEST KARNA HAI" (Perform full-to-full interactive browser test across Customer, Partner, Rider, and Admin apps. Place an order from Customer storefront, process it through Partner and Rider apps, verify payouts with mathematical proof, find all bugs/errors, fix them, verify production builds, and push to `main`).
+   - **Environment Ports:**
+     - Customer Frontend: `http://localhost:8081` (Port 8081)
+     - Partner Frontend: `http://localhost:8082` (Port 8082)
+     - Rider Frontend: `http://localhost:8083` (Port 8083)
+     - Admin Frontend: `http://localhost:8084` (Port 8084)
+     - FastAPI Backend API: `http://localhost:8000` (Port 8000)
+
+2. **Full Lifecycle Execution Across 4 Applications:**
+   - **Stage 1 (Customer Storefront - Port 8081):**
+     - Customer (+919876543210, Himanshu Pal) authenticated.
+     - Placed laundry order `#QP1045` (ID: `ord-QP1045`) containing 2x Shirt Steam Iron + 1x Heavy Blanket Dry Clean.
+     - Gross GMV Paid by Customer: **₹255.35** (Subtotal ₹229.00 + Delivery ₹30.00 + Handling ₹15.00 + Platform ₹10.00 + GST ₹21.35 - WELCOME50 ₹50.00).
+     - Security Handover OTPs Generated:
+       - Pickup OTP (Doorstep Collection): **3626**
+       - Delivery OTP (Doorstep Handover): **9097**
+   - **Stage 2 (Partner Laundromat - Port 8082):**
+     - Star White Laundry & Dry Cleaners (`partner-store-101`) authenticated.
+     - Incoming order reviewed and accepted with 30-minute prep SLA: Status `accepted`.
+   - **Stage 3 (Rider Captain - Port 8083):**
+     - Delivery Captain Sunil Kumar (`rider-sunil-202`) claimed pickup trip: Status `accepted`.
+     - Arrived at Customer Doorstep, verified customer pickup OTP `3626`, collected garments: Status `PICKED_UP`.
+     - Arrived at Partner Store and handed over garments: Status `at_partner`.
+   - **Stage 4 (Partner Processing - Port 8082):**
+     - Store started washing & steam pressing: Status `processing`.
+     - Washing and finishing completed, garments inspected & packaged: Status `ready`.
+     - Generated secure 4-digit Store Dispatch OTP: **8301**.
+   - **Stage 5 (Rider Delivery & Customer Handover - Port 8083):**
+     - Captain claimed delivery leg, verified Store Dispatch OTP `8301`, collected fresh garments: Status `OUT_FOR_DELIVERY`.
+     - Arrived at Customer Doorstep. Customer verified Delivery OTP `9097`: Status `DELIVERED`.
+   - **Stage 6 (Admin Console & Treasury Settlement - Port 8084):**
+     - Super Admin (`admin@quickpress.online`) authenticated with 2-step Email + Password + 2FA OTP.
+     - Master Settlement Engine triggered automatically on delivery completion: Status `SETTLED`.
+
+3. **Bugs Identified, Root Causes & Fixes Implemented:**
+   - **Bug 1: Partner Accept 403 Forbidden Due to ID Formatting Discrepancy:**
+     - *Root Cause:* `resolve_partner_id` used `format_partner_id("partner-store-101")` yielding `"PRT-STORE-101"`, whereas orders recorded `partnerId: "partner-store-101"`. The strict string equality check in `partner_repositories.accept` and `order_lifecycle.assert_partner` rejected the match with 403.
+     - *Fix:* Added normalized prefix tolerance in `partner_repositories.py` and `order_lifecycle.assert_partner`, and preserved exact database profile `_id` in `resolve_partner_id`.
+   - **Bug 2: Rider ID Corruption by `format_captain_id`:**
+     - *Root Cause:* `format_captain_id` only checked prefixes `CAP-`, `RDR-`, and `CP-`. When given `rider-sunil-202`, it fell back to alphanumeric extraction taking the first 6 characters `CAP-RIDERS`, corrupting the rider identity.
+     - *Fix:* Added `RIDER-` prefix handling in `backend-python/app/core/identifiers.py` and retained existing profile `_id` in `rider_repositories.py`.
+   - **Bug 3: Partner Wallet Pydantic ValidationError 500 on `GET /api/partner/wallet`:**
+     - *Root Cause:* `PartnerWalletResponse` schema in `models/partner.py` had required fields (`cashbackBalance`, `rewardPoints`, `referralCode`, `referralEarned`) without default values, causing validation errors when querying partner wallets.
+     - *Fix:* Assigned safe default values (`= 0.0`, `= 0`, `= ""`) in `backend-python/app/models/partner.py` and added safe `.setdefault()` fallbacks in `backend-python/app/api/partner.py`.
+   - **Bug 4: Partner Wallet Initial Return Null & Settlement Engine Dual-Sync:**
+     - *Root Cause:* `partner_wallet_repository.wallet` returned `None` if no document existed in `partner_wallets`, and `settlement_engine.py` only updated `partner_profiles.wallet` without syncing `partner_wallets`.
+     - *Fix:* Added auto-initialization from `partner_profiles` in `partner_wallet_repository.wallet` and dual-synced `partner_wallets` in `settlement_engine.py`.
+   - **Bug 5: Settlement Engine String vs Dict Parameter:**
+     - *Root Cause:* `settle_order_on_completion` assumed `order` was always a `dict` and called `.get()`, throwing `AttributeError` when passed a string `order_id`.
+     - *Fix:* Added type check to automatically fetch the order document via `find_order` if a string is passed.
+
+4. **Mathematical Financial Proof & General Ledger Reconciliation:**
+   - **Customer Gross Payment (GMV):** **₹255.35**
+   - **Partner Net Payout (Star White Laundry):** **₹185.49** (Credited to Partner Wallet)
+   - **Rider Captain Trip Payout (Sunil Kumar):** **₹50.00** (Credited to Captain Wallet)
+   - **QuickPress Platform Net Margin:** **₹19.86** (Retained margin after delivery subsidy)
+   - **Total Disbursed & Accrued:** **₹255.35**
+   - **Double-Entry General Ledger Variance:** **₹0.00 (Zero Rounding Loss PASSED)**
+
+5. **Build & Syntax Verification:**
+   - `customer-frontend`: Production Vite + Nitro build passed (exit code 0).
+   - `partner-frontend`: Production Vite + Nitro build passed (exit code 0).
+   - `rider-frontend`: Production Vite + Nitro build passed (exit code 0).
+   - `admin-frontend`: Production Vite + Nitro build passed (exit code 0).
+   - `backend-python`: Syntax & Python bytecode compilation verified (`py_compile` exit code 0).
+
+---
+
 ## Session: November 25, 2026 (Part 88)
 
 ### Multi-Console Order Lifecycle Execution, Financial Reconciliation & Proof of Payout

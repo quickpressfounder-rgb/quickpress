@@ -17,6 +17,8 @@ def format_captain_id(raw_id: Optional[str]) -> str:
         return clean.upper()
     if clean.upper().startswith("RDR-"):
         return f"CAP-{clean[4:].upper()}"
+    if clean.upper().startswith("RIDER-"):
+        return f"CAP-{clean[6:].upper()}"
     if clean.upper().startswith("CP-"):
         return f"CAP-{clean[3:].upper()}"
     

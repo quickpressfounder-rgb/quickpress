@@ -139,8 +139,12 @@ class PartnerRepository:
         if not store_id:
             raise PartnerAccessError("No partner store profile found for this account. Please complete partner onboarding.")
 
-        from app.core.identifiers import format_partner_id
-        store_id_str = format_partner_id(str(store_id))
+        existing_prof = await database.find_one(PROFILES, {"$or": [{"_id": str(store_id)}, {"partnerId": str(store_id)}]})
+        if existing_prof:
+            store_id_str = str(existing_prof.get("_id") or existing_prof.get("partnerId") or store_id)
+        else:
+            from app.core.identifiers import format_partner_id
+            store_id_str = format_partner_id(str(store_id))
         if user_id:
             _PARTNER_ID_CACHE[user_id] = store_id_str
 
@@ -770,15 +774,24 @@ class PartnerOrderRepository:
         order_partner = order.get("partner") or {}
         existing_pid = str(order_partner.get("id") or order.get("partner_id") or order.get("partnerId") or "")
 
+        from app.core.identifiers import format_partner_id
+        is_same_partner = (
+            not existing_pid
+            or existing_pid == partner_id
+            or existing_pid.lower() == partner_id.lower()
+            or format_partner_id(existing_pid) == format_partner_id(partner_id)
+            or existing_pid.replace("partner-store-", "").replace("PRT-STORE-", "").lower() == partner_id.replace("partner-store-", "").replace("PRT-STORE-", "").lower()
+        )
+
         if current_status in (lifecycle.PARTNER_ACCEPTED, "partner_accepted", "accepted"):
-            if not existing_pid or existing_pid == partner_id or existing_pid.lower() == partner_id.lower():
+            if is_same_partner:
                 # Idempotent replay: this store has already accepted this order
                 return order
 
         if current_status not in (lifecycle.PENDING, lifecycle.PLACED):
             raise InvalidTransitionError(f"This order is already {current_status} and cannot be accepted again.")
 
-        if existing_pid and existing_pid != partner_id and existing_pid.lower() != partner_id.lower():
+        if existing_pid and not is_same_partner:
             raise PartnerAccessError("This order is already accepted by another partner store.")
 
         now_dt = datetime.now(timezone.utc)
@@ -1381,7 +1394,36 @@ class PartnerWalletRepository:
         self._partner_locks: Dict[str, asyncio.Lock] = {}
 
     async def wallet(self, partner_id: str) -> Optional[Dict[str, Any]]:
-        return await database.find_one(WALLETS, {"accountId": partner_id})
+        doc = await database.find_one(WALLETS, {"$or": [{"accountId": partner_id}, {"partnerId": partner_id}, {"_id": partner_id}]})
+        prof = await database.find_one(PROFILES, {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]}) or {}
+        w_data = prof.get("wallet") or {}
+        prof_balance = float(w_data.get("balance") or w_data.get("currentBalance") or 0.0)
+        total_earned = float(w_data.get("totalEarned") or prof_balance)
+
+        if not doc:
+            doc = {
+                "_id": partner_id,
+                "accountId": partner_id,
+                "partnerId": partner_id,
+                "balance": prof_balance,
+                "currentBalance": prof_balance,
+                "totalEarned": total_earned,
+                "pendingSettlement": float(w_data.get("pendingSettlement") or 0.0),
+                "currency": "INR",
+                "updatedAt": _now(),
+            }
+            await database.insert(WALLETS, doc)
+        else:
+            if prof_balance > float(doc.get("balance") or 0.0):
+                doc["balance"] = prof_balance
+                doc["currentBalance"] = prof_balance
+                doc["totalEarned"] = total_earned
+                await database.update(WALLETS, {"_id": doc["_id"]}, {
+                    "balance": prof_balance,
+                    "currentBalance": prof_balance,
+                    "totalEarned": total_earned,
+                })
+        return doc
 
     async def transactions(self, partner_id: str) -> List[Dict[str, Any]]:
         return await database.find_sorted(

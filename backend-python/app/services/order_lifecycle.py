@@ -487,7 +487,13 @@ def assert_partner(order: Dict[str, Any], partner_id: str) -> None:
     order_partner = order.get("partner") or {}
     order_p_id = str(order_partner.get("id") or order.get("partner_id") or order.get("partnerId") or order.get("store_id") or "")
     if order_p_id:
-        if order_p_id == partner_id or order_p_id.lower() == partner_id.lower():
+        from app.core.identifiers import format_partner_id
+        if (
+            order_p_id == partner_id
+            or order_p_id.lower() == partner_id.lower()
+            or format_partner_id(order_p_id) == format_partner_id(partner_id)
+            or order_p_id.replace("partner-store-", "").replace("PRT-STORE-", "").lower() == partner_id.replace("partner-store-", "").replace("PRT-STORE-", "").lower()
+        ):
             return
         st = order_status(order)
         if st in (PLACED, PENDING, "new"):
@@ -528,9 +534,16 @@ def assert_rider(order: Dict[str, Any], rider_id: str) -> None:
         if s_id.upper().startswith("CAP-"):
             target_ids.add(f"rdr-{s_id[4:].lower()}")
             target_ids.add(f"rdr-{s_id[4:]}")
+            target_ids.add(f"rider-{s_id[4:].lower()}")
+            target_ids.add(f"rider-{s_id[4:]}")
         elif s_id.lower().startswith("rdr-"):
             target_ids.add(f"CAP-{s_id[4:].upper()}")
             target_ids.add(f"cap-{s_id[4:].lower()}")
+            target_ids.add(f"rider-{s_id[4:].lower()}")
+        elif s_id.lower().startswith("rider-"):
+            target_ids.add(f"CAP-{s_id[6:].upper()}")
+            target_ids.add(f"cap-{s_id[6:].lower()}")
+            target_ids.add(f"rdr-{s_id[6:].lower()}")
 
     if not target_ids:
         raise OrderAuthorizationError("No rider is assigned to this order yet")

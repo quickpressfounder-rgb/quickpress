@@ -1937,7 +1937,20 @@ async def wallet(partner_id: str = Depends(_partner_id)) -> Optional[PartnerWall
     doc = await partner_wallet_repository.wallet(partner_id)
     if doc is None:
         return None
-    return PartnerWalletResponse(**{k: v for k, v in doc.items() if k in PartnerWalletResponse.model_fields})
+    data = dict(doc)
+    if "accountId" not in data:
+        data["accountId"] = partner_id
+    if "balance" not in data:
+        data["balance"] = float(data.get("currentBalance") or 0.0)
+    data.setdefault("cashbackBalance", 0.0)
+    data.setdefault("rewardPoints", 0)
+    data.setdefault("referralCode", "")
+    data.setdefault("referralEarned", 0.0)
+    data.setdefault("onHold", 0.0)
+    data.setdefault("lifetimeEarned", float(data.get("totalEarned") or data.get("balance") or 0.0))
+    data.setdefault("bankLast4", "")
+    data.setdefault("autoPayout", True)
+    return PartnerWalletResponse(**{k: v for k, v in data.items() if k in PartnerWalletResponse.model_fields})
 
 
 @router.get("/wallet/transactions", response_model=List[PartnerWalletTransactionResponse])

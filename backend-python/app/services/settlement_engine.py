@@ -742,7 +742,7 @@ class SettlementEngine:
 
         return overview_data
 
-    async def settle_order_on_completion(self, order: Dict[str, Any]) -> Dict[str, Any]:
+    async def settle_order_on_completion(self, order: Any) -> Dict[str, Any]:
         """Triggered when an order is delivered/completed:
         1. Calculates Partner net earnings (subtotal - 15% platform commission - 1% TCS).
         2. Calculates Rider trip earnings (Ride 1 pickup + Ride 2 delivery).
@@ -751,6 +751,15 @@ class SettlementEngine:
         5. Credits Rider Wallet and creates Settlement records.
         6. Logs master order settlement for Admin oversight.
         """
+        if isinstance(order, str):
+            from app.services.order_lifecycle import find_order
+            order_doc = await find_order(order)
+            if not order_doc:
+                order_doc = await database.find_one("customer_orders", {"_id": order}) or await database.find_one("orders", {"_id": order})
+            if not order_doc:
+                return {}
+            order = order_doc
+
         canonical_id = str(order.get("_id") or order.get("id") or "")
         if not canonical_id:
             return {}
@@ -855,6 +864,23 @@ class SettlementEngine:
                     }
                 }
             )
+            # Sync partner_wallets collection & audit record
+            try:
+                await database.update(
+                    "partner_wallets",
+                    {"$or": [{"accountId": partner_id}, {"partnerId": partner_id}, {"_id": partner_id}]},
+                    {
+                        "balance": round(curr_bal + partner_net, 2),
+                        "currentBalance": round(curr_bal + partner_net, 2),
+                        "totalEarned": round(curr_earned + partner_net, 2),
+                        "lastTripCredit": partner_net,
+                        "lastSettledAt": now_iso,
+                        "updatedAt": now_iso,
+                    },
+                    upsert=True,
+                )
+            except Exception:
+                pass
 
         # Trigger partner payout notification for this order settlement
         try:

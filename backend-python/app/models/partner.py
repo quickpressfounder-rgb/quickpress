@@ -341,12 +341,12 @@ class PartnerEarningsResponse(BaseModel):
 class PartnerWalletResponse(BaseModel):
     accountId: str
     balance: float
-    cashbackBalance: float
-    rewardPoints: int
-    referralCode: str
-    referralEarned: float
-    onHold: float = 0
-    lifetimeEarned: float = 0
+    cashbackBalance: float = 0.0
+    rewardPoints: int = 0
+    referralCode: str = ""
+    referralEarned: float = 0.0
+    onHold: float = 0.0
+    lifetimeEarned: float = 0.0
     bankLast4: str = ""
     autoPayout: bool = True
 
