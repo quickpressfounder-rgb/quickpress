@@ -1,5 +1,46 @@
 # QuickPress — Engineering Work History
 
+## Session: November 25, 2026 (Part 86)
+
+### Premature Auto-Logout Elimination, Token Rotation Stabilization, and Name Prompt Loop Fix
+
+1. **Context & Directives:**
+   - **User Directive:** "AB ISKE ANDER BINA LOGOUT KIYE LOGOUT HO JA RAHAHAI ISKO SOLVE KARO" (Eliminate premature auto-logouts happening across apps without user clicking logout, fix refresh token rotation and recurring name prompting on login).
+   - **Objectives:**
+     1. Prevent accidental `clearSession()` calls across all frontends (`customer-frontend`, `partner-frontend`, `rider-frontend`, `admin-frontend`).
+     2. Fix token refresh loop so transient errors (timeouts, 502/503 during restarts) do not wipe user credentials.
+     3. Fix backend session issuance & validation (`logged_out_at` must be cleared on login so prior logouts do not invalidate subsequent logins, plus 10s grace tolerance for clock skew).
+     4. Fix customer name persistence (`display_name` vs `name`/`fullName`) in backend models and `NamePromptModal` so the app doesn't repeatedly ask for the customer's name on every route/login.
+     5. Verify clean production builds across all 4 frontends (`admin-frontend`, `customer-frontend`, `partner-frontend`, `rider-frontend`).
+     6. Commit and push directly to GitHub `main`.
+
+2. **Root Causes & Fixes Implemented:**
+   - **`customer-frontend/src/api/customer/profile-api.ts`:**
+     - Removed rogue `clearSession()` on line 275 inside `fetchProfileData()`. Previously, any transient network error or null response from `/api/profile` immediately wiped the customer's stored session tokens. Now safely returns stale cache or guest fallback without nuking auth.
+   - **`admin-frontend/src/api/core/transport.ts`:**
+     - Removed premature `clearSession(activeSessionRole())`, `clearSession("admin")`, and `window.location.href = "/"` inside low-level `httpRequest()`. Allowed 401 errors to propagate up to `apiRequest()` so the refresh token rotation handler can automatically exchange expired access tokens for new ones.
+   - **`customer-frontend/src/api/core/auth-service.ts` & `partner-frontend/src/api/core/auth-service.ts`:**
+     - Updated `refreshSession()` to retain the current session during network timeouts, server reboots, or transient HTTP 5xx responses instead of returning `null` and triggering an auto-logout cascade. Session is only cleared if the backend explicitly reports "terminated", "not found", "suspended", "blocked", or "revoked".
+     - Updated `restoreSession()` to retain stored sessions through temporary network errors.
+   - **`customer-frontend/src/components/profile/NamePromptModal.tsx`:**
+     - Switched dismissal state from `sessionStorage` to per-user `localStorage` (`qp_name_prompt_dismissed_${userId}`), ensuring the prompt never recurs once dismissed or saved.
+     - Added phone-number and digit-pattern detection (`isGenericName`) so phone numbers aren't mistaken for real names.
+     - Skipped initial `fetchProfileData({ forceRefresh: true })` check if the active session account already has a valid non-generic name.
+   - **`backend-python/app/api/auth.py`:**
+     - In `_issue_session(user)`: immediately set `user.logged_out_at = None` in Python memory, and updated database with `{"$set": {"last_login_at": now_ts, "updated_at": now_ts, "logged_out_at": None}}`, unsetting any previous logout timestamp so prior logouts do not invalidate new login sessions.
+     - In `_enrich_account(account, user)`: added customer profile name enrichment from the `customers` database collection, ensuring `account.name` returns the customer's real name and synchronizes back to `users.display_name`.
+     - In `refresh`: added 10-second grace tolerance for clock skew (`iat < (int(lo_ts) - 10)`).
+   - **`backend-python/app/core/deps.py`:**
+     - In `current_user`: added 10-second grace tolerance for clock skew (`iat < (int(lo_ts) - 10)`).
+   - **`backend-python/app/models/user.py` & `backend-python/app/db/profile_repositories.py`:**
+     - In `User.from_document`: backfilled `display_name = data.get("display_name") or data.get("name") or data.get("fullName") or data.get("businessName")`.
+     - In `to_profile`: fallback check for `user.display_name`, `name`, `fullName`, and phone.
+
+3. **Verification & Deployment:**
+   - Python code compiled cleanly via `py_compile`.
+   - Production Vite TypeScript builds compiled cleanly with exit code 0 across all 4 frontend workspaces (`admin-frontend`, `customer-frontend`, `partner-frontend`, `rider-frontend`).
+   - Git commit and pushed to `main` branch directly.
+
 ## Session: November 24, 2026 (Part 85)
 
 ### UI/UX Bugs 40 to 50 Resolution & Complete 50-Bug Milestone Finalization

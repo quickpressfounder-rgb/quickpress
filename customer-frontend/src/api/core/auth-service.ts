@@ -134,22 +134,24 @@ export async function refreshSession(explicitRole?: AccountRole): Promise<AuthSe
   activeRefreshPromise = (async () => {
     const targetRole = role(explicitRole);
     const current = readSession(targetRole);
-    if (!current?.refreshToken) return null;
+    if (!current?.refreshToken) return current || null;
     try {
       const next = await apiPostJson<AuthSession>(
         AUTH_ENDPOINTS.refresh,
         { refresh_token: current.refreshToken },
-        { anonymous: true },
+        { anonymous: true, timeoutMs: 35000 },
       );
       return persist(next);
     } catch (err: any) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403 || err.kind === "unauthorized")) {
         const msg = String(err.message || "").toLowerCase();
-        if (msg.includes("terminated") || msg.includes("not found") || msg.includes("suspended") || msg.includes("blocked")) {
+        if (msg.includes("terminated") || msg.includes("not found") || msg.includes("suspended") || msg.includes("blocked") || msg.includes("revoked")) {
           clearSession(targetRole);
+          return null;
         }
       }
-      return null;
+      // Network timeout / server restarting / transient error: preserve current session
+      return current;
     } finally {
       activeRefreshPromise = null;
     }
@@ -173,16 +175,24 @@ export async function restoreSession(explicitRole?: AccountRole): Promise<AuthSe
   const stored = readSession(target);
   if (!stored) return null;
 
-  if (isExpired(stored)) return refreshSession(target);
+  if (isExpired(stored)) {
+    const refreshed = await refreshSession(target);
+    if (refreshed) return refreshed;
+    if (!isOnline()) return stored;
+  }
 
   try {
     const account = await fetchCurrentUser();
     return persist({ ...stored, account });
-  } catch (error) {
-    if (error instanceof ApiError && error.kind === "unauthorized") {
-      return refreshSession(target);
+  } catch (error: any) {
+    if (error instanceof ApiError && (error.status === 401 || error.kind === "unauthorized")) {
+      const refreshed = await refreshSession(target);
+      if (refreshed) return refreshed;
+      clearSession(target);
+      return null;
     }
-    return stored; // offline fallback
+    // Network errors, server reboots or offline: preserve stored session
+    return stored;
   }
 }
 

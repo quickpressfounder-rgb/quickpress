@@ -272,7 +272,9 @@ export async function fetchProfileData(
       ]);
 
     if (!account) {
-      clearSession();
+      // Do NOT wipe session on transient profile fetch failures; return cached profile or default
+      const stale = readStaleCache<ProfileData>(CACHE_KEYS.profileScreen);
+      if (stale) return stale;
       return DEFAULT_GUEST_PROFILE;
     }
 

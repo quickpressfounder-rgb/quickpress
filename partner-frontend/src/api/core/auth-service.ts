@@ -128,22 +128,24 @@ export async function refreshSession(explicitRole?: AccountRole): Promise<AuthSe
   activeRefreshPromise = (async () => {
     const targetRole = role(explicitRole);
     const current = readSession(targetRole);
-    if (!current?.refreshToken) return null;
+    if (!current?.refreshToken) return current || null;
     try {
       const next = await apiPostJson<AuthSession>(
         AUTH_ENDPOINTS.refresh,
         { refresh_token: current.refreshToken },
-        { anonymous: true },
+        { anonymous: true, timeoutMs: 35000 },
       );
       return persist(next);
     } catch (err: any) {
-      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403 || err.kind === "unauthorized")) {
         const msg = String(err.message || "").toLowerCase();
-        if (msg.includes("terminated") || msg.includes("not found") || msg.includes("suspended") || msg.includes("blocked")) {
+        if (msg.includes("terminated") || msg.includes("not found") || msg.includes("suspended") || msg.includes("blocked") || msg.includes("revoked")) {
           clearSession(targetRole);
+          return null;
         }
       }
-      return null;
+      // Network timeout / server restarting / transient: preserve current session
+      return current;
     } finally {
       activeRefreshPromise = null;
     }

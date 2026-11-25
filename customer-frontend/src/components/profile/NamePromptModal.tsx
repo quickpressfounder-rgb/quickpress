@@ -21,6 +21,7 @@ function isGenericName(name?: string | null): boolean {
   if (!name) return true;
   const clean = name.trim().toLowerCase();
   if (!clean || clean.length < 2) return true;
+  if (/^(\+91|\+)?\d+$/.test(clean.replace(/\s+/g, ""))) return true; // Phone number fallback
   return GENERIC_NAMES.some((g) => clean === g || clean.startsWith(g));
 }
 
@@ -63,9 +64,15 @@ export function NamePromptModal() {
       return;
     }
 
-    // 3. Avoid re-prompting if dismissed in this active session
-    const hasPrompted = sessionStorage.getItem("qp_name_prompt_dismissed");
+    // 3. Avoid re-prompting if dismissed or saved previously
+    const userDismissKey = `qp_name_prompt_dismissed_${session.account.id}`;
+    const hasPrompted = localStorage.getItem(userDismissKey) || localStorage.getItem("qp_name_prompt_dismissed");
     if (hasPrompted) return;
+
+    // If session account already has a real name, don't prompt
+    if (session.account.name && !isGenericName(session.account.name)) {
+      return;
+    }
 
     try {
       const data = await fetchProfileData({ forceRefresh: true });
@@ -106,7 +113,10 @@ export function NamePromptModal() {
 
     // Event listener for login event
     const handleLoginPrompt = () => {
-      sessionStorage.removeItem("qp_name_prompt_dismissed");
+      const session = readSession("customer");
+      if (session?.account?.name && !isGenericName(session.account.name)) {
+        return;
+      }
       void checkAndPrompt();
     };
 
@@ -121,7 +131,11 @@ export function NamePromptModal() {
   }, [isAuthRoute]);
 
   const handleDismiss = () => {
-    sessionStorage.setItem("qp_name_prompt_dismissed", "true");
+    const session = readSession("customer");
+    if (session?.account?.id) {
+      localStorage.setItem(`qp_name_prompt_dismissed_${session.account.id}`, "true");
+    }
+    localStorage.setItem("qp_name_prompt_dismissed", "true");
     setOpen(false);
   };
 
@@ -143,8 +157,12 @@ export function NamePromptModal() {
       // Notify components
       window.dispatchEvent(new CustomEvent("qp:profile-updated", { detail: { name: cleanName } }));
       
+      const session = readSession("customer");
+      if (session?.account?.id) {
+        localStorage.setItem(`qp_name_prompt_dismissed_${session.account.id}`, "true");
+      }
+      localStorage.setItem("qp_name_prompt_dismissed", "true");
       setOpen(false);
-      sessionStorage.setItem("qp_name_prompt_dismissed", "true");
     } catch (err: any) {
       toast.error(err?.message || "Failed to save name. Please try again.");
     } finally {

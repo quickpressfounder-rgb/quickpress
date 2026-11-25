@@ -51,7 +51,11 @@ def _member_since(value: Any) -> str:
 
 
 def to_profile(user: User, unread: int = 0) -> ProfileResponse:
-    name = user.display_name or user.phone or ""
+    name = (user.display_name or "").strip()
+    if not name:
+        name = getattr(user, "name", None) or getattr(user, "fullName", None) or ""
+    if not name:
+        name = user.phone or ""
     return ProfileResponse(
         id=user.id,
         name=name,

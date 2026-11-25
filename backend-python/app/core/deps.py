@@ -128,13 +128,13 @@ async def current_user(
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account not found")
 
-    # Instant session termination: reject tokens issued before user's last logout
+    # Instant session termination: reject tokens issued before user's last logout (with 10-second grace tolerance)
     iat = payload.get("iat", 0)
     if getattr(user, "logged_out_at", None):
         try:
             lo_dt = user.logged_out_at
             lo_ts = lo_dt.timestamp() if hasattr(lo_dt, "timestamp") else 0
-            if iat and lo_ts and iat < int(lo_ts):
+            if iat and lo_ts and iat < (int(lo_ts) - 10):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Session has been terminated. Please log in again.",

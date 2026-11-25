@@ -148,6 +148,8 @@ class User(BaseModel):
     def from_document(cls, doc: Dict[str, Any]) -> "User":
         data = dict(doc)
         data["id"] = str(data.pop("_id"))
+        if not data.get("display_name"):
+            data["display_name"] = data.get("name") or data.get("fullName") or data.get("businessName")
         return cls(**data)
 
 

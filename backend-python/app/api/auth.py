@@ -197,10 +197,48 @@ async def _enrich_account(account: AccountResponse, user: User) -> AccountRespon
         except Exception as exc:
             _log.warning("Partner account enrichment error: %s", exc)
 
+    if user.role == Role.customer:
+        try:
+            cust = None
+            if user.id:
+                cust = (
+                    await database.find_one("customers", {"_id": user.id})
+                    or await database.find_one("customers", {"userId": user.id})
+                    or await database.find_one("customers", {"user_id": user.id})
+                )
+            if not cust and user.phone:
+                raw_phone = user.phone.replace("+91", "").replace(" ", "").strip()
+                cust = await database.find_one("customers", {
+                    "$or": [
+                        {"phone": user.phone},
+                        {"phone": raw_phone},
+                        {"phone": f"+91{raw_phone}"},
+                        {"mobile": user.phone},
+                        {"mobile": raw_phone},
+                    ]
+                })
+            if cust:
+                cust_name = cust.get("name") or cust.get("fullName") or cust.get("displayName")
+                if cust_name:
+                    account.name = str(cust_name)
+                    if not user.display_name:
+                        user.display_name = str(cust_name)
+                        try:
+                            await database.update("users", {"_id": user.id}, {"$set": {"display_name": str(cust_name)}})
+                        except Exception:
+                            pass
+                if cust.get("city") and not account.city:
+                    account.city = str(cust.get("city"))
+        except Exception as exc:
+            _log.warning("Customer account enrichment error: %s", exc)
+
     return account
 
 
 async def _issue_session(user: User, is_new: bool = False) -> AuthSessionResponse:
+    # Clear termination timestamp immediately on user object so in-process operations aren't rejected
+    user.logged_out_at = None
+
     access_token, access_expires = create_access_token(user.id, user.role.value)
     refresh_token, token_id, refresh_expires = create_refresh_token(user.id, user.role.value)
     
@@ -209,7 +247,11 @@ async def _issue_session(user: User, is_new: bool = False) -> AuthSessionRespons
         try:
             await refresh_tokens.store(token_id, user.id, refresh_expires)
             now_ts = datetime.now(timezone.utc).isoformat()
-            await database.update("users", {"_id": user.id}, {"last_login_at": now_ts, "updated_at": now_ts})
+            await database.update(
+                "users",
+                {"_id": user.id},
+                {"$set": {"last_login_at": now_ts, "updated_at": now_ts, "logged_out_at": None}},
+            )
         except Exception as exc:
             _log.warning("Background session persist: %s", exc)
 
@@ -535,13 +577,13 @@ async def refresh(payload: RefreshRequest) -> AuthSessionResponse:
     if user.status in (UserStatus.suspended, UserStatus.blocked):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account has been suspended or blocked")
 
-    # Instant session termination: reject tokens issued before user's last logout
+    # Instant session termination: reject tokens issued before user's last logout (with 10-second grace tolerance)
     iat = claims.get("iat", 0)
     if getattr(user, "logged_out_at", None):
         try:
             lo_dt = user.logged_out_at
             lo_ts = lo_dt.timestamp() if hasattr(lo_dt, "timestamp") else 0
-            if iat and lo_ts and iat < int(lo_ts):
+            if iat and lo_ts and iat < (int(lo_ts) - 10):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Session has been terminated. Please log in again.",
