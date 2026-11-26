@@ -413,8 +413,7 @@ class CatalogRepository:
             settings = settings_by_partner.get(pid, {}) or settings_by_partner.get(alt_id, {})
 
             reviews_count = int(
-                p.get("totalOrders")
-                or p.get("reviewsCount")
+                p.get("reviewsCount")
                 or p.get("ratingCount")
                 or p.get("reviewCount")
                 or 0
@@ -606,15 +605,74 @@ class CatalogRepository:
 
     async def partner_reviews(self, partner_id: str) -> List[PartnerReviewResponse]:
         doc = await self.partner_document(partner_id)
+        candidate_pids = list(
+            {
+                str(p)
+                for p in (
+                    doc.get("_id") if doc else None,
+                    doc.get("partnerId") if doc else None,
+                    doc.get("id") if doc else None,
+                    partner_id,
+                )
+                if p
+            }
+        )
         actual_pid = str(doc.get("_id") or partner_id) if doc else partner_id
-        docs = await database.find_many("partner_reviews", {"partnerId": actual_pid})
+
+        # Query real customer reviews from partner_reviews and order_reviews across all matching IDs
+        pr_docs: List[Dict[str, Any]] = []
+        or_docs: List[Dict[str, Any]] = []
+        for pid_val in candidate_pids:
+            pr_docs.extend(await database.find_many("partner_reviews", {"partnerId": pid_val}))
+            or_docs.extend(
+                await database.find_many("order_reviews", {"partnerId": pid_val, "sourceRole": "customer"})
+            )
+
+        seen_keys: set[str] = set()
+        merged: List[Dict[str, Any]] = []
+
+        for d in pr_docs:
+            # Show genuine customer reviews only (exclude internal rider-to-store ratings)
+            if str(d.get("authorRole") or "customer").lower() == "rider":
+                continue
+            dedupe_key = str(d.get("orderId") or d.get("_id") or d.get("id") or "")
+            if dedupe_key and dedupe_key in seen_keys:
+                continue
+            if dedupe_key:
+                seen_keys.add(dedupe_key)
+            merged.append(d)
+
+        for o in or_docs:
+            if o.get("storeRating") is None:
+                continue
+            dedupe_key = str(o.get("orderId") or o.get("_id") or o.get("id") or "")
+            if dedupe_key and dedupe_key in seen_keys:
+                continue
+            if dedupe_key:
+                seen_keys.add(dedupe_key)
+            merged.append(
+                {
+                    "_id": o.get("_id") or o.get("id"),
+                    "id": o.get("id") or o.get("_id"),
+                    "partnerId": actual_pid,
+                    "authorName": o.get("customerName") or "QuickPress Customer",
+                    "rating": o.get("storeRating"),
+                    "comment": o.get("storeFeedback") or "",
+                    "tags": o.get("storeTags") or [],
+                    "createdAt": o.get("createdAt") or "",
+                    "verified": True,
+                }
+            )
+
+        merged.sort(key=lambda d: str(d.get("createdAt") or d.get("date") or ""), reverse=True)
+
         res: List[PartnerReviewResponse] = []
-        for d in docs:
-            c_name = d.get("name") or d.get("authorName") or d.get("customerName") or "Customer"
+        for d in merged:
+            c_name = str(d.get("name") or d.get("authorName") or d.get("customerName") or "Customer").strip()
             c_init = d.get("initials") or (c_name[0].upper() if c_name else "C")
-            c_text = d.get("text") or d.get("comment") or "Great laundry service!"
+            c_text = str(d.get("text") or d.get("comment") or d.get("storeFeedback") or "").strip()
             c_photo = d.get("photo") or d.get("avatar") or ""
-            c_date = str(d.get("createdAt") or d.get("date") or "Recently")
+            c_date = str(d.get("createdAt") or d.get("date") or "")
             res.append(
                 PartnerReviewResponse(
                     id=str(d.get("_id") or d.get("id")),
@@ -630,6 +688,9 @@ class CatalogRepository:
                     verified=bool(d.get("verified", True)),
                     service=d.get("service", "Laundry"),
                     images=d.get("images") or [],
+                    tags=list(d.get("tags") or []),
+                    reply=d.get("reply"),
+                    repliedAt=d.get("repliedAt"),
                 )
             )
         return res
@@ -646,8 +707,9 @@ class CatalogRepository:
         services = await self.partner_services(partner_id) or []
         settings = await database.find_one("partner_settings", {"_id": actual_pid}) or {}
         reviews = await self.partner_reviews(partner_id)
+        summary = review_summary(reviews, doc)
 
-        reviews_count = int(doc.get("totalOrders") or doc.get("reviewsCount") or len(reviews))
+        reviews_count = summary.total
         reviews_str = f"{reviews_count / 1000:.1f}k" if reviews_count >= 1000 else str(reviews_count)
         is_open = bool(doc.get("isOnline", True) and settings.get("isStoreOpen", True))
         raw_banner = doc.get("banner") or doc.get("bannerUrl") or doc.get("banner_url") or doc.get("cover") or doc.get("coverImage")
@@ -664,7 +726,7 @@ class CatalogRepository:
             logo=logo or image,
             image=image,
             verified=bool(doc.get("isVerified", True)),
-            rating=float(doc.get("rating") or 5.0),
+            rating=summary.average if summary.total > 0 else float(doc.get("customerRating") or doc.get("rating") or 0.0),
             reviewCount=reviews_str,
             reviewsCount=reviews_count,
             distanceKm=1.5,
@@ -1367,9 +1429,9 @@ def review_summary(
     average = (
         round(sum(review.rating for review in reviews) / len(reviews), 1)
         if reviews
-        else float(document.get("rating") or 0)
+        else 0.0
     )
-    total = int(document.get("reviewsCount") or len(reviews))
+    total = len(reviews)
     return ReviewSummaryResponse(average=average, total=total, breakdown=breakdown)
 
 

@@ -17,7 +17,6 @@ import {
   Star,
   Store,
   Truck,
-  User,
   X,
   Zap,
   type LucideIcon,
@@ -545,9 +544,13 @@ function PartnerDetailScreen() {
                     <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-bold text-brand-dark">
                         <Star className="size-3 fill-current" />
-                        {data.partner.rating}
+                        {data.reviewSummary.total > 0 ? data.reviewSummary.average.toFixed(1) : "New"}
                       </span>
-                      <span>{data.partner.reviewCount} reviews</span>
+                      <span>
+                        {data.reviewSummary.total > 0
+                          ? `${data.reviewSummary.total} ${data.reviewSummary.total === 1 ? "review" : "reviews"}`
+                          : "No reviews yet"}
+                      </span>
                       {data.partner.verified ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-secondary/12 px-2 py-0.5 text-[10px] font-bold text-brand-green">
                           Verified
@@ -683,29 +686,13 @@ function PartnerDetailScreen() {
               <section className="mt-8">
                 <SectionHeading title="Shop information" />
                 <div className="card-soft mt-4 divide-y divide-border border border-border">
-                  <InfoRow icon={User} label="Owner" value={data.partner.ownerName} />
                   <InfoRow icon={MapPin} label="Address" value={data.partner.address} />
-                  <InfoRow icon={Truck} label="Pickup radius" value={data.partner.pickupRadius} />
                   <InfoRow icon={Clock} label="Working hours" value={data.partner.workingHours} />
                   <InfoRow
                     icon={Store}
                     label="Experience"
                     value={`${data.partner.yearsInBusiness} years in business`}
                   />
-                  <InfoRow
-                    icon={Truck}
-                    label="Delivery radius"
-                    value={`${data.partner.deliveryRadiusKm} km from ${data.partner.area}`}
-                  />
-                </div>
-
-                {/* Map placeholder — coordinates come from GET /api/partners/{id} */}
-                <div className="card-soft mt-3 flex h-32 flex-col items-center justify-center gap-1.5 border border-dashed border-border">
-                  <MapPin className="size-5 text-muted-foreground" />
-                  <p className="text-[11px] font-bold text-foreground">{data.partner.address || "Store Address"}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {(data.partner.latitude != null ? data.partner.latitude : 28.5355).toFixed(4)}, {(data.partner.longitude != null ? data.partner.longitude : 77.3910).toFixed(4)}
-                  </p>
                 </div>
 
                 {data.partner.hours && data.partner.hours.length > 0 ? (
@@ -782,83 +769,116 @@ function PartnerDetailScreen() {
               {/* Reviews — GET /api/partners/{id}/reviews */}
               <section className="mt-8">
                 <SectionHeading title="Customer reviews" />
-                <div className="card-soft mt-4 flex items-center gap-4 border border-border p-4">
-                  <div className="shrink-0 text-center">
-                    <p className="text-2xl font-bold leading-none text-foreground">
-                      {data.reviewSummary.average}
-                    </p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">
-                      {data.reviewSummary.total} reviews
-                    </p>
-                  </div>
-                  <div className="min-w-0 flex-1 space-y-1">
-                    {(Array.isArray(data.reviewSummary?.breakdown) ? data.reviewSummary.breakdown : []).map((row) => {
-                      const width = data.reviewSummary.total
-                        ? Math.round((row.count / data.reviewSummary.total) * 100)
-                        : 0;
-                      return (
-                        <div key={row.star} className="flex items-center gap-2 text-[10px]">
-                          <span className="w-3 text-muted-foreground">{row.star}</span>
-                          <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                            <span
-                              className="block h-full rounded-full bg-primary transition-all duration-500"
-                              style={{ width: `${width}%` }}
-                            />
-                          </span>
-                          <span className="w-5 text-right text-muted-foreground">{row.count}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="stagger-children mt-4 space-y-3">
-                  {(data.reviews || []).map((review) => {
-                    const firstLetter = (review.name || "Customer").trim().charAt(0).toUpperCase();
-                    return (
-                      <div key={review.id} className="card-soft border border-border p-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br font-black text-sm shadow-xs uppercase select-none ${getAvatarGradient(
-                              review.name,
-                            )}`}
-                            aria-label={review.name}
-                          >
-                            {firstLetter}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold text-foreground">{review.name}</p>
-                            <p className="text-[11px] font-medium text-muted-foreground">
-                              {formatReviewTimeAgo(review.date)}
-                            </p>
-                          </div>
-                          <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-1 text-[11px] font-bold text-brand-dark">
-                            <Star className="size-3 fill-current" />
-                            {review.rating}
-                          </span>
-                        </div>
-                        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                          {review.text}
+                {data.reviewSummary.total > 0 ? (
+                  <>
+                    <div className="card-soft mt-4 flex items-center gap-4 border border-border p-4">
+                      <div className="shrink-0 text-center">
+                        <p className="text-2xl font-bold leading-none text-foreground">
+                          {data.reviewSummary.average.toFixed(1)}
                         </p>
-                        {review.reply ? (
-                          <div className="mt-3 rounded-2xl border border-zinc-200/90 bg-zinc-50/80 p-3.5 text-xs shadow-2xs">
-                            <div className="flex items-center gap-1.5 font-bold text-zinc-950">
-                              <Store className="size-3.5 text-emerald-600" />
-                              <span>Response from store:</span>
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          {data.reviewSummary.total} {data.reviewSummary.total === 1 ? "review" : "reviews"}
+                        </p>
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        {(Array.isArray(data.reviewSummary?.breakdown) ? data.reviewSummary.breakdown : []).map((row) => {
+                          const width = data.reviewSummary.total
+                            ? Math.round((row.count / data.reviewSummary.total) * 100)
+                            : 0;
+                          return (
+                            <div key={row.star} className="flex items-center gap-2 text-[10px]">
+                              <span className="w-3 text-muted-foreground">{row.star}</span>
+                              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                                <span
+                                  className="block h-full rounded-full bg-primary transition-all duration-500"
+                                  style={{ width: `${width}%` }}
+                                />
+                              </span>
+                              <span className="w-5 text-right text-muted-foreground">{row.count}</span>
                             </div>
-                            <p className="mt-1 text-zinc-700 leading-relaxed font-normal">
-                              {review.reply}
-                            </p>
-                            {review.repliedAt ? (
-                              <p className="mt-1.5 text-[10px] font-medium text-zinc-400">
-                                Replied {formatReviewTimeAgo(review.repliedAt)}
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="stagger-children mt-4 space-y-3">
+                      {(data.reviews || []).map((review) => {
+                        const firstLetter = (review.name || "Customer").trim().charAt(0).toUpperCase();
+                        return (
+                          <div key={review.id} className="card-soft border border-border p-4">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br font-black text-sm shadow-xs uppercase select-none ${getAvatarGradient(
+                                  review.name,
+                                )}`}
+                                aria-label={review.name}
+                              >
+                                {firstLetter}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-sm font-bold text-foreground">{review.name}</p>
+                                  <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 border border-emerald-100">
+                                    Verified Order
+                                  </span>
+                                </div>
+                                <p className="text-[11px] font-medium text-muted-foreground">
+                                  {formatReviewTimeAgo(review.date)}
+                                </p>
+                              </div>
+                              <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-1 text-[11px] font-bold text-brand-dark">
+                                <Star className="size-3 fill-current" />
+                                {review.rating}
+                              </span>
+                            </div>
+                            {review.text ? (
+                              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                                {review.text}
                               </p>
                             ) : null}
+                            {review.tags && review.tags.length > 0 ? (
+                              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                                {review.tags.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-700"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
+                            {review.reply ? (
+                              <div className="mt-3 rounded-2xl border border-zinc-200/90 bg-zinc-50/80 p-3.5 text-xs shadow-2xs">
+                                <div className="flex items-center gap-1.5 font-bold text-zinc-950">
+                                  <Store className="size-3.5 text-emerald-600" />
+                                  <span>Response from store:</span>
+                                </div>
+                                <p className="mt-1 text-zinc-700 leading-relaxed font-normal">
+                                  {review.reply}
+                                </p>
+                                {review.repliedAt ? (
+                                  <p className="mt-1.5 text-[10px] font-medium text-zinc-400">
+                                    Replied {formatReviewTimeAgo(review.repliedAt)}
+                                  </p>
+                                ) : null}
+                              </div>
+                            ) : null}
                           </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <div className="card-soft mt-4 border border-border p-6 text-center">
+                    <div className="mx-auto flex size-10 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500">
+                      <Star className="size-5" />
+                    </div>
+                    <p className="mt-2.5 text-xs font-bold text-foreground">No customer reviews yet</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Verified customer ratings and feedback will appear here once orders are reviewed.
+                    </p>
+                  </div>
+                )}
               </section>
 
               {/* Store policies */}

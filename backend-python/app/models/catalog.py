@@ -221,6 +221,9 @@ class PartnerReviewResponse(BaseModel):
     verified: bool = True
     service: Optional[str] = "Laundry"
     images: List[str] = []
+    tags: List[str] = []
+    reply: Optional[str] = None
+    repliedAt: Optional[str] = None
 
 
 class ReviewSummaryResponse(BaseModel):

@@ -103,6 +103,7 @@ export type PartnerReview = {
   text: string;
   date: string;
   images: string[];
+  tags?: string[];
   reply?: string;
   repliedAt?: string;
 };
@@ -172,9 +173,9 @@ export async function fetchPartnerDetail(
         cover: partner.cover || partner.bannerUrl || "store-1",
         logo: partner.logo || partner.logoUrl || "store-1",
         verified: partner.verified !== false,
-        rating: Number(partner.rating || 5.0),
-        reviewCount: String(partner.reviewCount || "0"),
-        reviewsCount: Number(partner.reviewsCount || 0),
+        rating: Number(partner.rating ?? 0),
+        reviewCount: String(partner.reviewCount ?? "0"),
+        reviewsCount: Number(partner.reviewsCount ?? 0),
         distanceKm: Number(partner.distanceKm || 1.5),
         pickupEta: partner.pickupEta || "30 min",
         deliveryEta: partner.deliveryEta || "24 hrs",
@@ -210,10 +211,23 @@ export async function fetchPartnerDetail(
         available: s.available !== false && s.isActive !== false && s.enabled !== false,
       })),
       features: raw?.features || [],
-      reviews: raw?.reviews || [],
+      reviews: (raw?.reviews || []).map((r: any) => ({
+        id: String(r.id || r._id || ""),
+        partnerId: String(r.partnerId || partnerId),
+        name: r.name || r.authorName || r.customerName || "Customer",
+        initials: r.initials || "C",
+        photo: r.photo || r.avatar || "",
+        rating: Number(r.rating ?? 5),
+        text: String(r.text ?? r.comment ?? ""),
+        date: String(r.date || r.createdAt || ""),
+        images: Array.isArray(r.images) ? r.images : [],
+        tags: Array.isArray(r.tags) ? r.tags : [],
+        reply: r.reply || undefined,
+        repliedAt: r.repliedAt || undefined,
+      })),
       reviewSummary: {
-        average: Number(raw?.reviewSummary?.average || 5.0),
-        total: Number(raw?.reviewSummary?.total || 0),
+        average: Number(raw?.reviewSummary?.average ?? 0),
+        total: Number(raw?.reviewSummary?.total ?? 0),
         breakdown: Array.isArray(raw?.reviewSummary?.breakdown)
           ? raw.reviewSummary.breakdown
           : Object.entries(raw?.reviewSummary?.breakdown || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 })

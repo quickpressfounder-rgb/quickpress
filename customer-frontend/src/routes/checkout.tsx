@@ -6,7 +6,6 @@ import {
   Plus,
   ShieldCheck,
   ShoppingBag,
-  Trash2,
   X,
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
@@ -43,7 +42,6 @@ import { CheckoutAddressCard } from "@/components/checkout/CheckoutAddressCard";
 import { CheckoutSlotPicker } from "@/components/checkout/CheckoutSlotPicker";
 import { CheckoutBasketReview } from "@/components/checkout/CheckoutBasketReview";
 import { CheckoutAovProgressBar } from "@/components/checkout/CheckoutAovProgressBar";
-import { CheckoutDeliveryNotes } from "@/components/checkout/CheckoutDeliveryNotes";
 import { CheckoutCouponsSection } from "@/components/checkout/CheckoutCouponsSection";
 import { CheckoutBillBreakdown } from "@/components/checkout/CheckoutBillBreakdown";
 import { CheckoutStickyBottomBar } from "@/components/checkout/CheckoutStickyBottomBar";
@@ -152,9 +150,6 @@ export function CheckoutPage() {
     void requestDeviceNotificationPermission();
   }, []);
 
-  // Special care instructions (from cart state)
-  const [instructions, setInstructions] = useState<string>(() => getCartState().instructions || "");
-
   // Coupon state (from cart state, with interactive input + apply/remove)
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(() => getCartState().couponCode || null);
   const [couponDiscount, setCouponDiscount] = useState<number>(() => getCartState().couponDiscount || 0);
@@ -186,12 +181,6 @@ export function CheckoutPage() {
 
   const cachedRules = readStaleCache<FinancialRules>("finance_rules");
   const [financeRules, setFinanceRules] = useState<FinancialRules>(() => cachedRules || DEFAULT_FINANCIAL_RULES);
-
-  // Sync instructions to store
-  const handleInstructionChange = (text: string) => {
-    setInstructions(text);
-    setCartState({ instructions: text });
-  };
 
   // Coupon handlers
   const handleApplyCoupon = (code: string) => {
@@ -444,7 +433,6 @@ export function CheckoutPage() {
         isSurgeWaived,
         paymentId,
         paymentMethod: method,
-        instructions: instructions.trim() || undefined,
         couponCode: appliedCoupon || undefined,
         total: grandTotal,
         customerName: customerName.trim(),
@@ -527,7 +515,6 @@ export function CheckoutPage() {
         isSurgeWaived,
         paymentId: "cod",
         paymentMethod: "cod",
-        instructions: instructions.trim() || undefined,
         couponCode: appliedCoupon || undefined,
         total: grandTotal,
         customerName: customerName.trim(),
@@ -647,20 +634,6 @@ export function CheckoutPage() {
             <p className="text-[10px] text-zinc-500 font-medium">QuickPress Doorstep Service</p>
           </div>
         </div>
-
-        <button
-          type="button"
-          aria-label="Clear all items from cart"
-          onClick={() => {
-            cart.clear();
-            setCartState({ instructions: "", couponCode: null, couponDiscount: 0 });
-            toast.info("Cart cleared");
-          }}
-          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all cursor-pointer border border-red-100"
-          title="Clear cart"
-        >
-          <Trash2 className="size-4 stroke-[2]" />
-        </button>
       </header>
 
       {/* Main Form Body */}
@@ -705,13 +678,7 @@ export function CheckoutPage() {
           onAddMore={() => navigate({ to: "/home" })}
         />
 
-        {/* 5. 1-Tap Delivery & Garment Care Notes */}
-        <CheckoutDeliveryNotes
-          instructions={instructions}
-          onInstructionChange={handleInstructionChange}
-        />
-
-        {/* 6. Coupons & QuickPress Club VIP Pass */}
+        {/* 5. Coupons & QuickPress Club VIP Pass */}
         <CheckoutCouponsSection
           appliedCoupon={appliedCoupon}
           couponDiscount={couponDiscount}

@@ -1,5 +1,34 @@
 # QuickPress — Engineering Work History
 
+## Session: November 26, 2026 (Part 91)
+
+### Quick+ Clean White Redesign, Checkout Cleanup & Real Customer Partner Reviews
+
+1. **Quick+ Membership Page Redesign (`/membership`):**
+   - Replaced dark/black hero banner and heavy dark gradients with a clean `#fafafa` / `#ffffff` surface, crisp `border-zinc-200/80` cards, and `#0c831f` emerald accents matching the redesigned Checkout experience.
+   - Updated sticky header, Quick+ hero status/validity card, 2x2 live metrics grid, segmented tab bar (`Overview`, `Plans`, `Orders`, `Billing`), interactive `SavingsCalculator`, `PlanCard`s, FAQ accordion, and `MembershipSkeletons.tsx` while preserving full Razorpay checkout, plan switching, cancellation, and offline/cache support.
+
+2. **Checkout Page Cleanup (`/checkout`):**
+   - Removed `"Standard Today"` from `CheckoutSlotPicker.tsx`, keeping `"15-Min Express"` as a clean toggleable priority pickup upgrade.
+   - Removed the trash/clear-cart delete button from the Checkout `<header>` in `checkout.tsx`.
+   - Removed the `CheckoutDeliveryNotes` (delivery instructions) section from `checkout.tsx`.
+
+3. **Partner Profile Cleanup & Real Customer Reviews (`/partner/$partnerId` + Backend API):**
+   - Removed `Owner`, `Pickup radius`, `Delivery radius`, and the latitude/longitude coordinate placeholder box from Shop information in `customer-frontend/src/routes/partner.$partnerId.tsx`.
+   - Updated `backend-python/app/models/catalog.py`, `backend-python/app/db/catalog_repositories.py`, `customer-frontend/src/api/customer/partner-api.ts`, and `customer-frontend/src/routes/partner.$partnerId.tsx` to aggregate and render real customer reviews across `partner_reviews` and `order_reviews` (excluding internal rider-to-store ratings, preserving store replies and tags, sorting newest first, and computing real counts/averages instead of using `totalOrders` or synthetic defaults).
+
+4. **Files Modified:**
+   - `customer-frontend/src/routes/membership.tsx`
+   - `customer-frontend/src/components/membership/MembershipSkeletons.tsx`
+   - `customer-frontend/src/components/checkout/CheckoutSlotPicker.tsx`
+   - `customer-frontend/src/routes/checkout.tsx`
+   - `customer-frontend/src/routes/partner.$partnerId.tsx`
+   - `customer-frontend/src/api/customer/partner-api.ts`
+   - `backend-python/app/models/catalog.py`
+   - `backend-python/app/db/catalog_repositories.py`
+
+---
+
 ## Session: November 25, 2026 (Part 90)
 
 ### Execution of Approved Browser Multi-App E2E Testing Roadmap: Full Order Flow, Financial Payouts & Multi-Stakeholder Support CRM Resolution
