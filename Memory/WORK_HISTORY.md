@@ -1,5 +1,15 @@
 # QuickPress — Engineering Work History
 
+## Session: November 26, 2026 (Part 96)
+
+### QuickPress Customer APK & AAB Release
+
+1. **Build Execution (`python3 build_all_apks.py customer`):**
+   - Built updated `customer-frontend` SSR bundle (`VITE_API_BASE_URL=https://api.withquickpress.com`) incorporating the Quick+ dual-mode redesign (`4d599082`), Statutory Policies & header fixes (`18a15eb0`), and modular Support & Ticket System (`8262ee6a`).
+   - Compiled fresh Android APK and Play Store AAB, mirrored to `website/public/apks/`, uploaded directly to EC2 (`/var/www/quickpress/website/apks/QuickPress-Customer.apk`), and synced Customer iOS Capacitor assets (`npx cap sync ios`).
+
+---
+
 ## Session: November 26, 2026 (Part 95)
 
 ### Professional Support & Ticket System Redesign (`/help`)
