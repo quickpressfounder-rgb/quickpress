@@ -1,5 +1,21 @@
 # QuickPress — Engineering Work History
 
+## Session: November 26, 2026 (Part 92)
+
+### Production Android APK & Play Store AAB Release (All 3 Apps)
+
+1. **Build Execution (`python3 build_all_apks.py all`):**
+   - Built fresh Vite + Nitro SSR bundles (`VITE_API_BASE_URL=https://api.withquickpress.com`), generated static `index.html` fallbacks, synced Capacitor Android assets, and compiled APKs & Play Store AAB bundles for all three apps (including the clean white Quick+, Checkout cleanup, and Partner real reviews updates from commit `fa2426ea`).
+   - Synced iOS Capacitor web assets for Customer and Rider projects.
+
+2. **Artifacts Generated & Deployed:**
+   - **QuickPress Customer**: `apks/QuickPress-Customer.apk` (21,051,506 bytes) & `apks/QuickPress-Customer.aab` (20,025,143 bytes)
+   - **QuickPress Partner**: `apks/QuickPress-Partner.apk` (19,294,714 bytes) & `apks/QuickPress-Partner.aab` (18,351,393 bytes)
+   - **QuickPress Captain**: `apks/QuickPress-Captain.apk` (19,293,330 bytes) & `apks/QuickPress-Captain.aab` (18,357,025 bytes)
+   - Mirrored APKs to `website/public/apks/` and uploaded directly to EC2 (`/var/www/quickpress/website/apks/`).
+
+---
+
 ## Session: November 26, 2026 (Part 91)
 
 ### Quick+ Clean White Redesign, Checkout Cleanup & Real Customer Partner Reviews
