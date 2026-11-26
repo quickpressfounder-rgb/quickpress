@@ -1,5 +1,15 @@
 # QuickPress — Engineering Work History
 
+## Session: November 26, 2026 (Part 99)
+
+### QuickPress Customer APK & AAB Release (Neutral Palette + Dark-Green-on-White Location Animation)
+
+1. **Build Execution (`python3 build_all_apks.py customer`):**
+   - Built updated `customer-frontend` SSR bundle (`VITE_API_BASE_URL=https://api.withquickpress.com`) including the app-wide Image 1 neutral icon/badge/text alignment (`20f96b30`) and the classic white-canvas dark-green Pronto-style location fetching animation (`831f5254`).
+   - Compiled `apks/QuickPress-Customer.apk` (21,049,492 bytes) and `apks/QuickPress-Customer.aab` (20,023,350 bytes), mirrored to EC2 (`/var/www/quickpress/website/apks/QuickPress-Customer.apk`), copied to artifact dir, and synced Customer iOS Capacitor assets (`npx cap sync ios`).
+
+---
+
 ## Session: November 26, 2026 (Part 98)
 
 ### Classic Dark-Green Pronto-Style Location Fetching Animation (`LocationDetecting`)
