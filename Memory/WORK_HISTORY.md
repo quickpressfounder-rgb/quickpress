@@ -5,8 +5,8 @@
 ### Classic Dark-Green Pronto-Style Location Fetching Animation (`LocationDetecting`)
 
 1. **Pronto Visual & Color Redesign (`LocationDetecting.tsx`, `styles.css`):**
-   - Converted the location fetching screen to a full-bleed deep forest green gradient (`#0C4427` → `#09361F` → `#052314`) with crisp white and soft emerald concentric sonar ripples (`locate-ring`), an elevated floating white pin medallion (`locate-bob`) with a deep `#0B3D23` `MapPin`, and a synchronized ground shadow pulse (`locate-shadow`).
-   - Removed the top back/cancel button, the `"City Operational"` / status pill badge, and `"Loading verified laundry care partners…"` clutter.
+   - Set a clean white background (`bg-white` / `dark:bg-zinc-950`) with a dark forest green (`#0B4D2C`) filled location pin mark (`locate-bob`), crisp white medallion frame, synchronized dark-green ground shadow (`locate-shadow`), and three staggered expanding dark-green sonar ripples (`locate-ring`).
+   - Kept the screen free of any top back/cancel button, `"City Operational"` / status pill badge, and `"Loading verified laundry care partners…"` clutter.
 2. **Clean Copy Alignment (`location.tsx`, `location-verifier.ts`, `location-search.tsx`, `services-unavailable.tsx`):**
    - Updated location progress copy to minimal `"Fetching your location…"` / `"Pinpointing your address"` / `"Location confirmed"` messages across live GPS and address selection flows.
 
