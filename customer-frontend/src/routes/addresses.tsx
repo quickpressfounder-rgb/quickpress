@@ -67,9 +67,9 @@ export const Route = createFileRoute("/addresses")({
 });
 
 const TYPE_META: Record<AddressType, { icon: typeof Home; tone: string; label: string }> = {
-  home: { icon: Home, tone: "bg-primary/15 text-brand-dark", label: "Home" },
-  office: { icon: Briefcase, tone: "bg-secondary/10 text-brand-green", label: "Office" },
-  other: { icon: MapPin, tone: "bg-muted text-muted-foreground", label: "Other" },
+  home: { icon: Home, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700", label: "Home" },
+  office: { icon: Briefcase, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700", label: "Office" },
+  other: { icon: MapPin, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700", label: "Other" },
 };
 
 /** Text fields only — coordinates are set through GPS or the map picker. */
@@ -319,7 +319,7 @@ function AddressesScreen() {
                 disabled={locating}
                 className="card-soft ripple flex items-center gap-3 border border-border p-4 text-left transition-all duration-300 hover:border-primary/60 active:scale-[0.96] disabled:opacity-70"
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-secondary/10 text-brand-green">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                   {locating ? (
                     <Loader2 className="size-5 animate-spin" />
                   ) : (
@@ -338,7 +338,7 @@ function AddressesScreen() {
                 type="button"
                 onClick={openAdd} className="card-soft ripple flex items-center gap-3 border border-border p-4 text-left transition-all duration-300 hover:border-primary/60 active:scale-[0.96]"
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-brand-dark">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                   <Plus className="size-5" />
                 </span>
                 <span className="min-w-0">
@@ -381,7 +381,7 @@ function AddressesScreen() {
                               {address.label}
                             </h3>
                             {address.isDefault ? (
-                              <span className="animate-pop rounded-full bg-secondary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-green">
+                              <span className="animate-pop rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-zinc-700">
                                 Default
                               </span>
                             ) : null}
@@ -408,7 +408,7 @@ function AddressesScreen() {
                           type="button"
                           disabled={busyId === address.id || address.isDefault}
                           onClick={() => void handleDefault(address.id)}
-                          className="ripple flex h-9 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary/15 text-[0.72rem] font-bold text-brand-dark transition-all duration-300 active:scale-[0.96] disabled:opacity-45"
+                          className="ripple flex h-9 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-zinc-200 bg-zinc-100 text-[0.72rem] font-bold text-zinc-800 transition-all duration-300 active:scale-[0.96] disabled:opacity-45"
                         >
                           {busyId === address.id ? (
                             <Loader2 className="size-3.5 animate-spin" />
@@ -509,24 +509,24 @@ function AddressesScreen() {
 
             {/* Real-time Pincode Geofencing Serviceability Banner */}
             {form.pincode && form.pincode.length === 6 ? (
-              <div className="mt-3.5 rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-3.5 space-y-1.5 transition-all">
+              <div className="mt-3.5 rounded-2xl border border-zinc-200 bg-zinc-50 p-3.5 space-y-1.5 transition-all">
                 {checkingPincode ? (
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-800">
-                    <Loader2 className="size-3.5 animate-spin text-emerald-600" />
+                  <div className="flex items-center gap-2 text-xs font-bold text-zinc-700">
+                    <Loader2 className="size-3.5 animate-spin text-zinc-700" />
                     <span>Verifying express serviceability for PIN {form.pincode}...</span>
                   </div>
                 ) : pincodeStatus?.serviceable ? (
                   <>
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-xs font-black text-emerald-950">
-                        <Zap className="size-3.5 text-emerald-600" />
+                      <span className="flex items-center gap-1.5 text-xs font-black text-zinc-900">
+                        <Zap className="size-3.5 text-zinc-700" />
                         Instant Fast Delivery Available
                       </span>
-                      <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-300">
+                      <span className="text-[10px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-800 px-2 py-0.5 rounded-md border border-zinc-200">
                         PIN {form.pincode}
                       </span>
                     </div>
-                    <p className="text-[11px] font-medium text-emerald-800 leading-snug">
+                    <p className="text-[11px] font-medium text-zinc-600 leading-snug">
                       {pincodeStatus.activePartnersCount} partner store(s) and {pincodeStatus.activeRidersCount} active captain(s) stationed in {pincodeStatus.city} ({pincodeStatus.state}) for express 30-min pickup.
                     </p>
                   </>
@@ -547,7 +547,7 @@ function AddressesScreen() {
               }}
               className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-border bg-background p-3.5 text-left transition-colors hover:border-primary/60"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-secondary/10 text-brand-green">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                 <MapIcon className="size-5" />
               </span>
               <span className="min-w-0">
@@ -579,7 +579,7 @@ function AddressesScreen() {
                       type="button"
                       onClick={() => setType(type)}
                       className={`flex h-12 items-center justify-center gap-1.5 rounded-2xl border text-[0.75rem] font-bold transition-all duration-300 active:scale-[0.96] ${active
-                        ? "border-primary bg-primary/15 text-brand-dark"
+                        ? "border-zinc-900 bg-zinc-100 text-zinc-900"
                         : "border-border bg-background text-muted-foreground"
                         }`}
                     >

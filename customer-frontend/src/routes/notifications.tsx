@@ -68,22 +68,22 @@ export const Route = createFileRoute("/notifications")({
 });
 
 const KIND_META: Record<NotificationKind, { icon: typeof Bell; tone: string }> = {
-  "partner-accepted": { icon: Store, tone: "bg-primary/15 text-brand-dark" },
-  "pickup-scheduled": { icon: Package, tone: "bg-primary/15 text-brand-dark" },
-  "pickup-completed": { icon: PackageCheck, tone: "bg-secondary/10 text-brand-green" },
-  processing: { icon: WashingMachine, tone: "bg-primary/15 text-brand-dark" },
-  "out-for-delivery": { icon: Truck, tone: "bg-secondary/10 text-brand-green" },
-  delivered: { icon: CheckCircle2, tone: "bg-secondary/10 text-brand-green" },
-  wallet: { icon: Wallet, tone: "bg-primary/15 text-brand-dark" },
-  cashback: { icon: Sparkles, tone: "bg-secondary/10 text-brand-green" },
-  offer: { icon: BadgePercent, tone: "bg-primary/15 text-brand-dark" },
-  coupon: { icon: Ticket, tone: "bg-primary/15 text-brand-dark" },
-  system: { icon: Shield, tone: "bg-muted text-muted-foreground" },
-  "order-new": { icon: Package, tone: "bg-primary/15 text-brand-dark" },
+  "partner-accepted": { icon: Store, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
+  "pickup-scheduled": { icon: Package, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
+  "pickup-completed": { icon: PackageCheck, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
+  processing: { icon: WashingMachine, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
+  "out-for-delivery": { icon: Truck, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
+  delivered: { icon: CheckCircle2, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
+  wallet: { icon: Wallet, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
+  cashback: { icon: Sparkles, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
+  offer: { icon: BadgePercent, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
+  coupon: { icon: Ticket, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
+  system: { icon: Shield, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
+  "order-new": { icon: Package, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
   "order-cancelled": { icon: BellOff, tone: "bg-destructive/10 text-destructive" },
-  "rider-assigned": { icon: Truck, tone: "bg-primary/15 text-brand-dark" },
-  membership: { icon: Crown, tone: "bg-primary/15 text-brand-dark" },
-  referral: { icon: Gift, tone: "bg-secondary/10 text-brand-green" },
+  "rider-assigned": { icon: Truck, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
+  membership: { icon: Crown, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
+  referral: { icon: Gift, tone: "border border-zinc-200 bg-zinc-50 text-zinc-700" },
 };
 
 const GROUPS: { id: NotificationGroup; label: string }[] = [
@@ -333,7 +333,7 @@ function NotificationsScreen() {
               <button
                 type="button"
                 onClick={() => void load()}
-                className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary/15 px-5 py-2.5 text-[0.68rem] font-bold tracking-tight text-brand-dark transition-all duration-300 hover:bg-primary/25 active:scale-[0.95]"
+                className="mt-5 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-100 px-5 py-2.5 text-[0.68rem] font-bold tracking-tight text-zinc-800 transition-all duration-300 hover:bg-zinc-200 active:scale-[0.95]"
               >
                 <RefreshCw className="size-4" />
                 Retry
@@ -343,7 +343,7 @@ function NotificationsScreen() {
         ) : (items ?? []).length === 0 ? (
           <div className="px-5 pb-32 pt-4">
             <div className="card-soft border border-border px-5 py-14 text-center">
-              <span className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-secondary/10 text-brand-green">
+              <span className="mx-auto flex size-16 items-center justify-center rounded-3xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                 <BellOff className="size-7" />
               </span>
               <p className="mt-4 text-sm font-black tracking-tight text-foreground">
@@ -366,7 +366,7 @@ function NotificationsScreen() {
                 <button
                   type="button"
                   onClick={() => void handleMarkAll()}
-                  className="shrink-0 rounded-full bg-primary/15 px-4 py-2 text-[0.68rem] font-bold tracking-tight text-brand-dark transition-all duration-300 hover:bg-primary/25 active:scale-[0.95]"
+                  className="shrink-0 rounded-full border border-zinc-200 bg-zinc-100 px-4 py-2 text-[0.68rem] font-bold tracking-tight text-zinc-800 transition-all duration-300 hover:bg-zinc-200 active:scale-[0.95]"
                 >
                   Mark all as read
                 </button>

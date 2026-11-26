@@ -33,7 +33,7 @@ export function CheckoutAddressCard({
       <div className="bg-white rounded-2xl border border-zinc-200/80 p-4 shadow-2xs transition-all hover:border-zinc-300">
         <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
           <div className="flex items-center gap-2">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-[#0c831f] border border-emerald-100/80">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-50 text-zinc-700 border border-zinc-200">
               <MapPin className="size-3.5 stroke-[2.2]" />
             </div>
             <div>
@@ -45,7 +45,7 @@ export function CheckoutAddressCard({
           <button
             type="button"
             onClick={onOpenPickupPicker}
-            className="text-xs font-black text-[#0c831f] hover:text-emerald-800 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-emerald-50/60"
+            className="text-xs font-black text-zinc-800 hover:text-zinc-950 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-zinc-100"
           >
             Change
           </button>
@@ -79,7 +79,7 @@ export function CheckoutAddressCard({
             <button
               type="button"
               onClick={onOpenPickupPicker}
-              className="mt-1 text-xs font-black text-[#0c831f] underline cursor-pointer"
+              className="mt-1 text-xs font-black text-zinc-800 underline cursor-pointer"
             >
               Select Delivery Address
             </button>
@@ -104,7 +104,7 @@ export function CheckoutAddressCard({
           <button
             type="button"
             onClick={onOpenContactModal}
-            className="flex items-center gap-1 text-[11px] font-black text-[#0c831f] hover:underline cursor-pointer shrink-0 ml-2"
+            className="flex items-center gap-1 text-[11px] font-black text-zinc-800 hover:underline cursor-pointer shrink-0 ml-2"
           >
             <Edit2 className="size-3 stroke-[2.2]" />
             <span>Edit</span>

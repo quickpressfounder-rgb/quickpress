@@ -454,7 +454,7 @@ export function LiveDeliveryMap({
           {distanceKm !== null ? (
             <>
               <span className="text-muted-foreground/60">·</span>
-              <span className="font-black text-brand-green">{distanceKm} km away</span>
+              <span className="font-black text-zinc-800 dark:text-zinc-200">{distanceKm} km away</span>
             </>
           ) : null}
           {etaMins !== null ? (
@@ -476,7 +476,7 @@ export function LiveDeliveryMap({
             title="Recenter Full Route"
             aria-label="Recenter Full Route"
           >
-            <Crosshair className="size-4 text-brand-green" />
+            <Crosshair className="size-4 text-zinc-700 dark:text-zinc-300" />
           </button>
           <button
             type="button"
@@ -486,7 +486,7 @@ export function LiveDeliveryMap({
             aria-label="Toggle Map Theme"
           >
             {currentTheme === "voyager" ? (
-              <Layers className="size-4 text-emerald-600" />
+              <Layers className="size-4 text-zinc-700 dark:text-zinc-300" />
             ) : currentTheme === "dark" ? (
               <Moon className="size-4 text-indigo-400" />
             ) : (

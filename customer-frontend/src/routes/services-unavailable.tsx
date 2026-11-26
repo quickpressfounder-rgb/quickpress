@@ -237,9 +237,9 @@ function ServicesUnavailablePage() {
               </button>
 
               {/* Notify Me / Waitlist Section */}
-              <div className="mt-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-left">
+              <div className="mt-2 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-left">
                 <div className="flex items-center gap-2">
-                  <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600">
+                  <span className="flex size-7 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700">
                     <Bell className="size-3.5" />
                   </span>
                   <p className="text-xs font-black text-foreground">
@@ -248,8 +248,8 @@ function ServicesUnavailablePage() {
                 </div>
 
                 {waitlistDone ? (
-                  <div className="mt-3 flex items-center gap-2 rounded-xl bg-emerald-500/15 px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300">
-                    <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+                  <div className="mt-3 flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-800">
+                    <CheckCircle2 className="size-4 shrink-0 text-zinc-700" />
                     <span>Notification requested! We will alert you on WhatsApp/SMS.</span>
                   </div>
                 ) : (

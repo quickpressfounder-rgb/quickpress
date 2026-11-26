@@ -87,8 +87,8 @@ export function ScratchCard({
         <p className="text-sm font-black tracking-tight text-foreground">{reward}</p>
         <p className="text-[0.65rem] text-muted-foreground">{caption}</p>
         {revealed ? (
-          <span className="absolute top-2 right-2 flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
-            <Sparkles className="size-3 text-emerald-600" />
+          <span className="absolute top-2 right-2 flex items-center gap-1 text-[9px] font-black text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200">
+            <Sparkles className="size-3 text-zinc-700" />
             Claimed
           </span>
         ) : null}

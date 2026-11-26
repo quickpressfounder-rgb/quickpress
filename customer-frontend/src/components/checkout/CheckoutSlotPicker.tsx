@@ -24,7 +24,7 @@ export function CheckoutSlotPicker({
         <h2 className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
           Pickup Speed
         </h2>
-        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+        <span className="text-[10px] font-bold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200">
           Doorstep Pickup
         </span>
       </div>

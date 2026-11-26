@@ -383,7 +383,7 @@ function ReferralScreen() {
               className="p-1.5 rounded-full text-neutral-600 hover:bg-neutral-100 active:scale-95 transition cursor-pointer"
               aria-label="Refresh"
             >
-              <RefreshCw className={`size-4.5 ${refreshing ? "animate-spin text-emerald-600" : ""}`} />
+              <RefreshCw className={`size-4.5 ${refreshing ? "animate-spin text-zinc-700" : ""}`} />
             </button>
           </div>
         </header>
@@ -416,7 +416,7 @@ function ReferralScreen() {
             {/* ========================================================
                 2. HERO CARD (Zomato/Swiggy Clean Green Theme)
             ======================================================== */}
-            <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-emerald-50/90 via-white to-white border border-emerald-100/90 p-5 shadow-xs text-center flex flex-col items-center">
+            <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-zinc-50 via-white to-white border border-zinc-200 p-5 shadow-xs text-center flex flex-col items-center">
               {/* Stylized 3D Referral Gift Badge */}
               <QuickPress3DReferralBadge className="w-24 h-24 mb-1" />
 
@@ -427,18 +427,18 @@ function ReferralScreen() {
 
               {/* Subheadline with Friend's Benefit */}
               <p className="mt-1 text-xs text-neutral-600 max-w-xs leading-relaxed font-medium">
-                Your friend gets <span className="font-bold text-[#00C853]">50% OFF</span> on their 1st laundry order. You get <span className="font-bold text-neutral-900">₹{referrerReward}</span> in Quick Money.
+                Your friend gets <span className="font-bold text-zinc-900">50% OFF</span> on their 1st laundry order. You get <span className="font-bold text-neutral-900">₹{referrerReward}</span> in Quick Money.
               </p>
 
               {/* Direct Quick Money Wallet Pill */}
               <button
                 type="button"
                 onClick={() => void navigate({ to: "/wallet" })}
-                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 rounded-full border border-emerald-200/80 text-[11px] font-bold text-emerald-800 transition cursor-pointer active:scale-95"
+                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-zinc-100 hover:bg-zinc-200/70 rounded-full border border-zinc-200 text-[11px] font-bold text-zinc-800 transition cursor-pointer active:scale-95"
               >
-                <Wallet className="size-3.5 text-[#00C853]" />
+                <Wallet className="size-3.5 text-zinc-700" />
                 <span>Earned: ₹{walletRewards} in Quick Money</span>
-                <ArrowRight className="size-3 ml-0.5 text-emerald-600" />
+                <ArrowRight className="size-3 ml-0.5 text-zinc-700" />
               </button>
             </section>
 
@@ -528,7 +528,7 @@ function ReferralScreen() {
               <div className="space-y-3">
                 {/* Step 1 */}
                 <div className="flex items-start gap-3">
-                  <div className="size-6 rounded-full bg-emerald-100 text-[#00C853] font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="size-6 rounded-full border border-zinc-200 bg-zinc-100 text-zinc-800 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
                     1
                   </div>
                   <div>
@@ -543,7 +543,7 @@ function ReferralScreen() {
 
                 {/* Step 2 */}
                 <div className="flex items-start gap-3">
-                  <div className="size-6 rounded-full bg-emerald-100 text-[#00C853] font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="size-6 rounded-full border border-zinc-200 bg-zinc-100 text-zinc-800 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
                     2
                   </div>
                   <div>
@@ -558,7 +558,7 @@ function ReferralScreen() {
 
                 {/* Step 3 */}
                 <div className="flex items-start gap-3">
-                  <div className="size-6 rounded-full bg-emerald-100 text-[#00C853] font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="size-6 rounded-full border border-zinc-200 bg-zinc-100 text-zinc-800 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
                     3
                   </div>
                   <div>
@@ -623,7 +623,7 @@ function ReferralScreen() {
                             className="p-3 bg-white border border-neutral-200/80 rounded-2xl flex items-center justify-between gap-3 shadow-2xs"
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="size-9 rounded-xl bg-emerald-50 text-[#00C853] font-black text-xs flex items-center justify-center shrink-0 border border-emerald-100">
+                              <div className="size-9 rounded-xl bg-zinc-50 text-zinc-700 font-black text-xs flex items-center justify-center shrink-0 border border-zinc-200">
                                 {friend.friendName.slice(0, 2).toUpperCase()}
                               </div>
                               <div className="min-w-0">
@@ -640,7 +640,7 @@ function ReferralScreen() {
                               <span
                                 className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                                   isCompleted
-                                    ? "bg-emerald-50 text-[#00C853] border border-emerald-200"
+                                    ? "bg-zinc-100 text-zinc-800 border border-zinc-200"
                                     : "bg-amber-50 text-amber-700 border border-amber-200"
                                 }`}
                               >
@@ -677,7 +677,7 @@ function ReferralScreen() {
                           className="p-3 bg-white border border-neutral-200/80 rounded-2xl flex items-center justify-between gap-3 shadow-2xs"
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="size-9 rounded-xl bg-emerald-50 text-[#00C853] flex items-center justify-center shrink-0">
+                            <div className="size-9 rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700 flex items-center justify-center shrink-0">
                               <Gift className="size-4.5" />
                             </div>
                             <div className="min-w-0">
@@ -690,10 +690,10 @@ function ReferralScreen() {
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <span className="text-xs font-black text-[#00C853]">
+                            <span className="text-xs font-black text-zinc-900">
                               +₹{reward.amount}
                             </span>
-                            <p className="text-[9px] font-bold text-emerald-700 uppercase">
+                            <p className="text-[9px] font-bold text-zinc-600 uppercase">
                               {reward.status}
                             </p>
                           </div>
@@ -711,15 +711,15 @@ function ReferralScreen() {
             <section className="pt-2">
               <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-200/80 space-y-2.5">
                 <div className="flex items-center gap-2">
-                  <Ticket className="size-4 text-[#00C853]" />
+                  <Ticket className="size-4 text-zinc-700" />
                   <h3 className="text-xs font-bold text-neutral-900">
                     Have a referral code from a friend?
                   </h3>
                 </div>
 
                 {data.appliedCode ? (
-                  <div className="flex items-center gap-2 p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800">
-                    <CheckCircle2 className="size-4 text-[#00C853] shrink-0" />
+                  <div className="flex items-center gap-2 p-2.5 bg-zinc-100 rounded-xl border border-zinc-200 text-xs text-zinc-800">
+                    <CheckCircle2 className="size-4 text-zinc-700 shrink-0" />
                     <span>
                       Code <strong>{data.appliedCode}</strong> applied! 50% discount active on your 1st order.
                     </span>

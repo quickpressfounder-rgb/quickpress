@@ -454,7 +454,7 @@ function ServiceListingScreen() {
               </div>
 
               <div className="p-2.5 rounded-xl bg-muted/60 flex items-start gap-2 text-[10.5px] text-muted-foreground">
-                <ShieldCheck className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                <ShieldCheck className="size-3.5 text-zinc-600 shrink-0 mt-0.5" />
                 <span>QuickPress fabric experts verify yarn composition and suggest the safest dry-cleaning cycle free of charge.</span>
               </div>
 

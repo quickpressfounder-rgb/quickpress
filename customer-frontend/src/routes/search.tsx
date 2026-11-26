@@ -170,7 +170,7 @@ function SearchScreen() {
                 }
                 className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all duration-300 active:scale-[0.95] ${
                   scope === chip.id
-                    ? "border-primary bg-primary/12 text-brand-dark"
+                    ? "border-zinc-900 bg-zinc-100 text-zinc-900"
                     : "border-border bg-card text-muted-foreground"
                 }`}
               >
@@ -241,7 +241,7 @@ function SearchScreen() {
                           onClick={() => open(result)}
                           className="card-soft ripple flex w-full items-center gap-3 border border-border p-3.5 text-left transition-all duration-300 hover:border-primary/60 active:scale-[0.98]"
                         >
-                          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-brand-dark">
+                          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                             <Icon className="size-4" />
                           </span>
                           <span className="min-w-0">

@@ -653,7 +653,7 @@ function OtpStep({
       </div>
 
       <div className="mt-5 flex items-center gap-2 rounded-2xl bg-muted/60 px-3.5 py-3">
-        <MessageSquareLock className="size-[18px] shrink-0 text-brand-green" aria-hidden />
+        <MessageSquareLock className="size-[18px] shrink-0 text-zinc-700" aria-hidden />
         <p className="text-[12.5px] font-medium text-muted-foreground">
           Enter the 6-digit code from your SMS
         </p>
@@ -760,7 +760,7 @@ function OtpStep({
                   toast.error(err?.message || "Failed to resend OTP.");
                 }
               }}
-              className="min-h-11 px-3 font-black text-brand-green"
+              className="min-h-11 px-3 font-black text-zinc-800"
             >
               Resend OTP
             </button>
@@ -923,14 +923,14 @@ function NameStep({
         ) : (
           <span />
         )}
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-brand-green">
-          <Sparkles className="size-3 text-brand-green" />
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-zinc-700">
+          <Sparkles className="size-3 text-zinc-700" />
           Profile Setup
         </span>
       </div>
 
       <div className="pt-2 text-center">
-        <div className="auth-pop mx-auto mb-3.5 grid size-16 place-items-center rounded-3xl bg-brand-green/15 text-brand-green shadow-inner">
+        <div className="auth-pop mx-auto mb-3.5 grid size-16 place-items-center rounded-3xl border border-zinc-200 bg-zinc-50 text-zinc-700 shadow-inner">
           <UserCheck className="size-8" />
         </div>
         <h2 className="text-[1.65rem] font-black leading-tight tracking-[-0.03em] text-foreground">
@@ -991,7 +991,7 @@ function NameStep({
         ) : null}
 
         <div className="mt-3.5 flex items-center gap-2 rounded-xl bg-muted/60 px-3.5 py-2.5 text-[11.5px] font-medium text-muted-foreground">
-          <ShieldCheck className="size-4 shrink-0 text-brand-green" />
+          <ShieldCheck className="size-4 shrink-0 text-zinc-700" />
           <span>Visible on pickup receipts, invoices &amp; order tracking.</span>
         </div>
 

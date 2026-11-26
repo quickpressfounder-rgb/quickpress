@@ -89,7 +89,7 @@ export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
           {/* Classic Brand Identity Card */}
           <section className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-2xs">
             <div className="flex items-center gap-3.5">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-[#0c831f]">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                 <Scale className="size-5 stroke-[2.2]" />
               </div>
               <div className="min-w-0 flex-1">
@@ -97,7 +97,7 @@ export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
                   <h2 className="truncate text-sm font-black tracking-tight text-zinc-950">
                     QuickPress Legal Center
                   </h2>
-                  <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-[#0c831f]">
+                  <span className="shrink-0 rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-black text-zinc-700">
                     v2.4.0
                   </span>
                 </div>
@@ -124,7 +124,7 @@ export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
                     className="group flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-zinc-50/90 active:bg-zinc-100/70 cursor-pointer"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-[#0c831f]">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                         <Icon className="size-4 stroke-[2.2]" />
                       </span>
                       <div className="min-w-0">
@@ -145,14 +145,14 @@ export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
           <section className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-2xs space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-emerald-100 bg-emerald-50 text-[#0c831f]">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-zinc-700">
                   <Lock className="size-3.5 stroke-[2.2]" />
                 </span>
                 <span className="truncate text-xs font-black text-zinc-950">
                   Payment &amp; Security
                 </span>
               </div>
-              <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black text-[#0c831f]">
+              <span className="shrink-0 rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-0.5 text-[10px] font-black text-zinc-700">
                 PCI-DSS Level 1
               </span>
             </div>

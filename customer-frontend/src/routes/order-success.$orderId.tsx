@@ -213,7 +213,7 @@ function OrderSuccessScreen() {
                 <Receipt className="size-3.5 text-muted-foreground" />
                 <span className="text-xs font-bold text-foreground">#{order.id}</span>
                 {copied ? (
-                  <Check className="animate-pop size-3.5 text-brand-green" />
+                  <Check className="animate-pop size-3.5 text-zinc-700" />
                 ) : (
                   <Copy className="size-3.5 text-muted-foreground" />
                 )}
@@ -229,7 +229,7 @@ function OrderSuccessScreen() {
                   <Stat icon={Truck} label="Delivery" value={order.delivery.date} sub={order.delivery.slot} />
                 </div>
                 {order.pickup.express ? (
-                  <p className="mt-3 flex items-center justify-center gap-1.5 rounded-2xl bg-primary/10 px-3 py-2 text-[11px] font-bold text-brand-dark">
+                  <p className="mt-3 flex items-center justify-center gap-1.5 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] font-bold text-zinc-800">
                     <Clock className="size-3.5" /> Express pickup — rider within 30 minutes
                   </p>
                 ) : null}
@@ -250,7 +250,7 @@ function OrderSuccessScreen() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <p className="truncate text-sm font-bold text-foreground">{order.storeName}</p>
-                    <BadgeCheck className="size-3.5 shrink-0 text-brand-green" />
+                    <BadgeCheck className="size-3.5 shrink-0 text-zinc-700" />
                   </div>
                   <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
                     {order.storePhone}
@@ -259,7 +259,7 @@ function OrderSuccessScreen() {
                 <a
                   href={`tel:${order.storePhone.replace(/\s/g, "")}`}
                   aria-label="Call laundry partner"
-                  className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-brand-dark transition-all duration-300 active:scale-[0.94]"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700 transition-all duration-300 active:scale-[0.94]"
                 >
                   <Phone className="size-4" />
                 </a>
@@ -398,7 +398,7 @@ function Stat({
 }) {
   return (
     <div className="rounded-2xl bg-muted/70 px-3 py-3 text-center">
-      <span className="mx-auto flex size-7 items-center justify-center rounded-full bg-card text-brand-green">
+      <span className="mx-auto flex size-7 items-center justify-center rounded-full border border-zinc-200 bg-card text-zinc-700">
         <Icon className="size-3.5" />
       </span>
       <p className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
@@ -423,7 +423,7 @@ function SummaryRow({
     <div className="flex items-center justify-between py-1.5 text-xs">
       <span className="text-muted-foreground">{label}</span>
       <span
-        className={`font-semibold ${tone === "green" ? "text-brand-green" : "text-foreground"}`}
+        className={`font-semibold ${tone === "green" ? "text-zinc-800" : "text-foreground"}`}
       >
         {value < 0 ? `-₹${Math.abs(value)}` : `₹${value}`}
       </span>

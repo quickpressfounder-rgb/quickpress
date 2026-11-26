@@ -115,7 +115,7 @@ function LocationScreen() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm text-center">
-        <span className="mx-auto flex size-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600">
+        <span className="mx-auto flex size-16 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-700">
           <MapPin className="size-8" aria-hidden />
         </span>
         <h1 className="mt-5 text-[1.35rem] font-black tracking-tight text-foreground">

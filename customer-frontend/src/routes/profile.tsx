@@ -173,7 +173,7 @@ function SectionHeading({ title, action }: { title: string; action?: string }) {
       {action ? (
         <button
           type="button"
-          className="text-xs font-bold text-brand-green transition-opacity active:opacity-60"
+          className="text-xs font-bold text-zinc-700 transition-opacity active:opacity-60"
         >
           {action}
         </button>
@@ -809,7 +809,7 @@ function ProfileScreen() {
                       <label className="block text-[11px] font-bold text-foreground">
                         Mobile Number
                       </label>
-                      <span className="inline-flex items-center gap-1 rounded-md bg-secondary/15 px-2 py-0.5 text-[10px] font-bold text-brand-green">
+                      <span className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-700">
                         <BadgeCheck className="size-3" /> Verified
                       </span>
                     </div>
@@ -880,7 +880,7 @@ function ProfileScreen() {
             <div className="card-soft p-4 border border-border">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-2.5 min-w-0">
-                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-brand-green">
+                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                     <MapPin className="size-4" />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -1103,7 +1103,7 @@ function ProfileScreen() {
                         : (data.user.phone || "QuickPress User")}
                     </p>
                     {data.user.verified ? (
-                      <BadgeCheck className="size-[1.05rem] shrink-0 text-brand-green" />
+                      <BadgeCheck className="size-[1.05rem] shrink-0 text-zinc-700" />
                     ) : null}
                   </div>
                   {data.user.phone && data.user.phone !== "Not linked" ? (
@@ -1126,7 +1126,7 @@ function ProfileScreen() {
                     <span className="truncate">{data.user.email}</span>
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <MapPin className="size-3.5 shrink-0 text-primary" />
+                    <MapPin className="size-3.5 shrink-0 text-zinc-600" />
                     <span className="truncate">
                       {activeLocation?.area
                         ? `${activeLocation.area}${activeLocation.city ? `, ${activeLocation.city}` : ""}`
@@ -1187,7 +1187,7 @@ function ProfileScreen() {
                   type="button"
                   onClick={stat.action} className="card-soft ripple flex flex-col items-start gap-3 border border-border p-4 text-left transition-all duration-300 hover:border-primary/60 active:scale-[0.96]"
                 >
-                  <span className="flex size-10 items-center justify-center rounded-2xl bg-white text-brand-green shadow-xs border border-border/40 dark:bg-zinc-900 dark:border-zinc-800">
+                  <span className="flex size-10 items-center justify-center rounded-2xl bg-zinc-50 text-zinc-700 shadow-xs border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300">
                     <stat.icon className="size-5" />
                   </span>
                   <span>
@@ -1495,7 +1495,7 @@ function ProfileScreen() {
           <div className="relative w-full max-w-md rounded-3xl bg-card p-5 sm:p-6 shadow-2xl border border-border z-10 animate-in fade-in zoom-in-95 duration-200 space-y-4 max-h-[88vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2">
-                <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600">
+                <span className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                   <ShieldCheck className="size-4.5" />
                 </span>
                 <div>
@@ -1569,7 +1569,7 @@ function ProfileScreen() {
                     <span className="text-xs font-bold text-foreground block">Delivery &amp; OTP Alerts</span>
                     <span className="text-[10px] text-muted-foreground block">Essential for order fulfillment</span>
                   </div>
-                  <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-black uppercase text-zinc-700 bg-zinc-100 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 px-2 py-0.5 rounded-full">
                     Protected
                   </span>
                 </div>
@@ -1641,9 +1641,9 @@ function ProfileScreen() {
             </form>
 
             {/* 4. Grievance Officer Notice */}
-            <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200/80 dark:border-emerald-900/50 text-[10.5px] space-y-1">
-              <p className="font-black text-emerald-950 dark:text-emerald-200">Grievance &amp; Compliance Redressal Desk</p>
-              <p className="text-emerald-900/80 dark:text-emerald-400">
+            <div className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-[10.5px] space-y-1">
+              <p className="font-black text-zinc-900 dark:text-zinc-100">Grievance &amp; Compliance Redressal Desk</p>
+              <p className="text-zinc-600 dark:text-zinc-400">
                 Official Desk: <a href="mailto:official.quickpress@gmail.com" className="underline font-bold">official.quickpress@gmail.com</a> • Helpline: <a href="tel:+919258730561" className="underline font-bold">+91 9258730561</a> • QuickPress Technologies Pvt. Ltd. Resolution within 30 days as per DPDP Act.
               </p>
             </div>
@@ -1652,7 +1652,7 @@ function ProfileScreen() {
               <Link
                 to="/legal/$docSlug"
                 params={{ docSlug: "privacy-policy" }}
-                className="font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                className="font-bold text-zinc-800 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <span>Read Full DPDP Policy</span>
                 <ChevronRight className="size-3" />
@@ -1751,7 +1751,7 @@ function SavedServicesPage({ onBack }: { onBack: () => void }) {
             </div>
           </div>
           {services.length > 0 ? (
-            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-black text-primary">
+            <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-xs font-black text-zinc-800">
               {services.length}
             </span>
           ) : null}
@@ -1795,13 +1795,13 @@ function SavedServicesPage({ onBack }: { onBack: () => void }) {
                 }}
                 className="card-soft group relative flex items-center gap-3.5 p-4 border border-border hover:border-primary/50 cursor-pointer active:scale-[0.99] transition-all"
               >
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-xs">
-                  <Sparkles className="size-6 text-brand-dark" />
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700 shadow-xs">
+                  <Sparkles className="size-6 text-zinc-700" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h4 className="truncate text-sm font-bold text-foreground">{item.title || item.name}</h4>
                   <div className="mt-1 flex items-center gap-2">
-                    <span className="text-xs font-extrabold text-brand-green">₹{item.finalPrice || item.price}</span>
+                    <span className="text-xs font-extrabold text-zinc-800">₹{item.finalPrice || item.price}</span>
                     <span className="text-[11px] text-muted-foreground">· {item.processingTime || "24 hrs delivery"}</span>
                   </div>
                 </div>
@@ -1814,7 +1814,7 @@ function SavedServicesPage({ onBack }: { onBack: () => void }) {
                   >
                     <Trash2 className="size-4" />
                   </button>
-                  <span className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                  <span className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700 group-hover:bg-zinc-900 group-hover:text-white transition-colors">
                     <ArrowRight className="size-4" />
                   </span>
                 </div>
@@ -1904,7 +1904,7 @@ function FavouriteStoresPage({ onBack }: { onBack: () => void }) {
             </div>
           </div>
           {stores.length > 0 ? (
-            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-black text-primary">
+            <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-xs font-black text-zinc-800">
               {stores.length}
             </span>
           ) : null}
@@ -1919,7 +1919,7 @@ function FavouriteStoresPage({ onBack }: { onBack: () => void }) {
             </div>
           ) : stores.length === 0 ? (
             <div className="card-soft py-16 px-6 text-center border border-border mt-4">
-              <div className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-primary/15 text-brand-dark mb-4 shadow-xs">
+              <div className="mx-auto flex size-16 items-center justify-center rounded-3xl border border-zinc-200 bg-zinc-50 text-zinc-700 mb-4 shadow-xs">
                 <Store className="size-8" />
               </div>
               <h3 className="text-base font-bold text-foreground">No favourite stores yet</h3>
@@ -1976,7 +1976,7 @@ function FavouriteStoresPage({ onBack }: { onBack: () => void }) {
                   >
                     <Trash2 className="size-4" />
                   </button>
-                  <span className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                  <span className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700 group-hover:bg-zinc-900 group-hover:text-white transition-colors">
                     <ArrowRight className="size-4" />
                   </span>
                 </div>
@@ -2219,13 +2219,13 @@ function AppearanceSettingsPage({
                   onClick={() => void onChangeTheme(option.id)}
                   className={`card-soft flex w-full items-center gap-4 p-4 text-left border transition-all duration-200 active:scale-[0.98] disabled:opacity-60 ${
                     active
-                      ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/40"
+                      ? "border-zinc-900 bg-zinc-100/70 shadow-sm ring-1 ring-zinc-300"
                       : "border-border hover:bg-muted/40"
                   }`}
                 >
                   <div
                     className={`flex size-12 shrink-0 items-center justify-center rounded-2xl ${
-                      active ? "bg-primary text-primary-foreground" : option.accentBg
+                      active ? "bg-zinc-900 text-white" : option.accentBg
                     }`}
                   >
                     <option.icon className="size-6" />
@@ -2234,7 +2234,7 @@ function AppearanceSettingsPage({
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-bold text-foreground">{option.label}</span>
                       {active ? (
-                        <span className="flex items-center gap-1 text-xs font-black text-primary">
+                        <span className="flex items-center gap-1 text-xs font-black text-zinc-800">
                           Active ✓
                         </span>
                       ) : null}
@@ -2323,14 +2323,14 @@ function LanguageSettingsPage({
                   onClick={() => void onChangeLanguage(item.id)}
                   className={`card-soft flex w-full items-center gap-4 p-4 text-left border transition-all duration-200 active:scale-[0.98] disabled:opacity-60 ${
                     active
-                      ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/40"
+                      ? "border-zinc-900 bg-zinc-100/70 shadow-sm ring-1 ring-zinc-300"
                       : "border-border hover:bg-muted/40"
                   }`}
                 >
                   <div
                     className={`flex size-12 shrink-0 items-center justify-center rounded-2xl font-black text-base ${
                       active
-                        ? "bg-primary text-primary-foreground shadow-xs"
+                        ? "bg-zinc-900 text-white shadow-xs"
                         : "bg-muted text-muted-foreground"
                     }`}
                   >

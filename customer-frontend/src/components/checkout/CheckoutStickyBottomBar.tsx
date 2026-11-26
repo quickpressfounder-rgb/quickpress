@@ -59,7 +59,7 @@ export function CheckoutStickyBottomBar({
           <button
             type="button"
             onClick={onOpenPaymentDrawer}
-            className="flex items-center gap-1 text-[11px] font-bold text-[#0c831f] hover:underline cursor-pointer"
+            className="flex items-center gap-1 text-[11px] font-bold text-zinc-700 hover:underline cursor-pointer"
           >
             <span>Pay via UPI / COD</span>
             <ChevronRight className="size-3" />

@@ -334,7 +334,7 @@ export function MapPicker({
           <div className="relative flex items-center">
             <span className="pointer-events-none absolute left-3.5 flex items-center text-muted-foreground">
               {searching ? (
-                <Loader2 className="size-4 animate-spin text-emerald-600" />
+                <Loader2 className="size-4 animate-spin text-zinc-700" />
               ) : (
                 <Search className="size-4" />
               )}
@@ -374,7 +374,7 @@ export function MapPicker({
                   onClick={() => void handleSelectSuggestion(item)}
                   className="flex w-full items-start gap-3 rounded-xl p-3 text-left transition-colors hover:bg-accent active:bg-accent/80"
                 >
-                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-600">
+                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-zinc-700">
                     <MapPin className="size-4" />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -407,7 +407,7 @@ export function MapPicker({
           onDragStateChange={(dragging) => setIsDragging(dragging)}
           fallback={
             <div className="flex size-full flex-col items-center justify-center gap-3 bg-muted/40 px-6 text-center">
-              <div className="flex size-14 items-center justify-center rounded-3xl bg-emerald-600/10 text-emerald-600 animate-pulse">
+              <div className="flex size-14 items-center justify-center rounded-3xl border border-zinc-200 bg-zinc-50 text-zinc-700 animate-pulse">
                 <Compass className="size-7" />
               </div>
               <div>
@@ -475,12 +475,12 @@ export function MapPicker({
             onClick={() => void useCurrentLocation()}
             disabled={locating}
             aria-label="Use Current Location"
-            className="flex size-12 items-center justify-center rounded-2xl bg-card text-emerald-600 shadow-xl border border-border/80 transition-all hover:bg-accent active:scale-90 disabled:opacity-75"
+            className="flex size-12 items-center justify-center rounded-2xl bg-card text-zinc-700 shadow-xl border border-border/80 transition-all hover:bg-accent active:scale-90 disabled:opacity-75"
           >
             {locating ? (
-              <Loader2 className="size-5 animate-spin text-emerald-600" />
+              <Loader2 className="size-5 animate-spin text-zinc-700" />
             ) : (
-              <Crosshair className="size-5 text-emerald-600" />
+              <Crosshair className="size-5 text-zinc-700" />
             )}
           </button>
         </div>
@@ -499,13 +499,13 @@ export function MapPicker({
         ) : null}
 
         <div className="flex items-start gap-3.5">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/10 text-emerald-600 mt-0.5">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700 mt-0.5">
             <Navigation className="size-5" />
           </span>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
                 Selected Location
               </span>
               {resolving ? (
@@ -513,7 +513,7 @@ export function MapPicker({
                   <Loader2 className="size-2.5 animate-spin" /> Detecting address…
                 </span>
               ) : (
-                <span className="flex items-center gap-1 rounded-full bg-emerald-600/10 px-2 py-0.5 text-[9px] font-black text-emerald-600 dark:text-emerald-400">
+                <span className="flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[9px] font-black text-zinc-800 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200">
                   <Check className="size-2.5 stroke-[3]" /> PINNED
                 </span>
               )}

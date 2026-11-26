@@ -56,7 +56,7 @@ export function ServiceFilters({ filters, onChange, resultCount }: Props) {
                 onClick={() => toggle(filter.id)}
                 className={`ripple h-9 shrink-0 rounded-2xl border px-3 text-[11px] font-bold transition-all duration-300 active:scale-[0.96] ${
                   on
-                    ? "border-primary bg-primary/15 text-brand-dark"
+                    ? "border-zinc-900 bg-zinc-100 text-zinc-900"
                     : "border-border bg-card text-muted-foreground"
                 }`}
               >
@@ -102,7 +102,7 @@ export function ServiceFilters({ filters, onChange, resultCount }: Props) {
                   onClick={() => onChange({ ...filters, sort: option.id })}
                   className={`ripple flex w-full items-center justify-between rounded-2xl border px-3.5 py-2.5 text-xs font-bold transition-all duration-300 active:scale-[0.98] ${
                     filters.sort === option.id
-                      ? "border-primary bg-primary/12 text-brand-dark"
+                      ? "border-zinc-900 bg-zinc-100 text-zinc-900"
                       : "border-border text-foreground"
                   }`}
                 >
@@ -123,7 +123,7 @@ export function ServiceFilters({ filters, onChange, resultCount }: Props) {
                   onClick={() => onChange({ ...filters, minRating: rating })}
                   className={`ripple h-9 flex-1 rounded-2xl border text-[11px] font-bold transition-all duration-300 active:scale-[0.96] ${
                     filters.minRating === rating
-                      ? "border-primary bg-primary/12 text-brand-dark"
+                      ? "border-zinc-900 bg-zinc-100 text-zinc-900"
                       : "border-border text-muted-foreground"
                   }`}
                 >
@@ -143,7 +143,7 @@ export function ServiceFilters({ filters, onChange, resultCount }: Props) {
                   onClick={() => onChange({ ...filters, maxDistance: distance })}
                   className={`ripple h-9 flex-1 rounded-2xl border text-[11px] font-bold transition-all duration-300 active:scale-[0.96] ${
                     filters.maxDistance === distance
-                      ? "border-primary bg-primary/12 text-brand-dark"
+                      ? "border-zinc-900 bg-zinc-100 text-zinc-900"
                       : "border-border text-muted-foreground"
                   }`}
                 >
@@ -163,7 +163,7 @@ export function ServiceFilters({ filters, onChange, resultCount }: Props) {
                   onClick={() => onChange({ ...filters, maxPrice: price })}
                   className={`ripple h-9 flex-1 rounded-2xl border text-[11px] font-bold transition-all duration-300 active:scale-[0.96] ${
                     filters.maxPrice === price
-                      ? "border-primary bg-primary/12 text-brand-dark"
+                      ? "border-zinc-900 bg-zinc-100 text-zinc-900"
                       : "border-border text-muted-foreground"
                   }`}
                 >
@@ -183,7 +183,7 @@ export function ServiceFilters({ filters, onChange, resultCount }: Props) {
                   onClick={() => onChange({ ...filters, maxPickupMinutes: minutes })}
                   className={`ripple h-9 flex-1 rounded-2xl border text-[11px] font-bold transition-all duration-300 active:scale-[0.96] ${
                     filters.maxPickupMinutes === minutes
-                      ? "border-primary bg-primary/12 text-brand-dark"
+                      ? "border-zinc-900 bg-zinc-100 text-zinc-900"
                       : "border-border text-muted-foreground"
                   }`}
                 >

@@ -56,7 +56,7 @@ function PortalHubScreen() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-black text-lg tracking-tight">QuickPress</span>
-                <span className="rounded-full bg-emerald-100 border border-emerald-200 px-2 py-0.5 text-[10px] font-black text-emerald-800 uppercase tracking-wider">
+                <span className="rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[10px] font-black text-zinc-800 uppercase tracking-wider">
                   Ecosystem Hub
                 </span>
               </div>
@@ -68,7 +68,7 @@ function PortalHubScreen() {
 
           <div className="flex items-center gap-2">
             <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-700">
-              <Radio className="size-3 text-emerald-600 animate-pulse" />
+              <Radio className="size-3 text-zinc-700 animate-pulse" />
               4 Panels Connected
             </span>
           </div>
@@ -164,7 +164,7 @@ function PortalHubScreen() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
             <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200/70">
-              <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs">
+              <div className="flex items-center gap-2 text-zinc-800 font-bold text-xs">
                 <CheckCircle2 className="size-4" />
                 <span>Single Shared Database</span>
               </div>

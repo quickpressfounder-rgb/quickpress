@@ -83,7 +83,7 @@ export function RedeemPointsModal({
         {successResult ? (
           /* Success Screen */
           <div className="text-center space-y-4 py-3">
-            <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400 shadow-inner">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200 shadow-inner">
               <CheckCircle2 className="size-9 stroke-[2.5]" />
             </div>
 
@@ -96,14 +96,14 @@ export function RedeemPointsModal({
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-200 dark:border-emerald-800 text-center">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+            <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-center">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
                 Added to QuickPress Wallet
               </span>
-              <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+              <p className="text-3xl font-black text-zinc-900 dark:text-zinc-100 mt-0.5">
                 +₹{successResult.creditedRupees.toFixed(2)}
               </p>
-              <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium mt-1">
+              <p className="text-[11px] text-zinc-700 dark:text-zinc-300 font-medium mt-1">
                 Updated Wallet Balance: ₹{successResult.walletBalance.toFixed(2)}
               </p>
             </div>
@@ -238,16 +238,16 @@ export function RedeemPointsModal({
               </div>
 
               {/* Conversion Result Card */}
-              <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between">
+              <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-400 tracking-wider">
+                  <span className="text-[10px] font-black uppercase text-zinc-600 dark:text-zinc-400 tracking-wider">
                     You will receive in wallet
                   </span>
-                  <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400">
+                  <p className="text-2xl font-black text-zinc-900 dark:text-zinc-100">
                     ₹{rupees}
                   </p>
                 </div>
-                <div className="p-2.5 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 rounded-xl">
+                <div className="p-2.5 bg-zinc-100 border border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl">
                   <Wallet className="size-5" />
                 </div>
               </div>

@@ -1,5 +1,24 @@
 # QuickPress — Engineering Work History
 
+## Session: November 26, 2026 (Part 97)
+
+### Customer Frontend App-Wide Image 1 Neutral Icon, Badge & Accent Alignment (Option A)
+
+1. **Design Token Shift:**
+   - Replaced all soft green icon chips, light green pills/badges, and non-CTA green accent/link text (`bg-emerald-50`, `border-emerald-100/200`, `text-[#0c831f]`, `text-emerald-*`, `bg-primary/15`, `bg-secondary/1*`, `text-brand-green`) across `customer-frontend/src/` with crisp Image 1 neutral styling:
+     - Icon chips: `border border-zinc-200 bg-zinc-50 text-zinc-700`
+     - Badges & status pills: `border border-zinc-200 bg-zinc-100 text-zinc-800`
+     - Secondary/accent text & links: `text-zinc-700` / `text-zinc-800` / `text-zinc-900`
+   - Preserved solid primary CTA buttons (`bg-[#0c831f]`, `bg-[#00C853]`, `bg-emerald-600`, `bg-primary`) on main checkout, payment, membership activation, cart, wallet, and ticket submit actions (Option A).
+
+2. **Updated Routes & Components:**
+   - Core pages & navigation: `BottomNav.tsx`, `home.tsx`, `history.tsx`, `profile.tsx`, `AboutPage.tsx`, `legal.$docSlug.tsx`, `membership.tsx`, `offers.tsx`, `referral.tsx`, `wallet.tsx`, `notifications.tsx`.
+   - Support & order lifecycle: `help.tsx`, `OrderSupportView.tsx`, `TicketsListView.tsx`, `TicketChatView.tsx`, `support-utils.ts`, `track.$orderId.tsx`, `order-success.$orderId.tsx`, `CustomerDefectConsentCard.tsx`, `OrderReviewModal.tsx`.
+   - Cart, checkout & payments: `cart.tsx`, `CartPopup.tsx`, `FloatingCartBar.tsx`, `checkout.tsx`, `CheckoutAddressCard.tsx`, `CheckoutAovProgressBar.tsx`, `CheckoutBasketReview.tsx`, `CheckoutBillBreakdown.tsx`, `CheckoutCouponsSection.tsx`, `CheckoutSlotPicker.tsx`, `CheckoutStickyBottomBar.tsx`, `BlinkitPaymentDrawer.tsx`, `ZomatoPaymentSheet.tsx`, `payment-methods.tsx`.
+   - Services, locations, rewards, invoices & info pages: `partner.$partnerId.tsx`, `PartnerCard.tsx`, `ServiceFilters.tsx`, `services.$serviceId.tsx`, `services-unavailable.tsx`, `search.tsx`, `EmptyState.tsx`, `addresses.tsx`, `MapPicker.tsx`, `LocationDetecting.tsx`, `LiveDeliveryMap.tsx`, `location-search.tsx`, `location.tsx`, `login.tsx`, `portal.tsx`, `invoices.index.tsx`, `invoices.$invoiceId.tsx`, `RedeemPointsModal.tsx`, `ScratchCard.tsx`, `about.tsx`, `contact.tsx`, `faqs.tsx`, `laundry-service-in-kasganj.tsx`.
+
+---
+
 ## Session: November 26, 2026 (Part 96)
 
 ### QuickPress Customer APK & AAB Release

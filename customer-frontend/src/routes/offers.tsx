@@ -234,7 +234,7 @@ function OffersScreen() {
                     <span className="pointer-events-none absolute -right-3 top-1/2 size-6 -translate-y-1/2 rounded-full bg-background" />
 
                     <div className="flex items-start gap-3">
-                      <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-brand-dark">
+                      <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                         <Ticket className="size-5" />
                       </span>
                       <div className="min-w-0 flex-1">
@@ -244,7 +244,7 @@ function OffersScreen() {
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
                           {coupon.description} · Min ₹{coupon.minOrder}
                         </p>
-                        <p className="mt-1 text-[0.65rem] font-semibold text-brand-green">
+                        <p className="mt-1 text-[0.65rem] font-semibold text-zinc-600">
                           {coupon.expiry}
                         </p>
                       </div>
@@ -254,15 +254,15 @@ function OffersScreen() {
                       <button
                         type="button"
                         onClick={() => void handleCopy(coupon.code)}
-                        className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border border-dashed border-primary bg-primary/10 px-3 py-2.5 transition-all duration-300 active:scale-[0.97]"
+                        className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2.5 transition-all duration-300 active:scale-[0.97]"
                       >
-                        <span className="truncate text-xs font-black tracking-widest text-brand-dark">
+                        <span className="truncate text-xs font-black tracking-widest text-zinc-900">
                           {coupon.code}
                         </span>
                         {copied === coupon.code ? (
-                          <Check className="size-4 shrink-0 text-brand-green" />
+                          <Check className="size-4 shrink-0 text-zinc-700" />
                         ) : (
-                          <Copy className="size-4 shrink-0 text-brand-dark" />
+                          <Copy className="size-4 shrink-0 text-zinc-700" />
                         )}
                       </button>
                       <button
@@ -292,7 +292,7 @@ function OffersScreen() {
                     <article
                       key={offer.id} className="card-soft flex flex-col border border-border p-4 transition-all duration-300 hover:border-primary/60"
                     >
-                      <span className="flex size-10 items-center justify-center rounded-2xl bg-secondary/10 text-brand-green">
+                      <span className="flex size-10 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                         <Icon className="size-5" />
                       </span>
                       <p className="mt-3 text-xs font-black tracking-tight text-foreground">
@@ -302,7 +302,7 @@ function OffersScreen() {
                         {offer.description}
                       </p>
                       <div className="mt-3 flex items-center justify-between gap-2">
-                        <span className="rounded-full bg-primary/15 px-2.5 py-1 text-[0.6rem] font-bold tracking-tight text-brand-dark">
+                        <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-[0.6rem] font-bold tracking-tight text-zinc-800">
                           {offer.highlight}
                         </span>
                         <button
@@ -331,7 +331,7 @@ function OffersScreen() {
                     Earned on every delivered laundry order
                   </p>
                 </div>
-                <span className="flex items-center gap-1 text-[0.68rem] font-semibold text-brand-green bg-brand-green/10 px-2.5 py-0.5 rounded-full">
+                <span className="flex items-center gap-1 text-[0.68rem] font-semibold text-zinc-700 bg-zinc-100 border border-zinc-200 px-2.5 py-0.5 rounded-full">
                   <BadgePercent className="size-3.5" />
                   {scratchCards.filter((c) => !c.scratched).length} available
                 </span>
@@ -365,7 +365,7 @@ function OffersScreen() {
             {/* Loyalty rewards */}
             <section className="card-soft mt-7 border border-border p-5 bg-gradient-to-br from-amber-500/5 via-transparent to-emerald-500/5">
               <div className="flex items-start gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-brand-dark">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                   <Gift className="size-5" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -373,13 +373,13 @@ function OffersScreen() {
                     <p className="text-sm font-black tracking-tight text-foreground">
                       Loyalty Rewards
                     </p>
-                    <span className="text-[10px] font-black uppercase text-brand-green bg-brand-green/15 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-black uppercase text-zinc-700 bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded-full">
                       100 pts = ₹10
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
                     You have <strong className="text-foreground font-black">{rewardPoints.toLocaleString("en-IN")} points</strong>{" "}
-                    (worth <strong className="text-brand-green font-black">₹{(rewardPoints / 10).toFixed(2)}</strong> real wallet cash).
+                    (worth <strong className="text-zinc-900 font-black">₹{(rewardPoints / 10).toFixed(2)}</strong> real wallet cash).
                   </p>
                 </div>
               </div>

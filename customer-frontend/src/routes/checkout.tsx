@@ -557,12 +557,12 @@ export function CheckoutPage() {
       return (
         <main className="min-h-screen bg-white text-zinc-900 font-sans flex items-center justify-center p-4">
           <div className="flex flex-col items-center justify-center text-center space-y-3">
-            <div className="flex size-14 items-center justify-center rounded-2xl bg-emerald-50 text-[#0c831f] border border-emerald-100">
-              <CheckCircle2 className="size-8 text-[#0c831f]" />
+            <div className="flex size-14 items-center justify-center rounded-2xl bg-zinc-50 text-zinc-800 border border-zinc-200">
+              <CheckCircle2 className="size-8 text-zinc-800" />
             </div>
             <h2 className="text-base font-black text-zinc-900">Order Confirmed!</h2>
             <p className="text-xs font-semibold text-zinc-500">Redirecting to order confirmation screen...</p>
-            <Loader2 className="size-5 animate-spin text-[#0c831f] mt-1" />
+            <Loader2 className="size-5 animate-spin text-zinc-700 mt-1" />
           </div>
         </main>
       );
@@ -590,7 +590,7 @@ export function CheckoutPage() {
           </header>
 
           <div className="flex flex-col items-center justify-center pt-24 pb-16 px-4 text-center">
-            <div className="flex size-18 items-center justify-center rounded-3xl bg-emerald-50 text-[#0c831f] border border-emerald-150 mb-4">
+            <div className="flex size-18 items-center justify-center rounded-3xl bg-zinc-50 text-zinc-700 border border-zinc-200 mb-4">
               <ShoppingBag className="size-9 stroke-[1.8]" />
             </div>
             <h2 className="text-lg font-black text-zinc-950">Your laundry cart is empty</h2>
@@ -798,7 +798,7 @@ export function CheckoutPage() {
           <div className="w-full max-w-md bg-white rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 cursor-default border border-zinc-150">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="size-5 text-[#0c831f]" />
+                <ShieldCheck className="size-5 text-zinc-700" />
                 <h2 className="text-sm font-black text-zinc-900">Garment Care &amp; Loss Policy</h2>
               </div>
               <button
@@ -811,9 +811,9 @@ export function CheckoutPage() {
             </div>
 
             <div className="space-y-3 text-xs text-zinc-600 max-h-80 overflow-y-auto pr-1">
-              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-1">
-                <p className="font-black text-emerald-950 text-xs">1. 100% Eco-Safe Cleaning Protocol</p>
-                <p className="text-[11px] text-emerald-800 leading-relaxed">
+              <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-200 space-y-1">
+                <p className="font-black text-zinc-900 text-xs">1. 100% Eco-Safe Cleaning Protocol</p>
+                <p className="text-[11px] text-zinc-600 leading-relaxed">
                   All garments are processed using European hydrocarbon dry-cleaning solvents and RO-softened water with zero harmful perchloroethylene.
                 </p>
               </div>
@@ -844,7 +844,7 @@ export function CheckoutPage() {
               <Link
                 to="/legal/$docSlug"
                 params={{ docSlug: "garment-care-policy" }}
-                className="text-[11px] font-bold text-[#0c831f] hover:underline inline-block"
+                className="text-[11px] font-bold text-zinc-800 hover:underline inline-block"
               >
                 Read Official Garment Care &amp; Loss Liability Policy &rarr;
               </Link>
@@ -929,7 +929,7 @@ function AddressPickerModal({
                 onClick={() => onSelect(addr.id)}
                 className={`p-3 rounded-2xl border flex items-start justify-between cursor-pointer transition-colors outline-none ${
                   addr.id === selectedId
-                    ? "border-[#0c831f] bg-emerald-50/40 shadow-2xs"
+                    ? "border-zinc-900 bg-zinc-50 shadow-2xs"
                     : "border-zinc-200 hover:bg-zinc-50"
                 }`}
               >
@@ -939,7 +939,7 @@ function AddressPickerModal({
                   <p className="text-[11px] text-zinc-400">{addr.city}</p>
                 </div>
                 {addr.id === selectedId ? (
-                  <CheckCircle2 className="size-4 text-[#0c831f] shrink-0 mt-0.5" />
+                  <CheckCircle2 className="size-4 text-zinc-800 shrink-0 mt-0.5" />
                 ) : null}
               </div>
             ))}
@@ -951,7 +951,7 @@ function AddressPickerModal({
             <button
               type="button"
               onClick={onAddNew}
-              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-dashed border-zinc-300 text-xs font-bold text-[#0c831f] hover:bg-emerald-50 active:scale-98 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-dashed border-zinc-300 text-xs font-bold text-zinc-800 hover:bg-zinc-50 active:scale-98 transition-colors cursor-pointer"
             >
               <Plus className="size-3.5 stroke-[3]" />
               <span>Add Another Address</span>

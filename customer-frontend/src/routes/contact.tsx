@@ -88,7 +88,7 @@ function ContactScreen() {
             to="/faqs"
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
           >
-            <HelpCircle className="size-3.5 text-emerald-600" /> FAQs
+            <HelpCircle className="size-3.5 text-zinc-700" /> FAQs
           </Link>
         </div>
       </header>
@@ -97,7 +97,7 @@ function ContactScreen() {
       <section className="bg-white border-b border-slate-200 py-10 sm:py-12">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="max-w-2xl space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+            <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
               <MessageSquare className="size-3.5" /> 24/7 Grievance & Customer Help
             </div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
@@ -121,9 +121,9 @@ function ContactScreen() {
               <div className="space-y-4 text-xs">
                 <a
                   href={`tel:${companyProfile?.supportPhone || "+919258730561"}`}
-                  className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
+                  className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-zinc-300 hover:bg-zinc-100/70"
                 >
-                  <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+                  <div className="rounded-lg border border-zinc-200 bg-white p-2 text-zinc-700">
                     <Phone className="size-4" />
                   </div>
                   <div>
@@ -136,9 +136,9 @@ function ContactScreen() {
                   href="https://wa.me/919258730561"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
+                  className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-zinc-300 hover:bg-zinc-100/70"
                 >
-                  <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+                  <div className="rounded-lg border border-zinc-200 bg-white p-2 text-zinc-700">
                     <MessageSquare className="size-4" />
                   </div>
                   <div>
@@ -149,9 +149,9 @@ function ContactScreen() {
 
                 <a
                   href={`mailto:${companyProfile?.supportEmail || "official.quickpress@gmail.com"}`}
-                  className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
+                  className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-zinc-300 hover:bg-zinc-100/70"
                 >
-                  <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+                  <div className="rounded-lg border border-zinc-200 bg-white p-2 text-zinc-700">
                     <Mail className="size-4" />
                   </div>
                   <div>
@@ -164,9 +164,9 @@ function ContactScreen() {
                   href={companyProfile?.websiteUrl || "https://withquickpress.com"}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
+                  className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-zinc-300 hover:bg-zinc-100/70"
                 >
-                  <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+                  <div className="rounded-lg border border-zinc-200 bg-white p-2 text-zinc-700">
                     <Globe className="size-4" />
                   </div>
                   <div>
@@ -180,7 +180,7 @@ function ContactScreen() {
             {/* Corporate Details */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
               <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-                <Building2 className="size-4 text-emerald-600" />
+                <Building2 className="size-4 text-zinc-700" />
                 Corporate & Registered Office
               </h2>
 
@@ -206,10 +206,10 @@ function ContactScreen() {
               </p>
 
               {success ? (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center text-emerald-900 space-y-3">
-                  <CheckCircle2 className="size-12 mx-auto text-emerald-600" />
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-8 text-center text-zinc-900 space-y-3">
+                  <CheckCircle2 className="size-12 mx-auto text-zinc-700" />
                   <h3 className="text-lg font-bold">Inquiry Sent Successfully!</h3>
-                  <p className="text-xs text-emerald-700 max-w-sm mx-auto leading-relaxed">
+                  <p className="text-xs text-zinc-600 max-w-sm mx-auto leading-relaxed">
                     Thank you for reaching out. Our support representative will contact you via email or phone within 2 hours.
                   </p>
                   <button

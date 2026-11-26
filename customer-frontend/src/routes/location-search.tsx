@@ -316,7 +316,7 @@ function LocationSearchScreen() {
               Choose Your Location
             </h1>
             {isFromLogin ? (
-              <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+              <p className="text-[11px] font-bold text-zinc-600 dark:text-zinc-400">
                 Set pickup location to explore active laundry partners
               </p>
             ) : null}
@@ -374,9 +374,9 @@ function LocationSearchScreen() {
               type="button"
               onClick={useCurrentLocation}
               disabled={locating || saving}
-              className="card-soft mt-5 flex w-full items-center gap-4 border border-emerald-500/30 bg-emerald-500/5 p-4 text-left transition-all duration-300 hover:border-emerald-500 active:scale-[0.985] disabled:opacity-60"
+              className="card-soft mt-5 flex w-full items-center gap-4 border border-zinc-200 bg-zinc-50 p-4 text-left transition-all duration-300 hover:border-zinc-400 active:scale-[0.985] disabled:opacity-60"
             >
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-white text-zinc-700 shadow-xs">
                 {locating ? (
                   <Loader2 className="size-5 animate-spin" />
                 ) : (
@@ -408,8 +408,8 @@ function LocationSearchScreen() {
                       disabled={saving}
                       className={`card-soft flex w-full items-center gap-3.5 border p-3.5 text-left transition-all duration-300 active:scale-[0.985] ${
                         isSelected
-                          ? "border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-500/30"
-                          : "border-border hover:border-emerald-500/50"
+                          ? "border-zinc-900 bg-zinc-100 ring-1 ring-zinc-300"
+                          : "border-border hover:border-zinc-400"
                       }`}
                     >
                       <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
@@ -570,13 +570,13 @@ function PlaceCard({
       onClick={() => onSelect(place)}
       className={`card-soft flex w-full items-center gap-4 border p-3.5 text-left transition-all duration-300 active:scale-[0.985] ${
         selected
-          ? "border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-500/30"
-          : "border-border hover:border-emerald-500/60"
+          ? "border-zinc-900 bg-zinc-100 ring-1 ring-zinc-300"
+          : "border-border hover:border-zinc-400"
       }`}
     >
       <span
         className={`flex size-10 shrink-0 items-center justify-center rounded-2xl ${
-          selected ? "bg-emerald-600 text-white" : "bg-muted text-foreground"
+          selected ? "bg-zinc-900 text-white" : "bg-muted text-foreground"
         }`}
       >
         <MapPin className="size-4" />

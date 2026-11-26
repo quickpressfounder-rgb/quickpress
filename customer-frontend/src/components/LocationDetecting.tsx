@@ -36,8 +36,8 @@ export function LocationDetecting({
       ) : null}
 
       {/* Live Status Badge */}
-      <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-400">
-        <Radio className="size-3.5 text-emerald-600 animate-pulse" />
+      <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-100 px-3.5 py-1 text-xs font-bold text-zinc-700 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300">
+        <Radio className="size-3.5 text-zinc-700 dark:text-zinc-300 animate-pulse" />
         <span>{statusBadge}</span>
       </div>
 

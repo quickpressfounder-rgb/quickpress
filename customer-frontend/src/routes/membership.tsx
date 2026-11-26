@@ -150,12 +150,12 @@ function CompactSavingsEstimator() {
     <section className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-2xs space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-lg border border-emerald-100 bg-emerald-50 text-[#0c831f]">
+          <span className="flex size-7 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-zinc-700">
             <TrendingUp className="size-3.5 stroke-[2.2]" />
           </span>
           <span className="text-xs font-black text-zinc-950">Quick Savings Check</span>
         </div>
-        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-black text-[#0c831f] tabular-nums">
+        <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-0.5 text-[11px] font-black text-zinc-800 tabular-nums">
           {ordersPerMonth} orders/mo
         </span>
       </div>
@@ -171,9 +171,9 @@ function CompactSavingsEstimator() {
         className="w-full accent-[#0c831f] cursor-pointer"
       />
 
-      <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2">
-        <span className="text-xs font-bold text-emerald-950">Est. Annual Savings</span>
-        <span className="text-sm font-black text-[#0c831f] tabular-nums font-mono">
+      <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">
+        <span className="text-xs font-bold text-zinc-700">Est. Annual Savings</span>
+        <span className="text-sm font-black text-zinc-950 tabular-nums font-mono">
           ₹{totalAnnualSavings.toLocaleString("en-IN")}/yr
         </span>
       </div>
@@ -222,7 +222,7 @@ function PlanSelectorSection({
             Choose Your Plan
           </h2>
           {pricing.discountBadge ? (
-            <span className="text-[11px] font-bold text-[#0c831f]">{pricing.discountBadge}</span>
+            <span className="text-[11px] font-bold text-zinc-700">{pricing.discountBadge}</span>
           ) : null}
         </div>
         <div className="grid grid-cols-3 gap-1 rounded-2xl border border-zinc-200/80 bg-zinc-100/90 p-1">
@@ -272,18 +272,18 @@ function PlanSelectorSection({
               onClick={() => onSelectPlan(plan.id)}
               className={`relative rounded-2xl p-2.5 text-left transition-all cursor-pointer ${
                 selected
-                  ? "border-2 border-[#0c831f] bg-emerald-50/40 shadow-2xs"
+                  ? "border-2 border-zinc-900 bg-zinc-50 shadow-2xs"
                   : "border border-zinc-200/80 bg-white hover:border-zinc-300"
               }`}
             >
               {plan.popular ? (
-                <span className="absolute -top-2 right-2 rounded bg-[#0c831f] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-white">
+                <span className="absolute -top-2 right-2 rounded bg-zinc-900 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-white">
                   Popular
                 </span>
               ) : null}
               <p
                 className={`truncate text-[11px] font-bold ${
-                  selected ? "text-[#0c831f]" : "text-zinc-500"
+                  selected ? "text-zinc-950" : "text-zinc-500"
                 }`}
               >
                 {shortName}
@@ -301,14 +301,14 @@ function PlanSelectorSection({
       <section className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-2xs space-y-3.5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-[#0c831f]">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700">
               <Crown className="size-4 stroke-[2.2]" />
             </span>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <h3 className="truncate text-sm font-black text-zinc-950">{selectedPlan.name}</h3>
                 {isCurrent ? (
-                  <span className="rounded bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[9px] font-black uppercase text-[#0c831f]">
+                  <span className="rounded bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 text-[9px] font-black uppercase text-zinc-800">
                     Active
                   </span>
                 ) : null}
@@ -323,7 +323,7 @@ function PlanSelectorSection({
             <p className="text-lg font-black text-zinc-950 tabular-nums font-mono">
               {formatMembershipPrice(pricing.price)}
             </p>
-            <p className="text-[10px] font-bold text-[#0c831f]">{pricing.periodLabel}</p>
+            <p className="text-[10px] font-bold text-zinc-500">{pricing.periodLabel}</p>
           </div>
         </div>
 
@@ -367,7 +367,7 @@ function PlanSelectorSection({
             const Icon = benefitIcon(benefit.icon);
             return (
               <li key={benefit.id} className="flex items-center gap-2.5 text-xs font-semibold text-zinc-800">
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-[#0c831f]">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-zinc-700">
                   <Icon className="size-3.5 stroke-[2.2]" />
                 </span>
                 <span className="truncate">{benefit.title}</span>
@@ -401,7 +401,7 @@ function PlanSelectorSection({
           </button>
           {!isCurrent && pricing.price > 0 ? (
             <p className="flex items-center justify-center gap-1 text-[10px] font-medium text-zinc-400">
-              <ShieldCheck className="size-3 text-[#0c831f]" />
+              <ShieldCheck className="size-3 text-zinc-500" />
               <span>Secure via Razorpay UPI, Cards &amp; NetBanking</span>
             </p>
           ) : null}
@@ -614,7 +614,7 @@ function MembershipScreen() {
                 <section className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-2xs space-y-3.5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#0c831f]">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-zinc-700">
                         <Sparkles className="size-3" />
                         <span>Quick+ Membership</span>
                       </span>
@@ -622,7 +622,7 @@ function MembershipScreen() {
                         Save up to ₹4,200/year on laundry &amp; dry clean
                       </h2>
                     </div>
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-emerald-100 bg-emerald-50 text-[#0c831f]">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                       <Crown className="size-5 stroke-[2.2]" />
                     </span>
                   </div>
@@ -697,11 +697,11 @@ function MembershipScreen() {
             ) : (
               /* ===================== ACTIVE MEMBER FLOW ===================== */
               <>
-                {/* 1. Active Pass Card (Clean White + #0c831f Border) */}
-                <section className="rounded-2xl border-2 border-[#0c831f]/75 bg-white p-4 shadow-2xs space-y-3.5">
+                {/* 1. Active Pass Card (Clean White) */}
+                <section className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs space-y-3.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#0c831f]">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-zinc-800">
                         ● Active Quick+ Member
                       </span>
                       <h2 className="mt-2 truncate text-lg font-black text-zinc-950">
@@ -712,11 +712,11 @@ function MembershipScreen() {
                       </p>
                     </div>
 
-                    <div className="shrink-0 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-center">
+                    <div className="shrink-0 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-center">
                       <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-500">
                         Saved
                       </span>
-                      <span className="text-sm font-black text-[#0c831f] tabular-nums font-mono">
+                      <span className="text-sm font-black text-zinc-950 tabular-nums font-mono">
                         ₹{membership.quota.totalSavings.toLocaleString("en-IN")}
                       </span>
                     </div>
@@ -779,7 +779,7 @@ function MembershipScreen() {
                             className="flex items-center justify-between gap-2 py-2.5 first:pt-1 last:pb-0 text-xs"
                           >
                             <span className="font-bold text-zinc-900">{benefit.title}</span>
-                            <span className="shrink-0 text-[11px] font-black text-[#0c831f]">
+                            <span className="shrink-0 text-[11px] font-black text-zinc-700">
                               Active
                             </span>
                           </div>
@@ -846,7 +846,7 @@ function MembershipScreen() {
                       <h2 className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
                         Quick+ Orders
                       </h2>
-                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-black text-[#0c831f]">
+                      <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-0.5 text-[11px] font-black text-zinc-800">
                         {membership.membershipOrders.length}{" "}
                         {membership.membershipOrders.length === 1 ? "order" : "orders"}
                       </span>
@@ -854,7 +854,7 @@ function MembershipScreen() {
 
                     {membership.membershipOrders.length === 0 ? (
                       <div className="rounded-2xl border border-zinc-200/80 bg-white p-7 text-center shadow-2xs space-y-3">
-                        <span className="mx-auto flex size-11 items-center justify-center rounded-2xl border border-emerald-100 bg-emerald-50 text-[#0c831f]">
+                        <span className="mx-auto flex size-11 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                           <Package className="size-5" />
                         </span>
                         <p className="text-sm font-black text-zinc-950">No Quick+ orders yet</p>
@@ -895,7 +895,7 @@ function MembershipScreen() {
                                   ₹{ord.totalAmount}
                                 </p>
                                 {ord.totalSaved > 0 ? (
-                                  <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-black text-[#0c831f]">
+                                  <span className="inline-flex items-center rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[9px] font-black text-zinc-800">
                                     Saved ₹{ord.totalSaved}
                                   </span>
                                 ) : null}
@@ -903,7 +903,7 @@ function MembershipScreen() {
                             </div>
 
                             <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-2.5 text-[11px] font-bold">
-                              <span className="flex items-center gap-1 text-[#0c831f]">
+                              <span className="flex items-center gap-1 text-zinc-700">
                                 <Check className="size-3 stroke-[3]" />
                                 ₹0 Delivery Applied
                               </span>
@@ -969,7 +969,7 @@ function MembershipScreen() {
                                 </p>
                                 <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-zinc-600">
                                   {item.paymentStatus === "paid" ? (
-                                    <Check className="size-3 text-[#0c831f]" />
+                                    <Check className="size-3 text-zinc-700" />
                                   ) : null}
                                   {item.paymentStatus}
                                 </span>

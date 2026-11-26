@@ -28,7 +28,7 @@ export function CheckoutBasketReview({
         <button
           type="button"
           onClick={onAddMore}
-          className="text-xs font-black text-[#0c831f] hover:text-emerald-800 transition-colors cursor-pointer"
+          className="text-xs font-black text-zinc-800 hover:text-zinc-950 transition-colors cursor-pointer"
         >
           + Add Items
         </button>

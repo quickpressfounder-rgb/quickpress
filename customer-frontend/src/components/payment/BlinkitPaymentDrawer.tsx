@@ -713,9 +713,9 @@ export function BlinkitPaymentDrawer({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/80">
-            <Lock className="size-3 text-[#0c831f]" />
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#0c831f]">100% Secure</span>
+          <div className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1 rounded-full border border-zinc-200">
+            <Lock className="size-3 text-zinc-700" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-800">100% Secure</span>
           </div>
         </header>
 
@@ -878,7 +878,7 @@ export function BlinkitPaymentDrawer({
               </form>
 
               <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200/80 flex items-center justify-center gap-2 text-zinc-500 text-[10.5px]">
-                <ShieldCheck className="size-4 text-[#0c831f] shrink-0" />
+                <ShieldCheck className="size-4 text-zinc-600 shrink-0" />
                 <span>PCI-DSS Level 1 Certified • 256-bit Bank Grade SSL Encryption</span>
               </div>
             </div>
@@ -939,7 +939,7 @@ export function BlinkitPaymentDrawer({
                             const base = customVpa.split("@")[0] || "";
                             setCustomVpa(base ? `${base}${suffix}` : suffix);
                           }}
-                          className="px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-emerald-50 hover:text-[#0c831f] hover:border-emerald-300 border border-zinc-200 text-[11px] font-bold text-zinc-700 transition cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 hover:text-zinc-900 hover:border-zinc-300 border border-zinc-200 text-[11px] font-bold text-zinc-700 transition cursor-pointer"
                         >
                           {suffix}
                         </button>
@@ -947,7 +947,7 @@ export function BlinkitPaymentDrawer({
                     </div>
                   </div>
 
-                  <div className="p-3 bg-emerald-50/80 rounded-xl border border-emerald-200/80 text-[11px] text-emerald-900 leading-snug">
+                  <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 text-[11px] text-zinc-700 leading-snug">
                     A payment request of <strong>₹{grandTotal}</strong> will be sent to your UPI app. Open PhonePe, Google Pay, or Paytm to authorize.
                   </div>
 
@@ -984,7 +984,7 @@ export function BlinkitPaymentDrawer({
                   <div className="p-4 bg-white rounded-2xl border border-zinc-200 shadow-sm inline-block mx-auto max-w-[280px]">
                     {isGeneratingQr ? (
                       <div className="size-56 flex items-center justify-center">
-                        <Loader2 className="size-8 animate-spin text-[#0c831f]" />
+                        <Loader2 className="size-8 animate-spin text-zinc-700" />
                       </div>
                     ) : qrDataUrl ? (
                       <div className="relative">
@@ -1042,12 +1042,12 @@ export function BlinkitPaymentDrawer({
                         type="button"
                         onClick={() => setSelectedBank(b.name)}
                         className={`p-3 rounded-2xl border text-center transition-all cursor-pointer relative flex flex-col items-center justify-center gap-1.5 ${isSelected
-                          ? "bg-emerald-50/70 border-[#0c831f] shadow-xs"
+                          ? "bg-zinc-100 border-zinc-900 shadow-xs"
                           : "bg-white border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
                           }`}
                       >
                         {isSelected && (
-                          <div className="absolute top-1.5 right-1.5 size-4 rounded-full bg-[#0c831f] text-white flex items-center justify-center">
+                          <div className="absolute top-1.5 right-1.5 size-4 rounded-full bg-zinc-900 text-white flex items-center justify-center">
                             <Check className="size-2.5 stroke-[3]" />
                           </div>
                         )}
@@ -1090,11 +1090,11 @@ export function BlinkitPaymentDrawer({
                         key={b}
                         type="button"
                         onClick={() => setSelectedBank(b)}
-                        className={`w-full p-2.5 px-3.5 text-left text-xs font-bold transition flex items-center justify-between cursor-pointer ${isSelected ? "bg-emerald-50 text-[#0c831f]" : "text-zinc-800 hover:bg-zinc-50"
+                        className={`w-full p-2.5 px-3.5 text-left text-xs font-bold transition flex items-center justify-between cursor-pointer ${isSelected ? "bg-zinc-100 text-zinc-900" : "text-zinc-800 hover:bg-zinc-50"
                           }`}
                       >
                         <span>{b}</span>
-                        {isSelected && <Check className="size-4 text-[#0c831f] stroke-[3]" />}
+                        {isSelected && <Check className="size-4 text-zinc-900 stroke-[3]" />}
                       </button>
                     );
                   })}
@@ -1104,10 +1104,10 @@ export function BlinkitPaymentDrawer({
               {selectedBank && (
                 <div className="p-3 bg-zinc-100/90 rounded-xl border border-zinc-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Building2 className="size-4 text-[#0c831f]" />
+                    <Building2 className="size-4 text-zinc-700" />
                     <span className="text-xs font-bold text-zinc-800">Selected: <strong>{selectedBank}</strong></span>
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold text-zinc-700 bg-white border border-zinc-200 px-2 py-0.5 rounded-full">
                     Instant NetBanking
                   </span>
                 </div>
@@ -1222,7 +1222,7 @@ export function BlinkitPaymentDrawer({
                       }}
                       className="flex-1 py-2.5 rounded-xl bg-white border border-rose-300 hover:bg-rose-100/60 active:scale-95 text-rose-900 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-50"
                     >
-                      <Banknote className="size-3.5 text-emerald-600" />
+                      <Banknote className="size-3.5 text-zinc-700" />
                       <span>Pay via COD</span>
                     </button>
                   </div>
@@ -1242,13 +1242,13 @@ export function BlinkitPaymentDrawer({
                         <Sparkles className="size-3.5 text-amber-500 fill-amber-500" />
                         <span>Saved Payment Methods</span>
                       </h3>
-                      <span className="bg-emerald-100 text-emerald-800 text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                      <span className="bg-zinc-100 border border-zinc-200 text-zinc-800 text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
                         <span>1-CLICK CHECKOUT</span>
                       </span>
                     </div>
                   </div>
 
-                  <div className="overflow-hidden rounded-2xl bg-white border border-emerald-500/40 shadow-xs divide-y divide-zinc-100">
+                  <div className="overflow-hidden rounded-2xl bg-white border border-zinc-200 shadow-xs divide-y divide-zinc-100">
                     {/* 1. Saved UPI Handles */}
                     {savedMethods
                       .filter((m) => m.kind === "upi")
@@ -1257,10 +1257,10 @@ export function BlinkitPaymentDrawer({
                         return (
                           <div
                             key={method.id}
-                            className="p-3.5 hover:bg-emerald-50/40 transition-colors flex items-center justify-between gap-3"
+                            className="p-3.5 hover:bg-zinc-50 transition-colors flex items-center justify-between gap-3"
                           >
                             <div className="flex items-center gap-3 min-w-0">
-                              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white font-black text-xs shadow-2xs">
+                              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-700 font-black text-xs shadow-2xs">
                                 UPI
                               </div>
                               <div className="min-w-0">
@@ -1274,7 +1274,7 @@ export function BlinkitPaymentDrawer({
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-[10px] font-medium text-emerald-700">
+                                <p className="text-[10px] font-medium text-zinc-600">
                                   1-Tap Instant Collect • Verified
                                 </p>
                               </div>
@@ -1321,7 +1321,7 @@ export function BlinkitPaymentDrawer({
                         return (
                           <div
                             key={method.id}
-                            className="p-3.5 hover:bg-emerald-50/30 transition-colors space-y-2.5"
+                            className="p-3.5 hover:bg-zinc-50 transition-colors space-y-2.5"
                           >
                             <div className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-3 min-w-0">
@@ -1350,7 +1350,7 @@ export function BlinkitPaymentDrawer({
                                   <button
                                     type="button"
                                     onClick={() => setExpandedCardId(method.id)}
-                                    className="px-3 py-1.5 rounded-xl bg-emerald-50 text-[#0c831f] border border-emerald-300 hover:bg-emerald-100 active:scale-95 font-black text-xs transition cursor-pointer"
+                                    className="px-3 py-1.5 rounded-xl bg-zinc-100 text-zinc-800 border border-zinc-300 hover:bg-zinc-200 active:scale-95 font-black text-xs transition cursor-pointer"
                                   >
                                     Pay ₹{grandTotal}
                                   </button>
@@ -1468,8 +1468,8 @@ export function BlinkitPaymentDrawer({
                     UPI {hasNativeBridge && installedUpiApps.length > 0 ? "• Installed On Device" : ""}
                   </h3>
                   {hasNativeBridge && installedUpiApps.length > 0 && (
-                    <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                      <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="text-[10px] font-bold text-zinc-700 flex items-center gap-1">
+                      <span className="size-1.5 rounded-full bg-zinc-700 animate-pulse"></span>
                       Device Detected ({installedUpiApps.length})
                     </span>
                   )}
@@ -1508,7 +1508,7 @@ export function BlinkitPaymentDrawer({
                                     {meta.name}
                                   </p>
                                   {meta.badge && (
-                                    <span className="rounded-full bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.2 text-[9px] font-black text-emerald-700 uppercase">
+                                    <span className="rounded-full bg-zinc-100 border border-zinc-200 px-1.5 py-0.2 text-[9px] font-black text-zinc-700 uppercase">
                                       {meta.badge}
                                     </span>
                                   )}
@@ -1520,7 +1520,7 @@ export function BlinkitPaymentDrawer({
                             </div>
 
                             {isBusy ? (
-                              <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
+                              <Loader2 className="size-4.5 animate-spin text-zinc-700" />
                             ) : (
                               <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
                             )}
@@ -1560,7 +1560,7 @@ export function BlinkitPaymentDrawer({
                         </div>
 
                         {busyMethod === "Google Pay" ? (
-                          <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
+                          <Loader2 className="size-4.5 animate-spin text-zinc-700" />
                         ) : (
                           <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
                         )}
@@ -1582,7 +1582,7 @@ export function BlinkitPaymentDrawer({
                               <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
                                 PhonePe UPI
                               </p>
-                              <span className="rounded-full bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.2 text-[9px] font-black text-emerald-700 uppercase">
+                              <span className="rounded-full bg-zinc-100 border border-zinc-200 px-1.5 py-0.2 text-[9px] font-black text-zinc-700 uppercase">
                                 Fastest
                               </span>
                             </div>
@@ -1591,7 +1591,7 @@ export function BlinkitPaymentDrawer({
                         </div>
 
                         {busyMethod === "PhonePe UPI" ? (
-                          <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
+                          <Loader2 className="size-4.5 animate-spin text-zinc-700" />
                         ) : (
                           <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
                         )}
@@ -1617,7 +1617,7 @@ export function BlinkitPaymentDrawer({
                         </div>
 
                         {busyMethod === "Paytm UPI" ? (
-                          <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
+                          <Loader2 className="size-4.5 animate-spin text-zinc-700" />
                         ) : (
                           <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
                         )}
@@ -1693,21 +1693,21 @@ export function BlinkitPaymentDrawer({
                     className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 border border-emerald-200/80">
-                        <Wallet className="size-5 text-[#0c831f]" />
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-50 border border-zinc-200">
+                        <Wallet className="size-5 text-zinc-700" />
                       </div>
                       <div>
                         <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
                           QuickPress Wallet
                         </p>
-                        <p className={`text-[11px] font-bold ${walletBalance >= grandTotal ? "text-[#0c831f]" : "text-amber-600"}`}>
+                        <p className={`text-[11px] font-bold ${walletBalance >= grandTotal ? "text-zinc-800" : "text-amber-600"}`}>
                           Balance: ₹{walletBalance}
                         </p>
                       </div>
                     </div>
 
                     {busyMethod === "QuickPress Wallet" ? (
-                      <Loader2 className="size-4 animate-spin text-[#0c831f]" />
+                      <Loader2 className="size-4 animate-spin text-zinc-700" />
                     ) : (
                       <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
                     )}
@@ -1729,7 +1729,7 @@ export function BlinkitPaymentDrawer({
                     </div>
 
                     {busyMethod === "Amazon Pay" ? (
-                      <Loader2 className="size-4 animate-spin text-[#0c831f]" />
+                      <Loader2 className="size-4 animate-spin text-zinc-700" />
                     ) : (
                       <Plus className="size-4 stroke-[3] text-rose-500" />
                     )}
@@ -1751,7 +1751,7 @@ export function BlinkitPaymentDrawer({
                     </div>
 
                     {busyMethod === "Mobikwik" ? (
-                      <Loader2 className="size-4 animate-spin text-[#0c831f]" />
+                      <Loader2 className="size-4 animate-spin text-zinc-700" />
                     ) : (
                       <Plus className="size-4 stroke-[3] text-rose-500" />
                     )}
@@ -1772,8 +1772,8 @@ export function BlinkitPaymentDrawer({
                     className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 border border-emerald-200/80">
-                        <Banknote className="size-5 text-[#0c831f]" />
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-50 border border-zinc-200">
+                        <Banknote className="size-5 text-zinc-700" />
                       </div>
                       <div>
                         <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
@@ -1786,9 +1786,9 @@ export function BlinkitPaymentDrawer({
                     </div>
 
                     {busyMethod === "cod" ? (
-                      <Loader2 className="size-4 animate-spin text-[#0c831f]" />
+                      <Loader2 className="size-4 animate-spin text-zinc-700" />
                     ) : (
-                      <div className="size-6 rounded-full bg-[#0c831f] flex items-center justify-center text-white">
+                      <div className="size-6 rounded-full bg-zinc-900 flex items-center justify-center text-white">
                         <Check className="size-3.5 stroke-[3]" />
                       </div>
                     )}
@@ -1802,7 +1802,7 @@ export function BlinkitPaymentDrawer({
         {/* Footer Security Notice */}
         <footer className="p-3 bg-white border-t border-zinc-100 text-center">
           <p className="text-[10.5px] font-medium text-zinc-400 flex items-center justify-center gap-1.5">
-            <ShieldCheck className="size-3.5 text-[#0c831f]" />
+            <ShieldCheck className="size-3.5 text-zinc-600" />
             <span>Razorpay Secured 256-bit Bank Grade Encryption</span>
           </p>
         </footer>

@@ -133,7 +133,7 @@ export function TicketsListView({
                 ) : null}
 
                 {photosList.length > 0 ? (
-                  <div className="mt-2.5 inline-flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-[#0c831f]">
+                  <div className="mt-2.5 inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-bold text-zinc-700">
                     <ImageIcon className="size-3" />
                     <span>
                       {photosList.length} photo{photosList.length > 1 ? "s" : ""} attached
@@ -145,7 +145,7 @@ export function TicketsListView({
                   <span className="font-medium text-zinc-400">
                     {tkt.categoryLabel} · {timeLabel}
                   </span>
-                  <span className="font-black text-[#0c831f] group-hover:underline">
+                  <span className="font-black text-zinc-800 group-hover:underline">
                     Open Chat ({tkt.messageCount}) →
                   </span>
                 </div>
@@ -157,3 +157,4 @@ export function TicketsListView({
     </div>
   );
 }
+

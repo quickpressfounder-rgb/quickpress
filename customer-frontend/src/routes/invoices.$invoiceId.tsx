@@ -306,7 +306,7 @@ function InvoiceDetailScreen() {
                     <p className="text-xs font-bold text-foreground">QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</p>
                     <p className="text-[11px] text-muted-foreground">CIN: U96010UW2026PTC259787 · PAN: AABCQ3390H · TAN: AGRQ10114G</p>
                     <p className="text-[10.5px] text-muted-foreground">C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, UP - 207123</p>
-                    <div className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 pt-0.5">
+                    <div className="flex items-center gap-1 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 pt-0.5">
                       <CheckCircle2 className="size-3" />
                       <span>Digitally Signed &amp; GST Compliant · Helpline: +91 9258730561</span>
                     </div>

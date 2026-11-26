@@ -48,8 +48,8 @@ export const Route = createFileRoute("/invoices/")({
 });
 
 const STATUS_TONE: Record<InvoiceStatus, string> = {
-  paid: "bg-secondary/10 text-brand-green",
-  unpaid: "bg-primary/15 text-brand-dark",
+  paid: "border border-zinc-200 bg-zinc-100 text-zinc-800",
+  unpaid: "border border-zinc-200 bg-zinc-100 text-zinc-800",
   refunded: "bg-muted text-muted-foreground",
   cancelled: "bg-destructive/10 text-destructive",
 };
@@ -219,7 +219,7 @@ function InvoicesScreen() {
                     }
                     className="flex w-full items-center gap-3 p-4 text-left"
                   >
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-brand-dark">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
                       <Receipt className="size-5" />
                     </span>
                     <span className="min-w-0 flex-1">

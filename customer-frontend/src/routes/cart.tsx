@@ -271,7 +271,7 @@ function CartPage() {
           </header>
 
           <div className="flex flex-col items-center justify-center pt-24 pb-16 px-4 text-center">
-            <div className="flex size-20 items-center justify-center rounded-3xl bg-emerald-50 text-[#0c831f] shadow-sm mb-4">
+            <div className="flex size-20 items-center justify-center rounded-3xl bg-zinc-50 border border-zinc-200 text-zinc-700 shadow-sm mb-4">
               <ShoppingBag className="size-10 stroke-[1.75]" />
             </div>
             <h2 className="text-lg font-black text-zinc-900">Your cart is empty</h2>
@@ -312,8 +312,8 @@ function CartPage() {
           </button>
           <div>
             <h1 className="text-sm font-black text-zinc-900 tracking-tight">Review Cart</h1>
-            <p className="text-[11px] font-semibold text-[#0c831f] flex items-center gap-1">
-              <Zap className="size-3 fill-[#0c831f]" />
+            <p className="text-[11px] font-semibold text-zinc-500 flex items-center gap-1">
+              <Zap className="size-3 text-zinc-600" />
               <span>Pickup in 15-30 mins</span>
             </p>
           </div>
@@ -344,15 +344,15 @@ function CartPage() {
                 Selected Items ({cart.count})
               </span>
               {primaryPartnerName ? (
-                <div className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800 border border-emerald-200/80">
-                  <Store className="size-3.5 text-emerald-600 shrink-0" />
+                <div className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-50 px-2 py-0.5 text-[11px] font-bold text-zinc-800 border border-zinc-200">
+                  <Store className="size-3.5 text-zinc-700 shrink-0" />
                   <span className="truncate">
                     Fulfilled by: <strong className="text-zinc-900 font-extrabold">{primaryPartnerName}</strong>
                   </span>
                 </div>
               ) : null}
             </div>
-            <span className="text-xs font-black text-[#0c831f] pt-0.5">
+            <span className="text-xs font-black text-zinc-900 pt-0.5">
               ₹{itemsSubtotal}
             </span>
           </div>
@@ -372,19 +372,19 @@ function CartPage() {
         {/* Coupons Strip */}
         <section aria-label="Coupons" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-2.5">
           <div className="flex items-center gap-1.5">
-            <Tag className="size-4 text-[#0c831f]" />
+            <Tag className="size-4 text-zinc-700" />
             <h2 className="text-xs font-black uppercase tracking-wider text-zinc-900">
               Apply Coupon
             </h2>
           </div>
 
           {appliedCoupon ? (
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 border border-zinc-200">
               <div className="flex items-center gap-2">
-                <Percent className="size-4 text-[#0c831f]" />
+                <Percent className="size-4 text-zinc-700" />
                 <div>
-                  <p className="text-xs font-black text-emerald-900">{appliedCoupon} Applied</p>
-                  <p className="text-[10px] font-semibold text-emerald-700">₹{couponDiscount} discount saved</p>
+                  <p className="text-xs font-black text-zinc-950">{appliedCoupon} Applied</p>
+                  <p className="text-[10px] font-semibold text-zinc-600">₹{couponDiscount} discount saved</p>
                 </div>
               </div>
               <button
@@ -439,7 +439,7 @@ function CartPage() {
                 {isFreeDelivery ? (
                   <>
                     <span className="text-[10px] line-through text-zinc-400">₹{baseDeliveryFee}</span>
-                    <span className="font-black text-[#0c831f] uppercase text-[10px]">FREE</span>
+                    <span className="font-black text-zinc-800 uppercase text-[10px]">FREE</span>
                   </>
                 ) : (
                   <span className="font-bold text-zinc-900">₹{deliveryFee}</span>
@@ -482,7 +482,7 @@ function CartPage() {
             </div>
 
             {couponDiscount > 0 ? (
-              <div className="flex justify-between text-[#0c831f] font-bold">
+              <div className="flex justify-between text-zinc-800 font-bold">
                 <span>Coupon Discount</span>
                 <span>-₹{couponDiscount}</span>
               </div>
@@ -495,7 +495,7 @@ function CartPage() {
           </div>
 
           {savings > 0 ? (
-            <div className="rounded-xl bg-emerald-50 p-2 text-center text-xs font-black text-[#0c831f] border border-emerald-100">
+            <div className="rounded-xl bg-zinc-50 p-2 text-center text-xs font-black text-zinc-800 border border-zinc-200">
               You will save ₹{savings} on this order!
             </div>
           ) : null}
