@@ -1,5 +1,20 @@
 # QuickPress — Engineering Work History
 
+## Session: November 26, 2026 (Part 94)
+
+### Statutory Policies Redesign & Header Safe-Area/Sticky Fixes
+
+1. **Statutory Policies & Legal Center (`customer-frontend/src/components/profile/AboutPage.tsx`):**
+   - Redesigned into a clean, classic `#fafafa` / `#ffffff` grouped layout with uniform flat `#0c831f` emerald icon chips, crisp `border-zinc-200/80` cards, and smooth hover transitions.
+   - Replaced broken `bg-brand-navy` / `text-brand-orange` classes with a crisp `QuickPress Legal Center` card (`v2.4.0`, DPDP Act 2023 compliant).
+   - Fixed the sticky header by adding safe-area padding (`app-header-safe` + `env(safe-area-inset-top)`), `overflow-x-clip` on `<main>`, and balanced flex truncation (`min-w-0 flex-1`).
+
+2. **Legal Document Viewer & Profile Sticky Headers (`legal.$docSlug.tsx`, `profile.tsx`):**
+   - Fixed `legal.$docSlug.tsx` mobile header cramping/overflow with compact responsive actions (`Support` / `Web`), history-aware back navigation, and a clean white assistance card.
+   - Replaced `overflow-x-hidden` with `overflow-x-clip` across `profile.tsx` subpages and added crisp header border/truncation on `My Profile` so sticky headers never clip or get stuck while scrolling.
+
+---
+
 ## Session: November 26, 2026 (Part 93)
 
 ### Quick+ Page Dual-Mode Redesign (`/membership`)

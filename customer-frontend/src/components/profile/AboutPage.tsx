@@ -1,4 +1,17 @@
-import { ArrowLeft, ChevronRight, ShieldCheck, FileText, RefreshCw, Scale, Trash2, Mail, ExternalLink, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronRight,
+  Cookie,
+  ExternalLink,
+  FileText,
+  Lock,
+  Mail,
+  RefreshCw,
+  Scale,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 interface AboutPageProps {
@@ -6,212 +19,198 @@ interface AboutPageProps {
   onRequestDelete?: () => void;
 }
 
+const STATUTORY_DOCS = [
+  {
+    slug: "privacy-policy",
+    title: "Privacy Policy (DPDP 2023)",
+    subtitle: "Data rights, consent & privacy notice",
+    icon: ShieldCheck,
+  },
+  {
+    slug: "terms-of-service",
+    title: "Terms of Service",
+    subtitle: "Platform agreement & terms of use",
+    icon: FileText,
+  },
+  {
+    slug: "cancellation-refund-policy",
+    title: "Cancellation & Refunds",
+    subtitle: "Free re-wash & instant refund policy",
+    icon: RefreshCw,
+  },
+  {
+    slug: "garment-care-policy",
+    title: "Garment Care & Fabric Risk",
+    subtitle: "Stain removal, color care & liability",
+    icon: Sparkles,
+  },
+  {
+    slug: "cookie-policy",
+    title: "Cookie & Tracking Policy",
+    subtitle: "Session storage & telemetry safeguards",
+    icon: Cookie,
+  },
+  {
+    slug: "grievance-redressal",
+    title: "Grievance & Nodal Officer",
+    subtitle: "Statutory consumer dispute desk",
+    icon: Scale,
+  },
+] as const;
+
 export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
-      <div className="relative mx-auto w-full max-w-md pb-32">
-        {/* Top App Bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3.5 bg-background/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-label="Back to profile"
-              onClick={onBack}
-              className="flex size-10 items-center justify-center rounded-full bg-muted text-foreground transition-transform active:scale-95 hover:bg-accent"
-            >
-              <ArrowLeft className="size-5" />
-            </button>
-            <div>
-              <h1 className="text-base font-black tracking-tight text-foreground">
-                About & Legal
-              </h1>
-              <p className="text-[11px] font-medium text-muted-foreground">
-                QuickPress version, statutory policies & terms
-              </p>
-            </div>
-          </div>
-        </header>
+    <main className="relative min-h-screen overflow-x-clip bg-[#fafafa] text-zinc-950 font-sans">
+      <div className="relative mx-auto w-full max-w-md pb-24">
+        {/* Safe-area Aware Sticky Header */}
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 px-4 pb-3 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/95 backdrop-blur-md border-b border-zinc-200/80 shadow-2xs">
+          <button
+            type="button"
+            aria-label="Back to profile"
+            onClick={onBack}
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-800 transition-colors hover:bg-zinc-200 active:scale-95 cursor-pointer"
+          >
+            <ArrowLeft className="size-4.5 stroke-[2.2]" />
+          </button>
 
-        {/* Brand & App Info Header */}
-        <div className="px-5 pt-6 pb-2 text-center">
-          <div className="mx-auto mb-3 flex size-16 items-center justify-center rounded-2xl bg-brand-navy text-white shadow-lg shadow-brand-navy/20">
-            <span className="text-2xl font-black tracking-tighter">QP</span>
-          </div>
-          <h2 className="text-lg font-black tracking-tight text-foreground">QuickPress Laundry & Dry Clean</h2>
-          <p className="text-xs text-muted-foreground">Fast, premium doorstep laundry care in 10-15 minutes</p>
-          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-            <Sparkles className="size-3 text-brand-orange" />
-            <span>Version 2.4.0 (Build 2026.09.28)</span>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="px-5 pt-4 space-y-5">
-          {/* Statutory Documents */}
-          <div>
-            <h3 className="px-1 text-[11px] font-black uppercase tracking-wider text-muted-foreground mb-2">
-              Statutory & Legal Documents
-            </h3>
-            <div className="card-soft overflow-hidden border border-border divide-y divide-border rounded-2xl bg-card">
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "privacy-policy" }}
-                className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-8 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                    <ShieldCheck className="size-4.5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Privacy Policy (DPDP 2023)</p>
-                    <p className="text-[10.5px] text-muted-foreground">Data rights, consent & privacy notice</p>
-                  </div>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
-
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "terms-of-service" }}
-                className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-8 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                    <FileText className="size-4.5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Terms of Service</p>
-                    <p className="text-[10.5px] text-muted-foreground">Platform agreement & terms of use</p>
-                  </div>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
-
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "cancellation-refund-policy" }}
-                className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                    <RefreshCw className="size-4.5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Cancellation & Refunds</p>
-                    <p className="text-[10.5px] text-muted-foreground">Free re-wash & instant refund policy</p>
-                  </div>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
-
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "garment-care-policy" }}
-                className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-8 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                    <ShieldCheck className="size-4.5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Garment Care & Fabric Risk Policy</p>
-                    <p className="text-[10.5px] text-muted-foreground">Stain removal, color bleed & 10x liability cap</p>
-                  </div>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
-
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "cookie-policy" }}
-                className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-8 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
-                    <FileText className="size-4.5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Cookie & Tracking Policy</p>
-                    <p className="text-[10.5px] text-muted-foreground">Session storage & telemetry safeguards</p>
-                  </div>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
-
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "grievance-redressal" }}
-                className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-8 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                    <Scale className="size-4.5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Grievance Redressal & Nodal Officer</p>
-                    <p className="text-[10.5px] text-muted-foreground">Statutory consumer dispute desk</p>
-                  </div>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
-            </div>
-          </div>
-
-          {/* Payment & Security Standard Card */}
-          <div className="card-soft p-4 border border-border bg-card/60 space-y-2 rounded-2xl">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground">Payment & Security Standard</span>
-              <span className="text-[10px] font-black text-brand-green bg-brand-green/10 px-2.5 py-0.5 rounded-full border border-brand-green/20">
-                Razorpay · PCI-DSS Level 1
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              All transactions are encrypted with 256-bit TLS and processed securely via Razorpay. Your payment credentials and UPI MPIN are never accessed or stored on our servers.
+          <div className="min-w-0 flex-1 text-center">
+            <h1 className="truncate text-sm font-black tracking-tight text-zinc-950">
+              Statutory Policies
+            </h1>
+            <p className="truncate text-[10px] font-medium text-zinc-500">
+              Legal documents &amp; compliance
             </p>
           </div>
 
-          {/* Data Rights & Account Control */}
-          <div>
-            <h3 className="px-1 text-[11px] font-black uppercase tracking-wider text-muted-foreground mb-2">
-              Data Rights & Account Control
+          <span className="size-9 shrink-0" aria-hidden="true" />
+        </header>
+
+        <div className="px-4 pt-4 space-y-4">
+          {/* Classic Brand Identity Card */}
+          <section className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-2xs">
+            <div className="flex items-center gap-3.5">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-[#0c831f]">
+                <Scale className="size-5 stroke-[2.2]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="truncate text-sm font-black tracking-tight text-zinc-950">
+                    QuickPress Legal Center
+                  </h2>
+                  <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-[#0c831f]">
+                    v2.4.0
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
+                  DPDP Act 2023 &amp; Consumer Protection Compliant
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Statutory & Legal Documents List */}
+          <section className="space-y-2">
+            <h3 className="px-1 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+              Statutory &amp; Legal Documents
             </h3>
-            <div className="space-y-2.5">
+            <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white divide-y divide-zinc-100 shadow-2xs">
+              {STATUTORY_DOCS.map((doc) => {
+                const Icon = doc.icon;
+                return (
+                  <Link
+                    key={doc.slug}
+                    to="/legal/$docSlug"
+                    params={{ docSlug: doc.slug }}
+                    className="group flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-zinc-50/90 active:bg-zinc-100/70 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-[#0c831f]">
+                        <Icon className="size-4 stroke-[2.2]" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-bold text-zinc-950">{doc.title}</p>
+                        <p className="mt-0.5 truncate text-[11px] text-zinc-500">
+                          {doc.subtitle}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="size-4 shrink-0 text-zinc-400 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-zinc-700" />
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Payment & Security Standard */}
+          <section className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-2xs space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-emerald-100 bg-emerald-50 text-[#0c831f]">
+                  <Lock className="size-3.5 stroke-[2.2]" />
+                </span>
+                <span className="truncate text-xs font-black text-zinc-950">
+                  Payment &amp; Security
+                </span>
+              </div>
+              <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black text-[#0c831f]">
+                PCI-DSS Level 1
+              </span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-zinc-500">
+              All transactions use 256-bit TLS encryption via Razorpay. Your UPI MPIN and card credentials are never stored on QuickPress servers.
+            </p>
+          </section>
+
+          {/* Data Rights & Account Control */}
+          <section className="space-y-2">
+            <h3 className="px-1 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+              Data Rights &amp; Account Control
+            </h3>
+            <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white divide-y divide-zinc-100 shadow-2xs">
               <a
                 href="mailto:official.quickpress@gmail.com?subject=Privacy%20and%20Data%20Support%20Request"
-                className="card-soft flex items-center justify-between p-4 border border-border rounded-2xl hover:bg-muted/40 transition-colors bg-card"
+                className="group flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-zinc-50/90 cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
-                    <Mail className="size-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Request Data / Privacy Support</p>
-                    <p className="text-[11px] text-muted-foreground">Contact our Data Grievance Officer</p>
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700">
+                    <Mail className="size-4 stroke-[2.2]" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-bold text-zinc-950">
+                      Data Grievance Support
+                    </p>
+                    <p className="mt-0.5 truncate text-[11px] text-zinc-500">
+                      official.quickpress@gmail.com
+                    </p>
                   </div>
                 </div>
-                <ExternalLink className="size-4 text-muted-foreground" />
+                <ExternalLink className="size-4 shrink-0 text-zinc-400 group-hover:text-zinc-700" />
               </a>
 
-              {onRequestDelete && (
+              {onRequestDelete ? (
                 <button
                   type="button"
                   onClick={onRequestDelete}
-                  className="card-soft w-full flex items-center justify-between p-4 border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-colors text-left rounded-2xl"
+                  className="group flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-red-50/60 cursor-pointer"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-9 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
-                      <Trash2 className="size-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-destructive">Request Account Deletion</p>
-                      <p className="text-[11px] text-destructive/80">Permanent data erasure & account closure</p>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600">
+                      <Trash2 className="size-4 stroke-[2.2]" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-bold text-red-600">
+                        Request Account Deletion
+                      </p>
+                      <p className="mt-0.5 truncate text-[11px] text-red-500/80">
+                        Permanent data erasure &amp; closure
+                      </p>
                     </div>
                   </div>
-                  <ChevronRight className="size-4 text-destructive/70" />
+                  <ChevronRight className="size-4 shrink-0 text-red-400 transition-transform duration-200 group-hover:translate-x-0.5" />
                 </button>
-              )}
+              ) : null}
             </div>
-          </div>
+          </section>
         </div>
       </div>
     </main>

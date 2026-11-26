@@ -667,7 +667,7 @@ function ProfileScreen() {
 
   if (editing && data) {
     return (
-      <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
+      <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
         <div className="relative mx-auto w-full max-w-md pb-32">
           {/* Hidden file input for photo upload */}
           <input
@@ -998,11 +998,11 @@ function ProfileScreen() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
+    <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
       <div className="relative mx-auto w-full max-w-md">
         {/* Top app bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 px-5 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
-          <h1 className="text-lg font-bold tracking-tight text-foreground">My Profile</h1>
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 px-5 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-b border-zinc-200/70 dark:border-zinc-800 shadow-2xs">
+          <h1 className="min-w-0 truncate text-lg font-bold tracking-tight text-foreground">My Profile</h1>
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
@@ -1728,7 +1728,7 @@ function SavedServicesPage({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
+    <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
       <div className="relative mx-auto w-full max-w-md pb-32">
         {/* Top App Bar */}
         <header className="sticky top-0 z-30 flex items-center justify-between px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
@@ -1881,7 +1881,7 @@ function FavouriteStoresPage({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
+    <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
       <div className="relative mx-auto w-full max-w-md pb-32">
         {/* Top App Bar */}
         <header className="sticky top-0 z-30 flex items-center justify-between px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
@@ -2084,7 +2084,7 @@ function NotificationSettingsPage({
   };
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
+    <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
       <div className="relative mx-auto w-full max-w-md pb-32">
         {/* Top App Bar */}
         <header className="sticky top-0 z-30 flex items-center justify-between px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
@@ -2155,7 +2155,7 @@ function AppearanceSettingsPage({
   onChangeTheme: (mode: ThemeMode) => Promise<void>;
 }) {
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
+    <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
       <div className="relative mx-auto w-full max-w-md pb-32">
         {/* Top App Bar */}
         <header className="sticky top-0 z-30 flex items-center justify-between px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
@@ -2266,7 +2266,7 @@ function LanguageSettingsPage({
   onChangeLanguage: (code: string) => Promise<void>;
 }) {
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
+    <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
       <div className="relative mx-auto w-full max-w-md pb-32">
         {/* Top App Bar */}
         <header className="sticky top-0 z-30 flex items-center justify-between px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import {
   ArrowLeft,
   Calendar,
@@ -47,6 +47,7 @@ export const Route = createFileRoute("/legal/$docSlug")({
 
 function LegalDocScreen() {
   const { docSlug } = useParams({ from: "/legal/$docSlug" });
+  const navigate = useNavigate();
   const [doc, setDoc] = useState<PublicLegalDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,49 +84,58 @@ function LegalDocScreen() {
   };
 
   return (
-    <div className="min-h-dvh bg-slate-50 text-slate-900 pb-20">
+    <div className="min-h-dvh overflow-x-clip bg-[#fafafa] text-slate-900 pb-20">
       {/* Top sticky brand bar */}
-      <header className="sticky top-0 z-40 border-none bg-white/90 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)]">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe sm:px-6">
-          <div className="flex items-center gap-3">
-            <Link
-              to="/home"
-              className="inline-flex size-9 items-center justify-center rounded-full border border-slate-200/60 bg-white text-slate-700 shadow-xs transition hover:bg-slate-50"
-              aria-label="Back to home"
+      <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/95 backdrop-blur-md shadow-2xs">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 pb-3 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe sm:px-6">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined" && window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  void navigate({ to: "/profile" });
+                }
+              }}
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-800 transition hover:bg-zinc-200 active:scale-95 cursor-pointer"
+              aria-label="Go back"
             >
-              <ArrowLeft className="size-4" />
-            </Link>
-            <div>
-              <Link to="/home" className="text-base font-black tracking-tight text-slate-900">
-                Quick<span className="text-emerald-600">Press</span>
-              </Link>
-              <span className="ml-2 text-xs font-semibold text-slate-400">Legal & Compliance</span>
+              <ArrowLeft className="size-4.5 stroke-[2.2]" />
+            </button>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-black tracking-tight text-zinc-950">
+                {doc?.title || "Legal Policy"}
+              </p>
+              <p className="truncate text-[10px] font-medium text-zinc-500">
+                QuickPress Legal &amp; Compliance
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={handlePrint}
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 cursor-pointer"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 cursor-pointer"
             >
-              <Printer className="size-3.5" /> Print Policy
+              <Printer className="size-3.5" /> Print
             </button>
             <a
               href={getWebsiteLegalUrl(docSlug)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-sm hover:bg-emerald-100 transition cursor-pointer"
+              className="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-[#0c831f] hover:bg-emerald-100 transition cursor-pointer"
               title="View on Official Website"
             >
-              <Globe className="size-3.5 text-emerald-600" />
-              <span>withquickpress.com</span>
-              <ExternalLink className="size-3 text-emerald-600" />
+              <Globe className="size-3.5" />
+              <span className="hidden sm:inline">withquickpress.com</span>
+              <span className="sm:hidden">Web</span>
             </a>
             <Link
               to="/contact"
-              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700"
+              className="rounded-xl bg-[#0c831f] px-3 py-1.5 text-[11px] font-bold text-white hover:bg-[#0a701a]"
             >
-              Need Support?
+              Support
             </Link>
           </div>
         </div>
@@ -314,28 +324,28 @@ function LegalDocScreen() {
             </div>
 
             {/* Assistance card */}
-            <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-950 p-5 text-white shadow-soft">
-              <h3 className="text-sm font-bold flex items-center gap-1.5">
-                <HelpCircle className="size-4 text-emerald-400" />
+            <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 text-zinc-900 shadow-2xs">
+              <h3 className="text-sm font-black flex items-center gap-1.5 text-zinc-950">
+                <HelpCircle className="size-4 text-[#0c831f]" />
                 Questions about this policy?
               </h3>
-              <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+              <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
                 Our compliance and customer grievance officer is available to resolve any data, payment, or service inquiries.
               </p>
               <div className="mt-4 space-y-2 text-xs">
                 <a
                   href="mailto:official.quickpress@gmail.com"
-                  className="flex items-center gap-2 text-emerald-300 hover:underline"
+                  className="flex items-center gap-2 font-semibold text-[#0c831f] hover:underline"
                 >
                   <Mail className="size-3.5" /> official.quickpress@gmail.com
                 </a>
                 <a
-                  href="https://with.quickpress.com"
+                  href="https://withquickpress.com"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 text-emerald-300 hover:underline"
+                  className="flex items-center gap-2 font-semibold text-[#0c831f] hover:underline"
                 >
-                  <Globe className="size-3.5" /> with.quickpress.com
+                  <Globe className="size-3.5" /> withquickpress.com
                 </a>
               </div>
             </div>
