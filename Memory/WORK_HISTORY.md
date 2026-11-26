@@ -1,5 +1,19 @@
 # QuickPress — Engineering Work History
 
+## Session: November 26, 2026 (Part 93)
+
+### Quick+ Page Dual-Mode Redesign (`/membership`)
+
+1. **Customer Panel Audit & Rough Wireframe Approval:**
+   - Audited `customer-frontend` design tokens (`theme.css`, `styles.css`, `checkout.tsx`, `wallet.tsx`, `home.tsx`, `history.tsx`, `profile.tsx`) and delivered an interactive rough wireframe (`quickplus_rough_wireframe.html`) for approval.
+   - Incorporated user feedback: **zero 3D icons**, **no verbose descriptions**, and **existing top/bottom navbar kept untouched** (`ScreenTopBar` + `BottomNav`).
+
+2. **Implemented Redesign (`membership.tsx` & `MembershipSkeletons.tsx`):**
+   - **Non-Member (Join Flow):** Clean white value hero with 3 compact chips (`₹0 Delivery`, `10–25% Extra Off`, `Zero Surge Fee`), billing cycle switcher (`Monthly` / `3 Months` / `Annual`), compact side-by-side tier selector (`Silver`, `Gold`, `Platinum`, `Elite`), clean 1-line perks detail card with instant Razorpay activation CTA, compact savings estimator, and FAQ accordion.
+   - **Active Member Flow:** Clean white pass card with `#0c831f` border, expiry/days remaining, deliveries & express pass quota progress bars, and 4 compact tabs (`Perks`, `Plans`, `Orders`, `Billing`).
+
+---
+
 ## Session: November 26, 2026 (Part 92)
 
 ### Production Android APK & Play Store AAB Release (All 3 Apps)
