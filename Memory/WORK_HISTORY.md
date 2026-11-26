@@ -1,5 +1,19 @@
 # QuickPress — Engineering Work History
 
+## Session: November 26, 2026 (Part 95)
+
+### Professional Support & Ticket System Redesign (`/help`)
+
+1. **Modular Architecture & Senior UI Polish:**
+   - Redesigned `/help` (`customer-frontend/src/routes/help.tsx`) into a modular, clean white `#fafafa` / `#ffffff` Support & Ticket System with flat `lucide-react` stroke icons (zero 3D icons, zero emojis, zero flashy gradients) and preserved existing `ScreenTopBar` + `BottomNav`.
+   - Extracted focused components under `customer-frontend/src/components/support/`:
+     - `support-utils.ts`: Ticket bucket classification (`active`, `solved`, `closed`), status badges, and relative timestamps.
+     - `OrderSupportView.tsx`: Dedicated Order Support page opened when tapping any order (or general support topic), showing pinned order items/total/track link, existing order tickets to prevent duplicates, issue category cards, 1-tap sub-reason chips, photo proof upload (up to 3), and instant ticket creation.
+     - `TicketsListView.tsx`: Ticket tracker with `All`, `Active`, `Solved`, and `Closed` filter pills + live counts.
+     - `TicketChatView.tsx`: Live ticket chat with lifecycle progress bar (`Raised → In Progress → Solved/Closed`), linked order strip, photo zoom modal, and real-time reply input.
+
+---
+
 ## Session: November 26, 2026 (Part 94)
 
 ### Statutory Policies Redesign & Header Safe-Area/Sticky Fixes
