@@ -24,22 +24,30 @@
 }
 
 @keyframes locate-ring {
-  0% { opacity: 0.55; transform: scale(0.72); }
-  70% { opacity: 0; transform: scale(1.5); }
-  100% { opacity: 0; transform: scale(1.5); }
+  0% { opacity: 0.65; transform: scale(0.45); }
+  100% { opacity: 0; transform: scale(2.15); }
 }
 
 @utility locate-ring {
-  animation: locate-ring 2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation: locate-ring 2.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
 @keyframes locate-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-7px) scale(1.03); }
 }
 
 @utility locate-bob {
-  animation: locate-bob 1.8s ease-in-out infinite;
+  animation: locate-bob 2.2s ease-in-out infinite;
+}
+
+@keyframes locate-shadow {
+  0%, 100% { opacity: 0.38; transform: scale(1); }
+  50% { opacity: 0.16; transform: scale(0.76); }
+}
+
+@utility locate-shadow {
+  animation: locate-shadow 2.2s ease-in-out infinite;
 }
 
 @keyframes splash-fade-out {

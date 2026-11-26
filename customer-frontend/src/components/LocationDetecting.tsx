@@ -1,10 +1,8 @@
-import { MapPin, X, Radio } from "lucide-react";
+import { MapPin } from "lucide-react";
 
 export function LocationDetecting({
-  label = "Detecting your location…",
-  sublabel = "Finding verified laundry partners near you",
-  statusBadge = "Live GPS Triangulation",
-  onCancel,
+  label = "Fetching your location…",
+  sublabel = "Pinpointing your address",
 }: {
   label?: string;
   sublabel?: string;
@@ -15,67 +13,49 @@ export function LocationDetecting({
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md px-6 animate-in fade-in duration-300 overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-[#0C4427] via-[#09361F] to-[#052314] px-6 text-white animate-in fade-in duration-300 overflow-hidden select-none"
     >
-      {/* Brand Header — Safe for Dynamic Island / Notch */}
-      <div className="absolute top-[max(1.5rem,calc(env(safe-area-inset-top,0px)+0.75rem))] flex items-center gap-1.5 text-sm font-black tracking-tight">
-        <span className="text-zinc-900 dark:text-zinc-100">Quick</span>
-        <span className="text-emerald-600">Press</span>
+      {/* Subtle Ambient Deep Green Depth Glow */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div className="size-96 rounded-full bg-[#167946]/25 blur-3xl" />
       </div>
 
-      {/* Optional Cancel Button */}
-      {onCancel ? (
-        <button
-          type="button"
-          onClick={onCancel}
-          className="absolute top-[max(1.25rem,calc(env(safe-area-inset-top,0px)+0.5rem))] right-5 flex size-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-95 shadow-xs"
-          aria-label="Cancel location detection"
-        >
-          <X className="size-5" />
-        </button>
-      ) : null}
+      {/* Classic Pronto-Style Expanding Concentric Radar Target + Floating Pin */}
+      <div className="relative flex size-60 items-center justify-center">
+        {/* Static subtle radar guide rings */}
+        <span className="absolute size-56 rounded-full border border-white/[0.06]" />
+        <span className="absolute size-36 rounded-full border border-white/[0.09] bg-white/[0.03]" />
 
-      {/* Live Status Badge */}
-      <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-100 px-3.5 py-1 text-xs font-bold text-zinc-700 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300">
-        <Radio className="size-3.5 text-zinc-700 dark:text-zinc-300 animate-pulse" />
-        <span>{statusBadge}</span>
-      </div>
+        {/* Three smooth staggered sonar ripple waves */}
+        <span className="locate-ring absolute size-32 rounded-full border border-emerald-200/45 bg-emerald-300/[0.12] will-change-transform" />
+        <span
+          className="locate-ring absolute size-32 rounded-full border border-emerald-200/35 bg-emerald-300/[0.09] will-change-transform"
+          style={{ animationDelay: "0.86s" }}
+        />
+        <span
+          className="locate-ring absolute size-32 rounded-full border border-emerald-200/25 bg-emerald-300/[0.06] will-change-transform"
+          style={{ animationDelay: "1.72s" }}
+        />
 
-      {/* Pulsing Concentric Radar Target with Bobbing Pin */}
-      <div className="relative flex size-52 items-center justify-center">
-        {/* Soft outer glow */}
-        <span className="absolute size-48 rounded-full bg-emerald-500/10 blur-2xl" />
-        {/* Base circle */}
-        <span className="absolute size-36 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20" />
-        {/* Animated concentric wave 1 */}
-        <span className="locate-ring absolute size-40 rounded-full border border-emerald-500/35 bg-emerald-500/20 will-change-transform" />
-        {/* Animated concentric wave 2 with stagger */}
-        <span
-          className="locate-ring absolute size-40 rounded-full border border-emerald-500/30 bg-emerald-500/15 will-change-transform"
-          style={{ animationDelay: "0.75s" }}
-        />
-        {/* Animated concentric wave 3 */}
-        <span
-          className="locate-ring absolute size-40 rounded-full border border-emerald-500/20 bg-emerald-500/10 will-change-transform"
-          style={{ animationDelay: "1.4s" }}
-        />
-        {/* Inner center pill with bobbing icon */}
-        <div className="locate-bob relative flex size-18 items-center justify-center rounded-full bg-white dark:bg-zinc-900 shadow-2xl border-2 border-emerald-500/30">
-          <MapPin className="size-9 fill-emerald-600 text-emerald-600 drop-shadow-md" />
+        {/* Ground shadow beneath floating pin */}
+        <span className="locate-shadow absolute bottom-[62px] h-2.5 w-11 rounded-full bg-black/50 blur-[3px]" />
+
+        {/* Elevated white pin medallion */}
+        <div className="locate-bob relative flex size-20 items-center justify-center rounded-full bg-white shadow-[0_18px_45px_rgba(0,0,0,0.42)] ring-4 ring-white/20">
+          <MapPin className="size-9 fill-[#0B3D23] text-[#0B3D23]" strokeWidth={2.2} />
         </div>
       </div>
 
-      {/* Dynamic Status Text */}
-      <h2 className="mt-8 text-center text-xl font-black tracking-tight text-foreground sm:text-2xl max-w-sm">
-        {label}
-      </h2>
-      <p className="mt-2 text-center text-xs font-semibold text-muted-foreground sm:text-sm max-w-xs leading-relaxed">
-        {sublabel}
-      </p>
-
-      {/* Subtle indicator bar */}
-      <div className="mt-7 h-1.5 w-32 overflow-hidden rounded-full bg-emerald-500/15">
-        <div className="h-full w-full bg-emerald-600 animate-pulse rounded-full" />
+      {/* Clean Minimal Typography */}
+      <div className="relative z-10 mt-6 flex flex-col items-center text-center max-w-xs">
+        <h2 className="text-[20px] sm:text-[22px] font-bold tracking-[-0.02em] text-white leading-snug">
+          {label}
+        </h2>
+        {sublabel ? (
+          <p className="mt-2 text-[13px] font-medium text-emerald-100/75 leading-relaxed">
+            {sublabel}
+          </p>
+        ) : null}
       </div>
     </div>
   );

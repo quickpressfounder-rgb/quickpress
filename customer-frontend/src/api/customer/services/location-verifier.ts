@@ -26,9 +26,9 @@ export async function detectAndVerifyLiveLocation(options: {
   };
 
   notify(
-    "Acquiring Real Device GPS…",
-    "Connecting to satellite and cellular triangulation…",
-    "Live GPS Triangulation"
+    "Fetching your location…",
+    "Pinpointing your address",
+    ""
   );
 
   const startTime = Date.now();
@@ -55,9 +55,9 @@ export async function detectAndVerifyLiveLocation(options: {
 
   const cityName = location.city || location.area || "your area";
   notify(
-    `Checking QuickPress in ${cityName}…`,
-    "Verifying operational cities and active partner network in Admin Panel…",
-    "Admin Network Verification"
+    `Locating ${cityName}…`,
+    "Confirming service coverage",
+    ""
   );
 
   saveLocation(location);
@@ -72,15 +72,15 @@ export async function detectAndVerifyLiveLocation(options: {
 
   if (isAvailable) {
     notify(
-      `QuickPress is Live in ${cityName}!`,
-      "Loading verified laundry care partners…",
-      "City Operational"
+      `${cityName}`,
+      "Location confirmed",
+      ""
     );
   } else {
     notify(
-      `Service Not Yet in ${cityName}`,
-      "Redirecting to coverage and waitlist updates…",
-      "Coverage Pending"
+      `${cityName}`,
+      "Location confirmed",
+      ""
     );
   }
 
@@ -107,9 +107,9 @@ export async function verifySelectedLocation(
 }> {
   const cityName = location.city || location.area || "selected location";
   options.onProgress?.({
-    label: `Verifying ${cityName}…`,
-    sublabel: "Checking operating partner hubs and live delivery coverage in Admin Panel…",
-    statusBadge: "Admin City Check",
+    label: `Fetching ${cityName}…`,
+    sublabel: "Confirming your delivery spot",
+    statusBadge: "",
   });
 
   saveLocation(location);
@@ -130,15 +130,15 @@ export async function verifySelectedLocation(
 
   if (isAvailable) {
     options.onProgress?.({
-      label: `QuickPress is Live in ${cityName}!`,
-      sublabel: "Opening services…",
-      statusBadge: "Operational",
+      label: `${cityName}`,
+      sublabel: "Location confirmed",
+      statusBadge: "",
     });
   } else {
     options.onProgress?.({
-      label: `Not Operating in ${cityName}`,
-      sublabel: "Redirecting to coverage details…",
-      statusBadge: "Coverage Pending",
+      label: `${cityName}`,
+      sublabel: "Location confirmed",
+      statusBadge: "",
     });
   }
 

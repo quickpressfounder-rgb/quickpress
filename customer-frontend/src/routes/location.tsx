@@ -49,9 +49,9 @@ function LocationScreen() {
   const [isLocating, setIsLocating] = useState(true);
   const [attempt, setAttempt] = useState(0);
   const [progressState, setProgressState] = useState({
-    label: "Detecting your location…",
-    sublabel: "Finding verified laundry partners near you",
-    statusBadge: "Live GPS Triangulation",
+    label: "Fetching your location…",
+    sublabel: "Pinpointing your address",
+    statusBadge: "",
   });
 
   const detect = useCallback(async () => {

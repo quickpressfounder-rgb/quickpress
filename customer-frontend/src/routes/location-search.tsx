@@ -227,9 +227,9 @@ function LocationSearchScreen() {
 
     setDetectingModal({
       active: true,
-      label: "Acquiring Real Device GPS…",
-      sublabel: "Connecting to satellite and cellular triangulation…",
-      statusBadge: "Live GPS Triangulation",
+      label: "Fetching your location…",
+      sublabel: "Pinpointing your address",
+      statusBadge: "",
     });
 
     try {
