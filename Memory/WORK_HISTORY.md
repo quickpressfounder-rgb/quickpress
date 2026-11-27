@@ -1,5 +1,14 @@
 # QuickPress — Engineering Work History
 
+## Session: November 27, 2026 (Part 100)
+
+### Revert Location Fetching Animation to Full-Screen Dark-Green Pronto Theme
+
+1. **Reverted `831f5254` (`LocationDetecting.tsx`):**
+   - Restored the full-screen deep forest green gradient (`#0C4427` → `#09361F` → `#052314`) with crisp white/emerald concentric sonar ripples (`locate-ring`), ambient green glow, white elevated pin medallion (`locate-bob`) with `#0B3D23` `MapPin`, and clean white status typography.
+
+---
+
 ## Session: November 26, 2026 (Part 99)
 
 ### QuickPress Customer APK & AAB Release (Neutral Palette + Dark-Green-on-White Location Animation)
