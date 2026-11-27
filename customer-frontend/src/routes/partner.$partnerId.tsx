@@ -542,7 +542,7 @@ function PartnerDetailScreen() {
                       ) : null}
                     </div>
                     <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1 rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[11px] font-bold text-zinc-900">
+                      <span className="flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-bold text-brand-dark">
                         <Star className="size-3 fill-current" />
                         {data.reviewSummary.total > 0 ? data.reviewSummary.average.toFixed(1) : "New"}
                       </span>
@@ -552,7 +552,7 @@ function PartnerDetailScreen() {
                           : "No reviews yet"}
                       </span>
                       {data.partner.verified ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[10px] font-bold text-zinc-700">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/12 px-2 py-0.5 text-[10px] font-bold text-brand-green">
                           Verified
                         </span>
                       ) : null}
@@ -623,7 +623,7 @@ function PartnerDetailScreen() {
                             <span
                               className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
                                 service.available
-                                  ? "bg-zinc-100 border border-zinc-200 text-zinc-800"
+                                  ? "bg-secondary/12 text-brand-green"
                                   : "bg-muted text-muted-foreground"
                               }`}
                             >
@@ -726,7 +726,7 @@ function PartnerDetailScreen() {
                       <div
                         key={feature.id} className="card-soft flex items-center gap-2.5 border border-border p-3"
                       >
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-2xl bg-secondary/10 text-brand-green">
                           <Icon className="size-4" />
                         </span>
                         <span className="text-[11px] font-semibold leading-tight text-foreground">
@@ -817,7 +817,7 @@ function PartnerDetailScreen() {
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
                                   <p className="text-sm font-bold text-foreground">{review.name}</p>
-                                  <span className="inline-flex items-center gap-0.5 rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-700 border border-zinc-200">
+                                  <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 border border-emerald-100">
                                     Verified Order
                                   </span>
                                 </div>
@@ -825,7 +825,7 @@ function PartnerDetailScreen() {
                                   {formatReviewTimeAgo(review.date)}
                                 </p>
                               </div>
-                              <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-zinc-100 border border-zinc-200 px-2 py-1 text-[11px] font-bold text-zinc-900">
+                              <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-1 text-[11px] font-bold text-brand-dark">
                                 <Star className="size-3 fill-current" />
                                 {review.rating}
                               </span>
@@ -1113,7 +1113,7 @@ function HeroStat({
 }) {
   return (
     <div className="rounded-2xl bg-muted/70 px-3 py-2.5 text-center">
-      <span className="mx-auto flex size-7 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-700">
+      <span className="mx-auto flex size-7 items-center justify-center rounded-full bg-card text-brand-green">
         <Icon className="size-3.5" />
       </span>
       <p className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
@@ -1135,7 +1135,7 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-start gap-3 p-3.5">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-brand-dark">
         <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1">

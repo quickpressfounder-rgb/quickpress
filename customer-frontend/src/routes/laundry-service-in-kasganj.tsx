@@ -165,7 +165,7 @@ function KasganjLandingScreen() {
             <span className="text-xl font-black tracking-tight text-slate-950">
               Quick<span className="text-emerald-600">Press</span>
             </span>
-            <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-700">
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
               Kasganj Hub
             </span>
           </Link>
@@ -179,10 +179,10 @@ function KasganjLandingScreen() {
       </header>
 
       {/* Hero */}
-      <section className="bg-gradient-to-b from-slate-100/70 via-white to-slate-50 py-12 px-4 text-center">
+      <section className="bg-gradient-to-b from-emerald-50 via-white to-slate-50 py-12 px-4 text-center">
         <div className="max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100 px-3.5 py-1 text-xs font-bold text-zinc-700 mb-4">
-            <MapPin className="size-3 text-zinc-700" />
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100/70 px-3.5 py-1 text-xs font-bold text-emerald-900 mb-4">
+            <MapPin className="size-3 text-emerald-700" />
             <span>Serving All Kasganj Neighborhoods • 15-Min Doorstep Dispatch</span>
           </div>
 
@@ -207,20 +207,20 @@ function KasganjLandingScreen() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-800 shadow-2xs hover:bg-slate-50"
             >
-              <Phone className="size-4 text-zinc-700" />
+              <Phone className="size-4 text-emerald-600" />
               <span>WhatsApp (+91 9258730561)</span>
             </a>
           </div>
 
           <div className="mt-8 flex flex-wrap justify-center gap-3 text-xs font-semibold text-slate-700">
             <span className="flex items-center gap-1 bg-white px-2.5 py-1 rounded border border-slate-200">
-              <CheckCircle2 className="size-3.5 text-zinc-700" /> 15-Min Pickup
+              <CheckCircle2 className="size-3.5 text-emerald-600" /> 15-Min Pickup
             </span>
             <span className="flex items-center gap-1 bg-white px-2.5 py-1 rounded border border-slate-200">
-              <CheckCircle2 className="size-3.5 text-zinc-700" /> RO Water Wash
+              <CheckCircle2 className="size-3.5 text-emerald-600" /> RO Water Wash
             </span>
             <span className="flex items-center gap-1 bg-white px-2.5 py-1 rounded border border-slate-200">
-              <CheckCircle2 className="size-3.5 text-zinc-700" /> 4-Digit Security OTP
+              <CheckCircle2 className="size-3.5 text-emerald-600" /> 4-Digit Security OTP
             </span>
             <span className="flex items-center gap-1 bg-white px-2.5 py-1 rounded border border-slate-200">
               <Star className="size-3.5 text-amber-500 fill-amber-500" /> 4.9/5 Rating (1,280+ Reviews)
@@ -241,7 +241,7 @@ function KasganjLandingScreen() {
                 key={area}
                 className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-800"
               >
-                <MapPin className="size-3 text-zinc-700" />
+                <MapPin className="size-3 text-emerald-600" />
                 {area}
               </span>
             ))}
@@ -256,12 +256,12 @@ function KasganjLandingScreen() {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-            <div className="flex size-10 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700 mb-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 mb-3">
               <WashingMachine className="size-5" />
             </div>
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-950">Wash & Fold Laundry</h3>
-              <span className="text-xs font-black text-zinc-800">From ₹49/kg</span>
+              <span className="text-xs font-black text-emerald-700">From ₹49/kg</span>
             </div>
             <p className="mt-2 text-xs text-slate-600">
               RO water wash, hypoallergenic detergents, low-heat tumble dry, and neat folding in sealed bags.
@@ -274,7 +274,7 @@ function KasganjLandingScreen() {
             </div>
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-950">Italian Steam Ironing</h3>
-              <span className="text-xs font-black text-zinc-800">From ₹9/pc</span>
+              <span className="text-xs font-black text-emerald-700">From ₹9/pc</span>
             </div>
             <p className="mt-2 text-xs text-slate-600">
               High-pressure industrial boiler dry steam pressing for sharp, wrinkle-free lines with zero scorch.
@@ -287,7 +287,7 @@ function KasganjLandingScreen() {
             </div>
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-950">Italian Dry Cleaning</h3>
-              <span className="text-xs font-black text-zinc-800">From ₹149/pc</span>
+              <span className="text-xs font-black text-emerald-700">From ₹149/pc</span>
             </div>
             <p className="mt-2 text-xs text-slate-600">
               100% perchloroethylene-free solvent care for suits, silk sarees, and designer formal wear.
@@ -300,7 +300,7 @@ function KasganjLandingScreen() {
             </div>
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-950">Sneaker & Shoe Spa</h3>
-              <span className="text-xs font-black text-zinc-800">From ₹199/pair</span>
+              <span className="text-xs font-black text-emerald-700">From ₹199/pair</span>
             </div>
             <p className="mt-2 text-xs text-slate-600">
               Multi-stage foam scrub, sole groove disinfection, suede nap revival, and hydrophobic finish.
@@ -313,7 +313,7 @@ function KasganjLandingScreen() {
             </div>
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-950">Quilts & Blankets</h3>
-              <span className="text-xs font-black text-zinc-800">From ₹199/pc</span>
+              <span className="text-xs font-black text-emerald-700">From ₹199/pc</span>
             </div>
             <p className="mt-2 text-xs text-slate-600">
               Heavy-duty 35kg commercial drum sanitization removes dust mites, allergens, and odors from razais.
@@ -322,7 +322,7 @@ function KasganjLandingScreen() {
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
             <div>
-              <div className="flex size-10 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700 mb-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 mb-3">
                 <Truck className="size-5" />
               </div>
               <h3 className="font-bold text-slate-950">Commercial B2B Laundry</h3>
@@ -332,7 +332,7 @@ function KasganjLandingScreen() {
             </div>
             <a
               href="https://withquickpress.com/b2b"
-              className="mt-4 text-xs font-bold text-zinc-800 hover:underline"
+              className="mt-4 text-xs font-bold text-emerald-700 hover:underline"
             >
               Explore B2B Portal →
             </a>
@@ -357,7 +357,7 @@ function KasganjLandingScreen() {
                 className="flex w-full items-center justify-between text-left text-sm font-bold text-slate-900 cursor-pointer"
               >
                 <span>{faq.q}</span>
-                <span className="text-zinc-700 font-bold">{openFaq === idx ? "−" : "+"}</span>
+                <span className="text-emerald-600 font-bold">{openFaq === idx ? "−" : "+"}</span>
               </button>
               {openFaq === idx && (
                 <p className="mt-2 text-xs text-slate-600 font-normal leading-relaxed">

@@ -31,7 +31,7 @@ export function getStatusBadgeStyle(status: TicketStatus): {
     case "resolved":
       return {
         label: "Solved",
-        className: "bg-zinc-100 text-zinc-800 border-zinc-200",
+        className: "bg-emerald-50 text-[#0c831f] border-emerald-200",
       };
     case "closed":
       return {
@@ -60,4 +60,3 @@ export function formatRelativeTicketTime(iso?: string | null): string {
   if (diffDays < 7) return `${diffDays}d ago`;
   return parsed.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
-

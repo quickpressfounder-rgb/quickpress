@@ -1,5 +1,16 @@
 # QuickPress — Engineering Work History
 
+## Session: November 27, 2026 (Part 101)
+
+### Scope Image 1 Neutral Icon Styling Strictly to Statutory Policies Photo (`AboutPage.tsx`)
+
+1. **Reverted App-Wide `20f96b30` Neutral Changes:**
+   - Restored original emerald/brand styling across all 55 non-photo files (`customer-frontend/src/routes/*`, `customer-frontend/src/components/*`), keeping only the later Pronto dark-green `LocationDetecting.tsx` animation updates (`bffdefe4` / `ff824a8d`).
+2. **Updated Statutory Policies Icons (`AboutPage.tsx`):**
+   - Kept Image 1 neutral styling (`border border-zinc-200 bg-zinc-50 text-zinc-700`) exclusively on the icons visible in the screenshot (`Scale`, the 6 `STATUTORY_DOCS` icons, `Lock`, and `Mail`), while restoring `v2.4.0` and `PCI-DSS Level 1` badges to emerald (`border-emerald-200 bg-emerald-50 text-[#0c831f]`).
+
+---
+
 ## Session: November 27, 2026 (Part 100)
 
 ### Revert Location Fetching Animation to Full-Screen Dark-Green Pronto Theme

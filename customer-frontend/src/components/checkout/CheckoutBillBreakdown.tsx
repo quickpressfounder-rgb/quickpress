@@ -73,7 +73,7 @@ export function CheckoutBillBreakdown({
               {isFreeDelivery ? (
                 <>
                   <span className="text-[10px] line-through text-zinc-400">₹{baseDeliveryFee}</span>
-                  <span className="font-black text-zinc-800 text-[10.5px] uppercase">FREE</span>
+                  <span className="font-black text-[#0c831f] text-[10.5px] uppercase">FREE</span>
                 </>
               ) : (
                 <span className="font-bold text-zinc-950 tabular-nums">₹{deliveryFee}</span>
@@ -110,7 +110,7 @@ export function CheckoutBillBreakdown({
                 <CloudRain className="size-3.5 text-amber-700" />
                 <span>{surgeReason}</span>
                 {isSurgeWaived && (
-                  <span className="bg-zinc-100 text-zinc-800 border border-zinc-200 text-[9px] px-1.5 py-0.2 rounded font-black tracking-wide">
+                  <span className="bg-emerald-100 text-[#0c831f] text-[9px] px-1.5 py-0.2 rounded font-black tracking-wide">
                     VIP WAIVED
                   </span>
                 )}
@@ -119,7 +119,7 @@ export function CheckoutBillBreakdown({
                 {isSurgeWaived ? (
                   <>
                     <span className="text-[10px] line-through text-zinc-400">₹{surgeBaseAmount}</span>
-                    <span className="font-black text-zinc-800 text-[10px]">FREE</span>
+                    <span className="font-black text-[#0c831f] text-[10px]">FREE</span>
                   </>
                 ) : (
                   <span className="text-amber-800">+₹{surgeFee}</span>
@@ -130,20 +130,20 @@ export function CheckoutBillBreakdown({
 
           {/* Express Speed Upgrade */}
           {isExpressActive && (
-            <div className="flex justify-between items-center text-xs p-2 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900">
+            <div className="flex justify-between items-center text-xs p-2 rounded-xl bg-emerald-50/60 border border-emerald-100 text-emerald-950">
               <span className="flex items-center gap-1.5 font-medium">
-                <Zap className="size-3.5 text-zinc-700" />
+                <Zap className="size-3.5 text-[#0c831f] fill-[#0c831f]" />
                 <span>15-Min Priority Pickup</span>
               </span>
-              <span className="font-black text-zinc-950 font-mono">+₹{expressFee}</span>
+              <span className="font-black text-[#0c831f] font-mono">+₹{expressFee}</span>
             </div>
           )}
 
           {/* VIP Member Discount */}
           {memberDiscount > 0 && (
-            <div className="flex justify-between items-center text-zinc-800 font-semibold">
+            <div className="flex justify-between items-center text-[#0c831f] font-semibold">
               <span className="flex items-center gap-1">
-                <Crown className="size-3 text-zinc-700" /> QuickPress Club (10% Off)
+                <Crown className="size-3" /> QuickPress Club (10% Off)
               </span>
               <span className="font-mono">-₹{memberDiscount}</span>
             </div>
@@ -167,7 +167,7 @@ export function CheckoutBillBreakdown({
 
           {/* Coupon Discount */}
           {couponDiscount > 0 && (
-            <div className="flex justify-between items-center text-zinc-800 font-bold">
+            <div className="flex justify-between items-center text-[#0c831f] font-bold">
               <span>Coupon Savings ({appliedCoupon || "DISCOUNT"})</span>
               <span className="font-mono">-₹{couponDiscount}</span>
             </div>
@@ -187,17 +187,17 @@ export function CheckoutBillBreakdown({
 
         {/* Savings Pill */}
         {savings > 0 && (
-          <div className="rounded-xl bg-zinc-50 p-2.5 text-center text-xs font-black text-zinc-800 border border-zinc-200 flex items-center justify-center gap-1">
-            <span>Total Savings on this order:</span>
+          <div className="rounded-xl bg-emerald-50 p-2.5 text-center text-xs font-black text-[#0c831f] border border-emerald-100 flex items-center justify-center gap-1">
+            <span>🎉 Total Savings on this order:</span>
             <span className="font-mono">₹{savings}</span>
           </div>
         )}
       </div>
 
-      {/* 100% Safe Care Guarantee Seal (Clean White Card, Neutral Icon Chip) */}
+      {/* 100% Safe Care Guarantee Seal (Clean White Card, Crisp Green Icon, Zero 3D) */}
       <div className="rounded-2xl border border-zinc-200/80 bg-white p-3.5 shadow-2xs flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-zinc-50 text-zinc-700 border border-zinc-200">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-[#0c831f] border border-emerald-100/80">
             <ShieldCheck className="size-4 stroke-[2.2]" />
           </div>
           <div className="min-w-0">
@@ -210,7 +210,7 @@ export function CheckoutBillBreakdown({
         <button
           type="button"
           onClick={onOpenPolicyModal}
-          className="text-xs font-bold text-zinc-800 hover:underline cursor-pointer flex items-center gap-0.5 shrink-0"
+          className="text-xs font-bold text-[#0c831f] hover:underline cursor-pointer flex items-center gap-0.5 shrink-0"
         >
           <span>Policy</span>
           <ChevronRight className="size-3 stroke-[2.5]" />

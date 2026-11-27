@@ -124,7 +124,7 @@ function LegalDocScreen() {
               href={getWebsiteLegalUrl(docSlug)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-xl border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-[11px] font-bold text-zinc-700 hover:bg-zinc-100 transition cursor-pointer"
+              className="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-[#0c831f] hover:bg-emerald-100 transition cursor-pointer"
               title="View on Official Website"
             >
               <Globe className="size-3.5" />
@@ -145,17 +145,17 @@ function LegalDocScreen() {
       <section className="border-b border-slate-200 bg-white py-8 sm:py-12">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500 mb-3">
-            <Link to="/home" className="hover:text-zinc-900">Home</Link>
+            <Link to="/home" className="hover:text-emerald-600">Home</Link>
             <ChevronRight className="size-3 text-slate-400" />
-            <Link to="/help" className="hover:text-zinc-900">Help & Legal</Link>
+            <Link to="/help" className="hover:text-emerald-600">Help & Legal</Link>
             <ChevronRight className="size-3 text-slate-400" />
             <span className="text-slate-900 font-semibold">{doc?.title || "Legal Document"}</span>
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700 mb-2">
-                <ShieldCheck className="size-3.5 text-zinc-700" />
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 mb-2">
+                <ShieldCheck className="size-3.5" />
                 Officially Published Document
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
@@ -180,8 +180,8 @@ function LegalDocScreen() {
           </div>
 
           {doc?.summary && (
-            <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-xs sm:text-sm text-zinc-800 leading-relaxed">
-              <span className="font-bold uppercase tracking-wider text-zinc-600 text-[10px] block mb-1">Executive Summary</span>
+            <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-xs sm:text-sm text-emerald-900 leading-relaxed">
+              <span className="font-bold uppercase tracking-wider text-emerald-800 text-[10px] block mb-1">Executive Summary</span>
               {doc.summary}
             </div>
           )}
@@ -220,7 +220,7 @@ function LegalDocScreen() {
           <aside className="lg:col-span-4 space-y-4">
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                <FileText className="size-3.5 text-zinc-700" />
+                <FileText className="size-3.5 text-emerald-600" />
                 Company Policies
               </h2>
               <nav className="space-y-1.5">
@@ -229,7 +229,7 @@ function LegalDocScreen() {
                   params={{ docSlug: "privacy-policy" }}
                   className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${
                     docSlug === "privacy-policy"
-                      ? "bg-zinc-100 text-zinc-950 font-bold border border-zinc-300"
+                      ? "bg-emerald-50 text-emerald-800 font-bold border border-emerald-200"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
@@ -241,7 +241,7 @@ function LegalDocScreen() {
                   params={{ docSlug: "terms-of-service" }}
                   className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${
                     docSlug === "terms-of-service"
-                      ? "bg-zinc-100 text-zinc-950 font-bold border border-zinc-300"
+                      ? "bg-emerald-50 text-emerald-800 font-bold border border-emerald-200"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
@@ -253,7 +253,7 @@ function LegalDocScreen() {
                   params={{ docSlug: "cancellation-refund-policy" }}
                   className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${
                     docSlug === "cancellation-refund-policy"
-                      ? "bg-zinc-100 text-zinc-950 font-bold border border-zinc-300"
+                      ? "bg-emerald-50 text-emerald-800 font-bold border border-emerald-200"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
@@ -265,7 +265,7 @@ function LegalDocScreen() {
                   params={{ docSlug: "garment-care-policy" }}
                   className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${
                     docSlug === "garment-care-policy"
-                      ? "bg-zinc-100 text-zinc-950 font-bold border border-zinc-300"
+                      ? "bg-emerald-50 text-emerald-800 font-bold border border-emerald-200"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
@@ -277,7 +277,7 @@ function LegalDocScreen() {
                   params={{ docSlug: "cookie-policy" }}
                   className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${
                     docSlug === "cookie-policy"
-                      ? "bg-zinc-100 text-zinc-950 font-bold border border-zinc-300"
+                      ? "bg-emerald-50 text-emerald-800 font-bold border border-emerald-200"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
@@ -289,7 +289,7 @@ function LegalDocScreen() {
                   params={{ docSlug: "grievance-redressal" }}
                   className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${
                     docSlug === "grievance-redressal"
-                      ? "bg-zinc-100 text-zinc-950 font-bold border border-zinc-300"
+                      ? "bg-emerald-50 text-emerald-800 font-bold border border-emerald-200"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
@@ -301,7 +301,7 @@ function LegalDocScreen() {
                   params={{ docSlug: "partner-agreement" }}
                   className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${
                     docSlug === "partner-agreement"
-                      ? "bg-zinc-100 text-zinc-950 font-bold border border-zinc-300"
+                      ? "bg-emerald-50 text-emerald-800 font-bold border border-emerald-200"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
@@ -313,7 +313,7 @@ function LegalDocScreen() {
                   params={{ docSlug: "rider-agreement" }}
                   className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${
                     docSlug === "rider-agreement"
-                      ? "bg-zinc-100 text-zinc-950 font-bold border border-zinc-300"
+                      ? "bg-emerald-50 text-emerald-800 font-bold border border-emerald-200"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
@@ -326,7 +326,7 @@ function LegalDocScreen() {
             {/* Assistance card */}
             <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 text-zinc-900 shadow-2xs">
               <h3 className="text-sm font-black flex items-center gap-1.5 text-zinc-950">
-                <HelpCircle className="size-4 text-zinc-700" />
+                <HelpCircle className="size-4 text-[#0c831f]" />
                 Questions about this policy?
               </h3>
               <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
@@ -335,17 +335,17 @@ function LegalDocScreen() {
               <div className="mt-4 space-y-2 text-xs">
                 <a
                   href="mailto:official.quickpress@gmail.com"
-                  className="flex items-center gap-2 font-semibold text-zinc-800 hover:underline"
+                  className="flex items-center gap-2 font-semibold text-[#0c831f] hover:underline"
                 >
-                  <Mail className="size-3.5 text-zinc-600" /> official.quickpress@gmail.com
+                  <Mail className="size-3.5" /> official.quickpress@gmail.com
                 </a>
                 <a
                   href="https://withquickpress.com"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 font-semibold text-zinc-800 hover:underline"
+                  className="flex items-center gap-2 font-semibold text-[#0c831f] hover:underline"
                 >
-                  <Globe className="size-3.5 text-zinc-600" /> withquickpress.com
+                  <Globe className="size-3.5" /> withquickpress.com
                 </a>
               </div>
             </div>

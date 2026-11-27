@@ -92,7 +92,7 @@ export function FloatingCartBar({
                       className="size-full object-cover"
                     />
                   ) : (
-                    <div className="size-full bg-zinc-100 flex items-center justify-center text-zinc-700 text-[11px] font-black uppercase">
+                    <div className="size-full bg-emerald-50 flex items-center justify-center text-[#006045] text-[11px] font-black uppercase">
                       {item.name.charAt(0)}
                     </div>
                   )}

@@ -66,18 +66,18 @@ export function CartPopup({ isOpen, onClose }: CartPopupProps) {
         {/* Header bar */}
         <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex size-9 items-center justify-center rounded-2xl bg-zinc-50 border border-zinc-200 text-zinc-700 shadow-xs">
+            <div className="flex size-9 items-center justify-center rounded-2xl bg-emerald-50 text-[#0c831f] shadow-xs">
               <ShoppingBag className="size-4.5 stroke-[2.25]" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
                 <h2 className="text-sm font-black text-zinc-900 tracking-tight">Your Cart</h2>
-                <span className="rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[10px] font-black text-zinc-700">
+                <span className="rounded-full bg-emerald-100/70 px-2 py-0.5 text-[10px] font-black text-[#0c831f]">
                   {cart.count} {cart.count === 1 ? "item" : "items"}
                 </span>
               </div>
-              <p className="text-[11px] font-semibold text-zinc-600 flex items-center gap-1 mt-0.5">
-                <Zap className="size-3 text-zinc-700" />
+              <p className="text-[11px] font-semibold text-[#0c831f] flex items-center gap-1 mt-0.5">
+                <Zap className="size-3 fill-[#0c831f] text-[#0c831f]" />
                 <span>Pickup in 15-30 mins</span>
               </p>
             </div>
@@ -167,7 +167,7 @@ function CartItemRow({
             className="size-11 rounded-xl object-cover border border-zinc-100 shrink-0"
           />
         ) : (
-          <div className="size-11 rounded-xl bg-zinc-50 text-zinc-700 font-black text-xs flex items-center justify-center shrink-0 border border-zinc-200">
+          <div className="size-11 rounded-xl bg-emerald-50 text-[#0c831f] font-black text-xs flex items-center justify-center shrink-0 border border-emerald-100">
             {item.name.charAt(0)}
           </div>
         )}

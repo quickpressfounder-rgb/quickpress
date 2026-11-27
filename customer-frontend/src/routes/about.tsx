@@ -115,7 +115,7 @@ function AboutScreen() {
       <section className="relative overflow-hidden bg-white border-b border-slate-200 py-12 sm:py-16">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="max-w-3xl space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-100 px-3.5 py-1 text-xs font-bold text-zinc-700">
+            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-700">
               <Sparkles className="size-3.5" />
               Next-Gen Doorstep Garment Care
             </div>
@@ -139,7 +139,7 @@ function AboutScreen() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-3">
-              <div className="inline-flex size-11 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700">
+              <div className="inline-flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                 <Truck className="size-5" />
               </div>
               <h3 className="text-lg font-bold text-slate-900">Doorstep Pickup & Drop</h3>
@@ -181,25 +181,25 @@ function AboutScreen() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="relative rounded-2xl border border-slate-100 bg-slate-50 p-5 space-y-2">
-              <span className="text-3xl font-black text-zinc-800">01</span>
+              <span className="text-3xl font-black text-emerald-600">01</span>
               <h4 className="font-bold text-slate-900 text-sm">Schedule Online</h4>
               <p className="text-xs text-slate-600">Choose your wash/dry cleaning items and select a convenient pickup time slot.</p>
             </div>
 
             <div className="relative rounded-2xl border border-slate-100 bg-slate-50 p-5 space-y-2">
-              <span className="text-3xl font-black text-zinc-800">02</span>
+              <span className="text-3xl font-black text-emerald-600">02</span>
               <h4 className="font-bold text-slate-900 text-sm">Doorstep Handover</h4>
               <p className="text-xs text-slate-600">Our rider verifies the count, inspects garments, and seals them in protective bags.</p>
             </div>
 
             <div className="relative rounded-2xl border border-slate-100 bg-slate-50 p-5 space-y-2">
-              <span className="text-3xl font-black text-zinc-800">03</span>
+              <span className="text-3xl font-black text-emerald-600">03</span>
               <h4 className="font-bold text-slate-900 text-sm">Master Care Cycle</h4>
               <p className="text-xs text-slate-600">Color-sorted washing, stain pre-treatment, temperature regulation, and crisp steam iron.</p>
             </div>
 
             <div className="relative rounded-2xl border border-slate-100 bg-slate-50 p-5 space-y-2">
-              <span className="text-3xl font-black text-zinc-800">04</span>
+              <span className="text-3xl font-black text-emerald-600">04</span>
               <h4 className="font-bold text-slate-900 text-sm">Fresh Delivery</h4>
               <p className="text-xs text-slate-600">Neatly folded or hung garments delivered back to your doorstep in pristine condition.</p>
             </div>

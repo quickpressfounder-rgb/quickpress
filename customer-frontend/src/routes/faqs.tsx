@@ -99,7 +99,7 @@ function FaqsScreen() {
       {/* Hero Search Section */}
       <section className="bg-white border-b border-slate-200 py-12">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 text-center space-y-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-100 px-3.5 py-1 text-xs font-bold text-zinc-700">
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-700">
             <HelpCircle className="size-3.5" /> Answers & Help Topics
           </div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
@@ -176,7 +176,7 @@ function FaqsScreen() {
                     </div>
                     <ChevronDown
                       className={`size-4 text-slate-400 shrink-0 transition-transform duration-200 ${
-                        isOpen ? "rotate-180 text-zinc-800" : ""
+                        isOpen ? "rotate-180 text-emerald-600" : ""
                       }`}
                     />
                   </button>

@@ -376,7 +376,7 @@ function HomeScreen() {
         className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center transition-all duration-300"
         style={{ height: pull || (refreshing ? 56 : 0), opacity: pull || refreshing ? 1 : 0 }}
       >
-        <span className="mt-3 flex size-9 items-center justify-center rounded-full bg-card text-zinc-700 border border-zinc-200 shadow-soft">
+        <span className="mt-3 flex size-9 items-center justify-center rounded-full bg-card text-brand-green shadow-soft">
           {refreshing ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
@@ -431,12 +431,12 @@ function HomeScreen() {
                   onClick={() => navigate({ to: displayLocation.isPrompt ? "/location" : "/location-search" })}
                   className="group flex max-w-full items-start gap-2.5 rounded-2xl bg-transparent py-1 pl-1 pr-2 text-left transition-all duration-200 active:scale-[0.98]"
                 >
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300 group-hover:scale-105 transition-transform mt-0.5">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 group-hover:scale-105 transition-transform mt-0.5">
                     <MapPin className="size-4.5 stroke-[2.5]" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="truncate text-[13.5px] font-black text-foreground tracking-tight group-hover:text-zinc-700 transition-colors">
+                      <span className="truncate text-[13.5px] font-black text-foreground tracking-tight group-hover:text-emerald-600 transition-colors">
                         {displayLocation.primary}
                       </span>
                       <ChevronDown className="size-3.5 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors stroke-[2.5]" />
@@ -490,10 +490,10 @@ function HomeScreen() {
             </header>
 
             {!location ? (
-              <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-zinc-50 border border-zinc-200 px-4 py-3 dark:bg-zinc-900 dark:border-zinc-800">
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <MapPin className="size-4 shrink-0 text-zinc-700 animate-pulse" />
-                  <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">
+                  <MapPin className="size-4 shrink-0 text-emerald-600 animate-pulse" />
+                  <p className="text-xs font-bold text-emerald-950 dark:text-emerald-100 truncate">
                     Enable GPS to see laundry services near you
                   </p>
                 </div>
@@ -748,7 +748,7 @@ function HomeScreen() {
                               <p className="truncate text-sm font-black tracking-tight text-foreground">
                                 {partner.name}
                               </p>
-                              <span className="flex shrink-0 items-center gap-1 rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[11px] font-bold text-zinc-800">
+                              <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-bold text-brand-dark">
                                 <Star className="size-3 fill-current" />
                                 {partner.rating}
                                 {partner.reviews && partner.reviews !== "0" ? (
@@ -767,7 +767,7 @@ function HomeScreen() {
 
                             <div className="mt-2.5 flex items-center gap-3 text-xs font-medium text-muted-foreground">
                               <span className="flex items-center gap-1">
-                                <Clock className="size-3.5 text-zinc-700" />{" "}
+                                <Clock className="size-3.5 text-primary" />{" "}
                                 {partner.pickupTime ?? partner.eta ?? "30 min"}
                               </span>
                               <span className="size-1 rounded-full bg-border" />
@@ -801,7 +801,7 @@ function HomeScreen() {
                             </p>
                           </div>
                         </div>
-                        <span className="rounded-full bg-zinc-100 border border-zinc-200 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-zinc-800">
+                        <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-800">
                           Active VIP
                         </span>
                       </div>
@@ -913,7 +913,7 @@ function HomeScreen() {
                             </div>
                             <span
                               className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${String(order.status).toLowerCase().includes("delivered") || String(order.status).toLowerCase().includes("completed")
-                                ? "bg-zinc-100 text-zinc-800 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-700"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
                                 : String(order.status).toLowerCase().includes("cancel") || String(order.status).toLowerCase().includes("fail")
                                   ? "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800"
                                   : String(order.status).toLowerCase().includes("out for delivery")
@@ -1018,7 +1018,7 @@ function SectionStatus({
           <button
             type="button"
             onClick={onRetry}
-            className="ml-auto shrink-0 font-bold text-zinc-700 active:opacity-70"
+            className="ml-auto shrink-0 font-bold text-brand-green active:opacity-70"
           >
             Retry
           </button>
@@ -1052,7 +1052,7 @@ function SectionHeading({
         <button
           type="button"
           onClick={onAction}
-          className="text-xs font-semibold text-zinc-700 transition-opacity hover:underline active:opacity-70"
+          className="text-xs font-semibold text-brand-green transition-opacity hover:underline active:opacity-70"
         >
           {action}
         </button>

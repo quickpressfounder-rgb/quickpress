@@ -126,7 +126,7 @@ export function OrderReviewModal({
 
         {submitted ? (
           <div className="py-12 text-center animate-pop">
-            <div className="mx-auto flex size-16 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-700 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
               <Check className="size-8 stroke-[3]" />
             </div>
             <h4 className="mt-4 text-lg font-black text-zinc-950 dark:text-white">
@@ -142,7 +142,7 @@ export function OrderReviewModal({
             <div className="rounded-2xl border border-zinc-100 bg-zinc-50/50 p-4.5 dark:border-zinc-800/80 dark:bg-zinc-800/30">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                  <p className="text-xs font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                     Store Rating
                   </p>
                   <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">

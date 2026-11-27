@@ -268,7 +268,7 @@ export function ZomatoPaymentSheet({
             <div>
               <h2 className="text-base font-black text-zinc-950 tracking-tight flex items-center gap-1.5">
                 <span>Bill total:</span>
-                <span className="text-zinc-900 font-black">₹{grandTotal}</span>
+                <span className="text-[#0c831f] font-black">₹{grandTotal}</span>
               </h2>
             </div>
           </div>
@@ -285,7 +285,7 @@ export function ZomatoPaymentSheet({
 
         {/* Collapsible Bill Breakdown Drawer */}
         {showBillSummary && (
-          <div className="bg-zinc-50 border-b border-zinc-200 px-4 py-2.5 text-xs space-y-1 animate-in slide-in-from-top-2 duration-150">
+          <div className="bg-emerald-50/70 border-b border-emerald-200/60 px-4 py-2.5 text-xs space-y-1 animate-in slide-in-from-top-2 duration-150">
             <div className="flex justify-between text-zinc-600">
               <span>Items Subtotal:</span>
               <span className="font-bold text-zinc-900">₹{itemsSubtotal}</span>
@@ -307,14 +307,14 @@ export function ZomatoPaymentSheet({
               </div>
             )}
             {couponDiscount > 0 && (
-              <div className="flex justify-between text-zinc-800 font-bold">
+              <div className="flex justify-between text-emerald-700 font-bold">
                 <span>Coupon Discount:</span>
                 <span>-₹{couponDiscount}</span>
               </div>
             )}
-            <div className="flex justify-between pt-1 border-t border-zinc-200 font-black text-zinc-900">
+            <div className="flex justify-between pt-1 border-t border-emerald-200 font-black text-zinc-900">
               <span>Grand Total:</span>
-              <span className="text-zinc-900">₹{grandTotal}</span>
+              <span className="text-[#0c831f]">₹{grandTotal}</span>
             </div>
           </div>
         )}
@@ -376,9 +376,9 @@ export function ZomatoPaymentSheet({
           {/* LAPTOP / PC MODE: SCANNER QR CODE (Not Mobile UPI App List) */}
           {/* ============================================================ */}
           {!isMobile || forceShowQrOnMobile ? (
-            <div className="bg-white rounded-2xl p-4 shadow-xs border border-zinc-200 space-y-3.5 text-center">
+            <div className="bg-white rounded-2xl p-4 shadow-xs border-2 border-emerald-500/30 space-y-3.5 text-center">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-800 bg-zinc-100 px-2.5 py-0.5 rounded-full border border-zinc-200">
+                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
                   Scan & Pay via Any UPI App
                 </span>
                 <span className="flex items-center gap-1 text-[11px] font-mono font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md">
@@ -397,7 +397,7 @@ export function ZomatoPaymentSheet({
                   />
                 ) : (
                   <div className="w-56 h-56 flex flex-col items-center justify-center gap-2 text-zinc-400">
-                    <Loader2 className="size-6 animate-spin text-zinc-700" />
+                    <Loader2 className="size-6 animate-spin text-emerald-600" />
                     <span className="text-xs">Generating UPI QR...</span>
                   </div>
                 )}
@@ -428,7 +428,7 @@ export function ZomatoPaymentSheet({
                 <button
                   type="button"
                   onClick={copyVpa}
-                  className="flex items-center gap-1 text-[11px] font-black text-zinc-700 hover:underline shrink-0 ml-2"
+                  className="flex items-center gap-1 text-[11px] font-black text-[#0c831f] hover:underline shrink-0 ml-2"
                 >
                   <Copy className="size-3" />
                   <span>Copy</span>
@@ -473,7 +473,7 @@ export function ZomatoPaymentSheet({
                 <button
                   type="button"
                   onClick={() => setForceShowQrOnMobile(true)}
-                  className="text-[10px] font-black text-zinc-700 hover:underline flex items-center gap-1"
+                  className="text-[10px] font-black text-[#0c831f] hover:underline flex items-center gap-1"
                 >
                   <QrCode className="size-3" />
                   <span>Show QR Code</span>
@@ -485,10 +485,10 @@ export function ZomatoPaymentSheet({
                 type="button"
                 disabled={Boolean(processingMethod)}
                 onClick={() => handleRazorpayPayment("UPI Apps", "upi")}
-                className="w-full p-3 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-2xl flex items-center justify-between text-left active:scale-[0.99] transition-all cursor-pointer shadow-2xs"
+                className="w-full p-3 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 hover:from-emerald-500/15 border-2 border-emerald-500/40 rounded-2xl flex items-center justify-between text-left active:scale-[0.99] transition-all cursor-pointer shadow-xs"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="size-10 rounded-xl bg-white border border-zinc-200 text-zinc-700 flex items-center justify-center shadow-2xs shrink-0">
+                  <div className="size-10 rounded-xl bg-[#0c831f] text-white flex items-center justify-center shadow-xs shrink-0">
                     <Smartphone className="size-5" />
                   </div>
                   <div className="min-w-0">
@@ -496,17 +496,17 @@ export function ZomatoPaymentSheet({
                       <p className="text-xs font-black text-zinc-950">
                         Pay with Installed UPI Apps
                       </p>
-                      <span className="bg-zinc-100 border border-zinc-200 text-zinc-700 text-[8.5px] font-black px-1.5 py-0.2 rounded-full uppercase">
+                      <span className="bg-[#0c831f] text-white text-[8.5px] font-black px-1.5 py-0.2 rounded-full uppercase">
                         Instant UPI
                       </span>
                     </div>
-                    <p className="text-[10.5px] font-medium text-zinc-600 truncate">
+                    <p className="text-[10.5px] font-medium text-emerald-900 truncate">
                       PhonePe, GPay, Paytm, BHIM & Supermoney
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 text-zinc-800 font-black text-xs shrink-0">
+                <div className="flex items-center gap-1 text-[#0c831f] font-black text-xs shrink-0">
                   <span>PAY</span>
                   <ChevronRight className="size-4 stroke-[2.5]" />
                 </div>
@@ -628,7 +628,7 @@ export function ZomatoPaymentSheet({
               {/* QuickPress Money (Blinkit Money style) */}
               <div className="w-full flex items-center justify-between py-2.5 px-1 rounded-xl">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="size-9 rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700 flex items-center justify-center shadow-2xs shrink-0">
+                  <div className="size-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-xs shrink-0">
                     <Wallet className="size-4.5" />
                   </div>
                   <div className="min-w-0">
@@ -679,7 +679,7 @@ export function ZomatoPaymentSheet({
                   </div>
                 </div>
 
-                <span className="text-xs font-black text-zinc-800 uppercase tracking-wide px-2 py-0.5 rounded-md hover:bg-zinc-100 transition-colors">
+                <span className="text-xs font-black text-[#0c831f] uppercase tracking-wide px-2 py-0.5 rounded-md hover:bg-emerald-50 transition-colors">
                   PAY
                 </span>
               </button>
@@ -699,7 +699,7 @@ export function ZomatoPaymentSheet({
                   </div>
                 </div>
 
-                <span className="text-xs font-black text-zinc-800 uppercase tracking-wide px-2 py-0.5 rounded-md hover:bg-zinc-100 transition-colors">
+                <span className="text-xs font-black text-[#0c831f] uppercase tracking-wide px-2 py-0.5 rounded-md hover:bg-emerald-50 transition-colors">
                   PAY
                 </span>
               </button>
@@ -730,9 +730,9 @@ export function ZomatoPaymentSheet({
                 </div>
               </div>
 
-              <span className="text-xs font-black text-zinc-800 uppercase tracking-wide px-2 py-0.5 rounded-md hover:bg-zinc-100 transition-colors">
+              <span className="text-xs font-black text-[#0c831f] uppercase tracking-wide px-2 py-0.5 rounded-md hover:bg-emerald-50 transition-colors">
                 {processingMethod === "Credit or Debit Card" ? (
-                  <Loader2 className="size-3.5 animate-spin text-zinc-700" />
+                  <Loader2 className="size-3.5 animate-spin text-[#0c831f]" />
                 ) : (
                   "PAY"
                 )}
@@ -764,9 +764,9 @@ export function ZomatoPaymentSheet({
                 </div>
               </div>
 
-              <span className="text-xs font-black text-zinc-800 uppercase tracking-wide px-2 py-0.5 rounded-md hover:bg-zinc-100 transition-colors">
+              <span className="text-xs font-black text-[#0c831f] uppercase tracking-wide px-2 py-0.5 rounded-md hover:bg-emerald-50 transition-colors">
                 {processingMethod === "Netbanking" ? (
-                  <Loader2 className="size-3.5 animate-spin text-zinc-700" />
+                  <Loader2 className="size-3.5 animate-spin text-[#0c831f]" />
                 ) : (
                   "ADD"
                 )}
@@ -824,7 +824,7 @@ export function ZomatoPaymentSheet({
 
           {/* Security Badge Footer */}
           <div className="flex items-center justify-center gap-1.5 pt-1 pb-4 text-center text-[10px] font-semibold text-zinc-400">
-            <Lock className="size-3 text-zinc-600" />
+            <Lock className="size-3 text-[#0c831f]" />
             <span>100% Safe & Secure NPCI UPI Protocol</span>
           </div>
         </div>

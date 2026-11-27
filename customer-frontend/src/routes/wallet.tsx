@@ -532,7 +532,7 @@ function WalletScreen() {
                       onClick={() => setActiveTab(tab.id)}
                       className={`px-3.5 py-1.5 rounded-xl text-xs whitespace-nowrap transition-all cursor-pointer ${
                         isActive
-                          ? "border border-zinc-900 bg-zinc-100 text-zinc-900 font-bold shadow-2xs"
+                          ? "border border-emerald-500 bg-emerald-50/70 text-emerald-800 font-bold shadow-2xs"
                           : "border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 font-medium"
                       }`}
                     >
@@ -560,7 +560,7 @@ function WalletScreen() {
                             <div
                               className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
                                 isCredit
-                                  ? "bg-zinc-50 text-zinc-700 border border-zinc-200"
+                                  ? "bg-emerald-50 text-[#00C853] border border-emerald-100"
                                   : "bg-neutral-100 text-neutral-700 border border-neutral-200"
                               }`}
                             >
@@ -617,7 +617,7 @@ function WalletScreen() {
             {/* Sheet Header */}
             <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
               <div className="flex items-center gap-2.5">
-                <div className="size-9 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-700 flex items-center justify-center">
+                <div className="size-9 rounded-xl bg-emerald-50 text-[#00C853] flex items-center justify-center">
                   <Plus className="size-5 stroke-[2.5]" />
                 </div>
                 <div>
@@ -654,7 +654,7 @@ function WalletScreen() {
                       onClick={() => setAmount(String(val))}
                       className={`py-2 px-3 rounded-xl border text-xs font-bold transition active:scale-95 cursor-pointer ${
                         isSelected
-                          ? "border-zinc-900 bg-zinc-100 text-zinc-900 shadow-2xs"
+                          ? "border-[#00C853] bg-emerald-50 text-emerald-800 shadow-2xs"
                           : "border-neutral-200 bg-neutral-50/60 text-neutral-700 hover:bg-neutral-100"
                       }`}
                     >
@@ -689,7 +689,7 @@ function WalletScreen() {
             {numAmount > 0 && (
               <div className="mt-3 p-3 bg-neutral-50 rounded-xl border border-neutral-200/80 flex items-center justify-between text-xs">
                 <span className="text-neutral-500 font-medium">New Wallet Balance:</span>
-                <span className="font-black text-zinc-800">₹{projectedBal}</span>
+                <span className="font-black text-emerald-700">₹{projectedBal}</span>
               </div>
             )}
 
@@ -715,7 +715,7 @@ function WalletScreen() {
 
             {/* Security Badge */}
             <div className="mt-3 flex items-center justify-center gap-1.5 text-[10px] text-neutral-400">
-              <ShieldCheck className="size-3.5 text-zinc-700" />
+              <ShieldCheck className="size-3.5 text-[#00C853]" />
               <span>100% Secured by Razorpay &amp; RBI Guidelines</span>
             </div>
           </div>
@@ -764,7 +764,7 @@ function WalletScreen() {
                 className="w-full p-3.5 rounded-2xl flex items-center justify-between hover:bg-neutral-50 transition text-left cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <Sparkles className="size-4 text-zinc-700" />
+                  <Sparkles className="size-4 text-[#00C853]" />
                   <span className="text-xs font-bold text-neutral-800">Offers &amp; Cashback Vouchers</span>
                 </div>
                 <ChevronRight className="size-4 text-neutral-400" />
@@ -779,7 +779,7 @@ function WalletScreen() {
                 className="w-full p-3.5 rounded-2xl flex items-center justify-between hover:bg-neutral-50 transition text-left cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <Share2 className="size-4 text-zinc-700" />
+                  <Share2 className="size-4 text-emerald-600" />
                   <span className="text-xs font-bold text-neutral-800">Refer &amp; Earn ₹150</span>
                 </div>
                 <ChevronRight className="size-4 text-neutral-400" />
@@ -819,7 +819,7 @@ function WalletScreen() {
               <div
                 className={`mx-auto size-12 rounded-2xl flex items-center justify-center ${
                   selectedTxn.direction === "credit"
-                    ? "bg-zinc-50 border border-zinc-200 text-zinc-700"
+                    ? "bg-emerald-50 text-[#00C853]"
                     : "bg-neutral-100 text-neutral-700"
                 }`}
               >
@@ -833,7 +833,7 @@ function WalletScreen() {
                 {selectedTxn.direction === "credit" ? "+" : "−"}₹{selectedTxn.amount}
               </h3>
               <p className="text-xs font-bold text-neutral-700 mt-0.5">{selectedTxn.title}</p>
-              <span className="inline-block mt-2 px-2.5 py-0.5 bg-zinc-100 text-zinc-700 text-[10px] font-bold rounded-full border border-zinc-200">
+              <span className="inline-block mt-2 px-2.5 py-0.5 bg-emerald-50 text-[#00C853] text-[10px] font-bold rounded-full border border-emerald-100">
                 {selectedTxn.status.toUpperCase()}
               </span>
             </div>

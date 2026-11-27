@@ -97,7 +97,7 @@ export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
                   <h2 className="truncate text-sm font-black tracking-tight text-zinc-950">
                     QuickPress Legal Center
                   </h2>
-                  <span className="shrink-0 rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-black text-zinc-700">
+                  <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-[#0c831f]">
                     v2.4.0
                   </span>
                 </div>
@@ -152,7 +152,7 @@ export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
                   Payment &amp; Security
                 </span>
               </div>
-              <span className="shrink-0 rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-0.5 text-[10px] font-black text-zinc-700">
+              <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black text-[#0c831f]">
                 PCI-DSS Level 1
               </span>
             </div>

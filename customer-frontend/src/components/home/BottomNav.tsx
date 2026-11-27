@@ -104,7 +104,7 @@ export function BottomNav({ active = "home" }: { active?: string }) {
                 aria-label={item.label}
                 className={`tap-target relative flex flex-1 flex-col items-center justify-center gap-1 rounded-full px-3 py-2 transition-all duration-300 ease-out ${
                   isActive
-                    ? "bg-zinc-100 text-zinc-900"
+                    ? "bg-brand-green/12 text-brand-green"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -134,7 +134,7 @@ export function BottomNav({ active = "home" }: { active?: string }) {
             onPointerEnter={() => void router.preloadRoute({ to: "/membership" }).catch(() => undefined)}
             className={`tap-target relative flex flex-1 flex-col items-center justify-center gap-1 rounded-full px-3 py-2 transition-all duration-300 ease-out ${
               quickActive
-                ? "bg-zinc-100 text-zinc-900"
+                ? "bg-brand-green/12 text-brand-green"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >

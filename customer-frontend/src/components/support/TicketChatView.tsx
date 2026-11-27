@@ -90,7 +90,7 @@ export function TicketChatView({
 
         <a
           href={`tel:${supportPhone}`}
-          className="flex size-9 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-700 transition-colors hover:bg-zinc-100"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-[#0c831f] transition-colors hover:bg-emerald-100"
           aria-label="Call Support"
         >
           <Headphones className="size-4 stroke-[2.2]" />
@@ -122,9 +122,9 @@ export function TicketChatView({
 
       {/* Linked Order Strip */}
       {ticket.orderNumber ? (
-        <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-100/80 px-4 py-2 text-xs font-semibold text-zinc-900 shrink-0">
+        <div className="flex items-center justify-between border-b border-emerald-100 bg-emerald-50/70 px-4 py-2 text-xs font-semibold text-emerald-950 shrink-0">
           <div className="flex items-center gap-1.5">
-            <Package className="size-3.5 text-zinc-700" />
+            <Package className="size-3.5 text-[#0c831f]" />
             <span>
               Linked to Order <span className="font-mono font-black">#{ticket.orderNumber}</span>
             </span>
@@ -133,7 +133,7 @@ export function TicketChatView({
             <Link
               to="/track/$orderId"
               params={{ orderId: ticket.orderId }}
-              className="flex items-center gap-0.5 text-[11px] font-bold text-zinc-800 hover:underline"
+              className="flex items-center gap-0.5 text-[11px] font-bold text-[#0c831f] hover:underline"
             >
               <span>View Order</span>
               <ExternalLink className="size-3" />
@@ -141,7 +141,7 @@ export function TicketChatView({
           ) : (
             <Link
               to="/history"
-              className="flex items-center gap-0.5 text-[11px] font-bold text-zinc-800 hover:underline"
+              className="flex items-center gap-0.5 text-[11px] font-bold text-[#0c831f] hover:underline"
             >
               <span>View Order</span>
               <ExternalLink className="size-3" />
@@ -182,7 +182,7 @@ export function TicketChatView({
             >
               <div className="flex max-w-[84%] items-end gap-2">
                 {!isCustomer ? (
-                  <div className="mb-1 flex size-6 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-700">
+                  <div className="mb-1 flex size-6 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-[#0c831f]">
                     <Headphones className="size-3" />
                   </div>
                 ) : null}
@@ -244,7 +244,7 @@ export function TicketChatView({
 
       {/* Solved / Closed Status Notice */}
       {isSolvedOrClosed ? (
-        <div className="border-t border-zinc-200 bg-zinc-100/80 px-4 py-2 text-center text-[11px] font-semibold text-zinc-800 shrink-0">
+        <div className="border-t border-emerald-100 bg-emerald-50/70 px-4 py-2 text-center text-[11px] font-semibold text-emerald-900 shrink-0">
           This ticket is marked <strong>{badge.label}</strong>. Send a message below if you still need help.
         </div>
       ) : null}

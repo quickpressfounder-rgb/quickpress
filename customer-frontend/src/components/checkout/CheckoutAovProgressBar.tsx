@@ -25,18 +25,24 @@ export function CheckoutAovProgressBar({
     <div className="bg-white rounded-2xl border border-zinc-200/80 p-3.5 shadow-2xs space-y-2.5">
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-2">
-          <div className="flex size-6 items-center justify-center rounded-lg border bg-zinc-50 text-zinc-700 border-zinc-200">
+          <div
+            className={`flex size-6 items-center justify-center rounded-lg border ${
+              isFreeDelivery
+                ? "bg-emerald-50 text-[#0c831f] border-emerald-100"
+                : "bg-amber-50 text-amber-700 border-amber-100"
+            }`}
+          >
             <Truck className="size-3.5 stroke-[2.2]" />
           </div>
           <div>
             {isFreeDelivery ? (
-              <p className="font-black text-zinc-950 text-xs flex items-center gap-1">
-                <CheckCircle2 className="size-3.5 text-zinc-700" />
+              <p className="font-black text-emerald-950 text-xs flex items-center gap-1">
+                <CheckCircle2 className="size-3.5 text-[#0c831f]" />
                 FREE Delivery Unlocked!
               </p>
             ) : (
               <p className="font-black text-zinc-950 text-xs">
-                Add <span className="text-zinc-950 underline">₹{shortfall}</span> more for FREE Delivery
+                Add <span className="text-[#0c831f]">₹{shortfall}</span> more for FREE Delivery
               </p>
             )}
           </div>
@@ -46,7 +52,7 @@ export function CheckoutAovProgressBar({
           <button
             type="button"
             onClick={onAddMore}
-            className="text-[11px] font-black text-zinc-800 hover:bg-zinc-100 px-2.5 py-1 bg-zinc-50 rounded-lg border border-zinc-200 cursor-pointer"
+            className="text-[11px] font-black text-[#0c831f] hover:underline px-2.5 py-1 bg-emerald-50 rounded-lg border border-emerald-200/80 cursor-pointer"
           >
             + Add Items
           </button>
@@ -56,7 +62,9 @@ export function CheckoutAovProgressBar({
       {/* Progress Track */}
       <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-500 bg-zinc-800"
+          className={`h-full rounded-full transition-all duration-500 ${
+            isFreeDelivery ? "bg-[#0c831f]" : "bg-emerald-500"
+          }`}
           style={{ width: `${percent}%` }}
         />
       </div>
@@ -65,7 +73,7 @@ export function CheckoutAovProgressBar({
         <span>₹{itemsSubtotal}</span>
         <span>
           {isFreeDelivery ? (
-            <span className="text-zinc-800 font-bold">Saved ₹{baseDeliveryFee} on delivery</span>
+            <span className="text-[#0c831f] font-bold">Saved ₹{baseDeliveryFee} on delivery</span>
           ) : (
             `Free at ₹${freeDeliveryThreshold}`
           )}

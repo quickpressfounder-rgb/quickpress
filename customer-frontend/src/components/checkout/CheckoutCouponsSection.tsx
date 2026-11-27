@@ -37,21 +37,21 @@ export function CheckoutCouponsSection({
 
         <div className="bg-white rounded-2xl border border-zinc-200/80 p-3.5 shadow-2xs space-y-3">
           {appliedCoupon ? (
-            <div className="flex items-center justify-between rounded-xl bg-zinc-50 border border-zinc-200 p-2.5">
+            <div className="flex items-center justify-between rounded-xl bg-emerald-50/80 border border-emerald-200 p-2.5">
               <div className="flex items-center gap-2.5">
-                <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-900 text-white">
+                <div className="flex size-7 items-center justify-center rounded-lg bg-[#0c831f] text-white">
                   <Tag className="size-3.5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black text-zinc-950 tracking-wider">
+                    <span className="text-xs font-black text-emerald-950 tracking-wider">
                       {appliedCoupon}
                     </span>
-                    <span className="text-[10px] font-bold text-zinc-700 bg-white px-1.5 py-0.2 rounded border border-zinc-200">
+                    <span className="text-[10px] font-bold text-[#0c831f] bg-white px-1.5 py-0.2 rounded border border-emerald-200">
                       Applied
                     </span>
                   </div>
-                  <p className="text-[11px] font-semibold text-zinc-600">
+                  <p className="text-[11px] font-semibold text-[#0c831f]">
                     You saved ₹{couponDiscount} on this order!
                   </p>
                 </div>
@@ -71,10 +71,10 @@ export function CheckoutCouponsSection({
                 {AVAILABLE_PROMOS.map((promo) => (
                   <div
                     key={promo.code}
-                    className="p-2.5 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/70 flex items-center justify-between gap-2"
+                    className="p-2.5 rounded-xl border border-dashed border-emerald-200 bg-emerald-50/30 flex items-center justify-between gap-2"
                   >
                     <div>
-                      <span className="text-xs font-black text-zinc-950 tracking-wider">
+                      <span className="text-xs font-black text-emerald-950 tracking-wider">
                         {promo.code}
                       </span>
                       <p className="text-[10px] text-zinc-500 font-medium">{promo.desc}</p>
@@ -82,7 +82,7 @@ export function CheckoutCouponsSection({
                     <button
                       type="button"
                       onClick={() => onApplyCoupon(promo.code)}
-                      className="text-xs font-black text-zinc-800 bg-white hover:bg-zinc-100 border border-zinc-200 px-2.5 py-1 rounded-lg cursor-pointer active:scale-95 transition-transform shadow-2xs"
+                      className="text-xs font-black text-[#0c831f] bg-white hover:bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg cursor-pointer active:scale-95 transition-transform shadow-2xs"
                     >
                       APPLY
                     </button>

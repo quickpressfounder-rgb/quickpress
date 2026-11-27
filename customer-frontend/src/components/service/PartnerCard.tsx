@@ -59,7 +59,7 @@ export const PartnerCard = memo(function PartnerCard({ partner, onOpen }: Props)
               <h3 className="flex items-center gap-1.5 truncate text-sm font-black tracking-tight text-foreground">
                 {partner.name}
                 {partner.verified ? (
-                  <BadgeCheck className="size-3.5 shrink-0 text-zinc-700" />
+                  <BadgeCheck className="size-3.5 shrink-0 text-brand-green" />
                 ) : null}
               </h3>
               <p className="mt-0.5 truncate text-[11px] font-medium text-muted-foreground">
@@ -67,7 +67,7 @@ export const PartnerCard = memo(function PartnerCard({ partner, onOpen }: Props)
               </p>
             </div>
 
-            <span className="flex shrink-0 items-center gap-1 rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[11px] font-bold text-zinc-800">
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-bold text-brand-dark">
               <Star className="size-3 fill-current" />
               {partner.rating}
               <span className="font-medium text-muted-foreground text-[10px]">({partner.reviews})</span>
@@ -77,10 +77,10 @@ export const PartnerCard = memo(function PartnerCard({ partner, onOpen }: Props)
           {/* Operational Metrics */}
           <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Truck className="size-3 text-zinc-700" /> Pickup {partner.pickupTime}
+              <Truck className="size-3 text-primary" /> Pickup {partner.pickupTime}
             </span>
             <span className="flex items-center gap-1">
-              <Clock className="size-3 text-zinc-600" /> Delivery {partner.deliveryTime}
+              <Clock className="size-3 text-secondary" /> Delivery {partner.deliveryTime}
             </span>
             <span className="flex items-center gap-1">
               <MapPin className="size-3 text-muted-foreground" /> {partner.distanceKm} km
@@ -102,7 +102,7 @@ export const PartnerCard = memo(function PartnerCard({ partner, onOpen }: Props)
         </div>
 
         {partner.offerLabel ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-black text-zinc-700 border border-zinc-200">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 border border-emerald-200/60">
             <Tag className="size-2.5" /> {partner.offerLabel}
           </span>
         ) : (

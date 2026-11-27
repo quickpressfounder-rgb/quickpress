@@ -432,7 +432,7 @@ function HelpScreen() {
               target="_blank"
               rel="noreferrer"
               aria-label="WhatsApp Support"
-              className="flex size-10 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-700 transition-colors hover:bg-zinc-100"
+              className="flex size-10 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-[#0c831f] transition-colors hover:bg-emerald-100"
             >
               <MessageCircle className="size-4.5 stroke-[2.2]" />
             </a>
@@ -464,7 +464,7 @@ function HelpScreen() {
             >
               <span>My Tickets</span>
               {tickets.length > 0 ? (
-                <span className="rounded-full bg-zinc-900 px-1.5 py-0.5 text-[9px] font-black text-white tabular-nums">
+                <span className="rounded-full bg-[#0c831f] px-1.5 py-0.5 text-[9px] font-black text-white tabular-nums">
                   {tickets.length}
                 </span>
               ) : null}
@@ -491,12 +491,12 @@ function HelpScreen() {
               <button
                 type="button"
                 onClick={() => openTicketsBucket("solved")}
-                className="rounded-2xl border border-zinc-200/80 bg-white p-3 text-left shadow-2xs transition-colors hover:border-zinc-400 cursor-pointer"
+                className="rounded-2xl border border-zinc-200/80 bg-white p-3 text-left shadow-2xs transition-colors hover:border-[#0c831f] cursor-pointer"
               >
                 <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                   Solved
                 </p>
-                <p className="mt-1 text-lg font-black text-zinc-950 tabular-nums font-mono">
+                <p className="mt-1 text-lg font-black text-[#0c831f] tabular-nums font-mono">
                   {ticketCounts.solved}
                 </p>
               </button>
@@ -522,7 +522,7 @@ function HelpScreen() {
                 </h2>
                 <Link
                   to="/history"
-                  className="text-[11px] font-bold text-zinc-700 hover:underline"
+                  className="text-[11px] font-bold text-[#0c831f] hover:underline"
                 >
                   All Orders →
                 </Link>
@@ -547,7 +547,7 @@ function HelpScreen() {
                         className="group flex w-full items-center justify-between gap-3 rounded-2xl border border-zinc-200/80 bg-white p-3.5 text-left shadow-2xs transition-all hover:border-[#0c831f] active:scale-[0.99] cursor-pointer"
                       >
                         <div className="flex items-start gap-3 min-w-0 flex-1">
-                          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700">
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-[#0c831f]">
                             <Package className="size-4 stroke-[2.2]" />
                           </span>
                           <div className="min-w-0 flex-1">
@@ -570,7 +570,7 @@ function HelpScreen() {
                           </div>
                         </div>
 
-                        <span className="flex shrink-0 items-center gap-0.5 rounded-xl border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-[11px] font-black text-zinc-700 group-hover:bg-zinc-900 group-hover:text-white transition-colors">
+                        <span className="flex shrink-0 items-center gap-0.5 rounded-xl border border-emerald-100 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-black text-[#0c831f] group-hover:bg-[#0c831f] group-hover:text-white transition-colors">
                           <span>Help</span>
                           <ChevronRight className="size-3.5" />
                         </span>
@@ -601,9 +601,9 @@ function HelpScreen() {
                 <button
                   type="button"
                   onClick={() => openTopicSupport("payment")}
-                  className="rounded-2xl border border-zinc-200/80 bg-white p-3.5 text-left shadow-2xs transition-colors hover:border-zinc-400 cursor-pointer space-y-2"
+                  className="rounded-2xl border border-zinc-200/80 bg-white p-3.5 text-left shadow-2xs transition-colors hover:border-[#0c831f] cursor-pointer space-y-2"
                 >
-                  <span className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700">
+                  <span className="flex size-8 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-[#0c831f]">
                     <CreditCard className="size-4 stroke-[2.2]" />
                   </span>
                   <p className="text-xs font-black text-zinc-950">Payment &amp; Wallet</p>
@@ -612,9 +612,9 @@ function HelpScreen() {
                 <button
                   type="button"
                   onClick={() => openTopicSupport("general")}
-                  className="rounded-2xl border border-zinc-200/80 bg-white p-3.5 text-left shadow-2xs transition-colors hover:border-zinc-400 cursor-pointer space-y-2"
+                  className="rounded-2xl border border-zinc-200/80 bg-white p-3.5 text-left shadow-2xs transition-colors hover:border-[#0c831f] cursor-pointer space-y-2"
                 >
-                  <span className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700">
+                  <span className="flex size-8 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-[#0c831f]">
                     <Sparkles className="size-4 stroke-[2.2]" />
                   </span>
                   <p className="text-xs font-black text-zinc-950">Quick+ &amp; Offers</p>
@@ -623,9 +623,9 @@ function HelpScreen() {
                 <button
                   type="button"
                   onClick={() => openTopicSupport("partner-complaint")}
-                  className="rounded-2xl border border-zinc-200/80 bg-white p-3.5 text-left shadow-2xs transition-colors hover:border-zinc-400 cursor-pointer space-y-2"
+                  className="rounded-2xl border border-zinc-200/80 bg-white p-3.5 text-left shadow-2xs transition-colors hover:border-[#0c831f] cursor-pointer space-y-2"
                 >
-                  <span className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700">
+                  <span className="flex size-8 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-[#0c831f]">
                     <Store className="size-4 stroke-[2.2]" />
                   </span>
                   <p className="text-xs font-black text-zinc-950">Partner Feedback</p>
@@ -634,9 +634,9 @@ function HelpScreen() {
                 <button
                   type="button"
                   onClick={() => openTopicSupport("general")}
-                  className="rounded-2xl border border-zinc-200/80 bg-white p-3.5 text-left shadow-2xs transition-colors hover:border-zinc-400 cursor-pointer space-y-2"
+                  className="rounded-2xl border border-zinc-200/80 bg-white p-3.5 text-left shadow-2xs transition-colors hover:border-[#0c831f] cursor-pointer space-y-2"
                 >
-                  <span className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700">
+                  <span className="flex size-8 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-[#0c831f]">
                     <MessageSquare className="size-4 stroke-[2.2]" />
                   </span>
                   <p className="text-xs font-black text-zinc-950">General Inquiry</p>
@@ -652,9 +652,9 @@ function HelpScreen() {
               <div className="grid grid-cols-3 gap-2">
                 <a
                   href={`tel:${contact.phone}`}
-                  className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-2xs transition-colors hover:border-zinc-400"
+                  className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-2xs transition-colors hover:border-[#0c831f]"
                 >
-                  <Headphones className="mb-1.5 size-4.5 text-zinc-700" />
+                  <Headphones className="mb-1.5 size-4.5 text-[#0c831f]" />
                   <span className="text-[11px] font-black text-zinc-950">Call</span>
                 </a>
 
@@ -662,17 +662,17 @@ function HelpScreen() {
                   href={`https://wa.me/${contact.whatsapp}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-2xs transition-colors hover:border-zinc-400"
+                  className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-2xs transition-colors hover:border-[#0c831f]"
                 >
-                  <MessageCircle className="mb-1.5 size-4.5 text-zinc-700" />
+                  <MessageCircle className="mb-1.5 size-4.5 text-[#0c831f]" />
                   <span className="text-[11px] font-black text-zinc-950">WhatsApp</span>
                 </a>
 
                 <a
                   href={`mailto:${contact.email}`}
-                  className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-2xs transition-colors hover:border-zinc-400"
+                  className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-2xs transition-colors hover:border-[#0c831f]"
                 >
-                  <Mail className="mb-1.5 size-4.5 text-zinc-700" />
+                  <Mail className="mb-1.5 size-4.5 text-[#0c831f]" />
                   <span className="text-[11px] font-black text-zinc-950">Email</span>
                 </a>
               </div>
@@ -730,7 +730,7 @@ function HelpScreen() {
                 className="flex items-center justify-between px-4 py-3 text-xs font-bold text-zinc-900 hover:bg-zinc-50"
               >
                 <span className="flex items-center gap-2.5">
-                  <ShieldCheck className="size-4 text-zinc-700" />
+                  <ShieldCheck className="size-4 text-[#0c831f]" />
                   <span>Cancellation &amp; Refund Policy</span>
                 </span>
                 <ChevronRight className="size-4 text-zinc-400" />
@@ -741,7 +741,7 @@ function HelpScreen() {
                 className="flex items-center justify-between px-4 py-3 text-xs font-bold text-zinc-900 hover:bg-zinc-50"
               >
                 <span className="flex items-center gap-2.5">
-                  <Scale className="size-4 text-zinc-700" />
+                  <Scale className="size-4 text-[#0c831f]" />
                   <span>Grievance &amp; Nodal Officer Desk</span>
                 </span>
                 <ExternalLink className="size-3.5 text-zinc-400" />

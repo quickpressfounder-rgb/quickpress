@@ -391,7 +391,7 @@ function PaymentMethodsScreen() {
 
                   <div className="flex items-center gap-2">
                     {card.isDefault ? (
-                      <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
                         Default
                       </span>
                     ) : (
@@ -518,7 +518,7 @@ function PaymentMethodsScreen() {
 
                     {/* Active Set indicator */}
                     {isSelected ? (
-                      <div className="flex items-center gap-1.5 text-zinc-800 font-bold text-xs pr-1">
+                      <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs pr-1">
                         <Check className="size-4 stroke-[3]" />
                       </div>
                     ) : (
@@ -538,7 +538,7 @@ function PaymentMethodsScreen() {
                     className="flex items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/70 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-zinc-50 text-zinc-700 font-bold text-sm dark:border-zinc-700 dark:bg-zinc-800 shadow-2xs">
+                      <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-emerald-600 font-bold text-sm dark:border-zinc-700 dark:bg-zinc-800 shadow-2xs">
                         @
                       </div>
                       <div className="min-w-0">
@@ -553,7 +553,7 @@ function PaymentMethodsScreen() {
 
                     <div className="flex items-center gap-2">
                       {isSelected ? (
-                        <div className="flex items-center gap-1.5 text-zinc-800 font-bold text-xs pr-1">
+                        <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs pr-1">
                           <Check className="size-4 stroke-[3]" />
                         </div>
                       ) : (
@@ -776,7 +776,7 @@ function PaymentMethodsScreen() {
                     onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
                     className="h-12 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3.5 font-mono text-sm font-semibold text-foreground outline-none focus:border-emerald-500"
                   />
-                  <span className="absolute right-3 top-3.5 text-xs font-bold uppercase text-zinc-700">
+                  <span className="absolute right-3 top-3.5 text-xs font-bold uppercase text-emerald-600">
                     {detectCardBrand(cardNumber) !== "generic" ? detectCardBrand(cardNumber) : ""}
                   </span>
                 </div>
@@ -823,7 +823,7 @@ function PaymentMethodsScreen() {
               </div>
 
               <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground pt-1">
-                <Lock className="size-3 text-zinc-600 shrink-0" />
+                <Lock className="size-3 text-emerald-600 shrink-0" />
                 RBI Compliant Tokenisation · End-to-end 256-bit Encrypted
               </p>
 
@@ -890,7 +890,7 @@ function PaymentMethodsScreen() {
                         const prefix = vpaId.includes("@") ? vpaId.split("@")[0] : vpaId;
                         setVpaId((prefix || "user") + handle);
                       }}
-                      className="rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-2.5 py-1 text-xs font-semibold text-foreground hover:border-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer"
+                      className="rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-2.5 py-1 text-xs font-semibold text-foreground hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
                     >
                       {handle}
                     </button>
@@ -899,7 +899,7 @@ function PaymentMethodsScreen() {
               </div>
 
               <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground pt-1">
-                <ShieldCheck className="size-3 text-zinc-600 shrink-0" />
+                <ShieldCheck className="size-3 text-emerald-600 shrink-0" />
                 Verified via NPCI Unified Payments Interface
               </p>
 
@@ -949,7 +949,7 @@ function PaymentMethodsScreen() {
                   onClick={() => void handleSelectBank(bank)}
                   className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 hover:border-emerald-500 transition-colors text-left cursor-pointer"
                 >
-                  <div className="size-8 rounded-lg bg-zinc-50 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 font-black text-xs flex items-center justify-center border border-zinc-200 dark:border-zinc-700 shrink-0">
+                  <div className="size-8 rounded-lg bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-black text-xs flex items-center justify-center border border-emerald-200 dark:border-emerald-800 shrink-0">
                     <Building2 className="size-4" />
                   </div>
                   <div className="min-w-0">

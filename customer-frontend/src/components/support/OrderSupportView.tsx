@@ -152,7 +152,7 @@ export function OrderSupportView({
           <a
             href={`tel:${supportPhone}`}
             aria-label="Call support"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-700 transition-colors hover:bg-zinc-100"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-[#0c831f] transition-colors hover:bg-emerald-100"
           >
             <Headphones className="size-4 stroke-[2.2]" />
           </a>
@@ -164,7 +164,7 @@ export function OrderSupportView({
             <section className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-2xs space-y-2.5">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-[#0c831f]">
                     <Package className="size-4 stroke-[2.2]" />
                   </span>
                   <div className="min-w-0">
@@ -192,7 +192,7 @@ export function OrderSupportView({
                 <Link
                   to="/track/$orderId"
                   params={{ orderId: order.orderId || order.id }}
-                  className="font-bold text-zinc-800 hover:underline flex items-center gap-0.5"
+                  className="font-bold text-[#0c831f] hover:underline flex items-center gap-0.5"
                 >
                   <span>View Order</span>
                   <ChevronRight className="size-3.5" />
@@ -232,7 +232,7 @@ export function OrderSupportView({
                           {tkt.subject}
                         </p>
                       </div>
-                      <span className="shrink-0 text-[11px] font-black text-zinc-800">
+                      <span className="shrink-0 text-[11px] font-black text-[#0c831f]">
                         Open Chat →
                       </span>
                     </button>
@@ -258,14 +258,14 @@ export function OrderSupportView({
                     onClick={() => onSelectCategory(opt.id)}
                     className={`flex items-center gap-2.5 rounded-2xl border p-3 text-left transition-all cursor-pointer ${
                       selected
-                        ? "border-2 border-zinc-900 bg-zinc-50 shadow-2xs"
+                        ? "border-2 border-[#0c831f] bg-emerald-50/40 shadow-2xs"
                         : "border-zinc-200/80 bg-white hover:border-zinc-300"
                     }`}
                   >
                     <span
                       className={`flex size-8 shrink-0 items-center justify-center rounded-xl border ${
                         selected
-                          ? "border-zinc-300 bg-white text-zinc-900"
+                          ? "border-emerald-200 bg-emerald-50 text-[#0c831f]"
                           : "border-zinc-200 bg-zinc-50 text-zinc-600"
                       }`}
                     >
@@ -390,4 +390,3 @@ export function OrderSupportView({
     </main>
   );
 }
-

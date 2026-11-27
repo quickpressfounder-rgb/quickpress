@@ -140,7 +140,7 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
           <p className="mt-2 text-xs text-rose-800 dark:text-rose-300 leading-relaxed font-medium">
             {reason || "The response SLA window for this order expired, so it was automatically cancelled."}
           </p>
-          <div className="mt-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/90 p-3 text-[11.5px] font-bold text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-800 flex items-center gap-2">
+          <div className="mt-3.5 rounded-2xl bg-white/90 dark:bg-zinc-900/90 p-3 text-[11.5px] font-bold text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 flex items-center gap-2">
             
             <span>Full refund has been credited back to your QuickPress Wallet / Payment method.</span>
           </div>
@@ -588,8 +588,8 @@ function TrackOrderScreen() {
                       {eta} min
                     </p>
                   </div>
-                  <span className="flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-zinc-700">
-                    <span className="size-1.5 animate-ping rounded-full bg-zinc-700" /> Live
+                  <span className="flex items-center gap-1.5 rounded-full bg-secondary/15 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-brand-green">
+                    <span className="size-1.5 animate-ping rounded-full bg-brand-green" /> Live
                   </span>
                 </div>
 
@@ -612,7 +612,7 @@ function TrackOrderScreen() {
             <section className="mt-6">
               <div className="card-soft border border-border p-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-brand-dark">
                     <Navigation className="size-4" />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -640,7 +640,7 @@ function TrackOrderScreen() {
                     <span className="text-muted-foreground">Step {stageIndex + 1} of {steps.length}</span>
                   )}
                   {cancelled && (
-                    <span className="text-zinc-700 dark:text-zinc-300 font-bold lowercase tracking-normal">
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold lowercase tracking-normal">
                       refund processed
                     </span>
                   )}
@@ -720,17 +720,17 @@ function TrackOrderScreen() {
               if (isPickupPending && detail?.otp?.pickup) {
                 return (
                   <section className="mt-6">
-                    <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-50/70 p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
+                    <div className="relative overflow-hidden rounded-3xl border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent p-5 shadow-sm">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 shadow-2xs">
+                          <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-xs">
                             <ShieldCheck className="size-4.5" />
                           </span>
-                          <span className="text-xs font-black uppercase tracking-wider text-zinc-800 dark:text-zinc-200">
+                          <span className="text-xs font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                             Pickup Verification OTP
                           </span>
                         </div>
-                        <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-0.5 text-[10px] font-black text-zinc-700 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300">
+                        <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-black text-emerald-700 dark:text-emerald-300">
                           Share at Doorstep
                         </span>
                       </div>
@@ -739,7 +739,7 @@ function TrackOrderScreen() {
                         {detail.otp.pickup.split("").map((digit, idx) => (
                           <span
                             key={idx}
-                            className="flex size-12 items-center justify-center rounded-2xl border border-zinc-200 bg-white font-mono text-2xl font-black text-zinc-900 shadow-2xs dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                            className="flex size-12 items-center justify-center rounded-2xl border border-emerald-300/80 bg-white font-mono text-2xl font-black text-emerald-950 shadow-sm dark:bg-zinc-900 dark:text-white"
                           >
                             {digit}
                           </span>
@@ -827,8 +827,8 @@ function TrackOrderScreen() {
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-zinc-800">
-                              <span className="size-1.5 animate-ping rounded-full bg-zinc-700" />
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-brand-green">
+                              <span className="size-1.5 animate-ping rounded-full bg-brand-green" />
                               Searching Nearby Captain
                             </span>
                           </div>
@@ -848,10 +848,10 @@ function TrackOrderScreen() {
 
                       <div className="mt-2.5 flex items-center justify-between text-[10px] font-semibold text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          <Clock className="size-3 text-zinc-700" />
+                          <Clock className="size-3 text-brand-green" />
                           Usually assigned in 1-3 mins
                         </span>
-                        <span className="font-bold text-zinc-700">Live Radar Active</span>
+                        <span className="font-bold text-brand-green">Live Radar Active</span>
                       </div>
                     </div>
                   );
@@ -885,12 +885,12 @@ function TrackOrderScreen() {
                               if (fallback) (fallback as HTMLElement).classList.remove("hidden");
                             }}
                           />
-                          <span className="avatar-fallback hidden size-full items-center justify-center bg-zinc-100 text-base font-bold text-zinc-800">
+                          <span className="avatar-fallback hidden size-full items-center justify-center bg-primary/15 text-base font-bold text-brand-dark">
                             {assignedRider.name.charAt(0)}
                           </span>
                         </div>
                       ) : (
-                        <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-base font-bold text-zinc-800">
+                        <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-base font-bold text-brand-dark">
                           {assignedRider.name.charAt(0)}
                         </span>
                       )}
@@ -899,8 +899,8 @@ function TrackOrderScreen() {
                           <p className="truncate text-sm font-bold text-foreground">
                             {assignedRider.name}
                           </p>
-                          <BadgeCheck className="size-3.5 shrink-0 text-zinc-700" />
-                          <span className="rounded-md border border-zinc-200 bg-zinc-100 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-zinc-700">
+                          <BadgeCheck className="size-3.5 shrink-0 text-brand-green" />
+                          <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-brand-green">
                             QuickPress Captain
                           </span>
                         </div>
@@ -1000,7 +1000,7 @@ function TrackOrderScreen() {
                           {step.description}
                         </p>
                         {step.isCancelled ? (
-                          <p className="mt-1 text-[10.5px] font-bold text-zinc-700 dark:text-zinc-300">
+                          <p className="mt-1 text-[10.5px] font-bold text-emerald-700 dark:text-emerald-400">
                             Refund status: Complete / Credited to QuickPress Wallet
                           </p>
                         ) : null}
@@ -1106,13 +1106,13 @@ function TrackOrderScreen() {
                     </div>
                   ) : null}
                   {(detail.totals.discount ?? 0) > 0 ? (
-                    <div className="flex items-center justify-between text-zinc-700 font-medium">
+                    <div className="flex items-center justify-between text-brand-green font-medium">
                       <span>Discount</span>
                       <span>-₹{detail.totals.discount}</span>
                     </div>
                   ) : null}
                   {(detail.totals as any).couponDiscount && (detail.totals as any).couponDiscount > 0 ? (
-                    <div className="flex items-center justify-between text-zinc-700 font-medium">
+                    <div className="flex items-center justify-between text-brand-green font-medium">
                       <span>Coupon discount</span>
                       <span>-₹{(detail.totals as any).couponDiscount}</span>
                     </div>
@@ -1120,7 +1120,7 @@ function TrackOrderScreen() {
 
                   <div className="border-t border-border pt-2.5 mt-2 flex items-center justify-between font-black text-sm text-foreground">
                     <span>Total Amount</span>
-                    <span className="text-zinc-900 font-black text-base">₹{detail.totals.grandTotal ?? 0}</span>
+                    <span className="text-brand-green font-black text-base">₹{detail.totals.grandTotal ?? 0}</span>
                   </div>
 
                   {detail.payment ? (
@@ -1131,7 +1131,7 @@ function TrackOrderScreen() {
                       </div>
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${detail.payment.paid
-                            ? "bg-zinc-100 text-zinc-800 border border-zinc-200"
+                            ? "bg-brand-green/10 text-brand-green border border-brand-green/20"
                             : "bg-amber-500/10 text-amber-600 border border-amber-500/20"
                           }`}
                       >
@@ -1144,7 +1144,7 @@ function TrackOrderScreen() {
                   {detail.status !== "cancelled" ? (
                     <div className="mt-3 pt-2.5 border-t border-dashed border-border flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <FileText className="size-3.5 text-zinc-700" />
+                        <FileText className="size-3.5 text-brand-green" />
                         <span>Official GST Bill</span>
                       </div>
                       <button
@@ -1156,7 +1156,7 @@ function TrackOrderScreen() {
                             params: { invoiceId: invKey },
                           });
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-1.5 text-xs font-black text-zinc-800 hover:bg-zinc-200 active:scale-95 transition-all shadow-xs"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green/10 px-3 py-1.5 text-xs font-black text-brand-green hover:bg-brand-green/20 active:scale-95 transition-all shadow-xs"
                       >
                         <Download className="size-3.5" />
                         <span>Download Tax Invoice</span>
@@ -1284,7 +1284,7 @@ function TrackOrderScreen() {
                             onClick={() => setCancelReason(reason)}
                             aria-pressed={cancelReason === reason}
                             className={`rounded-full px-3 py-2 text-[11px] font-bold tracking-tight transition-all duration-300 active:scale-[0.95] ${cancelReason === reason
-                                ? "border border-zinc-300 bg-zinc-100 text-zinc-900"
+                                ? "bg-primary/15 text-brand-dark"
                                 : "bg-muted text-muted-foreground hover:text-foreground"
                               }`}
                           >
@@ -1317,7 +1317,7 @@ function TrackOrderScreen() {
               )}
 
               <div className="card-soft flex items-start gap-3 border border-border p-4">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-brand-dark">
                   <ShieldCheck className="size-4" />
                 </span>
                 <p className="text-[11px] leading-relaxed text-muted-foreground">

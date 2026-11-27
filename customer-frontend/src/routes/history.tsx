@@ -58,8 +58,8 @@ const FILTERS: { id: "all" | OrderStatus; label: string }[] = [
 ];
 
 const STATUS_META: Record<OrderStatus, { label: string; icon: typeof Clock; tone: string }> = {
-  delivered: { label: "Delivered", icon: CheckCircle2, tone: "bg-zinc-100 text-zinc-800 border border-zinc-200" },
-  "in-progress": { label: "In Progress", icon: Clock, tone: "bg-zinc-100 text-zinc-800 border border-zinc-200" },
+  delivered: { label: "Delivered", icon: CheckCircle2, tone: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
+  "in-progress": { label: "In Progress", icon: Clock, tone: "bg-emerald-50 text-emerald-800 border border-emerald-200" },
   cancelled: { label: "Cancelled", icon: XCircle, tone: "bg-rose-50 text-rose-700 border border-rose-200" },
   refunded: { label: "Refunded", icon: RotateCcw, tone: "bg-amber-50 text-amber-800 border border-amber-200" },
 };
@@ -212,9 +212,9 @@ function HistoryScreen() {
               onClick={() =>
                 navigate({ to: "/track/$orderId", params: { orderId: activeOrder.orderId } })
               }
-              className="card-soft mt-4 flex w-full items-center gap-3 border border-zinc-200 bg-white p-4 text-left transition-all duration-300 active:scale-[0.985]"
+              className="card-soft mt-4 flex w-full items-center gap-3 border border-emerald-200 bg-white p-4 text-left transition-all duration-300 active:scale-[0.985]"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-zinc-50 text-zinc-700 border border-zinc-200">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200">
                 <Truck className="size-4" />
               </span>
               <div className="min-w-0 flex-1">
@@ -225,7 +225,7 @@ function HistoryScreen() {
                   {activeOrder.service} · {activeOrder.store}
                 </p>
               </div>
-              <span className="shrink-0 rounded-full bg-zinc-100 border border-zinc-200 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-zinc-800">
+              <span className="shrink-0 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-emerald-800">
                 Track
               </span>
             </button>
@@ -242,7 +242,7 @@ function HistoryScreen() {
               <button
                 type="button"
                 onClick={() => setReloadKey((key) => key + 1)}
-                className="shrink-0 rounded-full bg-zinc-100 border border-zinc-200 px-3 py-2 text-[11px] font-bold text-zinc-800 active:scale-[0.95]"
+                className="shrink-0 rounded-full bg-primary/15 px-3 py-2 text-[11px] font-bold text-brand-dark active:scale-[0.95]"
               >
                 Retry
               </button>
@@ -260,7 +260,7 @@ function HistoryScreen() {
             </div>
           ) : visible.length === 0 ? (
             <div className="card-soft mt-6 border border-border/80 bg-card/60 p-8 text-center rounded-3xl shadow-sm">
-              <div className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-zinc-50 text-zinc-700 border border-zinc-200 shadow-xs mb-3">
+              <div className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-emerald-500/10 text-brand-green border border-emerald-500/20 shadow-xs mb-3">
                 <Clock className="size-8 stroke-[1.8]" />
               </div>
               <h2 className="text-base font-black tracking-tight text-foreground">
