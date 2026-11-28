@@ -6771,3 +6771,9 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
   - Balanced hero whitespace with an eyebrow pill (`India's Express Garment Care Network · 45-Min Pickup`), official colored store badges with shimmer sweep, and a 4-card hero highlight bento grid (`45-Min Pickup`, `RO-Purified Wash`, `Italian Steam Press`, `100% Loss-Free`).
   - Upgraded scroll reveals across sections (`reveal-on-scroll`, `reveal-left`, `reveal-right`, `reveal-pop` with multi-directional parallax and blur-to-sharp `IntersectionObserver` transitions).
 - **Verification & Deployment:** `ZERO_TS_ERRORS_IN_CHANGED_FILES`; `vite build` succeeded cleanly in `2.04s`; deployed to EC2 `/var/www/quickpress/website/`.
+
+### 2026-11-28 — Restore Website Hero & Motion to Clean State While Keeping Colored Store Logos (`website`)
+- **Modified Files:** `website/src/index.css`, `website/src/pages/HomePage.tsx` (kept `website/src/components/Icons.tsx`)
+- **Summary of Changes:**
+  - Restored `website/src/index.css` and `website/src/pages/HomePage.tsx` back to commit `d6ce6b85` (removing the 0.7s splash curtain, 4-card hero highlight grid, eyebrow badge, and extra scroll classes) while keeping the official multi-color Google Play prism (`IconGooglePlay`) and colored Apple App Store emblem (`IconApple`) inside `website/src/components/Icons.tsx`.
+- **Verification & Deployment:** `ZERO_TS_ERRORS_IN_CHANGED_FILES`; `vite build` succeeded cleanly in `1.34s`; redeployed to EC2 `/var/www/quickpress/website/`.
