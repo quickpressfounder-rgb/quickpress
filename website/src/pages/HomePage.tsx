@@ -12,12 +12,14 @@ import {
   IconGooglePlay,
   IconApple,
   IconIron,
+  IconLaundry,
   IconFootprints,
   IconVan,
   IconShield,
   IconBolt,
   IconCrosshair,
 } from "@/components/Icons";
+import quickpressBrandLogo from "@/assets/quickpress-logo-dark.png";
 import { IPhone15OrderTracking } from "@/components/IPhone15OrderTracking";
 import { AreaUnavailableModal } from "@/components/AreaUnavailableModal";
 import { handleGetStartedRedirect } from "@/utils/storeRedirect";
@@ -304,8 +306,27 @@ export function HomePage({
 
   // FAQ Accordion State
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [showOpeningSplash, setShowOpeningSplash] = useState(true);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
-  // Zomato-Style Scroll-Driven Reveal Observer
+  // 0.7s Opening Splash Unmount Safety
+  useEffect(() => {
+    const timer = setTimeout(() => setShowOpeningSplash(false), 920);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Scroll Progress Indicator
+  useEffect(() => {
+    const onScroll = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(docHeight > 0 ? Math.min(100, Math.round((scrollTop / docHeight) * 100)) : 0);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Kinetic Scroll-Driven Reveal Observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -321,7 +342,9 @@ export function HomePage({
       }
     );
 
-    const revealElements = document.querySelectorAll(".reveal-on-scroll");
+    const revealElements = document.querySelectorAll(
+      ".reveal-on-scroll, .reveal-left, .reveal-right, .reveal-pop"
+    );
     revealElements.forEach((el) => observer.observe(el));
 
     return () => {
@@ -533,18 +556,63 @@ export function HomePage({
   };
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 selection:bg-emerald-200 selection:text-emerald-950 font-sans">
-      {/* ─── 1. Clean Hero Header (Full Viewport Landing Screen) ─────────────────────────── */}
-      <section className="relative min-h-[100dvh] flex flex-col justify-between pt-12 sm:pt-16 pb-8 sm:pb-12 bg-gradient-to-b from-emerald-50/50 via-white to-white overflow-hidden border-b border-gray-100">
-        {/* Subtle Ambient Mesh Pattern */}
-        <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
+    <div className="min-h-screen bg-white text-gray-900 selection:bg-emerald-200 selection:text-emerald-950 font-sans relative">
+      {/* Live Top Scroll Progress Bar */}
+      <div
+        className="fixed top-0 left-0 right-0 h-[3px] z-50 bg-transparent pointer-events-none"
+        aria-hidden="true"
+      >
         <div
-          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[650px] sm:w-[900px] h-[380px] rounded-full blur-3xl opacity-20 pointer-events-none"
+          className="h-full bg-gradient-to-r from-[#1A7A3C] via-[#22c55e] to-emerald-400 transition-[width] duration-75"
+          style={{ width: `${scrollProgress}%` }}
+        />
+      </div>
+
+      {/* 0.7s Heavy Full-Page Opening Curtain Animation */}
+      {showOpeningSplash && (
+        <div
+          className="fixed inset-0 z-[100] bg-zinc-950 flex flex-col items-center justify-center px-6 pointer-events-none animate-splash-curtain overflow-hidden"
+          aria-hidden="true"
+        >
+          <div
+            className="absolute w-[420px] h-[420px] rounded-full blur-3xl opacity-30"
+            style={{ background: "radial-gradient(circle, #22c55e 0%, rgba(16,185,129,0) 70%)" }}
+          />
+          <div className="relative z-10 flex flex-col items-center gap-4 animate-splash-logo">
+            <img
+              src={quickpressBrandLogo}
+              alt="QuickPress"
+              className="h-10 sm:h-12 w-auto object-contain"
+            />
+            <div className="w-40 h-1 rounded-full bg-white/15 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-emerald-400 to-[#22c55e] animate-splash-progress" />
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-300/90">
+              Garment Care In Hours
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 1. Clean Hero Header (Balanced Space-Filled Viewport) ───────────────────────── */}
+      <section className="relative min-h-[100dvh] flex flex-col justify-between pt-8 sm:pt-12 pb-6 sm:pb-10 bg-gradient-to-b from-emerald-50/60 via-white to-white overflow-hidden border-b border-gray-100">
+        {/* Subtle Ambient Mesh & Depth Blobs */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-35 pointer-events-none" />
+        <div
+          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[680px] sm:w-[980px] h-[420px] rounded-full blur-3xl opacity-25 pointer-events-none animate-pulse-glow"
           style={{ background: `radial-gradient(circle, ${GREEN} 0%, rgba(34,197,94,0) 70%)` }}
         />
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center flex-1 flex flex-col justify-center my-auto">
-          <h1 className="text-[32px] sm:text-6xl lg:text-7xl font-black text-gray-950 tracking-tight leading-[1.08] mb-4 animate-spring-up break-words">
+        <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center flex-1 flex flex-col justify-center my-auto py-4">
+          {/* Eyebrow Brand Pill (Fills Top Space Cleanly) */}
+          <div className="hero-stagger-1 flex justify-center mb-5 sm:mb-6">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/90 px-4 py-1.5 text-xs font-bold text-zinc-800 shadow-xs backdrop-blur-md">
+              <span className="size-2 rounded-full bg-[#22c55e] animate-live-dot" />
+              <span>India&apos;s Express Garment Care Network · 45-Min Pickup</span>
+            </span>
+          </div>
+
+          <h1 className="hero-stagger-2 text-[36px] sm:text-6xl lg:text-[72px] font-black text-gray-950 tracking-tight leading-[1.06] mb-4 break-words">
             Fresh Clothes. <br />
             Delivered In{" "}
             <span style={{ color: GREEN }} className="inline-block font-black">
@@ -552,19 +620,19 @@ export function HomePage({
             </span>
           </h1>
 
-          <p className="text-base sm:text-xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed font-normal animate-spring-up">
+          <p className="hero-stagger-3 text-base sm:text-xl text-gray-600 max-w-2xl mx-auto mb-7 leading-relaxed font-normal">
             Find the best laundry, dry cleaning & steam press partners in your city. Doorstep pickup in 45 minutes with 100% loss-free guarantee.
           </p>
 
-          <div className="max-w-3xl mx-auto relative animate-pop-zoom">
-            {/* ─── Zomato-Style App Download Strip (Transparent & Sleek) ─── */}
-            <div className="mt-8 sm:mt-10 animate-spring-up flex flex-col items-center justify-center space-y-4">
+          <div className="max-w-5xl w-full mx-auto relative">
+            {/* ─── Official Colored Store Download Strip ─── */}
+            <div className="hero-stagger-4 flex flex-col items-center justify-center space-y-4">
               <p className="text-xs sm:text-sm font-semibold text-gray-600 tracking-wide">
                 Experience fast & easy doorstep garment care on the QuickPress app
               </p>
 
               <div className="flex flex-wrap items-center justify-center gap-3.5">
-                {/* Google Play Button (Transparent Frosted Glass) */}
+                {/* Google Play Button (Official 4-Color Play Prism Logo) */}
                 <a
                   href="/apks/QuickPress-Customer.apk"
                   download="QuickPress-Customer.apk"
@@ -576,45 +644,93 @@ export function HomePage({
                       onShowToast("Downloading QuickPress Customer APK...");
                     }
                   }}
-                  className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/75 hover:bg-white text-gray-900 border border-gray-300 hover:border-gray-900 shadow-sm hover:shadow-md backdrop-blur-md hover:scale-105 active:scale-95 transition-all duration-300 group cursor-pointer"
+                  className="relative overflow-hidden flex items-center gap-3 px-5 py-3 rounded-2xl bg-white hover:bg-zinc-50 text-gray-900 border border-zinc-200 hover:border-zinc-900 shadow-sm hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-300 group cursor-pointer"
                 >
-                  <IconGooglePlay className="w-6 h-6 text-black shrink-0 group-hover:scale-110 transition-transform" />
+                  <span className="pointer-events-none absolute inset-y-0 w-10 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer-sweep" />
+                  <IconGooglePlay className="w-7 h-7 shrink-0 group-hover:scale-110 transition-transform" />
                   <div className="text-left">
                     <span className="text-[9px] uppercase font-bold text-gray-500 block tracking-wider leading-none">
                       GET IT ON
                     </span>
-                    <span className="text-sm font-black text-gray-900 block tracking-tight leading-tight mt-0.5">
+                    <span className="text-sm font-black text-gray-950 block tracking-tight leading-tight mt-0.5">
                       Google Play
                     </span>
                   </div>
                 </a>
 
-                {/* Apple App Store Button (Transparent Frosted Glass) */}
+                {/* Apple App Store Button (Official Colored Blue App Store Emblem) */}
                 <button
                   type="button"
                   onClick={() => onOpenModal("download_app")}
-                  className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/75 hover:bg-white text-gray-900 border border-gray-300 hover:border-gray-900 shadow-sm hover:shadow-md backdrop-blur-md hover:scale-105 active:scale-95 transition-all duration-300 group cursor-pointer"
+                  className="relative overflow-hidden flex items-center gap-3 px-5 py-3 rounded-2xl bg-white hover:bg-zinc-50 text-gray-900 border border-zinc-200 hover:border-zinc-900 shadow-sm hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-300 group cursor-pointer"
                 >
-                  <IconApple className="w-6 h-6 text-gray-900 shrink-0 group-hover:scale-110 transition-transform" />
+                  <span className="pointer-events-none absolute inset-y-0 w-10 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer-sweep" />
+                  <IconApple className="w-7 h-7 shrink-0 group-hover:scale-110 transition-transform" />
                   <div className="text-left">
                     <span className="text-[9px] uppercase font-bold text-gray-500 block tracking-wider leading-none">
                       Download on the
                     </span>
-                    <span className="text-sm font-black text-gray-900 block tracking-tight leading-tight mt-0.5">
+                    <span className="text-sm font-black text-gray-950 block tracking-tight leading-tight mt-0.5">
                       App Store
                     </span>
                   </div>
                 </button>
               </div>
+            </div>
 
-              {/* Animated "Scroll down ⌵" */}
+            {/* ─── 4-Card Hero Highlight Bento Grid (Fills Hero Canvas Purposefully) ─── */}
+            <div className="hero-stagger-5 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-8 sm:mt-10 text-left">
+              {[
+                {
+                  title: "45-Min Pickup",
+                  sub: "Doorstep collection slot",
+                  icon: IconVan,
+                  bg: "bg-emerald-50 text-emerald-700 border-emerald-100",
+                },
+                {
+                  title: "RO-Purified Wash",
+                  sub: "Soft water garment care",
+                  icon: IconLaundry,
+                  bg: "bg-sky-50 text-sky-700 border-sky-100",
+                },
+                {
+                  title: "Italian Steam Press",
+                  sub: "Crisp wrinkle-free finish",
+                  icon: IconIron,
+                  bg: "bg-amber-50 text-amber-700 border-amber-100",
+                },
+                {
+                  title: "100% Loss-Free",
+                  sub: "QR barcode bag tracking",
+                  icon: IconShield,
+                  bg: "bg-zinc-100 text-zinc-900 border-zinc-200",
+                },
+              ].map((item) => (
+                <div
+                  key={item.title}
+                  onClick={() => handleServiceClick()}
+                  className="rounded-2xl border border-zinc-200/80 bg-white/90 backdrop-blur-sm p-3.5 sm:p-4 flex items-center gap-3 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-zinc-300 transition-all duration-300 cursor-pointer"
+                >
+                  <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl border flex items-center justify-center shrink-0 ${item.bg}`}>
+                    <item.icon className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-extrabold text-zinc-950 truncate">{item.title}</p>
+                    <p className="text-[11px] font-medium text-zinc-500 truncate">{item.sub}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Animated "Scroll down" */}
+            <div className="hero-stagger-5 mt-6 flex justify-center">
               <button
                 type="button"
                 onClick={() => {
                   const el = document.getElementById("the-three-cards");
                   if (el) el.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="pt-2 inline-flex flex-col items-center gap-1 text-xs font-bold text-gray-500 hover:text-black transition-colors cursor-pointer group"
+                className="inline-flex flex-col items-center gap-1 text-xs font-bold text-gray-500 hover:text-black transition-colors cursor-pointer group"
               >
                 <span className="text-[11px] tracking-wider uppercase font-semibold text-gray-400 group-hover:text-black">
                   Scroll down to explore
@@ -635,7 +751,7 @@ export function HomePage({
             {/* Card 1: quickpress (Customer App) - Real Yellow Customer Logo */}
             <div
               onClick={() => onOpenModal("booking")}
-              className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border border-amber-200/70 bg-gradient-to-b from-[#FEFCE8]/80 via-[#FFFDF5] to-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 cursor-pointer group relative overflow-hidden reveal-on-scroll delay-100"
+              className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border border-amber-200/70 bg-gradient-to-b from-[#FEFCE8]/80 via-[#FFFDF5] to-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 cursor-pointer group relative overflow-hidden reveal-left delay-75"
             >
               {/* Big Real Customer Squircle Logo */}
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-[36px] bg-[#FFCA28] shadow-xl shadow-amber-900/15 flex items-center justify-center p-3 mb-8 group-hover:scale-108 transition-transform duration-500 overflow-hidden">
@@ -664,7 +780,7 @@ export function HomePage({
             {/* Card 2: partner hub (Partner Merchant App) - Real Blue & White Partner Logo */}
             <div
               onClick={() => onOpenModal("partner")}
-              className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border border-blue-200/70 bg-gradient-to-b from-[#EFF6FF]/80 via-[#F8FAFC] to-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 cursor-pointer group relative overflow-hidden reveal-on-scroll delay-200"
+              className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border border-blue-200/70 bg-gradient-to-b from-[#EFF6FF]/80 via-[#F8FAFC] to-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 cursor-pointer group relative overflow-hidden reveal-pop delay-150"
             >
               {/* Big Real Partner Squircle Logo (Blue background, White text) */}
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-[36px] bg-[#1D4ED8] shadow-xl shadow-blue-900/15 flex items-center justify-center p-3 mb-8 group-hover:scale-108 transition-transform duration-500 overflow-hidden">
@@ -698,7 +814,7 @@ export function HomePage({
                 a.download = "QuickPress-Captain.apk";
                 a.click();
               }}
-              className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border-2 border-zinc-200 hover:border-black bg-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-300 cursor-pointer group relative overflow-hidden reveal-on-scroll delay-300"
+              className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border-2 border-zinc-200 hover:border-black bg-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-300 cursor-pointer group relative overflow-hidden reveal-right delay-200"
             >
               {/* Big Real Captain Squircle Logo */}
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-[36px] bg-white shadow-xl flex items-center justify-center p-3 mb-8 group-hover:scale-108 transition-transform duration-500 overflow-hidden border border-zinc-200">
@@ -748,7 +864,7 @@ export function HomePage({
           {/* Central Smartphone with Surrounding Floating Feature Badges */}
           <div className="relative max-w-4xl mx-auto flex items-center justify-center min-h-[500px]">
             {/* Desktop Left Column Floating Badges */}
-            <div className="hidden lg:flex flex-col gap-6 absolute left-0 top-1/2 -translate-y-1/2 z-20 w-60 text-left">
+            <div className="hidden lg:flex flex-col gap-6 absolute left-0 top-1/2 -translate-y-1/2 z-20 w-60 text-left reveal-left delay-100">
               {/* Badge 1: RO Water Wash */}
               <div
                 onMouseEnter={() => setActiveFeatureHover("ro-water")}
@@ -827,7 +943,7 @@ export function HomePage({
             </div>
 
             {/* Real iPhone 15 Pro with QuickPress Live Order Tracking */}
-            <div className="relative z-10 flex justify-center">
+            <div className="relative z-10 flex justify-center reveal-pop delay-150">
               <IPhone15OrderTracking
                 onOpenBooking={() => handleServiceClick()}
                 onShowToast={onShowToast}
@@ -835,7 +951,7 @@ export function HomePage({
             </div>
 
             {/* Desktop Right Column Floating Badges */}
-            <div className="hidden lg:flex flex-col gap-6 absolute right-0 top-1/2 -translate-y-1/2 z-20 w-60 text-left">
+            <div className="hidden lg:flex flex-col gap-6 absolute right-0 top-1/2 -translate-y-1/2 z-20 w-60 text-left reveal-right delay-200">
               {/* Badge 5: Italian Steam Press */}
               <div
                 onMouseEnter={() => setActiveFeatureHover("steam-press")}

@@ -207,18 +207,47 @@ export function IconTrendingUp({ className = "w-5 h-5" }: { className?: string }
   );
 }
 
-export function IconApple({ className = "w-5 h-5" }: { className?: string }) {
+export function IconApple({ className = "w-6 h-6" }: { className?: string }) {
+  const gradId = React.useId();
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.65-.79 1.1-1.9 0.98-3-.95.04-2.1 0.64-2.77 1.43-.59.68-1.11 1.77-.97 2.84 1.05.08 2.11-.48 2.76-1.27z" />
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id={gradId} x1="12" y1="0" x2="12" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#19C6FF" />
+          <stop offset="100%" stopColor="#0D64F2" />
+        </linearGradient>
+      </defs>
+      <rect width="24" height="24" rx="5.5" fill={`url(#${gradId})`} />
+      <path
+        d="M12.75 5.4L8.1 13.45M11.25 5.4L15.9 13.45M6.35 13.45H13.4M15.1 13.45H17.65M7.25 14.95L6.1 16.95M16.75 14.95L17.9 16.95"
+        stroke="#FFFFFF"
+        strokeWidth="2.05"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
-export function IconGooglePlay({ className = "w-5 h-5" }: { className?: string }) {
+export function IconGooglePlay({ className = "w-6 h-6" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M3.609 1.814L13.792 12 3.61 22.186c-.37-.417-.61-.994-.61-1.686V3.5c0-.692.24-1.269.61-1.686zM15.207 13.414l2.585 2.586-12.983 7.42 10.398-10.006zm0-2.828L4.809.58 17.792 8l-2.585 2.586zm1.414 1.414l3.965-2.266c1.02-.583 1.02-1.537 0-2.12l-3.965-2.266-2.586 2.586 2.586 2.586z" />
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M3.61 1.81C3.23 2.2 3 2.8 3 3.56V20.44C3 21.2 3.23 21.8 3.61 22.19L3.7 22.27L13.16 12.81V12.69V12.57L3.7 3.11L3.61 1.81Z"
+        fill="#00D2FF"
+      />
+      <path
+        d="M16.31 15.96L13.16 12.81V12.69V12.57L16.31 9.42L16.38 9.46L20.11 11.58C21.18 12.18 21.18 13.19 20.11 13.8L16.38 15.92L16.31 15.96Z"
+        fill="#FFC900"
+      />
+      <path
+        d="M16.38 15.92L13.16 12.69L3.61 22.24C3.96 22.61 4.55 22.66 5.21 22.28L16.38 15.92Z"
+        fill="#FF3A44"
+      />
+      <path
+        d="M16.38 9.46L5.21 3.1C4.55 2.72 3.96 2.77 3.61 3.14L13.16 12.69L16.38 9.46Z"
+        fill="#00F076"
+      />
     </svg>
   );
 }

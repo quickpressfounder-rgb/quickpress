@@ -6762,3 +6762,12 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
   - Removed the inline auto-redirect `<script>` from `website/index.html` so mobile browsers visiting `withquickpress.com` load the website normally without automatically redirecting into `intent://`, `quickpress://`, or the app stores.
   - Removed the hero Dual Search Bar (`Kasganj, Uttar Pradesh · 45-min pickup active`, location selector, `Search Wash & Fold, Dry Cleaning...`, `Explore Services` button), unavailable notice strip, and `Available:` quick-service pill row from `website/src/pages/HomePage.tsx`.
 - **Verification & Deployment:** `npm run build` (`vite build`) in `website` succeeded cleanly (`44 modules transformed`, built in `1.41s`); `npx tsc --noEmit` confirmed zero TypeScript errors in `HomePage.tsx` (only 4 pre-existing unrelated errors remain in `Modals.tsx` and `B2BPartnerPage.tsx`). Deployed fresh `website/dist` directly to EC2 `/var/www/quickpress/website/`.
+
+### 2026-11-28 — Website Hero Space Fill, Official Colored Store Logos, 0.7s Splash & Scroll Animations (`website`)
+- **Modified Files:** `website/src/components/Icons.tsx`, `website/src/index.css`, `website/src/pages/HomePage.tsx`
+- **Summary of Changes:**
+  - Upgraded `IconGooglePlay` (`Icons.tsx`) to the official 4-color Google Play prism (`#00D2FF`, `#00F076`, `#FFC900`, `#FF3A44`) and `IconApple` to the official colored App Store blue gradient rounded badge icon (`#19C6FF` -> `#0D64F2` with unique `React.useId()` gradient scoping).
+  - Added a 0.7s full-page dark splash curtain (`animate-splash-curtain`, `animate-splash-logo`, `animate-splash-progress`) followed by staggered hero entrance animations (`hero-stagger-1` through `hero-stagger-5`), plus a live top scroll progress indicator.
+  - Balanced hero whitespace with an eyebrow pill (`India's Express Garment Care Network · 45-Min Pickup`), official colored store badges with shimmer sweep, and a 4-card hero highlight bento grid (`45-Min Pickup`, `RO-Purified Wash`, `Italian Steam Press`, `100% Loss-Free`).
+  - Upgraded scroll reveals across sections (`reveal-on-scroll`, `reveal-left`, `reveal-right`, `reveal-pop` with multi-directional parallax and blur-to-sharp `IntersectionObserver` transitions).
+- **Verification & Deployment:** `ZERO_TS_ERRORS_IN_CHANGED_FILES`; `vite build` succeeded cleanly in `2.04s`; deployed to EC2 `/var/www/quickpress/website/`.
