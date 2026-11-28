@@ -965,8 +965,9 @@ export function PartnerDashboardScreen() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search order #, customer, phone..."
-                      className="w-full rounded-xl border border-zinc-200 bg-white py-1.5 pl-8.5 pr-7 text-xs font-medium text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-hidden shadow-2xs"
+                      placeholder=""
+                      aria-label="Search orders"
+                      className="w-full rounded-xl border border-zinc-200 bg-white py-1.5 pl-8.5 pr-7 text-xs font-medium text-zinc-900 focus:border-zinc-900 focus:outline-hidden shadow-2xs"
                     />
                     {searchQuery ? (
                       <button

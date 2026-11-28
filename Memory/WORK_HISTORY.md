@@ -6620,3 +6620,24 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
 
 
 
+
+---
+
+## Session: Partner Dashboard Clean Redesign, Unified Store Status Modal & Incoming/Accepted Flows
+- **Date**: 2026-11-28
+- **User Directive**: Redesign Partner Dashboard to an advanced, clean, smooth minimalist layout with all real functions wired, fix the Online/Offline toggle popup, keep search inputs completely blank inside (zero placeholder text), and build dedicated Incoming Order ("order aate time") and Accepted Order ("accept par") screens following user approval of `partner_dashboard_rough_wireframe.html`.
+- **Accomplishments & Architectural Changes**:
+  1. **Unified Store Status Control Sheet (`partner-frontend/src/components/layout/OfflineConfirmModal.tsx`, `partner-frontend/src/components/layout/PartnerOnlineToggle.tsx`, `partner-frontend/src/components/dashboard/StoreStatusConfirmModal.tsx`)**:
+     - Built a portal-rendered (`document.body`) `StoreStatusControlModal` at `z-[120]` so sticky header backdrop filters never clip or trap the dialog.
+     - Supported both Online -> Offline pause reasons with auto-resume duration timers (`30m Break`, `1h Machines at Capacity`, `Closing for Today`, `Manual Hold`) and Offline -> Online readiness confirmation, with zero duplicated JSX in `StoreStatusConfirmModal`.
+  2. **Clean Minimalist Dashboard (`partner-frontend/src/screens/OrdersScreen.tsx`) & Blank Search Bars (`PartnerDesktopTopBar.tsx`, `PartnerDashboardScreen.tsx`, `ZomatoHubView.tsx`)**:
+     - Redesigned `/orders` (`OrdersScreen.tsx`) on `#FAFAFA` / `#FFFFFF` with `1px` zinc-200 hairline cards, safe-area header (`app-header-safe`), persistent Offline banner with 1-tap `Go Live`, real-data KPI strip (`Today's Payout`, `Active Queue` + store load bar, `New Requests`, `Ready Dispatch`), quick actions (`+ Walk-In Order`, `Scan Bag QR`, `Sound Alerts` mute/unmute toggle, `Analytics`), stage filter pills, mobile card stream, and desktop queue table.
+     - Cleared placeholder text (`placeholder=""` with `aria-label="Search orders"`) across `OrdersScreen.tsx`, `PartnerDesktopTopBar.tsx`, `PartnerDashboardScreen.tsx`, and `ZomatoHubView.tsx`.
+     - Added shared `inr` INR currency formatting utility in `partner-frontend/src/lib/currency.ts`.
+  3. **Incoming Order ("Order Aate Time") & Accepted Order ("Accept Par") Workflows (`IncomingOrderModal.tsx`, `AcceptedOrderPipelineCard.tsx`, `PartnerOrdersContext.tsx`)**:
+     - Wired `PartnerOrdersContext.tsx` to populate `incomingOrder` on real new Socket.IO/API orders (respecting persisted `qp_partner_alarm_muted` mute toggle) and exposed `dismissIncomingOrder` and `toggleAlarmMute`.
+     - Upgraded `IncomingOrderModal.tsx` with live 120s SLA countdown bar, Mute bell toggle, Estimated Payout + Express bonus badge, pickup locality, garment breakdown, intake/prep time stepper presets (`15m`/`20m`/`30m`/`45m`), Decline reason selector, and instant Accept CTA.
+     - Added `AcceptedOrderPipelineCard.tsx` showing live 4-step pipeline (`Accepted` -> `Captain Pickup` -> `In Washing` -> `Ready`), pickup Captain assignment & 1-tap `Call` actions, `Print Bag Tag`, `Confirm Shop Handover`, `Start Washing`, `Mark Ready`, and 4-digit dispatch OTP verification.
+- **Verification**:
+  - Verified zero strict TypeScript errors across all edited/new Partner UI files (`tsc --noEmit` filtered check passed).
+  - Verified `partner-frontend` production Vite + Nitro build (`npx vite build` exited with code 0, built in 4.78s).

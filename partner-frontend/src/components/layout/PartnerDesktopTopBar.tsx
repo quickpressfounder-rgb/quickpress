@@ -133,7 +133,8 @@ export function PartnerDesktopTopBar({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search orders by ID, customer name or phone..."
+            placeholder=""
+            aria-label="Search orders"
             className="h-9 w-full rounded-full border border-zinc-200 bg-zinc-50/80 pl-10 pr-8 text-xs font-medium text-black placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none transition-all shadow-2xs"
           />
           {searchQuery ? (

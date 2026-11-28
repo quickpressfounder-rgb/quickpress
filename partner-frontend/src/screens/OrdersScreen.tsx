@@ -1,495 +1,854 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import {
-  AlertTriangle,
-  ArrowLeft,
   Bell,
+  Check,
   CheckCircle2,
   Clock,
-  Layers,
-  LayoutGrid,
-  LayoutList,
-  Menu,
-  Phone,
-  Play,
+  Eye,
+  History,
+  IndianRupee,
+  Package,
+  Plus,
   QrCode,
-  RotateCcw,
+  Radio,
+  RefreshCw,
   Search,
-  ShoppingBag,
   Sparkles,
-  Store,
   Volume2,
+  VolumeX,
   X,
+  Zap,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Toaster } from "@/shared/ui/sonner";
-
-import { PartnerLayout } from "../components/layout/PartnerLayout";
-import { PartnerOnlineToggle } from "../components/layout/PartnerOnlineToggle";
-import { PullToRefresh } from "../components/dashboard/PullToRefresh";
-import { OrderCard } from "../components/orders/OrderCard";
-import { OrderEmptyState } from "../components/orders/OrderEmptyState";
-import { OrderListSkeleton } from "../components/orders/OrderSkeletons";
+import { partnerRoutes } from "../navigation/partner-routes";
+import { usePartnerContext } from "../context/PartnerContext";
 import {
-  matchesFilter,
   matchesQuery,
   sortOrders,
   usePartnerOrders,
-  type OrderFilterId,
-  type OrderSortId,
 } from "../context/PartnerOrdersContext";
-import { usePartnerContext } from "../context/PartnerContext";
 import { useOrderActionHandler } from "../hooks/use-order-action-handler";
+import type { OrderActionId } from "../components/orders/order-actions";
 import {
+  STAGE_LABEL,
+  formatOrderPlacedTime,
+  type ManagedOrder,
   type OrderStage,
-  type PartnerOrderFilterTab,
-  isOrderMatchingTab,
 } from "../data/partner-orders-mock";
-import { partnerRoutes } from "../navigation/partner-routes";
+import {
+  fetchDashboardSummary,
+  getCachedDashboardSummary,
+} from "../api/partner/partner-dashboard-api";
+import { fetchEarnings } from "../api/partner/partner-earnings-api";
+import {
+  fetchPartnerProfile,
+  fetchPartnerUnreadCount,
+  getCachedPartnerProfile,
+  getCleanPartnerName,
+} from "../api/partner/partner-profile-api";
+import { PartnerLayout } from "../components/layout/PartnerLayout";
+import { PartnerOnlineToggle } from "../components/layout/PartnerOnlineToggle";
+import { OrderCard, OrderStatusBadge } from "../components/orders/OrderCard";
+import { IncomingOrderModal } from "../components/orders/IncomingOrderModal";
+import { AcceptedOrderPipelineCard } from "../components/orders/AcceptedOrderPipelineCard";
+import { WalkInOrderModal } from "../components/dashboard/WalkInOrderModal";
+import { ScanBagTagModal } from "../components/dashboard/ScanBagTagModal";
+import {
+  playPartnerOrderAcceptedTone,
+  playPartnerOrderChime,
+} from "../lib/partner-order-alert-sound";
+import { inr } from "../lib/currency";
+
+type StageFilter =
+  | "all"
+  | "new"
+  | "accepted"
+  | "pickup_pending"
+  | "processing"
+  | "ready"
+  | "completed"
+  | "cancelled";
+
+const STAGE_PILLS: { id: StageFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "new", label: "New" },
+  { id: "accepted", label: "Accepted" },
+  { id: "pickup_pending", label: "Pickup" },
+  { id: "processing", label: "Processing" },
+  { id: "ready", label: "Ready" },
+  { id: "completed", label: "Completed" },
+  { id: "cancelled", label: "Cancelled" },
+];
+
+const PROCESSING_STAGES = new Set<OrderStage>([
+  "at_partner",
+  "processing",
+  "washing",
+  "dry_cleaning",
+  "ironing",
+]);
+
+function matchesStagePill(order: ManagedOrder, tab: StageFilter): boolean {
+  if (tab === "all") return true;
+  if (tab === "processing") return PROCESSING_STAGES.has(order.stage);
+  return order.stage === tab;
+}
 
 export function OrdersScreen() {
   const navigate = useNavigate();
-  const { orders, counts, isLoading, refresh } = usePartnerOrders();
-  const { isOnline, toggleOnline } = usePartnerContext();
+  const { session, isOnline, setOnline } = usePartnerContext();
+  const {
+    orders,
+    isLoading,
+    isRefreshing,
+    incomingOrder,
+    isAlarmMuted,
+    toggleAlarmMute,
+    dismissIncomingOrder,
+    acceptOrder,
+    rejectOrder,
+    refresh,
+    verifyDispatchOtp,
+    confirmedHandoverIds,
+  } = usePartnerOrders();
+
   const { handleAction, sheetNode, overlay, busy } = useOrderActionHandler();
 
-  const [filterTab, setFilterTab] = useState<PartnerOrderFilterTab>("active");
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<OrderSortId>("latest");
-  const [orderViewMode, setOrderViewMode] = useState<"cards" | "table">("cards");
-  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+  const cachedProfile = useMemo(getCachedPartnerProfile, []);
+  const cachedSummary = useMemo(getCachedDashboardSummary, []);
 
-  // Real store status toggle connected to backend API & Supabase database
-  const handleToggleStoreStatus = async () => {
-    if (isTogglingStatus) return;
-    setIsTogglingStatus(true);
+  const [shopName, setShopName] = useState<string>(() =>
+    getCleanPartnerName(
+      [
+        cachedProfile?.businessName,
+        cachedProfile?.ownerName,
+        (cachedProfile as any)?.name,
+        session?.businessName,
+        session?.ownerName,
+      ],
+      "QuickPress Partner"
+    )
+  );
+  const [todayEarnings, setTodayEarnings] = useState<number>(
+    Number(cachedSummary?.todayEarnings || 0)
+  );
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  const [query, setQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<StageFilter>("all");
+  const [spotlightOrderId, setSpotlightOrderId] = useState<string | null>(null);
+  const [showWalkInModal, setShowWalkInModal] = useState(false);
+  const [showScanModal, setShowScanModal] = useState(false);
+
+  // Sync live KPIs & profile metadata
+  const loadMetrics = useCallback(async () => {
     try {
-      const nextState = !isOnline;
-      await toggleOnline();
-      if (nextState) {
-        toast.success("Store is now ONLINE & accepting customer orders!");
-      } else {
-        toast.info("Store is now OFFLINE (Orders Paused)");
+      const [summaryRes, earningsRes, profileRes, unreadRes] = await Promise.allSettled([
+        fetchDashboardSummary(),
+        fetchEarnings(),
+        fetchPartnerProfile(),
+        fetchPartnerUnreadCount(),
+      ]);
+
+      if (summaryRes.status === "fulfilled" && summaryRes.value) {
+        const val = Number(summaryRes.value.todayEarnings ?? 0);
+        if (Number.isFinite(val) && val >= 0) {
+          setTodayEarnings(val);
+        }
+      }
+      if (earningsRes.status === "fulfilled" && earningsRes.value) {
+        const eVal = Number((earningsRes.value as any).todayEarnings ?? 0);
+        if (Number.isFinite(eVal) && eVal > 0) {
+          setTodayEarnings(eVal);
+        }
+      }
+      if (profileRes.status === "fulfilled" && profileRes.value) {
+        const name = getCleanPartnerName(
+          [
+            profileRes.value.businessName,
+            profileRes.value.ownerName,
+            (profileRes.value as any).name,
+          ],
+          ""
+        );
+        if (name) setShopName(name);
+      }
+      if (unreadRes.status === "fulfilled") {
+        setUnreadCount(Number(unreadRes.value || 0));
       }
     } catch {
-      toast.error("Failed to update store status. Please check your network connection.");
-    } finally {
-      setIsTogglingStatus(false);
+      // Non-fatal background metrics refresh
     }
-  };
+  }, []);
 
-  // 6 Canonical Stage Tabs requested by merchant: Active, Picked, Process, Out Of Delivery, Delivered, Cancelled
-  const ORDER_FILTER_TABS: { id: PartnerOrderFilterTab; label: string; count: number }[] = useMemo(() => {
-    return [
-      { id: "active", label: "Active", count: orders.filter((o) => isOrderMatchingTab(o, "active")).length },
-      { id: "picked", label: "Picked", count: orders.filter((o) => isOrderMatchingTab(o, "picked")).length },
-      { id: "process", label: "Process", count: orders.filter((o) => isOrderMatchingTab(o, "process")).length },
-      { id: "out_for_delivery", label: "Out Of Delivery", count: orders.filter((o) => isOrderMatchingTab(o, "out_for_delivery")).length },
-      { id: "delivered", label: "Delivered", count: orders.filter((o) => isOrderMatchingTab(o, "delivered")).length },
-      { id: "cancelled", label: "Cancelled", count: orders.filter((o) => isOrderMatchingTab(o, "cancelled")).length },
-    ];
+  useEffect(() => {
+    void loadMetrics();
+  }, [loadMetrics, orders.length]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onNewOrder = () => void loadMetrics();
+    window.addEventListener("qp:partner:new_order", onNewOrder);
+    return () => window.removeEventListener("qp:partner:new_order", onNewOrder);
+  }, [loadMetrics]);
+
+  // Tab counts computed live from real orders
+  const stageCounts = useMemo(() => {
+    const counts: Record<StageFilter, number> = {
+      all: orders.length,
+      new: 0,
+      accepted: 0,
+      pickup_pending: 0,
+      processing: 0,
+      ready: 0,
+      completed: 0,
+      cancelled: 0,
+    };
+    for (const order of orders) {
+      if (order.stage === "new") counts.new += 1;
+      else if (order.stage === "accepted") counts.accepted += 1;
+      else if (order.stage === "pickup_pending") counts.pickup_pending += 1;
+      else if (PROCESSING_STAGES.has(order.stage)) counts.processing += 1;
+      else if (order.stage === "ready") counts.ready += 1;
+      else if (order.stage === "completed") counts.completed += 1;
+      else if (order.stage === "cancelled" || order.stage === "refunded") counts.cancelled += 1;
+    }
+    return counts;
   }, [orders]);
 
-  // Real data filtering: Search Query + Stage Tab
-  const visible = useMemo(() => {
-    const tabOrders = orders.filter((order) => isOrderMatchingTab(order, filterTab));
-    if (query.trim().length > 0) {
-      // First check within selected tab
-      const inTabMatches = tabOrders.filter((order) => matchesQuery(order, query));
-      if (inTabMatches.length > 0) {
-        return sortOrders(inTabMatches, sort);
+  const activeQueueCount = useMemo(
+    () =>
+      orders.filter(
+        (o) => o.stage !== "completed" && o.stage !== "cancelled" && o.stage !== "refunded"
+      ).length,
+    [orders]
+  );
+
+  const loadPercent = Math.min(100, Math.round((activeQueueCount / 50) * 100));
+
+  // Filtered & sorted order feed
+  const filteredOrders = useMemo(() => {
+    const matched = orders.filter(
+      (o) => matchesStagePill(o, activeTab) && matchesQuery(o, query)
+    );
+    return sortOrders(matched, "latest");
+  }, [orders, activeTab, query]);
+
+  // Spotlight order shown in the "Accepted Par" 4-step live pipeline panel
+  const spotlightOrder = useMemo(() => {
+    if (spotlightOrderId) {
+      const explicit = orders.find((o) => o.id === spotlightOrderId);
+      if (explicit && explicit.stage !== "completed" && explicit.stage !== "cancelled") {
+        return explicit;
       }
-      // If not found in current tab, search across ALL orders so merchant never misses an order
-      const allMatches = orders.filter((order) => matchesQuery(order, query));
-      return sortOrders(allMatches, sort);
     }
-    return sortOrders(tabOrders, sort);
-  }, [orders, filterTab, query, sort]);
+    if (activeTab === "accepted") {
+      return orders.find((o) => o.stage === "accepted") || null;
+    }
+    return null;
+  }, [orders, spotlightOrderId, activeTab]);
 
-  const isSearching = query.trim().length > 0;
+  // Unified Accept handler so accepting from either Incoming Modal OR Order Card transitions cleanly
+  const handleAcceptFromModal = useCallback(
+    async (orderId: string, prepTimeMinutes: number) => {
+      await acceptOrder(orderId, prepTimeMinutes);
+      playPartnerOrderAcceptedTone();
+      setSpotlightOrderId(orderId);
+      if (activeTab === "new") {
+        setActiveTab("all");
+      }
+      toast.success("Order accepted — dispatch pipeline active");
+    },
+    [acceptOrder, activeTab]
+  );
 
-  const resetSearch = () => {
-    setQuery("");
+  const handleRejectFromModal = useCallback(
+    async (orderId: string, reason: string) => {
+      await rejectOrder(orderId, reason);
+      toast.info(`Order declined (${reason})`);
+    },
+    [rejectOrder]
+  );
+
+  const handleWrappedAction = useCallback(
+    (order: ManagedOrder, action: OrderActionId) => {
+      if (action === "accept") {
+        playPartnerOrderAcceptedTone();
+        setSpotlightOrderId(order.id);
+      }
+      handleAction(order, action);
+    },
+    [handleAction]
+  );
+
+  const handleToggleSound = () => {
+    const willUnmute = isAlarmMuted;
+    toggleAlarmMute();
+    if (willUnmute) {
+      playPartnerOrderChime();
+      toast.success("Order alerts unmuted");
+    } else {
+      toast.info("Order alerts muted");
+    }
   };
 
   return (
     <PartnerLayout
       activeTab="orders"
-      title="Orders Queue"
-      subtitle={`${orders.length} orders total in active database`}
+      title={shopName}
+      subtitle="Live Order Console"
       searchQuery={query}
       onSearchChange={setQuery}
     >
-      {/* ========================================================================= */}
-      {/* MOBILE COMPACT ORDERS QUEUE (< md)                                        */}
-      {/* ========================================================================= */}
-      <div className="min-h-screen bg-white pb-28 text-black md:hidden">
-        {/* Sticky Filter Header with Real [Online ] Switch, Action Icons & Stage Pills */}
-        <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 px-4 pt-4 pb-3.5 shadow-2xs app-header-safe">
-          {/* Top Bar Row: Real Online Toggle Switch on Left, Action Icons on Right */}
-          <div className="flex items-center justify-between">
-            {/* Real Store Online Pill Switch matching Image 4 */}
-            <PartnerOnlineToggle showScheduleHint />
+      <div className="min-h-full bg-[#FAFAFA] pb-16">
+        {/* Clean Minimalist Sticky Header (Mobile & Tablet; Desktop uses TopBar + Subheader) */}
+        <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/95 backdrop-blur-md">
+          <div className="app-header-safe mx-auto max-w-6xl px-4 pb-3 md:pt-3.5 md:px-6">
+            <div className="flex items-center justify-between gap-3">
+              {/* Left: Brand Identity */}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-900 text-xs font-bold text-white tracking-tight">
+                  {(shopName[0] || "Q").toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-sm font-bold tracking-tight text-zinc-950 truncate">
+                    {shopName}
+                  </h1>
+                  <p className="text-[11px] font-medium text-zinc-500">
+                    {isOnline ? "Accepting orders" : "Store paused"} ·{" "}
+                    <span className="tabular-nums">{activeQueueCount} active</span>
+                  </p>
+                </div>
+              </div>
 
-            {/* Action Icons: Search, Notifications, App Drawer Grid with transparent hover effect */}
-            <div className="flex items-center gap-1.5 text-zinc-700">
-              <button
-                type="button"
-                onClick={() => {
-                  const input = document.getElementById("partner-order-search-input");
-                  if (input) input.focus();
-                }}
-                className="size-9 rounded-xl flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/80 active:bg-zinc-200/60 backdrop-blur-xs transition-all cursor-pointer"
-                title="Search Orders"
-              >
-                <Search className="size-4.5 stroke-[2.2]" />
-              </button>
+              {/* Right: Status Toggle + Bell + Refresh */}
+              <div className="flex items-center gap-2 shrink-0">
+                <PartnerOnlineToggle showScheduleHint />
 
-              <Link
-                to={partnerRoutes.notifications}
-                className="relative size-9 rounded-xl flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/80 active:bg-zinc-200/60 backdrop-blur-xs transition-all cursor-pointer"
-                title="Notifications"
-              >
-                <Bell className="size-4.5 stroke-[2.2]" />
-                <span className="absolute top-2 right-2 size-2 rounded-full bg-rose-500 ring-2 ring-white" />
-              </Link>
-
-              <Link
-                to={partnerRoutes.shop}
-                className="size-9 rounded-xl flex items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/80 active:bg-zinc-200/60 backdrop-blur-xs transition-all cursor-pointer"
-                title="Menu / Outlet Hub"
-              >
-                <LayoutGrid className="size-4.5 stroke-[2.2]" />
-              </Link>
-            </div>
-          </div>
-
-          {/* Plain Minimalist Search Box */}
-          <div className="relative mt-3">
-            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
-            <input
-              id="partner-order-search-input"
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by ID (#QP-...), customer, phone or items..."
-              className="h-10 w-full rounded-2xl border-0 bg-zinc-100/85 hover:bg-zinc-100 focus:bg-white pl-10 pr-9 text-xs font-semibold text-zinc-900 placeholder:text-zinc-400 focus:ring-1.5 focus:ring-zinc-300 focus:outline-hidden transition-all shadow-2xs"
-            />
-            {query ? (
-              <button
-                type="button"
-                onClick={() => setQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 size-6 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/60 transition-colors cursor-pointer"
-                title="Clear search"
-              >
-                <X className="size-3.5" />
-              </button>
-            ) : null}
-          </div>
-
-          {/* Active Search Result Feedback Chip */}
-          {isSearching && (
-            <div className="mt-2 flex items-center justify-between rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 border border-emerald-200/80">
-              <span>
-                Found {visible.length} order{visible.length === 1 ? "" : "s"} for "{query}"
-              </span>
-              <button
-                type="button"
-                onClick={resetSearch}
-                className="text-emerald-700 underline hover:text-emerald-900 cursor-pointer ml-2"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-
-          {/* Horizontal Stage Badge Filter Carousel: Active, Picked, Process, Out Of Delivery, Delivered, Cancelled */}
-          <div className="no-scrollbar -mx-4 mt-2.5 flex items-center gap-2 overflow-x-auto px-4 pb-1">
-            {ORDER_FILTER_TABS.map((tab) => {
-              const isActive = filterTab === tab.id;
-              return (
                 <button
-                  key={tab.id}
                   type="button"
-                  onClick={() => setFilterTab(tab.id)}
-                  className={`shrink-0 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                    isActive
-                      ? "border-2 border-emerald-600 bg-emerald-50/60 text-emerald-800 shadow-2xs font-black"
-                      : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-900"
-                  }`}
+                  onClick={() => navigate({ to: partnerRoutes.notifications })}
+                  aria-label="Notifications"
+                  className="relative flex size-8.5 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors cursor-pointer"
                 >
-                  <span>{tab.label}</span>
-                  <span
-                    className={`rounded-full px-1.5 py-0.2 text-[10px] font-black ${
-                      isActive ? "bg-emerald-600 text-white" : "bg-zinc-100 text-zinc-500"
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </header>
-
-        {/* Orders Content View */}
-        <div className="p-4 space-y-3">
-          {isLoading ? (
-            <OrderListSkeleton />
-          ) : visible.length === 0 ? (
-            <OrderEmptyState
-              variant={isSearching ? "no-results" : "no-orders"}
-              tab={filterTab}
-              query={query}
-              onAction={isSearching ? resetSearch : () => void refresh()}
-            />
-          ) : (
-            <div className="space-y-3">
-              {visible.map((order, index) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  index={index}
-                  onAction={handleAction}
-                  busyAction={busy?.orderId === order.id ? busy.actionId : null}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* DESKTOP ORDERS VIEW (>= md)                                               */}
-      {/* ========================================================================= */}
-      <div className="hidden mx-auto w-full max-w-7xl px-4 py-4 md:block md:px-8 md:py-6">
-        <PullToRefresh onRefresh={refresh}>
-          {/* Top Bar Row: Desktop Stage Tabs + Real Online Switch + View Switcher */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-200/80 pb-4">
-            {/* 6 Canonical Filter Tabs */}
-            <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1">
-              {ORDER_FILTER_TABS.map((tab) => {
-                const isActive = filterTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setFilterTab(tab.id)}
-                    className={`shrink-0 flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black transition-all active:scale-95 cursor-pointer ${
-                      isActive
-                        ? "bg-emerald-600 text-white shadow-cta font-black ring-2 ring-emerald-600/20"
-                        : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-900"
-                    }`}
-                  >
-                    <span>{tab.label}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
-                        isActive ? "bg-white text-emerald-800" : "bg-zinc-100 text-zinc-600"
-                      }`}
-                    >
-                      {tab.count}
+                  <Bell className="size-4" />
+                  {unreadCount > 0 ? (
+                    <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-bold text-white tabular-nums">
+                      {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Right Controls: Real Store Online Toggle + View Mode Switcher */}
-            <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-              {/* Real Online Switch for Desktop matching Image 4 */}
-              <PartnerOnlineToggle showScheduleHint />
-
-              {/* View Switcher: Cards vs Table Layout */}
-              <div className="flex items-center gap-1 rounded-xl bg-zinc-100 p-1 border border-zinc-200/80">
-                <button
-                  type="button"
-                  onClick={() => setOrderViewMode("cards")}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                    orderViewMode === "cards"
-                      ? "bg-white text-zinc-950 shadow-xs border border-zinc-200/80"
-                      : "text-zinc-500 hover:text-zinc-900"
-                  }`}
-                  title="Card Grid View"
-                >
-                  <LayoutGrid className="size-3.5" />
-                  <span>Cards</span>
+                  ) : null}
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => setOrderViewMode("table")}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                    orderViewMode === "table"
-                      ? "bg-white text-zinc-950 shadow-xs border border-zinc-200/80"
-                      : "text-zinc-500 hover:text-zinc-900"
-                  }`}
-                  title="Compact Order Table"
+                  onClick={() => {
+                    void refresh();
+                    void loadMetrics();
+                  }}
+                  disabled={isRefreshing}
+                  aria-label="Refresh orders"
+                  className="flex size-8.5 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  <LayoutList className="size-3.5" />
-                  <span>Table</span>
+                  <RefreshCw className={`size-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* Desktop Search Bar & Status Row */}
-          <div className="mt-4 flex items-center justify-between gap-4">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+            {/* Clean Blank Search Bar (Zero text/placeholder inside box) */}
+            <div className="relative mt-3 md:hidden">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
               <input
+                id="partner-order-search-input"
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search orders by ID, customer name, phone or garment items..."
-                className="h-10 w-full rounded-xl border border-zinc-200 bg-white pl-10 pr-9 text-xs font-medium text-black placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-2xs"
+                placeholder=""
+                aria-label="Search orders"
+                className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 focus:bg-white pl-10 pr-9 text-xs font-semibold text-zinc-950 focus:border-zinc-900 focus:outline-hidden transition-all"
               />
               {query ? (
                 <button
                   type="button"
                   onClick={() => setQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black cursor-pointer p-0.5"
+                  aria-label="Clear search"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 cursor-pointer"
                 >
-                  <X className="size-4" />
+                  <X className="size-3.5" />
                 </button>
               ) : null}
             </div>
+          </div>
+        </header>
 
-            {isSearching ? (
-              <div className="flex items-center gap-2 text-xs font-bold text-zinc-700">
-                <span className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1 text-emerald-800">
-                  Showing {visible.length} result{visible.length === 1 ? "" : "s"} for "{query}"
-                </span>
-                <button
-                  type="button"
-                  onClick={resetSearch}
-                  className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-600 hover:bg-zinc-50 cursor-pointer"
-                >
-                  Reset
-                </button>
+        {/* Main Workspace Container */}
+        <div className="mx-auto max-w-6xl px-4 pt-4 md:px-6 space-y-4">
+          {/* Persistent Offline Banner with 1-Tap Go Live */}
+          {!isOnline ? (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 animate-in fade-in duration-150">
+              <div className="flex items-start sm:items-center gap-2.5">
+                <span className="mt-1 sm:mt-0 size-2 shrink-0 rounded-full bg-rose-500" />
+                <div>
+                  <p className="text-xs font-bold text-rose-950">Storefront is currently paused</p>
+                  <p className="text-[11px] font-medium text-rose-800/80">
+                    New customer pickup requests are hidden while in-progress orders stay active.
+                  </p>
+                </div>
               </div>
-            ) : (
-              <p className="text-xs font-semibold text-zinc-500">
-                {visible.length} order{visible.length === 1 ? "" : "s"} in {ORDER_FILTER_TABS.find((t) => t.id === filterTab)?.label || filterTab}
+              <button
+                type="button"
+                onClick={() => {
+                  void setOnline(true);
+                  toast.success("Store is now LIVE — ready to receive orders");
+                }}
+                className="shrink-0 inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 text-xs font-semibold text-white transition-all active:scale-95 cursor-pointer"
+              >
+                <Radio className="size-3.5" />
+                Go Live
+              </button>
+            </div>
+          ) : null}
+
+          {/* Clean Executive KPI Strip (100% Real Aggregated Data) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Today's Payout */}
+            <button
+              type="button"
+              onClick={() => navigate({ to: partnerRoutes.earnings })}
+              className="rounded-2xl border border-zinc-200 bg-white p-3.5 text-left hover:border-zinc-300 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-zinc-500">Today&apos;s Payout</span>
+                <IndianRupee className="size-3.5 text-zinc-400" />
+              </div>
+              <p className="mt-1.5 text-xl font-bold tracking-tight text-zinc-950 tabular-nums">
+                {inr(todayEarnings)}
               </p>
-            )}
+              <p className="mt-0.5 text-[11px] font-medium text-emerald-700">
+                View settlements →
+              </p>
+            </button>
+
+            {/* Active Queue & Store Load */}
+            <div className="rounded-2xl border border-zinc-200 bg-white p-3.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-zinc-500">Active Queue</span>
+                <span className="text-[11px] font-semibold text-zinc-500 tabular-nums">
+                  {loadPercent}% load
+                </span>
+              </div>
+              <p className="mt-1.5 text-xl font-bold tracking-tight text-zinc-950 tabular-nums">
+                {activeQueueCount}
+              </p>
+              <div className="mt-1.5 h-1.5 w-full rounded-full bg-zinc-100 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    loadPercent >= 85 ? "bg-rose-500" : "bg-zinc-900"
+                  }`}
+                  style={{ width: `${loadPercent}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Desktop Card 3: Incoming New */}
+            <button
+              type="button"
+              onClick={() => setActiveTab("new")}
+              className="hidden lg:block rounded-2xl border border-zinc-200 bg-white p-3.5 text-left hover:border-zinc-300 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-zinc-500">New Requests</span>
+                <Zap className={`size-3.5 ${stageCounts.new > 0 ? "text-amber-600" : "text-zinc-400"}`} />
+              </div>
+              <p className="mt-1.5 text-xl font-bold tracking-tight text-zinc-950 tabular-nums">
+                {stageCounts.new}
+              </p>
+              <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
+                {stageCounts.new > 0 ? "Awaiting acceptance" : "Queue clear"}
+              </p>
+            </button>
+
+            {/* Desktop Card 4: Ready for Dispatch */}
+            <button
+              type="button"
+              onClick={() => setActiveTab("ready")}
+              className="hidden lg:block rounded-2xl border border-zinc-200 bg-white p-3.5 text-left hover:border-zinc-300 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-zinc-500">Ready Dispatch</span>
+                <Package className="size-3.5 text-zinc-400" />
+              </div>
+              <p className="mt-1.5 text-xl font-bold tracking-tight text-zinc-950 tabular-nums">
+                {stageCounts.ready}
+              </p>
+              <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
+                {stageCounts.completed} completed overall
+              </p>
+            </button>
           </div>
 
-          {/* Orders Content View */}
-          <div className="mt-5 pb-12">
-            {isLoading ? (
-              <OrderListSkeleton />
-            ) : visible.length === 0 ? (
-              <OrderEmptyState
-                variant={isSearching ? "no-results" : "no-orders"}
-                tab={filterTab}
-                query={query}
-                onAction={isSearching ? resetSearch : () => void refresh()}
+          {/* Streamlined Utility & POS Action Row */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
+              <button
+                type="button"
+                onClick={() => setShowWalkInModal(true)}
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 px-3 py-2 text-xs font-semibold text-white transition-all active:scale-95 cursor-pointer"
+              >
+                <Plus className="size-3.5" />
+                Walk-In Order
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowScanModal(true)}
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-800 transition-all active:scale-95 cursor-pointer"
+              >
+                <QrCode className="size-3.5 text-zinc-600" />
+                Scan Bag QR
+              </button>
+
+              <button
+                type="button"
+                onClick={handleToggleSound}
+                className={`shrink-0 inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-all active:scale-95 cursor-pointer ${
+                  isAlarmMuted
+                    ? "border-zinc-200 bg-zinc-100 text-zinc-600"
+                    : "border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-800"
+                }`}
+              >
+                {isAlarmMuted ? (
+                  <VolumeX className="size-3.5 text-zinc-500" />
+                ) : (
+                  <Volume2 className="size-3.5 text-emerald-600" />
+                )}
+                {isAlarmMuted ? "Sound Muted" : "Alerts On"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate({ to: partnerRoutes.analytics })}
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-700 transition-all active:scale-95 cursor-pointer"
+              >
+                <History className="size-3.5 text-zinc-500" />
+                Analytics
+              </button>
+            </div>
+
+            {/* Desktop Clean Blank Search Box */}
+            <div className="hidden md:block relative w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder=""
+                aria-label="Search orders"
+                className="h-9 w-full rounded-xl border border-zinc-200 bg-white pl-8.5 pr-8 text-xs font-semibold text-zinc-950 focus:border-zinc-900 focus:outline-hidden transition-all"
               />
-            ) : orderViewMode === "cards" ? (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {visible.map((order, index) => (
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 cursor-pointer"
+                >
+                  <X className="size-3.5" />
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Crisp Stage Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+            {STAGE_PILLS.map((pill) => {
+              const selected = activeTab === pill.id;
+              const count = stageCounts[pill.id];
+              return (
+                <button
+                  key={pill.id}
+                  type="button"
+                  onClick={() => setActiveTab(pill.id)}
+                  className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                    selected
+                      ? "border-zinc-900 bg-zinc-900 text-white"
+                      : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-950"
+                  }`}
+                >
+                  <span>{pill.label}</span>
+                  {count > 0 ? (
+                    <span
+                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums ${
+                        selected
+                          ? "bg-white/20 text-white"
+                          : pill.id === "new"
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-zinc-100 text-zinc-700"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* "Accept Par" Live 4-Step Pipeline Highlight */}
+          {spotlightOrder ? (
+            <AcceptedOrderPipelineCard
+              order={spotlightOrder}
+              busy={busy?.orderId === spotlightOrder.id}
+              isConfirmedHandover={confirmedHandoverIds.has(spotlightOrder.id)}
+              onVerifyDispatchOtp={verifyDispatchOtp}
+              onAction={handleWrappedAction}
+              onDismiss={() => setSpotlightOrderId(null)}
+            />
+          ) : null}
+
+          {/* Orders List / Empty States */}
+          {isLoading && orders.length === 0 ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((item) => (
+                <div
+                  key={item}
+                  className="h-28 rounded-2xl border border-zinc-200 bg-white animate-pulse"
+                />
+              ))}
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="rounded-2xl border border-zinc-200 bg-white px-6 py-12 text-center">
+              <div className="mx-auto flex size-11 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-500">
+                <Sparkles className="size-5" />
+              </div>
+              <p className="mt-3 text-sm font-bold text-zinc-950">
+                {query
+                  ? "No matching orders found"
+                  : activeTab === "all"
+                    ? "No orders in queue yet"
+                    : `No ${STAGE_PILLS.find((p) => p.id === activeTab)?.label.toLowerCase()} orders`}
+              </p>
+              <p className="mt-1 text-xs font-medium text-zinc-500">
+                {query
+                  ? "Try clearing your search filter or scan a Bag QR tag."
+                  : isOnline
+                    ? "Your storefront is Live — incoming requests appear automatically."
+                    : "Go Live above to resume receiving nearby customer requests."}
+              </p>
+              {query || activeTab !== "all" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery("");
+                    setActiveTab("all");
+                  }}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3.5 py-2 text-xs font-semibold text-zinc-800 cursor-pointer"
+                >
+                  Reset View
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <>
+              {/* Mobile & Tablet Crisp Card Stream */}
+              <div className="space-y-3 md:hidden">
+                {filteredOrders.map((order, idx) => (
                   <OrderCard
                     key={order.id}
                     order={order}
-                    index={index}
-                    onAction={handleAction}
+                    index={idx}
                     busyAction={busy?.orderId === order.id ? busy.actionId : null}
+                    onAction={handleWrappedAction}
                   />
                 ))}
               </div>
-            ) : (
-              /* High-Density Pure White Table Layout */
-              <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-xs">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-zinc-200 bg-zinc-50/80 text-[11px] font-black uppercase tracking-wider text-zinc-500">
-                        <th className="px-4 py-3.5">Order ID</th>
-                        <th className="px-4 py-3.5">Customer</th>
-                        <th className="px-4 py-3.5">Services / Items</th>
-                        <th className="px-4 py-3.5">Pickup Time</th>
-                        <th className="px-4 py-3.5">Amount</th>
-                        <th className="px-4 py-3.5">Stage / Status</th>
-                        <th className="px-4 py-3.5 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100 font-medium">
-                      {visible.map((order) => {
-                        return (
-                          <tr
-                            key={order.id}
-                            className="transition-colors hover:bg-zinc-50/80 cursor-pointer"
-                            onClick={() => navigate({ to: partnerRoutes.orderDetail(order.id) })}
-                          >
-                            <td className="px-4 py-3.5 font-mono font-black text-zinc-950">
-                              #{order.code}
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <p className="font-bold text-zinc-900">{order.customerName}</p>
-                              <p className="text-[11px] text-zinc-500">{order.customerPhone}</p>
-                            </td>
-                            <td className="px-4 py-3.5 text-zinc-600">
-                              <div className="flex items-center gap-1 flex-wrap max-w-xs">
-                                {(order.services || []).map((svc, sIdx) => (
-                                  <span
-                                    key={sIdx}
-                                    className="rounded-md bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-700"
-                                  >
-                                    {svc}
-                                  </span>
-                                ))}
-                                {(!order.services || order.services.length === 0) && (
-                                  <span className="text-[11px] text-zinc-500">
-                                    {order.itemCount || 1} items
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3.5 text-zinc-700 font-semibold whitespace-nowrap">
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="size-3.5 text-zinc-400" />
-                                <span>{order.pickupTime || "Today"}</span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3.5 font-black text-zinc-950 whitespace-nowrap">
-                              ₹{(order.amount || 0).toLocaleString("en-IN")}
-                            </td>
-                            <td className="px-4 py-3.5 whitespace-nowrap">
-                              <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black uppercase text-emerald-800">
-                                {order.stage}
+
+              {/* Desktop Clean Table Matrix */}
+              <div className="hidden md:block overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-zinc-100 bg-zinc-50/70 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                      <th className="py-3 pl-4 pr-3">Order & Customer</th>
+                      <th className="py-3 px-3">Placed</th>
+                      <th className="py-3 px-3">Garments & Service</th>
+                      <th className="py-3 px-3">Stage</th>
+                      <th className="py-3 px-3 text-right">Amount</th>
+                      <th className="py-3 pl-3 pr-4 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100 text-xs">
+                    {filteredOrders.map((order) => {
+                      const placed = formatOrderPlacedTime(order.placedAt);
+                      const isWaitingHandover =
+                        !confirmedHandoverIds.has(order.id) &&
+                        (order.stage === "accepted" || order.stage === "pickup_pending");
+                      const isReadyToWash =
+                        confirmedHandoverIds.has(order.id) || order.stage === "at_partner";
+
+                      return (
+                        <tr
+                          key={order.id}
+                          onClick={() =>
+                            order.stage === "accepted" || order.stage === "pickup_pending"
+                              ? setSpotlightOrderId(order.id)
+                              : navigate({ to: partnerRoutes.orderDetails, params: { orderId: order.id } })
+                          }
+                          className="group hover:bg-zinc-50/80 transition-colors cursor-pointer"
+                        >
+                          <td className="py-3.5 pl-4 pr-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-zinc-950 tabular-nums">
+                                #{order.code}
                               </span>
-                            </td>
-                            <td className="px-4 py-3.5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => navigate({ to: partnerRoutes.orderDetail(order.id) })}
-                                  className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-bold text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shadow-2xs"
-                                >
-                                  Details
-                                </button>
-                                {order.stage === "new" || order.stage === "pending" ? (
+                              {order.isExpress ? (
+                                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                                  Express
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-0.5 font-medium text-zinc-600 truncate max-w-[200px]">
+                              {order.customerName || "QuickPress Customer"}
+                            </p>
+                          </td>
+
+                          <td className="py-3.5 px-3 text-zinc-500 tabular-nums whitespace-nowrap">
+                            <div className="font-medium text-zinc-700">{placed.time}</div>
+                            <div className="text-[11px]">{placed.relative}</div>
+                          </td>
+
+                          <td className="py-3.5 px-3 text-zinc-700">
+                            <div className="font-semibold text-zinc-900">
+                              {order.itemCount || order.items?.length || 1} pcs
+                            </div>
+                            <div className="text-[11px] text-zinc-500 truncate max-w-[180px]">
+                              {order.services?.join(", ") || "Laundry Care"}
+                            </div>
+                          </td>
+
+                          <td className="py-3.5 px-3">
+                            <OrderStatusBadge order={order} />
+                          </td>
+
+                          <td className="py-3.5 px-3 text-right font-bold text-zinc-950 tabular-nums whitespace-nowrap">
+                            {inr(order.amount)}
+                          </td>
+
+                          <td
+                            className="py-3.5 pl-3 pr-4 text-right whitespace-nowrap"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="inline-flex items-center justify-end gap-1.5">
+                              {order.stage === "new" ? (
+                                <>
                                   <button
                                     type="button"
-                                    onClick={() => handleAction(order, "accept")}
-                                    className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
+                                    disabled={busy?.orderId === order.id}
+                                    onClick={() => handleWrappedAction(order, "reject")}
+                                    className="rounded-lg border border-rose-200 bg-white hover:bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-600 cursor-pointer"
                                   >
+                                    Decline
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={busy?.orderId === order.id}
+                                    onClick={() => handleWrappedAction(order, "accept")}
+                                    className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1.5 text-[11px] font-semibold text-white cursor-pointer"
+                                  >
+                                    <Check className="size-3" />
                                     Accept
                                   </button>
-                                ) : null}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                                </>
+                              ) : isWaitingHandover ? (
+                                <button
+                                  type="button"
+                                  disabled={busy?.orderId === order.id}
+                                  onClick={() => {
+                                    setSpotlightOrderId(order.id);
+                                    handleWrappedAction(order, "confirm_handover");
+                                  }}
+                                  className="rounded-lg bg-zinc-900 hover:bg-zinc-800 px-2.5 py-1.5 text-[11px] font-semibold text-white cursor-pointer"
+                                >
+                                  Handover
+                                </button>
+                              ) : isReadyToWash ? (
+                                <button
+                                  type="button"
+                                  disabled={busy?.orderId === order.id}
+                                  onClick={() => handleWrappedAction(order, "start_washing")}
+                                  className="rounded-lg bg-blue-600 hover:bg-blue-700 px-2.5 py-1.5 text-[11px] font-semibold text-white cursor-pointer"
+                                >
+                                  Start Wash
+                                </button>
+                              ) : PROCESSING_STAGES.has(order.stage) ? (
+                                <button
+                                  type="button"
+                                  disabled={busy?.orderId === order.id}
+                                  onClick={() => handleWrappedAction(order, "mark_ready")}
+                                  className="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1.5 text-[11px] font-semibold text-white cursor-pointer"
+                                >
+                                  Mark Ready
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    navigate({ to: partnerRoutes.orderDetails, params: { orderId: order.id } })
+                                  }
+                                  className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 py-1.5 text-[11px] font-semibold text-zinc-700 cursor-pointer"
+                                >
+                                  <Eye className="size-3" />
+                                  View
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            )}
-          </div>
-        </PullToRefresh>
+            </>
+          )}
+        </div>
       </div>
+
+      {/* Live "Order Aate Time" Incoming Order Alert Overlay */}
+      <IncomingOrderModal
+        order={incomingOrder}
+        onAccept={handleAcceptFromModal}
+        onReject={handleRejectFromModal}
+        onDismiss={dismissIncomingOrder}
+        isMuted={isAlarmMuted}
+        onToggleMute={handleToggleSound}
+      />
+
+      {/* Counter Walk-In POS & Bag QR Scanner */}
+      {showWalkInModal ? (
+        <WalkInOrderModal
+          onClose={() => setShowWalkInModal(false)}
+          onOrderCreated={(created) => {
+            setShowWalkInModal(false);
+            setSpotlightOrderId(created.id);
+            void refresh();
+            void loadMetrics();
+          }}
+        />
+      ) : null}
+
+      {showScanModal ? (
+        <ScanBagTagModal
+          orders={orders}
+          onClose={() => setShowScanModal(false)}
+          onSelectOrder={(orderId) => {
+            setShowScanModal(false);
+            setSpotlightOrderId(orderId);
+            void navigate({ to: partnerRoutes.orderDetails, params: { orderId } });
+          }}
+        />
+      ) : null}
 
       {sheetNode}
       {overlay}

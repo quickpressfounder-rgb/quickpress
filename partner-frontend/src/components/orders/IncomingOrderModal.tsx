@@ -1,363 +1,454 @@
-import { Bell, Check, Clock, MapPin, Package, Phone, ShieldCheck, User, Volume2, X, ArrowLeft, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import {
+  AlertCircle,
+  Check,
+  Clock,
+  MapPin,
+  Minus,
+  Plus,
+  ShoppingBag,
+  Sparkles,
+  Volume2,
+  VolumeX,
+  X,
+  Zap,
+} from "lucide-react";
 import type { ManagedOrder } from "../../data/partner-orders-mock";
-import { stopOrderAlarm } from "../../lib/order-alarm";
+import { inr } from "../../lib/currency";
 
-type IncomingOrderModalProps = {
-  order: ManagedOrder | null;
-  onAccept: (orderId: string, prepTimeMinutes?: number) => Promise<void>;
-  onReject: (orderId: string, reason: string) => Promise<void>;
-  onDismiss: () => void;
-};
+const PARTNER_SLA_SECONDS = 120;
 
 const REJECT_REASONS = [
-  "Store is currently closed",
-  "Capacity full / High order volume",
-  "Service unavailable / Machine maintenance",
-  "Out of service area",
-  "Other issue",
+  "Machines at full capacity",
+  "Closing shop shortly",
+  "Garment service unavailable",
+  "Staff / Captain shortage",
 ];
 
-const PARTNER_SLA_SECONDS = 120; // 2 minutes SLA (120s)
+const PREP_PRESETS = [15, 20, 30, 45];
 
+export type IncomingOrderModalProps = {
+  order: ManagedOrder | null;
+  onAccept: (orderId: string, prepTimeMinutes: number) => Promise<void>;
+  onReject: (orderId: string, reason: string) => Promise<void>;
+  onDismiss?: () => void;
+  isMuted?: boolean;
+  onToggleMute?: () => void;
+};
+
+function sanitizeCustomerName(name?: string): string {
+  if (!name) return "QuickPress Customer";
+  const trimmed = name.trim();
+  const digitsOnly = trimmed.replace(/\D/g, "");
+  const looksLikePhone = /^[+\d\s\-()]+$/.test(trimmed) && digitsOnly.length >= 10;
+  if (looksLikePhone || (trimmed.toLowerCase().includes("customer") && digitsOnly.length >= 10)) {
+    return "QuickPress Customer";
+  }
+  return trimmed;
+}
+
+/**
+ * Clean, high-focus incoming order alert overlay ("Order Aate Time").
+ * Portal-rendered to document.body with live SLA bar, mute toggle,
+ * net store payout breakdown, garment items, prep time selector,
+ * decline reason sheet, and instant 1-tap acceptance.
+ */
 export function IncomingOrderModal({
   order,
   onAccept,
   onReject,
   onDismiss,
+  isMuted = false,
+  onToggleMute,
 }: IncomingOrderModalProps) {
-  const computeInitialCountdown = () => {
-    if (!order) return PARTNER_SLA_SECONDS;
-    const now = Date.now();
-    const rawDeadline = (order as any).partnerAcceptDeadline;
-    if (rawDeadline) {
-      const diff = Math.floor((new Date(rawDeadline).getTime() - now) / 1000);
-      return Math.max(0, diff > 0 ? diff : PARTNER_SLA_SECONDS);
-    }
-    const rawPlaced = (order as any).placedAt || (order as any).placedAtRaw;
-    if (rawPlaced) {
-      const placed = new Date(rawPlaced).getTime();
-      const diff = Math.floor((placed + PARTNER_SLA_SECONDS * 1000 - now) / 1000);
-      return Math.max(0, diff > 0 ? diff : PARTNER_SLA_SECONDS);
-    }
-    return PARTNER_SLA_SECONDS;
-  };
-
-  const [countdown, setCountdown] = useState<number>(computeInitialCountdown);
-  const [prepTime, setPrepTime] = useState<number>(20);
-  const [rejecting, setRejecting] = useState(false);
-  const [selectedReason, setSelectedReason] = useState(REJECT_REASONS[0]);
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const isAlreadyAccepted =
-    !order ||
-    order.stage !== "new" ||
-    Boolean((order as any).partnerAccepted) ||
-    Boolean((order as any).partnerAcceptedAt) ||
-    ["accepted", "processing", "ready", "dispatch", "out_for_delivery", "delivered", "cancelled", "refunded"].includes(order.stage);
+  const [mounted, setMounted] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(PARTNER_SLA_SECONDS);
+  const [prepMinutes, setPrepMinutes] = useState(20);
+  const [showRejectStep, setShowRejectStep] = useState(false);
+  const [selectedReason, setSelectedReason] = useState<string>(REJECT_REASONS[0] ?? "Machines at full capacity");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!order || isAlreadyAccepted) {
-      stopOrderAlarm();
-      return;
-    }
-    setCountdown(computeInitialCountdown());
-    setRejecting(false);
+    setMounted(true);
+  }, []);
 
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          // Stop siren and dismiss popup on SLA expiry without issuing a destructive server cancel
-          stopOrderAlarm();
-          onDismiss();
-          return 0;
-        }
-        return prev - 1;
-      });
+  useEffect(() => {
+    if (!order) return;
+    setSecondsLeft(PARTNER_SLA_SECONDS);
+    setPrepMinutes(20);
+    setShowRejectStep(false);
+    setSelectedReason(REJECT_REASONS[0] ?? "Machines at full capacity");
+    setSubmitting(false);
+
+    const interval = window.setInterval(() => {
+      setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
+    return () => window.clearInterval(interval);
+  }, [order?.id]);
 
-    return () => clearInterval(interval);
-  }, [order, isAlreadyAccepted, onDismiss]);
+  const formattedTimer = useMemo(() => {
+    const mins = Math.floor(secondsLeft / 60);
+    const secs = secondsLeft % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  }, [secondsLeft]);
 
-  if (!order || isAlreadyAccepted) return null;
+  if (!order || !mounted || typeof document === "undefined") return null;
 
-  const handleAccept = async () => {
-    stopOrderAlarm();
-    onDismiss();
+  const progressPct = Math.max(0, Math.min(100, (secondsLeft / PARTNER_SLA_SECONDS) * 100));
+  const isUrgent = secondsLeft <= 30;
+  const totalAmount = Number(order.amount || order.charges?.total || 0);
+  const expressBonus = Number(order.partnerExpressBonus || 0);
+  const customerName = sanitizeCustomerName(order.customerName);
+
+  const handleConfirmAccept = async () => {
+    if (submitting) return;
+    setSubmitting(true);
     try {
-      await onAccept(order.id, prepTime);
-    } catch {
-      // Handled in caller
+      await onAccept(order.id, prepMinutes);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleReject = async () => {
-    stopOrderAlarm();
-    onDismiss();
+  const handleConfirmReject = async () => {
+    if (submitting) return;
+    setSubmitting(true);
     try {
       await onReject(order.id, selectedReason);
-    } catch {
-      // Handled in caller
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const mins = Math.floor(countdown / 60);
-  const secs = countdown % 60;
-  const formattedCountdown = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-  const progressPercent = Math.min(100, Math.max(0, (countdown / PARTNER_SLA_SECONDS) * 100));
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="incoming-order-title"
+      className="fixed inset-0 z-[130] flex items-end sm:items-center justify-center bg-zinc-950/65 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-150"
+    >
+      <div className="relative w-full sm:max-w-lg overflow-hidden rounded-t-3xl sm:rounded-2xl border border-zinc-200 bg-white shadow-2xl animate-in slide-in-from-bottom-5 sm:zoom-in-95 duration-200">
+        {/* Live SLA Countdown Strip */}
+        <div className="h-1.5 w-full bg-zinc-100">
+          <div
+            className={`h-full transition-all duration-1000 ease-linear ${
+              isUrgent ? "bg-rose-600" : "bg-emerald-600"
+            }`}
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg overflow-hidden rounded-t-[2rem] sm:rounded-3xl border border-border/60 bg-card shadow-2xl animate-in slide-in-from-bottom duration-300">
-        
-        {/* Animated Sound Ring Banner */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-700 px-6 py-4 text-white">
-          <div className="absolute -right-6 -top-6 size-28 rounded-full bg-white/20 blur-xl pointer-events-none" />
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="relative flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-white shadow-inner animate-bounce">
-                <Bell className="size-5 fill-current" />
-              </span>
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest text-emerald-100 flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-amber-400 animate-ping inline-block" />
-                  New Incoming Order
-                </p>
-                <h3 className="text-lg font-black tracking-tight text-white">
-                  Order #{order.code}
-                </h3>
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-zinc-100">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span
+              className={`size-2.5 shrink-0 rounded-full ${
+                isUrgent ? "bg-rose-500 animate-ping" : "bg-emerald-500 animate-pulse"
+              }`}
+            />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2
+                  id="incoming-order-title"
+                  className="text-sm font-bold tracking-tight text-zinc-950 truncate"
+                >
+                  New Order Request
+                </h2>
+                <span className="rounded-md bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 text-[11px] font-bold text-zinc-800 tabular-nums">
+                  #{order.code}
+                </span>
               </div>
+              <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
+                Accept within SLA to dispatch pickup Captain
+              </p>
             </div>
+          </div>
 
-            {/* Countdown Badge & Back Button */}
-            <div className="flex items-center gap-2">
-              <div className="flex flex-col items-end">
-                <span className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-black text-white font-mono">
-                  <Clock className="size-3.5" /> {formattedCountdown} left
-                </span>
-                <span className="text-[10px] font-semibold text-emerald-100 mt-0.5">
-                  2 Min Store SLA
-                </span>
-              </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold tabular-nums ${
+                isUrgent
+                  ? "border-rose-200 bg-rose-50 text-rose-700"
+                  : "border-zinc-200 bg-zinc-50 text-zinc-800"
+              }`}
+            >
+              <Clock className="size-3.5" />
+              {formattedTimer}
+            </span>
 
+            {onToggleMute ? (
               <button
                 type="button"
-                onClick={() => {
-                  stopOrderAlarm();
-                  onDismiss();
-                }}
-                className="flex size-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-all cursor-pointer"
-                title="Back to Dashboard / Dismiss Alert"
-                aria-label="Back to Dashboard"
+                onClick={onToggleMute}
+                aria-label={isMuted ? "Unmute alert alarm" : "Mute alert alarm"}
+                title={isMuted ? "Unmute alarm" : "Mute alarm"}
+                className={`flex size-8 items-center justify-center rounded-lg border transition-colors cursor-pointer ${
+                  isMuted
+                    ? "border-zinc-300 bg-zinc-100 text-zinc-700"
+                    : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+                }`}
+              >
+                {isMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+              </button>
+            ) : null}
+
+            {onDismiss ? (
+              <button
+                type="button"
+                onClick={onDismiss}
+                disabled={submitting}
+                aria-label="Minimize to queue"
+                title="Minimize to queue"
+                className="flex size-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <X className="size-4" />
               </button>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-black/20">
-            <div
-              className={`h-full transition-all duration-1000 ${
-                countdown < 45 ? "bg-red-500" : countdown < 90 ? "bg-amber-400" : "bg-emerald-400"
-              }`}
-              style={{ width: `${progressPercent}%` }}
-            />
+            ) : null}
           </div>
         </div>
 
-        {/* Order Details Body */}
-        <div className="max-h-[60vh] overflow-y-auto px-6 py-5 space-y-4">
-          
-          {/* Express Priority Banner */}
-          {(order.isExpress || order.services?.some(s => s.toLowerCase().includes("express"))) && (
-            <div className="rounded-2xl border-2 border-amber-500/80 bg-gradient-to-r from-amber-500/25 via-orange-500/20 to-amber-500/15 p-4 shadow-lg animate-pulse">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="size-10 rounded-2xl bg-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 border border-amber-500/40">
-                    <Zap className="size-6 fill-amber-500" />
+        {/* Body */}
+        {showRejectStep ? (
+          <div className="p-5 space-y-4">
+            <div className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50/70 px-3.5 py-3">
+              <AlertCircle className="size-4 text-rose-600 shrink-0 mt-0.5" />
+              <p className="text-xs font-medium text-rose-900 leading-relaxed">
+                Select why you cannot fulfill order #{order.code}. Repeated declines may lower search ranking.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {REJECT_REASONS.map((reason) => {
+                const active = selectedReason === reason;
+                return (
+                  <button
+                    key={reason}
+                    type="button"
+                    onClick={() => setSelectedReason(reason)}
+                    className={`w-full flex items-center justify-between rounded-xl border px-3.5 py-2.5 text-left text-xs font-semibold transition-all cursor-pointer ${
+                      active
+                        ? "border-zinc-900 bg-zinc-50 text-zinc-950"
+                        : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                    }`}
+                  >
+                    <span>{reason}</span>
+                    {active ? <Check className="size-3.5 text-zinc-950" /> : null}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-2.5 pt-2 border-t border-zinc-100">
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => setShowRejectStep(false)}
+                className="flex-1 h-11 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold text-zinc-700 cursor-pointer"
+              >
+                Back to Order
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleConfirmReject}
+                className="flex-1 h-11 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs font-semibold text-white cursor-pointer disabled:opacity-60"
+              >
+                {submitting ? "Declining..." : "Confirm Decline"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+            {/* Net Payout + Payment Mode Card */}
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                  Estimated Payout
+                </p>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <span className="text-2xl font-bold tracking-tight text-zinc-950 tabular-nums">
+                    {inr(totalAmount)}
                   </span>
-                  <div>
-                    <span className="text-xs sm:text-sm font-black text-amber-700 dark:text-amber-300 uppercase tracking-wide block">
-                      EXPRESS + EXPRESS CHARGES KA {order.expressPartnerSharePercent || 20}% BONUS
+                  {expressBonus > 0 ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                      <Zap className="size-2.5 fill-amber-600 text-amber-600" />
+                      +{inr(expressBonus)} Express
                     </span>
-                    <span className="text-xs text-muted-foreground">
-                      Customer requested express priority. Extra laundry bonus credited.
-                    </span>
-                  </div>
+                  ) : null}
                 </div>
-                <div className="text-right shrink-0">
-                  <span className="text-[10px] font-bold text-muted-foreground block uppercase">Store Bonus</span>
-                  <span className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400">
-                    +₹{order.partnerExpressBonus || Math.round((order.expressFee || 40) * 0.2)}
-                  </span>
-                </div>
+              </div>
+
+              <div className="text-right space-y-1">
+                <span
+                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
+                    order.paymentMode === "online" || order.paymentStatus === "paid"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                      : "border-amber-200 bg-amber-50 text-amber-800"
+                  }`}
+                >
+                  {order.paymentMode === "online" || order.paymentStatus === "paid"
+                    ? "Online Paid"
+                    : "Cash Collect"}
+                </span>
+                {order.isExpress ? (
+                  <p className="text-[11px] font-semibold text-amber-700">Priority Express</p>
+                ) : (
+                  <p className="text-[11px] font-medium text-zinc-500">
+                    {order.pickupTime || "Instant Pickup"}
+                  </p>
+                )}
               </div>
             </div>
-          )}
 
-          {/* Customer & Location */}
-          <div className="rounded-2xl border border-border/80 bg-muted/40 p-4 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <User className="size-4 text-muted-foreground" />
-                <span className="text-sm font-bold text-foreground">{order.customerName}</span>
+            {/* Customer & Pickup Address */}
+            <div className="rounded-xl border border-zinc-200 bg-white p-3.5 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-zinc-950">{customerName}</span>
+                {order.distanceKm ? (
+                  <span className="text-[11px] font-semibold text-zinc-500 tabular-nums">
+                    {Number(order.distanceKm).toFixed(1)} km away
+                  </span>
+                ) : null}
               </div>
-              {order.customerPhone ? (
-                <div className="flex items-center gap-1.5">
-                  <span className="font-mono text-xs font-semibold text-muted-foreground">{order.customerPhone}</span>
-                  <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
-                    <ShieldCheck className="size-3 text-emerald-600" />
-                    <span>Protected</span>
+              {order.pickupAddress ? (
+                <div className="flex items-start gap-2 text-xs text-zinc-600">
+                  <MapPin className="size-3.5 text-zinc-400 shrink-0 mt-0.5" />
+                  <span className="font-medium leading-snug line-clamp-2">
+                    {order.pickupAddress}
                   </span>
                 </div>
               ) : null}
             </div>
 
-            <div className="flex items-start gap-2 text-xs text-muted-foreground pt-1 border-t border-border/40">
-              <MapPin className="size-3.5 shrink-0 mt-0.5 text-primary" />
-              <span className="line-clamp-2">{order.pickupAddress || "Customer Pickup Address"}</span>
-            </div>
-          </div>
+            {/* Garments List */}
+            <div className="rounded-xl border border-zinc-200 bg-white p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                  <ShoppingBag className="size-3.5" />
+                  Garment Breakdown
+                </span>
+                <span className="text-xs font-bold text-zinc-900 tabular-nums">
+                  {order.itemCount || order.items?.reduce((s, i) => s + (i.qty || 1), 0) || 1} pcs
+                </span>
+              </div>
 
-          {/* Items List */}
-          <div className="space-y-2">
-            <p className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-              <span>Order Items ({order.items.length || order.itemCount})</span>
-              <span>Price</span>
-            </p>
-            <div className="divide-y divide-border/40 rounded-2xl border border-border/60 bg-card p-3">
               {order.items && order.items.length > 0 ? (
-                order.items.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between py-2 first:pt-0 last:pb-0 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="flex size-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-brand-dark">
-                        {item.qty}×
+                <div className="divide-y divide-zinc-100">
+                  {order.items.slice(0, 5).map((item, idx) => (
+                    <div
+                      key={item.id || `${item.name}-${idx}`}
+                      className="flex items-center justify-between py-1.5 text-xs"
+                    >
+                      <span className="font-semibold text-zinc-900">
+                        {item.qty || 1}× {item.name}
+                        {item.service ? (
+                          <span className="ml-1.5 font-medium text-zinc-500 capitalize">
+                            ({item.service})
+                          </span>
+                        ) : null}
                       </span>
-                      <span className="font-semibold text-foreground">{item.name}</span>
+                      {item.price > 0 ? (
+                        <span className="font-semibold text-zinc-700 tabular-nums">
+                          {inr(item.price * (item.qty || 1))}
+                        </span>
+                      ) : null}
                     </div>
-                    <span className="font-bold text-foreground">₹{item.price * item.qty}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="flex items-center justify-between py-1 text-sm">
-                  <span className="font-semibold text-foreground">{order.services.join(", ") || "Laundry Services"}</span>
-                  <span className="font-bold text-foreground">₹{order.amount}</span>
+                  ))}
+                  {order.items.length > 5 ? (
+                    <p className="pt-1.5 text-[11px] font-semibold text-zinc-500">
+                      +{order.items.length - 5} more garment items
+                    </p>
+                  ) : null}
                 </div>
+              ) : (
+                <p className="text-xs font-medium text-zinc-700">
+                  {order.services?.length
+                    ? order.services.join(", ")
+                    : "Standard Laundry & Care"}
+                </p>
               )}
-            </div>
-          </div>
 
-          {/* Grand Total & Payment Method */}
-          <div className="flex items-center justify-between rounded-2xl bg-muted/60 p-4">
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Payment Mode</p>
-              <span className={`inline-block mt-0.5 rounded-md px-2 py-0.5 text-xs font-black ${
-                order.paymentMode === "online" ? "bg-emerald-500/15 text-emerald-700" : "bg-amber-500/15 text-amber-700"
-              }`}>
-                {order.paymentMode === "online" ? "ONLINE (PAID)" : "CASH ON DELIVERY"}
-              </span>
+              {order.specialInstructions ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2 text-[11px] font-medium text-amber-900 flex items-start gap-2">
+                  <Sparkles className="size-3.5 text-amber-600 shrink-0 mt-0.5" />
+                  <span>Note: {order.specialInstructions}</span>
+                </div>
+              ) : null}
             </div>
-            <div className="text-right">
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Total Amount</p>
-              <p className="text-2xl font-black text-foreground">₹{order.amount}</p>
-            </div>
-          </div>
 
-          {/* Reject Reason Form (if clicked Reject) */}
-          {rejecting ? (
-            <div className="space-y-3 rounded-2xl border border-destructive/40 bg-destructive/5 p-4 animate-in fade-in">
-              <p className="text-xs font-bold text-destructive">Select reason for rejection:</p>
-              <div className="space-y-1.5">
-                {REJECT_REASONS.map((r, i) => (
-                  <label key={i} className="flex items-center gap-2.5 text-xs font-medium text-foreground cursor-pointer">
-                    <input
-                      type="radio"
-                      name="rejectReason"
-                      value={r}
-                      checked={selectedReason === r}
-                      onChange={() => setSelectedReason(r)}
-                      className="accent-destructive size-3.5"
-                    />
-                    <span>{r}</span>
-                  </label>
-                ))}
+            {/* Readiness / Prep Time Control */}
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5">
+              <div>
+                <p className="text-xs font-semibold text-zinc-950">Intake & Sorting Buffer</p>
+                <p className="text-[11px] font-medium text-zinc-500">
+                  Captain arrival & processing ETA
+                </p>
               </div>
-              <div className="flex gap-2 pt-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setRejecting(false)}
-                  className="flex-1 rounded-xl border border-border bg-card py-2 text-xs font-bold text-foreground"
+                  onClick={() => setPrepMinutes((m) => Math.max(10, m - 5))}
+                  aria-label="Decrease minutes"
+                  className="flex size-7 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-800 cursor-pointer"
                 >
-                  Back
+                  <Minus className="size-3.5" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => void handleReject()}
-                  disabled={isProcessing}
-                  className="flex-1 rounded-xl bg-destructive py-2 text-xs font-black text-white hover:brightness-110"
-                >
-                  Confirm Reject
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        {/* Action Buttons matching Image 3 */}
-        {!rejecting ? (
-          <div className="border-t border-border/80 bg-white p-4 sm:p-5 space-y-3.5">
-            {/* Prep Time Stepper: [-] 20 mins [+] */}
-            <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-2.5">
-              <span className="text-xs font-bold text-zinc-600">Prep / Processing Time</span>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setPrepTime((p) => Math.max(10, p - 5))}
-                  className="flex size-7 items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 text-sm font-black hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer select-none"
-                  title="Decrease 5 mins"
-                >
-                  -
-                </button>
-                <span className="min-w-[70px] text-center text-sm font-black text-zinc-950 font-mono">
-                  {prepTime} mins
+                <span className="w-12 text-center text-xs font-bold text-zinc-950 tabular-nums">
+                  {prepMinutes}m
                 </span>
                 <button
                   type="button"
-                  onClick={() => setPrepTime((p) => Math.min(180, p + 5))}
-                  className="flex size-7 items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 text-sm font-black hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer select-none"
-                  title="Increase 5 mins"
+                  onClick={() => setPrepMinutes((m) => Math.min(120, m + 5))}
+                  aria-label="Increase minutes"
+                  className="flex size-7 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-800 cursor-pointer"
                 >
-                  +
+                  <Plus className="size-3.5" />
                 </button>
               </div>
             </div>
 
-            {/* Bottom Row: [ Reject ]  [ Accept (01:45) ] */}
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setRejecting(true)}
-                disabled={isProcessing}
-                className="w-1/3 rounded-xl border border-rose-300 bg-white py-3 text-center text-xs font-black text-rose-600 shadow-2xs hover:bg-rose-50 active:scale-[0.98] transition-all cursor-pointer"
-              >
-                Reject
-              </button>
+            <div className="flex items-center gap-1.5">
+              {PREP_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setPrepMinutes(preset)}
+                  className={`flex-1 rounded-lg border py-1.5 text-[11px] font-semibold transition-colors cursor-pointer tabular-nums ${
+                    prepMinutes === preset
+                      ? "border-zinc-900 bg-zinc-900 text-white"
+                      : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+                  }`}
+                >
+                  {preset} min
+                </button>
+              ))}
+            </div>
 
+            {/* Footer Accept / Decline CTA */}
+            <div className="flex items-center gap-2.5 pt-2 border-t border-zinc-100">
               <button
                 type="button"
-                onClick={() => void handleAccept()}
-                disabled={isProcessing}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-center text-xs sm:text-sm font-black text-white shadow-md shadow-emerald-600/25 hover:bg-emerald-700 active:scale-[0.98] transition-all cursor-pointer"
+                disabled={submitting}
+                onClick={() => setShowRejectStep(true)}
+                className="h-11 px-4 rounded-xl border border-rose-200 bg-white hover:bg-rose-50 text-xs font-semibold text-rose-600 transition-colors cursor-pointer disabled:opacity-50"
               >
-                <Check className="size-4 stroke-[3]" />
-                <span>{isProcessing ? "Accepting..." : `Accept (${formattedCountdown})`}</span>
+                Decline
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleConfirmAccept}
+                className="flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white shadow-xs transition-all active:scale-[0.98] cursor-pointer disabled:opacity-60 flex items-center justify-center gap-1.5"
+              >
+                <Check className="size-4" />
+                {submitting ? "Accepting Order..." : `Accept Order · ${inr(totalAmount)}`}
               </button>
             </div>
           </div>
-        ) : null}
+        )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

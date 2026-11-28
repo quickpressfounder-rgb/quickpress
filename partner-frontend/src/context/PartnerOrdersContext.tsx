@@ -338,6 +338,7 @@ import {
   acquirePartnerWakeLock,
   releasePartnerWakeLock,
   preWarmPartnerAudio,
+  testPartnerSoundAndVibration,
 } from "../lib/partner-order-alert-sound";
 
 type OrdersStore = {
@@ -347,6 +348,9 @@ type OrdersStore = {
   isOffline: boolean;
   error: string | null;
   incomingOrder: ManagedOrder | null;
+  isAlarmMuted: boolean;
+  toggleAlarmMute: () => void;
+  dismissIncomingOrder: () => void;
   refresh: () => Promise<void>;
   acceptOrder: (orderId: string, prepTimeMinutes?: number) => Promise<void>;
   extendOrderTime: (orderId: string, additionalMinutes?: number, reason?: string) => Promise<void>;
@@ -421,6 +425,17 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
   const [isOffline, setIsOffline] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [incomingOrder, setIncomingOrder] = useState<ManagedOrder | null>(null);
+  const [isAlarmMuted, setIsAlarmMuted] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem("qp_partner_alarm_muted") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const isAlarmMutedRef = useRef(isAlarmMuted);
+  isAlarmMutedRef.current = isAlarmMuted;
+
   const [seenOrderIds, setSeenOrderIds] = useState<Set<string>>(() => readPersistedSet(SEEN_ORDERS_KEY));
 
   // Stable references for state to avoid recreating callbacks
@@ -538,6 +553,10 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
             seenOrderIdsRef.current.add(unacknowledgedNew.id);
             writePersistedSet(SEEN_ORDERS_KEY, seenOrderIdsRef.current);
             setSeenOrderIds((prev) => new Set([...prev, unacknowledgedNew.id]));
+            setIncomingOrder((current) => current || unacknowledgedNew);
+            if (!isAlarmMutedRef.current) {
+              startOrderAlarm();
+            }
           }
         }
       } catch (err: any) {
@@ -624,7 +643,12 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
           if (payloadAmount > 0) managed.amount = payloadAmount;
           managed.stage = "new";
 
-          // Order arrives cleanly in queue without disruptive modal popups or alarm sirens per merchant setting
+          // Open clean high-focus incoming order sheet & optional sound alert
+          setIncomingOrder(managed);
+          if (!isAlarmMutedRef.current) {
+            startOrderAlarm();
+          }
+
           setOrders((prev) => {
             const existingIdx = prev.findIndex((o) => o.id === managed.id || o.code === managed.code);
             let next: ManagedOrder[];
@@ -979,8 +1003,28 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
     [load],
   );
 
+  const toggleAlarmMute = useCallback(() => {
+    setIsAlarmMuted((prev) => {
+      const next = !prev;
+      if (next) {
+        stopOrderAlarm();
+      }
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.setItem("qp_partner_alarm_muted", next ? "1" : "0");
+        } catch {}
+      }
+      return next;
+    });
+  }, []);
+
+  const dismissIncomingOrder = useCallback(() => {
+    stopOrderAlarm();
+    setIncomingOrder(null);
+  }, []);
+
   const testIncomingOrderAlarm = useCallback(() => {
-    // Disabled in production/live integration: order alarm only triggers on real API orders
+    testPartnerSoundAndVibration();
   }, []);
 
   const counts = useMemo(() => {
@@ -1011,6 +1055,9 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
       isOffline,
       error,
       incomingOrder,
+      isAlarmMuted,
+      toggleAlarmMute,
+      dismissIncomingOrder,
       refresh,
       acceptOrder,
       extendOrderTime,
@@ -1030,6 +1077,9 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
       isOffline,
       error,
       incomingOrder,
+      isAlarmMuted,
+      toggleAlarmMute,
+      dismissIncomingOrder,
       refresh,
       acceptOrder,
       extendOrderTime,

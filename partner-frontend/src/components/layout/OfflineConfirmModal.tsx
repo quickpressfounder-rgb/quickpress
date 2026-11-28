@@ -1,169 +1,301 @@
-import React, { useState } from "react";
-import { Coffee, Moon, PowerOff, ShieldAlert, WashingMachine, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import {
+  AlertCircle,
+  CalendarOff,
+  CheckCircle2,
+  Clock,
+  Layers,
+  PowerOff,
+  Radio,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 
-interface OfflineConfirmModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: (reason: string, durationMinutes?: number) => void;
-  isLoading?: boolean;
-}
+export type PauseReasonOption = {
+  id: string;
+  label: string;
+  subtitle: string;
+  durationMinutes?: number;
+  icon: "clock" | "capacity" | "closing" | "manual";
+};
 
-const OFFLINE_REASONS = [
+const OFFLINE_REASONS: PauseReasonOption[] = [
   {
     id: "break_30",
-    icon: Coffee,
-    title: "Taking a short break",
-    desc: "Auto-reopen in 30 minutes",
-    duration: 30,
+    label: "Short Break (30 min)",
+    subtitle: "Pause new pickup requests temporarily",
+    durationMinutes: 30,
+    icon: "clock",
   },
   {
     id: "busy_60",
-    icon: WashingMachine,
-    title: "Laundry machines at capacity",
-    desc: "Pause new orders for 1 hour",
-    duration: 60,
+    label: "Machines at Capacity (1 hr)",
+    subtitle: "Clear active wash & press loads first",
+    durationMinutes: 60,
+    icon: "capacity",
   },
   {
     id: "closing_today",
-    icon: Moon,
-    title: "Closing store for today",
-    desc: "Reopen tomorrow at 8:00 AM",
-    duration: 720,
+    label: "Closing for Today",
+    subtitle: "Stay offline until next opening hours",
+    icon: "closing",
   },
   {
     id: "manual",
-    icon: PowerOff,
-    title: "Turn offline manually",
-    desc: "Stay offline until I switch back online",
-    duration: 0,
+    label: "Manual Hold",
+    subtitle: "Remain paused until you switch Live",
+    icon: "manual",
   },
 ];
 
-export function OfflineConfirmModal({
+function ReasonIcon({ icon, selected }: { icon: PauseReasonOption["icon"]; selected: boolean }) {
+  const cls = `size-4 ${selected ? "text-zinc-900" : "text-zinc-500"}`;
+  switch (icon) {
+    case "clock":
+      return <Clock className={cls} />;
+    case "capacity":
+      return <Layers className={cls} />;
+    case "closing":
+      return <CalendarOff className={cls} />;
+    case "manual":
+      return <PowerOff className={cls} />;
+  }
+}
+
+export interface StoreStatusControlModalProps {
+  isOpen: boolean;
+  mode?: "offline" | "online";
+  isLoading?: boolean;
+  onClose: () => void;
+  onConfirmOffline: (reason: string, durationMinutes?: number) => void;
+  onConfirmOnline?: () => void;
+}
+
+/**
+ * Portal-rendered store online/offline confirmation sheet.
+ * Portaling to document.body guarantees the dialog never clips inside
+ * sticky/backdrop-blur headers on mobile WebViews or desktop browsers.
+ */
+export function StoreStatusControlModal({
   isOpen,
-  onClose,
-  onConfirm,
+  mode = "offline",
   isLoading = false,
-}: OfflineConfirmModalProps) {
-  const [selectedReason, setSelectedReason] = useState<string>("break_30");
+  onClose,
+  onConfirmOffline,
+  onConfirmOnline,
+}: StoreStatusControlModalProps) {
+  const [selectedReasonId, setSelectedReasonId] = useState<string>("break_30");
+  const [mounted, setMounted] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const currentOption = OFFLINE_REASONS.find((r) => r.id === selectedReason);
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelectedReasonId("break_30");
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isLoading) onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, isLoading, onClose]);
+
+  if (!isOpen || !mounted || typeof document === "undefined") return null;
+
+  const isGoingOffline = mode === "offline";
+  const selectedOption =
+    OFFLINE_REASONS.find((item) => item.id === selectedReasonId) ?? OFFLINE_REASONS[0]!;
 
   const handleConfirm = () => {
-    if (!currentOption) {
-      onConfirm("Manual offline");
-      return;
+    if (isLoading) return;
+    if (isGoingOffline) {
+      onConfirmOffline(selectedOption.label, selectedOption.durationMinutes);
+    } else if (onConfirmOnline) {
+      onConfirmOnline();
     }
-    onConfirm(currentOption.title, currentOption.duration > 0 ? currentOption.duration : undefined);
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
-      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="store-status-modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isLoading) onClose();
+      }}
+      className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-zinc-950/55 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-150"
     >
-      <div
-        className="w-full max-w-md mx-auto bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border-t sm:border border-zinc-200 overflow-hidden flex flex-col max-h-[82vh] animate-in slide-in-from-bottom duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Mobile Pull Indicator */}
-        <div className="mx-auto mt-2.5 mb-1 h-1 w-10 rounded-full bg-zinc-300 sm:hidden shrink-0" />
-
-        {/* Top Header */}
-        <div className="flex items-center justify-between px-5 pt-3 pb-3 border-b border-zinc-100 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600">
-              <ShieldAlert className="size-5" />
+      <div className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 pb-4 border-b border-zinc-100">
+          <div className="flex items-center gap-3">
+            <div
+              className={`flex size-10 shrink-0 items-center justify-center rounded-xl border ${
+                isGoingOffline
+                  ? "border-rose-200 bg-rose-50 text-rose-600"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-600"
+              }`}
+            >
+              {isGoingOffline ? <PowerOff className="size-4.5" /> : <Radio className="size-4.5" />}
             </div>
             <div>
-              <h2 className="text-base font-black text-zinc-950">Go Offline?</h2>
-              <p className="text-[11px] font-medium text-zinc-500">
-                You won't receive new laundry orders
+              <h2
+                id="store-status-modal-title"
+                className="text-base font-bold tracking-tight text-zinc-950"
+              >
+                {isGoingOffline ? "Pause New Orders?" : "Go Live & Accept Orders?"}
+              </h2>
+              <p className="text-xs font-medium text-zinc-500 mt-0.5">
+                {isGoingOffline
+                  ? "Temporarily hide storefront from new customer searches"
+                  : "Make storefront visible for instant pickup requests"}
               </p>
             </div>
           </div>
+
           <button
             type="button"
+            disabled={isLoading}
             onClick={onClose}
-            className="flex size-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors cursor-pointer"
+            aria-label="Close dialog"
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-colors cursor-pointer disabled:opacity-50"
           >
-            <X className="size-4.5" />
+            <X className="size-4" />
           </button>
         </div>
 
-        {/* Reason / Duration Selection */}
-        <div className="p-5 space-y-2.5 overflow-y-auto">
-          <p className="text-xs font-semibold text-zinc-700 mb-1">
-            Why are you pausing your store?
-          </p>
-          {OFFLINE_REASONS.map((reason) => {
-            const Icon = reason.icon;
-            const isSelected = selectedReason === reason.id;
-            return (
-              <button
-                key={reason.id}
-                type="button"
-                onClick={() => setSelectedReason(reason.id)}
-                className={`flex w-full items-center gap-3.5 rounded-2xl p-3.5 text-left transition-all cursor-pointer border ${
-                  isSelected
-                    ? "border-emerald-600 bg-emerald-50/60 shadow-xs"
-                    : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
-                }`}
-              >
-                <div
-                  className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${
-                    isSelected ? "bg-emerald-600 text-white shadow-2xs" : "bg-zinc-100 text-zinc-600"
-                  }`}
-                >
-                  <Icon className="size-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-xs font-bold ${
-                        isSelected ? "text-emerald-950" : "text-zinc-900"
-                      }`}
-                    >
-                      {reason.title}
-                    </span>
-                    <span
-                      className={`size-4.5 rounded-full border flex items-center justify-center transition-colors ${
-                        isSelected
-                          ? "border-emerald-600 bg-emerald-600"
-                          : "border-zinc-300 bg-white"
-                      }`}
-                    >
-                      {isSelected && <span className="size-1.5 rounded-full bg-white" />}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-zinc-500 mt-0.5">{reason.desc}</p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        {/* Body */}
+        {isGoingOffline ? (
+          <div className="mt-4 space-y-4">
+            <div className="flex items-start gap-2.5 rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5">
+              <ShieldCheck className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+              <p className="text-xs font-medium text-zinc-600 leading-relaxed">
+                <span className="font-semibold text-zinc-900">Active queue stays safe.</span> Accepted and washing orders continue normally while new orders pause.
+              </p>
+            </div>
 
-        {/* Footer Actions - Elevated safely above bottom nav with ample padding */}
-        <div className="flex items-center gap-3 bg-zinc-50 px-5 pt-3.5 pb-8 sm:pb-4 border-t border-zinc-100 shrink-0">
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                Select pause duration or reason
+              </p>
+              <div className="grid grid-cols-1 gap-2">
+                {OFFLINE_REASONS.map((option) => {
+                  const selected = selectedReasonId === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setSelectedReasonId(option.id)}
+                      className={`flex items-center justify-between gap-3 rounded-xl border px-3.5 py-3 text-left transition-all cursor-pointer ${
+                        selected
+                          ? "border-zinc-900 bg-zinc-50/90 ring-1 ring-zinc-900/10"
+                          : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span
+                          className={`flex size-8 shrink-0 items-center justify-center rounded-lg border ${
+                            selected
+                              ? "border-zinc-300 bg-white"
+                              : "border-zinc-200 bg-zinc-50"
+                          }`}
+                        >
+                          <ReasonIcon icon={option.icon} selected={selected} />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-zinc-950 truncate">
+                            {option.label}
+                          </p>
+                          <p className="text-[11px] font-medium text-zinc-500 truncate mt-0.5">
+                            {option.subtitle}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`flex size-4 shrink-0 items-center justify-center rounded-full border ${
+                          selected ? "border-zinc-900 bg-zinc-900" : "border-zinc-300 bg-white"
+                        }`}
+                      >
+                        {selected ? <span className="size-1.5 rounded-full bg-white" /> : null}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-3.5 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-900">
+                <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                <span>Ready to accept orders</span>
+              </div>
+              <p className="text-xs font-medium text-zinc-600 leading-relaxed pl-6">
+                Nearby customers can immediately place pickup and express laundry orders with your store.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-xs font-medium text-zinc-600">
+              <AlertCircle className="size-3.5 text-zinc-500 shrink-0" />
+              <span>Keep order sound notifications unmuted for 2-minute SLA alerts.</span>
+            </div>
+          </div>
+        )}
+
+        {/* Footer Actions */}
+        <div className="mt-5 flex items-center gap-2.5 pt-4 border-t border-zinc-100">
           <button
             type="button"
+            disabled={isLoading}
             onClick={onClose}
-            className="flex-1 rounded-2xl py-3 text-xs font-bold text-zinc-700 bg-white border border-zinc-200 hover:bg-zinc-100 transition-colors shadow-2xs active:scale-98 cursor-pointer"
+            className="flex-1 h-10 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold text-zinc-700 transition-colors cursor-pointer disabled:opacity-50"
           >
-            Keep Online
+            {isGoingOffline ? "Stay Live" : "Keep Offline"}
           </button>
           <button
             type="button"
             disabled={isLoading}
             onClick={handleConfirm}
-            className="flex-1 rounded-2xl bg-rose-600 hover:bg-rose-700 py-3 text-xs font-black text-white shadow-md shadow-rose-600/20 transition-all active:scale-98 disabled:opacity-50 cursor-pointer"
+            className={`flex-1 h-10 rounded-xl text-xs font-semibold text-white transition-all active:scale-[0.98] cursor-pointer disabled:opacity-60 flex items-center justify-center gap-1.5 ${
+              isGoingOffline
+                ? "bg-rose-600 hover:bg-rose-700"
+                : "bg-emerald-600 hover:bg-emerald-700"
+            }`}
           >
-            {isLoading ? "Going Offline..." : "Confirm Go Offline"}
+            {isLoading
+              ? "Updating..."
+              : isGoingOffline
+                ? "Confirm Go Offline"
+                : "Go Live Now"}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
+  );
+}
+
+interface OfflineConfirmModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirmOffline: (reason: string, durationMinutes?: number) => void;
+}
+
+/** Backward-compatible export wrapping StoreStatusControlModal in offline mode. */
+export function OfflineConfirmModal({
+  isOpen,
+  onClose,
+  onConfirmOffline,
+}: OfflineConfirmModalProps) {
+  return (
+    <StoreStatusControlModal
+      isOpen={isOpen}
+      mode="offline"
+      onClose={onClose}
+      onConfirmOffline={onConfirmOffline}
+    />
   );
 }

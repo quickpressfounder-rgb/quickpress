@@ -1,137 +1,174 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { Clock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { usePartnerContext } from "../../context/PartnerContext";
-import { OfflineConfirmModal } from "./OfflineConfirmModal";
+import { StoreStatusControlModal } from "./OfflineConfirmModal";
+
+const AUTO_RESUME_STORAGE_KEY = "qp_store_auto_resume_at";
 
 interface PartnerOnlineToggleProps {
   className?: string;
   showScheduleHint?: boolean;
 }
 
+function formatRemainingCountdown(targetIso: string | null): string | null {
+  if (!targetIso) return null;
+  const diffMs = new Date(targetIso).getTime() - Date.now();
+  if (!Number.isFinite(diffMs) || diffMs <= 0) return null;
+  const mins = Math.ceil(diffMs / 60000);
+  return `${mins}m`;
+}
+
+/**
+ * Unified store online/offline header pill backed by the portal-rendered
+ * StoreStatusControlModal in both directions (Online <-> Offline) plus optional timed auto-resume.
+ */
 export function PartnerOnlineToggle({
   className = "",
   showScheduleHint = false,
 }: PartnerOnlineToggleProps) {
   const { isOnline, setOnline } = usePartnerContext();
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [modalMode, setModalMode] = useState<"offline" | "online" | null>(null);
   const [isToggling, setIsToggling] = useState(false);
-
-  // Auto store timing check (8:00 AM - 10:00 PM)
-  const [isWithinStoreHours, setIsWithinStoreHours] = useState(true);
-
-  useEffect(() => {
-    const checkHours = () => {
-      const now = new Date();
-      const currentHour = now.getHours();
-      // Store open 8:00 AM (8) to 10:00 PM (22)
-      setIsWithinStoreHours(currentHour >= 8 && currentHour < 22);
-    };
-    checkHours();
-    const interval = setInterval(checkHours, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isOnline) {
-      // Prompt confirmation before going offline
-      setShowConfirmModal(true);
-    } else {
-      // Instantly go online
-      setIsToggling(true);
-      setOnline(true);
-      toast.success("Store is now ONLINE — Ready to receive laundry orders!");
-      window.setTimeout(() => setIsToggling(false), 300);
+  const [autoResumeAt, setAutoResumeAt] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      return window.localStorage.getItem(AUTO_RESUME_STORAGE_KEY);
+    } catch {
+      return null;
     }
+  });
+  const [countdownLabel, setCountdownLabel] = useState<string | null>(() =>
+    formatRemainingCountdown(autoResumeAt)
+  );
+
+  // Sync & auto-resume when a timed pause expires
+  useEffect(() => {
+    if (isOnline) {
+      if (autoResumeAt) {
+        setAutoResumeAt(null);
+        setCountdownLabel(null);
+        try {
+          window.localStorage.removeItem(AUTO_RESUME_STORAGE_KEY);
+        } catch {}
+      }
+      return;
+    }
+
+    if (!autoResumeAt) {
+      setCountdownLabel(null);
+      return;
+    }
+
+    const tick = () => {
+      const nextLabel = formatRemainingCountdown(autoResumeAt);
+      if (!nextLabel) {
+        setAutoResumeAt(null);
+        setCountdownLabel(null);
+        try {
+          window.localStorage.removeItem(AUTO_RESUME_STORAGE_KEY);
+        } catch {}
+        void setOnline(true);
+        toast.success("Scheduled break ended — Store is back LIVE");
+        return;
+      }
+      setCountdownLabel(nextLabel);
+    };
+
+    tick();
+    const id = window.setInterval(tick, 15000);
+    return () => window.clearInterval(id);
+  }, [isOnline, autoResumeAt, setOnline]);
+
+  const handleToggleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isToggling) return;
+    setModalMode(isOnline ? "offline" : "online");
   };
 
   const handleConfirmOffline = (reason: string, durationMinutes?: number) => {
     setIsToggling(true);
-    setOnline(false);
-    setShowConfirmModal(false);
-    const msg = durationMinutes
-      ? `Store is paused for ${durationMinutes} mins (${reason})`
-      : `Store is OFFLINE (${reason})`;
-    toast.info(msg);
-    window.setTimeout(() => setIsToggling(false), 300);
+    void setOnline(false);
+
+    if (durationMinutes && durationMinutes > 0) {
+      const resumeIso = new Date(Date.now() + durationMinutes * 60000).toISOString();
+      setAutoResumeAt(resumeIso);
+      setCountdownLabel(`${durationMinutes}m`);
+      try {
+        window.localStorage.setItem(AUTO_RESUME_STORAGE_KEY, resumeIso);
+      } catch {}
+    } else {
+      setAutoResumeAt(null);
+      setCountdownLabel(null);
+      try {
+        window.localStorage.removeItem(AUTO_RESUME_STORAGE_KEY);
+      } catch {}
+    }
+
+    setModalMode(null);
+    toast.warning(`Store paused: ${reason}`, {
+      description: durationMinutes
+        ? `Auto-resumes in ${durationMinutes} minutes.`
+        : "Switch back to Live anytime to accept orders.",
+    });
+    window.setTimeout(() => setIsToggling(false), 250);
+  };
+
+  const handleConfirmOnline = () => {
+    setIsToggling(true);
+    void setOnline(true);
+    setAutoResumeAt(null);
+    setCountdownLabel(null);
+    try {
+      window.localStorage.removeItem(AUTO_RESUME_STORAGE_KEY);
+    } catch {}
+    setModalMode(null);
+    toast.success("Store is now LIVE — ready to receive laundry orders");
+    window.setTimeout(() => setIsToggling(false), 250);
   };
 
   return (
-    <>
-      <div className={`relative inline-flex items-center gap-1.5 ${className}`}>
-        <button
-          type="button"
-          onClick={handleClick}
-          disabled={isToggling}
-          aria-label={isOnline ? "Switch to Offline" : "Switch to Online"}
-          className={`group relative flex items-center h-8.5 w-[116px] px-1 rounded-full cursor-pointer select-none transition-colors duration-300 ease-in-out active:scale-95 border ${
-            isOnline
-              ? "bg-emerald-600 hover:bg-emerald-700 border-emerald-500/50 text-white shadow-[0_2px_12px_rgba(16,185,129,0.3)]"
-              : "bg-zinc-100 hover:bg-zinc-200/80 border-zinc-200 text-zinc-600 shadow-2xs"
-          }`}
-        >
-          {/* Text Labels Layer */}
-          <div className="absolute inset-0 flex items-center justify-between px-3 text-[11px] font-black uppercase tracking-wider pointer-events-none">
-            <span
-              className={`transition-opacity duration-200 flex items-center gap-1.5 ${
-                isOnline ? "opacity-100 text-white" : "opacity-0"
-              }`}
-            >
-              <span className="relative flex size-1.5">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-200 opacity-75" />
-                <span className="relative inline-flex size-1.5 rounded-full bg-white" />
-              </span>
-              Online
-            </span>
-            <span
-              className={`transition-opacity duration-200 ml-auto ${
-                !isOnline ? "opacity-100 text-zinc-600" : "opacity-0"
-              }`}
-            >
-              Offline
-            </span>
-          </div>
-
-          {/* Smooth Sliding Circle Knob */}
+    <div className={`inline-flex items-center gap-2 ${className}`}>
+      <button
+        type="button"
+        disabled={isToggling}
+        onClick={handleToggleClick}
+        aria-pressed={isOnline}
+        title={isOnline ? "Click to pause new orders" : "Click to go live"}
+        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 cursor-pointer select-none ${
+          isOnline
+            ? "border-emerald-200 bg-emerald-50/75 text-emerald-800 hover:bg-emerald-100/80"
+            : "border-rose-200 bg-rose-50/80 text-rose-800 hover:bg-rose-100/80"
+        }`}
+      >
+        {isToggling ? (
+          <Loader2 className="size-3 animate-spin" />
+        ) : (
           <span
-            className={`size-6 rounded-full bg-white shadow-sm border border-zinc-200/50 flex items-center justify-center shrink-0 transition-transform duration-300 ease-out transform ${
-              isOnline ? "translate-x-[82px]" : "translate-x-0"
+            className={`size-2 rounded-full ${
+              isOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
             }`}
-          >
-            {isToggling ? (
-              <span
-                className={`size-3 rounded-full border-2 border-t-transparent animate-spin ${
-                  isOnline ? "border-emerald-600" : "border-zinc-400"
-                }`}
-              />
-            ) : (
-              <span
-                className={`size-2 rounded-full transition-colors duration-200 ${
-                  isOnline ? "bg-emerald-600" : "bg-zinc-400"
-                }`}
-              />
-            )}
-          </span>
-        </button>
-
-        {/* Subtle auto store schedule indicator */}
-        {showScheduleHint && !isWithinStoreHours && (
-          <span
-            className="text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200"
-            title="Standard operating hours are 8:00 AM - 10:00 PM"
-          >
-            After Hours
-          </span>
+          />
         )}
-      </div>
+        <span className="tracking-tight">
+          {isOnline ? "Live" : "Offline"}
+        </span>
+        {showScheduleHint && !isOnline && countdownLabel ? (
+          <span className="inline-flex items-center gap-0.5 rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 border border-rose-200/70 tabular-nums">
+            <Clock className="size-2.5" />
+            {countdownLabel}
+          </span>
+        ) : null}
+      </button>
 
-      {/* Confirmation Bottom Sheet */}
-      <OfflineConfirmModal
-        isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
-        onConfirm={handleConfirmOffline}
+      <StoreStatusControlModal
+        isOpen={modalMode !== null}
+        mode={modalMode || (isOnline ? "offline" : "online")}
         isLoading={isToggling}
+        onClose={() => setModalMode(null)}
+        onConfirmOffline={handleConfirmOffline}
+        onConfirmOnline={handleConfirmOnline}
       />
-    </>
+    </div>
   );
 }

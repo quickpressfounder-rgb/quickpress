@@ -602,10 +602,11 @@ export function ZomatoHubView() {
               <Search className="absolute left-3 top-2.5 size-4 text-zinc-400" />
               <input
                 type="text"
-                placeholder="Search by order ID, customer name, phone..."
+                placeholder=""
+                aria-label="Search orders"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-zinc-300 bg-zinc-50 pl-9 pr-3 py-1.5 text-xs font-bold text-black placeholder:text-zinc-400 focus:border-black focus:outline-none focus:bg-white"
+                className="w-full rounded-xl border border-zinc-300 bg-zinc-50 pl-9 pr-3 py-1.5 text-xs font-bold text-black focus:border-black focus:outline-none focus:bg-white"
               />
             </div>
             {searchQuery && (
