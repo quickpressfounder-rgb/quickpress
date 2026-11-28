@@ -6,7 +6,7 @@
 
 1. **Build Execution (`python3 build_all_apks.py customer`):**
    - Built updated `customer-frontend` SSR bundle (`VITE_API_BASE_URL=https://api.withquickpress.com`) including the reverted dark-green Pronto `LocationDetecting.tsx` (`ff824a8d`), scoped `AboutPage.tsx` neutral icons (`37080aa4`), and `MapPicker.tsx` safe-area top header fix (`d46c17cc`).
-   - Compiled `apks/QuickPress-Customer.apk` (21,051,540 bytes) and `apks/QuickPress-Customer.aab` (20,027,280 bytes), uploaded to EC2 (`/var/www/quickpress/website/apks/QuickPress-Customer.apk`), copied to artifact dir, and synced Customer iOS Capacitor assets (`npx cap sync ios`).
+   - Compiled `apks/QuickPress-Customer.apk` (21,051,540 bytes) and `apks/QuickPress-Customer.aab` (20,027,282 bytes), uploaded directly to EC2 (`/var/www/quickpress/website/apks/QuickPress-Customer.apk`), and copied to artifact dir (`05c3991a-4437-4fdf-9278-c9fe73a12ca7`); non-blocking `npx cap sync ios` skipped due to cleaned `.output/public/index.html`.
 
 ---
 
