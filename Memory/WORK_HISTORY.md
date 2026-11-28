@@ -6702,3 +6702,21 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
 - **Verification**:
   - `tsc --noEmit` confirmed zero TypeScript errors in `partner-frontend/src/screens/AnalyticsScreen.tsx`.
   - `partner-frontend` production Vite + Nitro build passed cleanly in `2.34s` (Exit code 0).
+
+---
+
+## Session: Senior Fintech Partner Settlements & Payouts Redesign (`/earnings`)
+- **Date**: 2026-11-28
+- **User Directive**: Redesign all Payouts & Settlements pages (`EarningsScreen.tsx` & `SettlementSummaryModal.tsx`) following the approved rough design (`payout_pages_rough_wireframe.html`) with ultra-clean header (`Settlements & Payouts` only), zero manual Withdraw options, date & month only cycle formatting, horizontally scrollable mobile tables, and order ID-only ledgers (no customer or product names).
+- **Accomplishments & Changes**:
+  1. **Ultra-Clean Header & Automated Bank Settlement Rail ([EarningsScreen.tsx](file:///Users/himanshupal/Documents/Source%20Code/Scource%20Code%20/Officall-main/partner-frontend/src/screens/EarningsScreen.tsx))**:
+     - Header renders exclusively `"Settlements & Payouts"` (removed Export/PDF/Withdraw/badges/subtitles from header).
+     - Removed all manual Withdraw controls; replaced with Automated Settlement KPI Card + Verified Bank Destination Rail (`Bank Name`, masked account, IFSC, transfer mode, and Last Settled UTR 1-tap copy).
+     - Built **Settlement Passbook** (`By Settlement Cycle` + `By Individual Order`, blank `placeholder=""` search, status filter, `overflow-x-auto` mobile scrolling, Date & Month cycle formatting, in-row PDF & CSV statement downloads, and Order ID-only rows).
+     - Built **Cashflow & Margin** (interactive SVG Payout Trajectory curve with hover crosshair + Take-Home Margin Split) and **GST & Tax Invoices** (Commission Monthly PDF/Excel + Order Invoice PDF).
+  2. **Clean Cycle Audit Sub-View ([SettlementSummaryModal.tsx](file:///Users/himanshupal/Documents/Source%20Code/Scource%20Code%20/Officall-main/partner-frontend/src/components/finance/SettlementSummaryModal.tsx))**:
+     - Removed internal Back button; preserved seamless switching via the top navigation tabs.
+     - Implemented **A–F Double-Entry Summary**, horizontally scrollable **Orders Audit** (Order ID only), **Taxes & Deductions**, plus **Email Report**, **Excel**, and **Download PDF**.
+- **Verification**:
+  - `tsc --noEmit` confirmed zero TypeScript errors across `EarningsScreen.tsx` and `SettlementSummaryModal.tsx`.
+  - `partner-frontend` production Vite + Nitro build passed cleanly in `2.24s` (Exit code 0).

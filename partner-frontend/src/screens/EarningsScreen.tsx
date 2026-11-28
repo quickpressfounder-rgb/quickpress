@@ -1,68 +1,40 @@
-import { useNavigate, Link } from "@tanstack/react-router";
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  BarChart2,
-  Bell,
-  BookOpen,
-  Building2,
-  Calendar,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  Clock3,
-  Copy,
-  CreditCard,
-  Download,
-  ExternalLink,
-  FileSpreadsheet,
-  FileText,
-  Filter,
-  HelpCircle,
-  IndianRupee,
-  Layers,
-  Loader2,
-  Menu,
-  Percent,
-  RotateCw,
-  Search,
-  ShieldCheck,
-  TrendingUp,
-  Wallet,
-  Zap,
-} from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Download, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Toaster } from "@/shared/ui/sonner";
 import { PartnerLayout } from "../components/layout/PartnerLayout";
 import { PartnerCardsSkeleton } from "../components/PartnerSkeletons";
 import { usePartnerResource } from "../hooks/use-partner-resource";
-import { partnerRoutes } from "../navigation/partner-routes";
 import { fetchPartnerProfile } from "@/api/partner/partner-profile-api";
 import {
   type FinanceOverviewResponse,
-  type TaxInvoice,
-  type SettlementOrder,
   type PassbookEntry,
+  type SettlementOrder,
+  type TaxInvoice,
+  downloadCommissionInvoiceExcelBlob,
+  downloadCommissionInvoicePdfBlob,
+  downloadPartnerInvoicePdfBlob,
+  downloadSettlementExcelBlob,
+  downloadSettlementPdfBlob,
   fetchFinanceOverview,
   fetchFinanceTaxInvoices,
-  getCachedFinanceOverview,
   getCachedFinanceInvoices,
-  downloadSettlementPdfBlob,
-  downloadSettlementExcelBlob,
-  downloadPartnerInvoicePdfBlob,
-  downloadCommissionInvoicePdfBlob,
-  downloadCommissionInvoiceExcelBlob,
+  getCachedFinanceOverview,
 } from "@/api/partner/partner-finance-api";
 import { SettlementSummaryModal } from "../components/finance/SettlementSummaryModal";
-import { formatPartnerId } from "../lib/format-ids";
+import { inr } from "../lib/currency";
 
-const inr = (value: number) => `₹${Math.round(value).toLocaleString("en-IN")}`;
+/** Format cycle/payout dates cleanly as Date & Month only (strips prefixes & weekday names). */
+function formatDateMonthOnly(raw?: string | null): string {
+  if (!raw) return "—";
+  return raw
+    .replace(/^(current|weekly|daily|monthly)\s*(settlement|cycle)?\s*[•·:\-]\s*/i, "")
+    .replace(/\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+/gi, "")
+    .trim();
+}
 
 export function EarningsScreen() {
-  const [mounted, setMounted] = useState(false);
-  const navigate = useNavigate();
   const { data: profile } = usePartnerResource(fetchPartnerProfile);
 
   const cachedOverview = getCachedFinanceOverview();
@@ -70,123 +42,86 @@ export function EarningsScreen() {
 
   const [financeData, setFinanceData] = useState<FinanceOverviewResponse | null>(cachedOverview);
   const [invoices, setInvoices] = useState<TaxInvoice[]>(cachedInvoices?.invoices || []);
-  const [orderInvoices, setOrderInvoices] = useState<TaxInvoice[]>(cachedInvoices?.orderInvoices || []);
+  const [orderInvoices, setOrderInvoices] = useState<TaxInvoice[]>(
+    cachedInvoices?.orderInvoices || []
+  );
   const [loading, setLoading] = useState(!cachedOverview);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Subtabs: Passbook (Default) vs Weekly Trends vs Invoices
   const [activeSubTab, setActiveSubTab] = useState<"passbook" | "trends" | "invoices">("passbook");
-
-  // Passbook view mode: By Settlement Cycle or By Individual Orders
   const [passbookViewMode, setPassbookViewMode] = useState<"cycles" | "orders">("cycles");
-
-  const [selectedPastRange, setSelectedPastRange] = useState<string>(cachedOverview?.filterOptions?.[0] || "");
-  const [selectedCycleForModal, setSelectedCycleForModal] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [copiedUtr, setCopiedUtr] = useState<string | null>(null);
-
-  // Filter state for orders & cycles
   const [statusFilter, setStatusFilter] = useState<"all" | "settled" | "processing">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCycleForAudit, setSelectedCycleForAudit] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [hoveredDayIdx, setHoveredDayIdx] = useState<number | null>(null);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const loadData = async () => {
-    setIsRefreshing(true);
-    try {
-      const [overview, invRes] = await Promise.all([
-        fetchFinanceOverview().catch(() => null),
-        fetchFinanceTaxInvoices().catch(() => ({ invoices: [], orderInvoices: [] })),
-      ]);
-      if (overview) {
-        setFinanceData(overview);
-        if (overview.filterOptions?.length && !selectedPastRange) {
-          setSelectedPastRange(overview.filterOptions[0]);
+    let alive = true;
+    const loadData = async () => {
+      try {
+        const [overview, invRes] = await Promise.all([
+          fetchFinanceOverview().catch(() => null),
+          fetchFinanceTaxInvoices().catch(() => ({ invoices: [], orderInvoices: [] })),
+        ]);
+        if (!alive) return;
+        if (overview) setFinanceData(overview);
+        if (invRes?.invoices) setInvoices(invRes.invoices);
+        if (invRes?.orderInvoices) {
+          setOrderInvoices(
+            invRes.orderInvoices.filter((inv) => Boolean(inv && inv.amount > 0))
+          );
         }
+      } finally {
+        if (alive) setLoading(false);
       }
-      if (invRes?.invoices) {
-        setInvoices(invRes.invoices);
-      }
-      if (invRes?.orderInvoices) {
-        const validOrders = invRes.orderInvoices.filter((inv) => {
-          if (!inv || inv.amount <= 0) return false;
-          if (inv.orderNumber === "QP-8BD3") return false;
-          if (inv.type?.toLowerCase().includes("test customer")) return false;
-          return true;
-        });
-        setOrderInvoices(validOrders);
-      }
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
+    };
     void loadData();
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  const copyToClipboard = (text: string, label: string = "UTR") => {
+  const copyToClipboard = (text: string, label = "UTR") => {
     if (!text) return;
-    navigator.clipboard.writeText(text);
-    setCopiedUtr(text);
-    toast.success(`${label} copied to clipboard!`);
-    setTimeout(() => {
-      setCopiedUtr(null);
-    }, 2000);
+    void navigator.clipboard?.writeText(text);
+    toast.success(`${label} copied`);
   };
 
-  const handleDownloadStatementPdf = async (customCycleId?: string) => {
-    const cycle = customCycleId
-      ? { cycleId: customCycleId, period: customCycleId }
-      : (financeData?.pastCycles.find((c) => c.period === selectedPastRange) || financeData?.pastCycles[0] || { cycleId: "current", period: "Current" });
-    if (!cycle?.cycleId) {
-      toast.error("No settlement cycle available for download");
-      return;
-    }
-    toast.info(`Preparing official Settlement Statement PDF (${cycle.period})...`);
+  const handleDownloadCyclePdf = async (cycleId: string) => {
+    setDownloadingId(`pdf-${cycleId}`);
     try {
-      await downloadSettlementPdfBlob(cycle.cycleId);
-      toast.success(`Settlement Statement PDF downloaded!`);
+      await downloadSettlementPdfBlob(cycleId);
+      toast.success("Settlement PDF downloaded");
     } catch (err: any) {
-      console.error("Statement PDF download error:", err);
-      toast.error(err.message || "Failed to download settlement statement PDF");
+      toast.error(err?.message || "Failed to download PDF");
+    } finally {
+      setDownloadingId(null);
     }
   };
 
-  const handleDownloadStatementExcel = async (customCycleId?: string) => {
-    const cycle = customCycleId
-      ? { cycleId: customCycleId, period: customCycleId }
-      : (financeData?.pastCycles.find((c) => c.period === selectedPastRange) || financeData?.pastCycles[0] || { cycleId: "current", period: "Current" });
-    if (!cycle?.cycleId) {
-      toast.error("No settlement cycle available for download");
-      return;
-    }
-    toast.info(`Generating Excel / CSV Settlement Statement (${cycle.period})...`);
+  const handleDownloadCycleExcel = async (cycleId: string) => {
+    setDownloadingId(`csv-${cycleId}`);
     try {
-      await downloadSettlementExcelBlob(cycle.cycleId);
-      toast.success(`Settlement Statement Excel / CSV downloaded!`);
+      await downloadSettlementExcelBlob(cycleId);
+      toast.success("Settlement CSV downloaded");
     } catch (err: any) {
-      console.error("Statement Excel download error:", err);
-      toast.error(err.message || "Failed to download settlement statement Excel");
+      toast.error(err?.message || "Failed to download CSV");
+    } finally {
+      setDownloadingId(null);
     }
   };
 
   const handleDownloadOrderInvoicePdf = async (inv: TaxInvoice) => {
     const targetId = inv.orderNumber || inv.invoiceNumber;
     setDownloadingId(inv.invoiceNumber);
-    toast.info(`Preparing official Tax Invoice ${inv.invoiceNumber}...`);
     try {
       await downloadPartnerInvoicePdfBlob(
         targetId,
         `QuickPress-Invoice-${inv.invoiceNumber.replace(/\//g, "-")}.pdf`
       );
-      toast.success(`Tax Invoice ${inv.invoiceNumber} downloaded!`);
+      toast.success(`Invoice ${inv.invoiceNumber} downloaded`);
     } catch (err: any) {
-      console.error("Order invoice download error:", err);
-      toast.error(err.message || "Failed to download tax invoice PDF");
+      toast.error(err?.message || "Failed to download order invoice");
     } finally {
       setDownloadingId(null);
     }
@@ -194,18 +129,33 @@ export function EarningsScreen() {
 
   const handleDownloadCommissionPdf = async (inv: TaxInvoice) => {
     const urlParts = inv.downloadUrl ? inv.downloadUrl.split("/") : [];
-    const periodKey = urlParts[urlParts.length - 2] || "2026-09";
-    setDownloadingId(inv.invoiceNumber);
-    toast.info(`Generating Monthly GST Commission Invoice for ${inv.period}...`);
+    const periodKey = urlParts[urlParts.length - 2] || "current";
+    setDownloadingId(`comm-pdf-${inv.invoiceNumber}`);
     try {
       await downloadCommissionInvoicePdfBlob(
         periodKey,
         `QuickPress-Commission-${inv.invoiceNumber}.pdf`
       );
-      toast.success(`Commission Invoice ${inv.invoiceNumber} downloaded!`);
+      toast.success(`Commission invoice ${inv.invoiceNumber} downloaded`);
     } catch (err: any) {
-      console.error("Commission invoice download error:", err);
-      toast.error(err.message || "Failed to download commission invoice PDF");
+      toast.error(err?.message || "Failed to download commission PDF");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleDownloadCommissionExcel = async (inv: TaxInvoice) => {
+    const urlParts = inv.downloadUrl ? inv.downloadUrl.split("/") : [];
+    const periodKey = urlParts[urlParts.length - 2] || "current";
+    setDownloadingId(`comm-xls-${inv.invoiceNumber}`);
+    try {
+      await downloadCommissionInvoiceExcelBlob(
+        periodKey,
+        `QuickPress-Commission-${inv.invoiceNumber}.xlsx`
+      );
+      toast.success(`Commission Excel ${inv.invoiceNumber} downloaded`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to download commission Excel");
     } finally {
       setDownloadingId(null);
     }
@@ -216,690 +166,938 @@ export function EarningsScreen() {
 
   const bankDetails = financeData?.bankDetails || {
     accountHolder: profile?.businessName || profile?.ownerName || "Merchant Partner",
-    bankName: "HDFC Bank",
-    accountNumberMasked: "•••• •••• 4545",
-    ifsc: "HDFC0000240",
+    bankName: "Bank Account",
+    accountNumberMasked: "•••• ••••",
+    ifsc: "",
     utr: null,
-    transferMode: "NPCI IMPS / NEFT Auto-Credit",
+    transferMode: "IMPS / NEFT Auto",
   };
 
-  // Passbook Cycle Entries
   const passbookCycles: PassbookEntry[] = useMemo(() => {
-    return financeData?.passbook || [
-      ...pastCycles.map((c) => ({
-        id: c.cycleId,
-        type: "cycle_settlement" as const,
-        title: `Weekly Settlement • ${c.period}`,
-        period: c.period,
-        date: c.payoutDate,
-        utr: c.utr || null,
-        status: (c.status === "PAID" ? "SETTLED" : c.status) as any,
-        orderCount: c.orderCount,
-        grossAmount: c.grossAmount || 0,
-        commissionAmount: c.commissionAmount || 0,
-        tcsAmount: c.tcsAmount || 0,
-        taxTotal: c.taxTotal || 0,
-        netCredit: c.netPayout,
-        bankName: c.bankName || bankDetails.bankName,
-        accountNumberMasked: c.accountNumberMasked || bankDetails.accountNumberMasked,
-        cycleId: c.cycleId,
-      })),
-      ...(currentCycle
-        ? [
-            {
-              id: "current",
-              type: "current_cycle" as const,
-              title: `Current Accruing Cycle • ${currentCycle.period}`,
-              period: currentCycle.period,
-              date: currentCycle.payoutDate,
-              utr: null,
-              status: "ACCRUING" as const,
-              orderCount: currentCycle.orderCount,
-              grossAmount: currentCycle.grossAmount || 0,
-              commissionAmount: currentCycle.commissionAmount || 0,
-              tcsAmount: currentCycle.tcsAmount || 0,
-              taxTotal: (currentCycle.commissionAmount || 0) * 0.18 + (currentCycle.tcsAmount || 0),
-              netCredit: currentCycle.estPayout,
-              bankName: bankDetails.bankName,
-              accountNumberMasked: bankDetails.accountNumberMasked,
-              cycleId: "current",
-            },
-          ]
-        : []),
-    ];
+    if (financeData?.passbook && financeData.passbook.length > 0) {
+      return financeData.passbook;
+    }
+    const list: PassbookEntry[] = pastCycles.map((c) => ({
+      id: c.cycleId,
+      type: "cycle_settlement" as const,
+      title: c.period,
+      period: c.period,
+      date: c.payoutDate,
+      utr: c.utr || null,
+      status: c.status === "PAID" ? "SETTLED" : c.status,
+      orderCount: c.orderCount,
+      grossAmount: c.grossAmount || 0,
+      commissionAmount: c.commissionAmount || 0,
+      tcsAmount: c.tcsAmount || 0,
+      taxTotal: c.taxTotal || 0,
+      netCredit: c.netPayout,
+      bankName: c.bankName || bankDetails.bankName,
+      accountNumberMasked: c.accountNumberMasked || bankDetails.accountNumberMasked,
+      cycleId: c.cycleId,
+    }));
+    if (currentCycle) {
+      list.unshift({
+        id: "current",
+        type: "current_cycle" as const,
+        title: currentCycle.period,
+        period: currentCycle.period,
+        date: currentCycle.payoutDate,
+        utr: null,
+        status: "ACCRUING",
+        orderCount: currentCycle.orderCount,
+        grossAmount: currentCycle.grossAmount || 0,
+        commissionAmount: currentCycle.commissionAmount || 0,
+        tcsAmount: currentCycle.tcsAmount || 0,
+        taxTotal: (currentCycle.commissionAmount || 0) * 0.18 + (currentCycle.tcsAmount || 0),
+        netCredit: currentCycle.estPayout,
+        bankName: bankDetails.bankName,
+        accountNumberMasked: bankDetails.accountNumberMasked,
+        cycleId: currentCycle.cycleId || "current",
+      });
+    }
+    return list;
   }, [financeData?.passbook, pastCycles, currentCycle, bankDetails]);
 
-  // All settled orders for order-level passbook
-  const allOrders: SettlementOrder[] = financeData?.allSettledOrders?.length
-    ? financeData.allSettledOrders
-    : financeData?.currentOrders || [];
-
-  // Filtered passbook cycles
-  const filteredCycles = passbookCycles.filter((c) => {
-    if (statusFilter === "settled" && c.status !== "SETTLED" && c.status !== "PAID") return false;
-    if (statusFilter === "processing" && c.status !== "ACCRUING" && c.status !== "PROCESSING") return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      return (
-        c.period.toLowerCase().includes(q) ||
-        (c.utr && c.utr.toLowerCase().includes(q)) ||
-        c.title.toLowerCase().includes(q) ||
-        c.date.toLowerCase().includes(q)
-      );
-    }
-    return true;
-  });
-
-  // Filtered passbook orders
-  const filteredPassbookOrders = allOrders.filter((ord) => {
-    if (
-      statusFilter === "settled" &&
-      !ord.isSettled &&
-      ord.settlementStatus !== "PAID" &&
-      ord.settlementStatus !== "SETTLED"
-    )
-      return false;
-    if (
-      statusFilter === "processing" &&
-      (ord.isSettled || ord.settlementStatus === "PAID" || ord.settlementStatus === "SETTLED")
-    )
-      return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      return (
-        ord.orderCode.toLowerCase().includes(q) ||
-        ord.customerName.toLowerCase().includes(q) ||
-        ord.itemsSummary.toLowerCase().includes(q) ||
-        (ord.utr && ord.utr.toLowerCase().includes(q)) ||
-        (ord.cyclePeriod && ord.cyclePeriod.toLowerCase().includes(q))
-      );
-    }
-    return true;
-  });
-
-  const filteredOrderInvoices = orderInvoices.filter((inv) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase().trim();
-    return (
-      inv.invoiceNumber.toLowerCase().includes(q) ||
-      (inv.orderNumber && inv.orderNumber.toLowerCase().includes(q)) ||
-      inv.type.toLowerCase().includes(q)
-    );
-  });
-
-  // Total Settled directly to bank (completed disbursements)
-  const totalBankSettled = passbookCycles
-    .filter((c) => c.status === "SETTLED" || c.status === "PAID")
-    .reduce((sum, c) => sum + (c.netCredit || 0), 0);
-
-  // Current Accruing Balance
-  const currentAccruingBalance = currentCycle?.estPayout || 0;
-
-  // Daily trend calculations for graph
-  const dailyTrend = financeData?.dailyTrend || [];
-  const maxDailyAmount = Math.max(
-    ...dailyTrend.map((d) => Math.max(d.grossAmount, d.netPayout, 1)),
-    100
+  const allOrders: SettlementOrder[] = useMemo(
+    () =>
+      financeData?.allSettledOrders?.length
+        ? financeData.allSettledOrders
+        : financeData?.currentOrders || [],
+    [financeData]
   );
 
-  // If viewing settlement detail, render full in-page view without modal cutoff!
-  if (selectedCycleForModal) {
-    return (
-      <PartnerLayout
-        activeTab="earnings"
-        title="Settlement Breakdown"
-        subtitle="Complete double-entry accounting reconciliation"
-      >
-        <SettlementSummaryModal
-          cycleId={selectedCycleForModal}
-          onClose={() => setSelectedCycleForModal(null)}
-        />
-        <Toaster />
-      </PartnerLayout>
-    );
-  }
+  const filteredCycles = useMemo(
+    () =>
+      passbookCycles.filter((c) => {
+        const normStatus = (c.status || "").toUpperCase();
+        if (statusFilter === "settled" && normStatus !== "SETTLED" && normStatus !== "PAID") {
+          return false;
+        }
+        if (
+          statusFilter === "processing" &&
+          normStatus !== "ACCRUING" &&
+          normStatus !== "PROCESSING"
+        ) {
+          return false;
+        }
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          return (
+            c.period.toLowerCase().includes(q) ||
+            (c.utr ? c.utr.toLowerCase().includes(q) : false) ||
+            c.date.toLowerCase().includes(q)
+          );
+        }
+        return true;
+      }),
+    [passbookCycles, statusFilter, searchQuery]
+  );
+
+  const filteredOrders = useMemo(
+    () =>
+      allOrders.filter((ord) => {
+        const settled =
+          ord.isSettled || ord.settlementStatus === "PAID" || ord.settlementStatus === "SETTLED";
+        if (statusFilter === "settled" && !settled) return false;
+        if (statusFilter === "processing" && settled) return false;
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          return (
+            ord.orderCode.toLowerCase().includes(q) ||
+            (ord.utr ? ord.utr.toLowerCase().includes(q) : false) ||
+            (ord.cyclePeriod ? ord.cyclePeriod.toLowerCase().includes(q) : false)
+          );
+        }
+        return true;
+      }),
+    [allOrders, statusFilter, searchQuery]
+  );
+
+  const filteredOrderInvoices = useMemo(
+    () =>
+      orderInvoices.filter((inv) => {
+        if (!searchQuery.trim()) return true;
+        const q = searchQuery.toLowerCase().trim();
+        return (
+          inv.invoiceNumber.toLowerCase().includes(q) ||
+          (inv.orderNumber ? inv.orderNumber.toLowerCase().includes(q) : false)
+        );
+      }),
+    [orderInvoices, searchQuery]
+  );
+
+  const totalSettledLifetime = useMemo(
+    () =>
+      passbookCycles
+        .filter((c) => c.status === "SETTLED" || c.status === "PAID")
+        .reduce((sum, c) => sum + (c.netCredit || 0), 0),
+    [passbookCycles]
+  );
+
+  const latestSettledCycle = useMemo(
+    () =>
+      passbookCycles.find((c) => (c.status === "SETTLED" || c.status === "PAID") && c.utr) ||
+      null,
+    [passbookCycles]
+  );
+
+  const currentAccruingBalance = currentCycle?.estPayout || 0;
+  const currentCycleGross = currentCycle?.grossAmount || 0;
+  const currentCycleDeduct = Math.max(0, currentCycleGross - currentAccruingBalance);
+
+  // Daily trend chart geometry
+  const dailyTrend = financeData?.dailyTrend || [];
+  const chartPoints = useMemo(() => {
+    if (dailyTrend.length === 0) return [];
+    const maxVal = Math.max(...dailyTrend.map((d) => Math.max(d.netPayout, 1)), 500);
+    const width = 620;
+    const height = 165;
+    const padX = 20;
+    const padTop = 18;
+    const padBottom = 22;
+    const usableW = width - padX * 2;
+    const usableH = height - padTop - padBottom;
+
+    return dailyTrend.map((d, i) => {
+      const x = padX + (i / Math.max(1, dailyTrend.length - 1)) * usableW;
+      const y = padTop + (1 - d.netPayout / maxVal) * usableH;
+      return { x, y, item: d };
+    });
+  }, [dailyTrend]);
+
+  const { linePath, areaPath } = useMemo(() => {
+    const first = chartPoints[0];
+    const last = chartPoints[chartPoints.length - 1];
+    if (!first || !last || chartPoints.length < 2) return { linePath: "", areaPath: "" };
+    let d = `M ${first.x} ${first.y}`;
+    for (let i = 0; i < chartPoints.length - 1; i++) {
+      const p0 = chartPoints[i]!;
+      const p1 = chartPoints[i + 1]!;
+      const mx = (p0.x + p1.x) / 2;
+      d += ` C ${mx} ${p0.y}, ${mx} ${p1.y}, ${p1.x} ${p1.y}`;
+    }
+    const baseY = 165 - 22;
+    return {
+      linePath: d,
+      areaPath: `${d} L ${last.x} ${baseY} L ${first.x} ${baseY} Z`,
+    };
+  }, [chartPoints]);
+
+  const commissionPct = financeData?.commissionRatePct || 15;
+  const tcsPct = 1;
+  const takeHomePct = Math.max(0, 100 - commissionPct - tcsPct);
 
   return (
-    <PartnerLayout
-      activeTab="earnings"
-      title="Wallet & Payouts"
-      subtitle="Complete bank settlement passbook, double-entry ledger, and GST reconciliation"
-    >
-      <div className="mx-auto w-full max-w-7xl px-3.5 sm:px-6 pt-12 sm:pt-6 pb-6 space-y-4">
-
-        {/* ========================================================================= */}
-        {/* HEADER BAR: STORE TITLE & ACTION TOOLS                                    */}
-        {/* ========================================================================= */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-1">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-zinc-950 tracking-tight">
-                Partner Wallet &amp; Payouts
-              </h1>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 shadow-2xs">
-                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Live Settlements</span>
-              </span>
-            </div>
+    <PartnerLayout activeTab="earnings" title="Settlements & Payouts">
+      <div className="min-h-full bg-[#FAFAFA] pb-20 text-zinc-950">
+        {/* Ultra-Clean Sticky Header (ONLY "Settlements & Payouts" — nothing else) */}
+        <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/95 backdrop-blur-md">
+          <div className="app-header-safe mx-auto max-w-6xl px-4 pb-3.5 md:px-6 md:pt-4">
+            <h1 className="text-base sm:text-lg font-bold tracking-tight text-zinc-950">
+              Settlements &amp; Payouts
+            </h1>
           </div>
+        </header>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+        {/* Sub-Navigation Bar */}
+        <nav className="border-b border-zinc-200 bg-white">
+          <div className="mx-auto flex max-w-6xl items-center gap-6 overflow-x-auto no-scrollbar px-4 md:px-6">
             <button
               type="button"
-              onClick={() => handleDownloadStatementPdf()}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-black text-zinc-800 shadow-2xs hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer"
+              onClick={() => {
+                setSelectedCycleForAudit(null);
+                setActiveSubTab("passbook");
+              }}
+              className={`shrink-0 inline-flex items-center gap-1.5 border-b-2 py-3 text-xs font-semibold transition-colors cursor-pointer ${
+                activeSubTab === "passbook" && !selectedCycleForAudit
+                  ? "border-zinc-950 text-zinc-950 font-bold"
+                  : "border-transparent text-zinc-500 hover:text-zinc-900"
+              }`}
             >
-              <Download className="size-3.5 text-zinc-700" />
-              <span>Statement PDF</span>
+              <span>Settlement Passbook</span>
+              {passbookCycles.length > 0 ? (
+                <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-700 tabular-nums">
+                  {passbookCycles.length}
+                </span>
+              ) : null}
             </button>
 
             <button
               type="button"
               onClick={() => {
-                void loadData();
-                toast.success("Wallet & Payouts refreshed with live database");
+                setSelectedCycleForAudit(null);
+                setActiveSubTab("trends");
               }}
-              disabled={isRefreshing}
-              className="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-800 shadow-2xs hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer"
-              title="Refresh Wallet"
+              className={`shrink-0 border-b-2 py-3 text-xs font-semibold transition-colors cursor-pointer ${
+                activeSubTab === "trends" && !selectedCycleForAudit
+                  ? "border-zinc-950 text-zinc-950 font-bold"
+                  : "border-transparent text-zinc-500 hover:text-zinc-900"
+              }`}
             >
-              <RotateCw className={`size-3.5 text-zinc-700 ${isRefreshing ? "animate-spin" : ""}`} />
+              Cashflow &amp; Margin
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCycleForAudit(null);
+                setActiveSubTab("invoices");
+              }}
+              className={`shrink-0 inline-flex items-center gap-1.5 border-b-2 py-3 text-xs font-semibold transition-colors cursor-pointer ${
+                activeSubTab === "invoices" && !selectedCycleForAudit
+                  ? "border-zinc-950 text-zinc-950 font-bold"
+                  : "border-transparent text-zinc-500 hover:text-zinc-900"
+              }`}
+            >
+              <span>GST &amp; Tax Invoices</span>
+              {invoices.length + orderInvoices.length > 0 ? (
+                <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-700 tabular-nums">
+                  {invoices.length + orderInvoices.length}
+                </span>
+              ) : null}
             </button>
           </div>
-        </div>
+        </nav>
 
-        {/* ========================================================================= */}
-        {/* HERO PAYOUT & BANK ACCOUNT RECONCILIATION CARD                            */}
-        {/* ========================================================================= */}
-        <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-2xs relative overflow-hidden">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-5">
-            {/* Left: Total Lifetime Settled to Bank */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 font-black">
-                  ₹
-                </span>
-                <span className="text-xs font-black uppercase tracking-wider text-zinc-500">
-                  Total Bank Settled · Lifetime
-                </span>
-              </div>
-              <div className="flex items-baseline gap-3">
-                <p className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight">
-                  {inr(totalBankSettled)}
-                </p>
-              </div>
-            </div>
-
-            {/* Right: Accruing Balance & Verified Bank Account */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-zinc-100 lg:pl-6 w-full lg:w-auto">
-              {/* Accruing Cycle Box */}
-              <div className="rounded-xl bg-amber-50/70 border border-amber-200/80 p-3.5 w-full sm:w-auto sm:min-w-[190px] flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-amber-900">
-                    Current Cycle Payout
-                  </span>
-                  <span className="rounded-full bg-amber-200/60 px-2 py-0.5 text-[10px] font-black text-amber-900">
-                    Accruing
-                  </span>
-                </div>
-                <p className="text-2xl font-black text-amber-950 mt-1">
-                  {inr(currentAccruingBalance)}
-                </p>
-                <div className="flex items-center justify-between text-[10.5px] font-bold text-amber-800 mt-1">
-                  <span>{currentCycle?.period || "Current Cycle"}</span>
-                  <span>Credit: Mon 10:00 AM</span>
-                </div>
-              </div>
-
-              {/* Verified Bank Account Box */}
-              <div className="rounded-xl bg-zinc-50 border border-zinc-200/80 p-3.5 w-full sm:w-auto sm:min-w-[200px] flex-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Building2 className="size-4 text-zinc-700" />
-                    <span className="text-xs font-black text-zinc-900">
-                      {bankDetails.bankName}
-                    </span>
+        {/* Main Content Workspace */}
+        <div className="mx-auto max-w-6xl px-4 pt-4 md:px-6 space-y-5">
+          {loading ? (
+            <PartnerCardsSkeleton />
+          ) : selectedCycleForAudit ? (
+            <SettlementSummaryModal
+              cycleId={selectedCycleForAudit}
+              onClose={() => setSelectedCycleForAudit(null)}
+            />
+          ) : (
+            <>
+              {/* Hero Settlement Rail (Automated Bank Settlement — No Withdraw Option) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                {/* Left: Next Scheduled Bank Settlement */}
+                <section className="lg:col-span-7 rounded-2xl border border-zinc-200 bg-white p-5 space-y-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                        Next Automated Bank Settlement
+                      </p>
+                      <p className="mt-1.5 text-3xl font-bold tracking-tight text-zinc-950 tabular-nums">
+                        {inr(currentAccruingBalance)}
+                      </p>
+                    </div>
+                    {currentCycle?.payoutDate ? (
+                      <span className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-bold text-amber-800 tabular-nums">
+                        Scheduled {formatDateMonthOnly(currentCycle.payoutDate)}
+                      </span>
+                    ) : null}
                   </div>
-                  <span className="rounded-full bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[9px] font-black text-emerald-800">
-                    Verified ✓
-                  </span>
-                </div>
-                <p className="text-sm font-black text-zinc-950 mt-1.5 font-mono">
-                  {bankDetails.accountNumberMasked}
-                </p>
-                <div className="flex items-center justify-between text-[10.5px] font-semibold text-zinc-500 mt-1">
-                  <span>IFSC: {bankDetails.ifsc}</span>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(bankDetails.ifsc, "IFSC Code")}
-                    className="text-[10px] font-black text-[#5B63D3] hover:underline cursor-pointer"
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* ========================================================================= */}
-        {/* SUBTABS BAR: CYCLES (PASSBOOK), ORDERS, TRENDS, INVOICES                  */}
-        {/* ========================================================================= */}
-        <div className="rounded-2xl border border-zinc-200/90 bg-white p-3.5 shadow-2xs space-y-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            {/* Subtabs Switcher */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar p-1 rounded-xl bg-zinc-100 border border-zinc-200/70">
-              <button
-                type="button"
-                onClick={() => setActiveSubTab("passbook")}
-                className={`flex items-center gap-1.5 shrink-0 rounded-lg px-3.5 py-1.5 text-xs font-black transition-all cursor-pointer ${
-                  activeSubTab === "passbook"
-                    ? "bg-zinc-950 text-white shadow-2xs"
-                    : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/60"
-                }`}
-              >
-                <Wallet className="size-3.5" />
-                <span>Settlement Passbook</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveSubTab("trends")}
-                className={`flex items-center gap-1.5 shrink-0 rounded-lg px-3.5 py-1.5 text-xs font-black transition-all cursor-pointer ${
-                  activeSubTab === "trends"
-                    ? "bg-zinc-950 text-white shadow-2xs"
-                    : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/60"
-                }`}
-              >
-                <BarChart2 className="size-3.5" />
-                <span>Weekly Trends</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveSubTab("invoices")}
-                className={`flex items-center gap-1.5 shrink-0 rounded-lg px-3.5 py-1.5 text-xs font-black transition-all cursor-pointer ${
-                  activeSubTab === "invoices"
-                    ? "bg-zinc-950 text-white shadow-2xs"
-                    : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/60"
-                }`}
-              >
-                <FileText className="size-3.5" />
-                <span>GST Tax Invoices</span>
-              </button>
-            </div>
-
-            {/* In Passbook tab: Cycles vs Individual Orders toggle */}
-            {activeSubTab === "passbook" && (
-              <div className="flex items-center gap-1 rounded-xl bg-zinc-100 p-1 border border-zinc-200 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setPassbookViewMode("cycles")}
-                  className={`rounded-lg px-3 py-1 font-black transition-all cursor-pointer ${
-                    passbookViewMode === "cycles"
-                      ? "bg-white text-zinc-950 shadow-2xs font-black"
-                      : "text-zinc-600 hover:text-zinc-950"
-                  }`}
-                >
-                  Weekly Cycles ({filteredCycles.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPassbookViewMode("orders")}
-                  className={`rounded-lg px-3 py-1 font-black transition-all cursor-pointer ${
-                    passbookViewMode === "orders"
-                      ? "bg-white text-zinc-950 shadow-2xs font-black"
-                      : "text-zinc-600 hover:text-zinc-950"
-                  }`}
-                >
-                  Itemized Orders ({filteredPassbookOrders.length})
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Search Bar & Status Filter Chips */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 border-t border-zinc-100">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by UTR reference, Order ID, or period..."
-                className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 pl-8.5 pr-3 text-xs font-medium text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:bg-white focus:outline-hidden"
-              />
-            </div>
-
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => setStatusFilter("all")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                  statusFilter === "all"
-                    ? "bg-zinc-950 text-white font-black shadow-2xs"
-                    : "bg-zinc-50 border border-zinc-200 text-zinc-600 hover:text-zinc-950"
-                }`}
-              >
-                All Status
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("settled")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                  statusFilter === "settled"
-                    ? "bg-zinc-950 text-white font-black shadow-2xs"
-                    : "bg-zinc-50 border border-zinc-200 text-zinc-600 hover:text-zinc-950"
-                }`}
-              >
-                Settled ✓
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("processing")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                  statusFilter === "processing"
-                    ? "bg-zinc-950 text-white font-black shadow-2xs"
-                    : "bg-zinc-50 border border-zinc-200 text-zinc-600 hover:text-zinc-950"
-                }`}
-              >
-                Accruing
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* SUBTAB 1: SETTLEMENT CYCLES & PASSBOOK LIST                               */}
-        {/* ========================================================================= */}
-        {activeSubTab === "passbook" && (
-          <div>
-            {passbookViewMode === "cycles" ? (
-              <div className="space-y-3">
-                {filteredCycles.length === 0 ? (
-                  <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center text-xs font-medium text-zinc-400">
-                    No settlement cycles found matching this filter.
+                  <div className="grid grid-cols-3 gap-3 pt-4 border-t border-zinc-100">
+                    <div>
+                      <p className="text-[11px] font-medium text-zinc-500">Cycle Gross</p>
+                      <p className="mt-0.5 text-sm font-bold text-zinc-950 tabular-nums">
+                        {inr(currentCycleGross)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium text-zinc-500">Fee &amp; Statutory</p>
+                      <p className="mt-0.5 text-sm font-bold text-rose-600 tabular-nums">
+                        -{inr(currentCycleDeduct)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium text-zinc-500">Settled Lifetime</p>
+                      <p className="mt-0.5 text-sm font-bold text-emerald-700 tabular-nums">
+                        {inr(totalSettledLifetime)}
+                      </p>
+                    </div>
                   </div>
-                ) : (
-                  filteredCycles.map((entry) => {
-                    const isAccruing = entry.status === "ACCRUING";
-                    return (
-                      <div
-                        key={entry.id}
-                        className="rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-2xs space-y-3 transition-transform hover:-translate-y-0.5"
+                </section>
+
+                {/* Right: Verified Destination Bank & Latest UTR */}
+                <section className="lg:col-span-5 rounded-2xl border border-zinc-200 bg-white p-5 flex flex-col justify-between gap-4">
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                        Payout Destination Rail
+                      </span>
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                        Verified
+                      </span>
+                    </div>
+                    <p className="mt-2.5 text-sm font-bold text-zinc-950">
+                      {bankDetails.bankName} · {bankDetails.accountNumberMasked}
+                    </p>
+                    <p className="mt-0.5 text-[11px] font-medium text-zinc-500 tabular-nums">
+                      {bankDetails.ifsc ? `IFSC ${bankDetails.ifsc} · ` : ""}
+                      {bankDetails.transferMode}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/70 px-3.5 py-2.5 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                        Last Settled UTR
+                      </p>
+                      <p className="text-xs font-bold text-zinc-950 truncate tabular-nums">
+                        {latestSettledCycle?.utr || bankDetails.utr || "Awaiting first bank run"}
+                      </p>
+                    </div>
+                    {latestSettledCycle?.utr || bankDetails.utr ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          copyToClipboard(
+                            String(latestSettledCycle?.utr || bankDetails.utr),
+                            "UTR"
+                          )
+                        }
+                        className="shrink-0 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-100 px-2.5 py-1 text-[11px] font-semibold text-zinc-800 cursor-pointer"
                       >
-                        {/* Top Row: Period, Status, Gross Sales */}
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-zinc-100 pb-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-black text-zinc-950">{entry.period}</span>
-                            <span
-                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-black ${
-                                isAccruing
-                                  ? "bg-amber-50 text-amber-800 border border-amber-200"
-                                  : "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                              }`}
-                            >
-                              {isAccruing ? "ACCRUING" : "SETTLED TO BANK ✓"}
-                            </span>
-                          </div>
-
-                          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 sm:gap-3">
-                            <div className="text-right">
-                              <span className="text-xs font-black text-zinc-500">Gross Billed: </span>
-                              <span className="text-sm font-black text-zinc-950">{inr(entry.grossAmount)}</span>
-                            </div>
-                            <span className="text-zinc-300">|</span>
-                            <div className="text-right">
-                              <span className="text-xs font-black text-emerald-700">Net Credit: </span>
-                              <span className="text-base font-black text-emerald-700 font-mono">{inr(entry.netCredit)}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Financial Double-Entry Summary Strip */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                          <div className="rounded-xl bg-zinc-50 p-2.5 border border-zinc-200/60">
-                            <span className="text-[10px] font-bold text-zinc-400 uppercase">Gross Sales</span>
-                            <p className="text-sm font-black text-zinc-900 mt-0.5">{inr(entry.grossAmount)}</p>
-                            <span className="text-[10px] text-zinc-500">{entry.orderCount} bookings</span>
-                          </div>
-                          <div className="rounded-xl bg-rose-50/50 p-2.5 border border-rose-100">
-                            <span className="text-[10px] font-bold text-rose-800 uppercase">Platform Fee (15%)</span>
-                            <p className="text-sm font-black text-rose-900 mt-0.5">-{inr(entry.commissionAmount)}</p>
-                            <span className="text-[10px] text-rose-600">QuickPress Fee</span>
-                          </div>
-                          <div className="rounded-xl bg-zinc-50 p-2.5 border border-zinc-200/60">
-                            <span className="text-[10px] font-bold text-zinc-400 uppercase">Taxes (GST &amp; TCS)</span>
-                            <p className="text-sm font-black text-zinc-900 mt-0.5">-{inr(entry.taxTotal)}</p>
-                            <span className="text-[10px] text-zinc-500">18% GST + 1% TCS</span>
-                          </div>
-                          <div className="rounded-xl bg-emerald-50/70 p-2.5 border border-emerald-100">
-                            <span className="text-[10px] font-bold text-emerald-800 uppercase">Net Disbursed</span>
-                            <p className="text-sm font-black text-emerald-900 mt-0.5">{inr(entry.netCredit)}</p>
-                            <span className="text-[10px] text-emerald-700 font-bold">100% In Account</span>
-                          </div>
-                        </div>
-
-                        {/* UTR Chip with 1-click copy */}
-                        {entry.utr && (
-                          <div className="flex items-center justify-between rounded-xl bg-zinc-50 border border-zinc-200 px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <CreditCard className="size-3.5 text-zinc-500" />
-                              <span className="text-xs font-mono font-bold text-zinc-800">
-                                Bank UTR: {entry.utr}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(entry.utr!, "Bank UTR")}
-                              className="text-xs font-black text-[#5B63D3] flex items-center gap-1 hover:underline cursor-pointer"
-                            >
-                              {copiedUtr === entry.utr ? (
-                                <Check className="size-3.5 text-emerald-600" />
-                              ) : (
-                                <Copy className="size-3.5" />
-                              )}
-                              <span>{copiedUtr === entry.utr ? "Copied" : "Copy"}</span>
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Bottom Actions: View Breakdown & Statement Downloads */}
-                        <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedCycleForModal(entry.cycleId)}
-                            className="text-xs font-black text-[#5B63D3] hover:underline flex items-center gap-1 cursor-pointer"
-                          >
-                            <span>सेटलमेंट विवरण (Full Double-Entry Breakdown)</span>
-                            <span>→</span>
-                          </button>
-
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleDownloadStatementPdf(entry.cycleId)}
-                              className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-bold text-zinc-800 hover:bg-zinc-100 cursor-pointer shadow-2xs"
-                            >
-                              PDF Statement
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDownloadStatementExcel(entry.cycleId)}
-                              className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-bold text-zinc-800 hover:bg-zinc-100 cursor-pointer shadow-2xs"
-                            >
-                              CSV / Excel
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            ) : (
-              /* Itemized Individual Orders Double-Entry List */
-              <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-2xs space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-zinc-950">
-                    Itemized Order Credits ({filteredPassbookOrders.length})
-                  </h3>
-                  <span className="text-[10px] text-zinc-400">Double-entry accounting</span>
-                </div>
-
-                {filteredPassbookOrders.length === 0 ? (
-                  <div className="py-8 text-center text-xs font-medium text-zinc-400">
-                    No orders match your search or filter.
+                        Copy
+                      </button>
+                    ) : null}
                   </div>
-                ) : (
-                  <div className="divide-y divide-zinc-100">
-                    {filteredPassbookOrders.map((ord) => (
-                      <div
-                        key={ord.orderId}
-                        onClick={() => setSelectedCycleForModal(ord.cycleId || "current")}
-                        className="py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 cursor-pointer hover:bg-zinc-50/60 rounded-xl px-2 transition-colors"
-                      >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-black text-zinc-950 font-mono">#{ord.orderCode}</span>
-                            <span className="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.2 text-[9px] font-bold">
-                              {ord.settlementStatus || (ord.isSettled ? "SETTLED" : "ACCRUING")}
-                            </span>
-                          </div>
-                          <p className="text-xs text-zinc-600 mt-0.5">{ord.itemsSummary}</p>
-                          <p className="text-[10px] text-zinc-400 font-medium">
-                            Customer: {ord.customerName} · {ord.date} {ord.cyclePeriod ? `· ${ord.cyclePeriod}` : ""}
-                          </p>
-                        </div>
-
-                        <div className="text-left sm:text-right shrink-0">
-                          <span className="text-xs font-black text-zinc-950">
-                            {inr(ord.grossValue)}
-                          </span>
-                          <p className="text-[10px] text-emerald-700 font-bold">
-                            Net: {inr(ord.netPayout || ord.grossValue * 0.84)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* SUBTAB 2: WEEKLY TRENDS & DAILY BAR CHART                                 */}
-        {/* ========================================================================= */}
-        {activeSubTab === "trends" && (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-zinc-100 pb-3 gap-2">
-                <div>
-                  <h3 className="text-base font-black tracking-tight text-zinc-950">
-                    Weekly Settlement &amp; Orders Trend
-                  </h3>
-                  <p className="text-xs text-zinc-500">
-                    Daily order value distribution for current cycle ({currentCycle?.period || "Weekly"})
-                  </p>
-                </div>
-                <span className="rounded-full bg-zinc-100 border border-zinc-200 px-2.5 py-0.5 text-xs font-black text-zinc-800 self-start sm:self-auto">
-                  Scheduled Credit: Every Monday 10:00 AM
-                </span>
+                </section>
               </div>
 
-              {/* 7-Day Bar Chart */}
-              <div className="pt-2 pb-2">
-                <div className="flex items-end justify-between gap-2 h-40">
-                  {dailyTrend.map((d) => {
-                    const displayAmt = d.grossAmount || d.netPayout || 0;
-                    const pct = Math.max(
-                      Math.min(Math.round((displayAmt / maxDailyAmount) * 100), 100),
-                      displayAmt > 0 ? 14 : 4
-                    );
-                    return (
-                      <div
-                        key={d.day}
-                        className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group select-none cursor-pointer"
-                      >
-                        <span className="text-[10px] font-black text-zinc-500 group-hover:text-zinc-950">
-                          {displayAmt > 0 ? inr(displayAmt) : "—"}
-                        </span>
-                        <div className="w-full max-w-[42px] bg-zinc-100 rounded-t-xl h-28 flex items-end">
-                          <div
-                            style={{ height: `${pct}%` }}
-                            className={`w-full rounded-t-xl transition-all duration-300 ${
-                              d.isToday
-                                ? "bg-[#5B63D3] shadow-md shadow-indigo-500/30"
-                                : displayAmt > 0
-                                ? "bg-zinc-800 hover:bg-[#5B63D3]"
-                                : "bg-zinc-200"
-                            }`}
-                          />
-                        </div>
-                        <span
-                          className={`text-xs font-bold ${
-                            d.isToday ? "text-[#5B63D3] font-black" : "text-zinc-700"
-                          }`}
-                        >
-                          {d.day}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* SUBTAB 3: GST TAX INVOICES & COMMISSION STATEMENTS                        */}
-        {/* ========================================================================= */}
-        {activeSubTab === "invoices" && (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
-                <div>
-                  <h3 className="text-base font-black text-zinc-950">Store Order Tax Invoices</h3>
-                  <p className="text-xs text-zinc-500">Official 3-page Tax Invoices with B2C GST compliance</p>
-                </div>
-                <span className="rounded-full bg-zinc-100 border border-zinc-200 px-2.5 py-0.5 text-xs font-black text-zinc-800">
-                  {orderInvoices.length} Invoices
-                </span>
-              </div>
-
-              <div className="divide-y divide-zinc-100">
-                {filteredOrderInvoices.length === 0 ? (
-                  <p className="py-8 text-center text-xs font-bold text-zinc-400">
-                    No order tax invoices generated yet.
-                  </p>
-                ) : (
-                  filteredOrderInvoices.map((inv) => (
-                    <div key={inv.invoiceNumber} className="py-3 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-black text-zinc-950 font-mono">{inv.invoiceNumber}</p>
-                        <p className="text-[11px] text-zinc-500">{inv.type} · {inv.date}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-black text-zinc-950">{inr(inv.amount)}</p>
+              {/* VIEW 1: SETTLEMENT PASSBOOK */}
+              {activeSubTab === "passbook" ? (
+                <div className="space-y-3">
+                  {/* Toolbar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="inline-flex rounded-xl border border-zinc-200 bg-zinc-100/80 p-1 gap-1">
                         <button
                           type="button"
-                          disabled={downloadingId === inv.invoiceNumber}
-                          onClick={() => handleDownloadOrderInvoicePdf(inv)}
-                          className="mt-1 inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-bold text-zinc-800 hover:bg-zinc-100 cursor-pointer shadow-2xs"
+                          onClick={() => setPassbookViewMode("cycles")}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold cursor-pointer ${
+                            passbookViewMode === "cycles"
+                              ? "bg-white text-zinc-950 shadow-2xs"
+                              : "text-zinc-600 hover:text-zinc-950"
+                          }`}
                         >
-                          <Download className="size-3" />
-                          <span>PDF</span>
+                          By Settlement Cycle
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPassbookViewMode("orders")}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold cursor-pointer ${
+                            passbookViewMode === "orders"
+                              ? "bg-white text-zinc-950 shadow-2xs"
+                              : "text-zinc-600 hover:text-zinc-950"
+                          }`}
+                        >
+                          By Individual Order
                         </button>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
+                      <div className="inline-flex rounded-xl border border-zinc-200 bg-zinc-100/80 p-1 gap-1">
+                        {[
+                          { id: "all", label: "All" },
+                          { id: "settled", label: "Settled" },
+                          { id: "processing", label: "Accruing" },
+                        ].map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setStatusFilter(s.id as any)}
+                            className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold cursor-pointer ${
+                              statusFilter === s.id
+                                ? "bg-white text-zinc-950 shadow-2xs"
+                                : "text-zinc-600 hover:text-zinc-950"
+                            }`}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Blank Search Input */}
+                    <div className="relative w-full sm:w-64">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder=""
+                        aria-label="Search settlements or orders"
+                        className="h-9 w-full rounded-xl border border-zinc-200 bg-white pl-8.5 pr-8 text-xs font-semibold text-zinc-950 focus:border-zinc-900 focus:outline-hidden"
+                      />
+                      {searchQuery ? (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery("")}
+                          aria-label="Clear search"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-800 cursor-pointer"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* Cycles Table (Horizontally Scrollable on Mobile) */}
+                  {passbookViewMode === "cycles" ? (
+                    <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
+                      <div className="w-full overflow-x-auto">
+                        <table className="w-full min-w-[600px] text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-zinc-50/90 border-b border-zinc-100 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                              <th className="py-3 pl-4 pr-3">Period &amp; UTR</th>
+                              <th className="py-3 px-3">Payout Date</th>
+                              <th className="py-3 px-3 text-right">Gross / Deduct</th>
+                              <th className="py-3 px-3 text-right">Net Credited</th>
+                              <th className="py-3 pl-3 pr-4 text-right">Statements &amp; Audit</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-100">
+                            {filteredCycles.length === 0 ? (
+                              <tr>
+                                <td colSpan={5} className="py-10 text-center text-zinc-500">
+                                  No settlement cycles found.
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredCycles.map((cycle) => {
+                                const isSettled =
+                                  cycle.status === "SETTLED" || cycle.status === "PAID";
+                                const dedTotal = Math.max(
+                                  0,
+                                  (cycle.grossAmount || 0) - (cycle.netCredit || 0)
+                                );
+                                return (
+                                  <tr
+                                    key={cycle.id}
+                                    onClick={() => setSelectedCycleForAudit(cycle.cycleId)}
+                                    className="hover:bg-zinc-50/80 transition-colors cursor-pointer"
+                                  >
+                                    <td className="py-3.5 pl-4 pr-3 whitespace-nowrap">
+                                      <div className="flex items-center gap-2">
+                                        <span
+                                          className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                                            isSettled
+                                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                              : "border-amber-200 bg-amber-50 text-amber-800"
+                                          }`}
+                                        >
+                                          {isSettled ? "Settled" : "Accruing"}
+                                        </span>
+                                        <span className="font-bold text-zinc-950 tabular-nums">
+                                          {formatDateMonthOnly(cycle.period)}
+                                        </span>
+                                      </div>
+                                      <div className="mt-1 flex items-center gap-2 text-[11px] text-zinc-500 tabular-nums">
+                                        <span>
+                                          {cycle.utr
+                                            ? `UTR: ${cycle.utr}`
+                                            : `${cycle.orderCount} orders · Pending payout`}
+                                        </span>
+                                        {cycle.utr ? (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              copyToClipboard(cycle.utr || "", "UTR");
+                                            }}
+                                            className="rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.2 text-[9.5px] font-semibold text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+                                          >
+                                            Copy
+                                          </button>
+                                        ) : null}
+                                      </div>
+                                    </td>
+
+                                    <td className="py-3.5 px-3 font-semibold text-zinc-800 tabular-nums whitespace-nowrap">
+                                      {formatDateMonthOnly(cycle.date)}
+                                    </td>
+
+                                    <td className="py-3.5 px-3 text-right tabular-nums whitespace-nowrap">
+                                      <div className="font-semibold text-zinc-900">
+                                        {inr(cycle.grossAmount)}
+                                      </div>
+                                      <div className="text-[10.5px] font-medium text-rose-600">
+                                        -{inr(dedTotal)}
+                                      </div>
+                                    </td>
+
+                                    <td
+                                      className={`py-3.5 px-3 text-right font-bold tabular-nums whitespace-nowrap ${
+                                        isSettled ? "text-emerald-700" : "text-zinc-950"
+                                      }`}
+                                    >
+                                      {inr(cycle.netCredit)}
+                                    </td>
+
+                                    <td
+                                      className="py-3.5 pl-3 pr-4 text-right whitespace-nowrap"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <div className="inline-flex items-center gap-1.5">
+                                        {isSettled ? (
+                                          <>
+                                            <button
+                                              type="button"
+                                              disabled={downloadingId === `pdf-${cycle.cycleId}`}
+                                              onClick={() => handleDownloadCyclePdf(cycle.cycleId)}
+                                              className="rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-800 cursor-pointer"
+                                            >
+                                              PDF
+                                            </button>
+                                            <button
+                                              type="button"
+                                              disabled={downloadingId === `csv-${cycle.cycleId}`}
+                                              onClick={() => handleDownloadCycleExcel(cycle.cycleId)}
+                                              className="rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-800 cursor-pointer"
+                                            >
+                                              CSV
+                                            </button>
+                                          </>
+                                        ) : null}
+                                        <button
+                                          type="button"
+                                          onClick={() => setSelectedCycleForAudit(cycle.cycleId)}
+                                          className="rounded-lg bg-zinc-900 hover:bg-zinc-800 px-2.5 py-1 text-[11px] font-semibold text-white cursor-pointer"
+                                        >
+                                          {isSettled ? "Audit →" : "Inspect →"}
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Individual Orders Ledger (ONLY Order ID — Customer & Product names removed) */
+                    <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
+                      <div className="w-full overflow-x-auto">
+                        <table className="w-full min-w-[580px] text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-zinc-50/90 border-b border-zinc-100 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                              <th className="py-3 pl-4 pr-3">Order ID</th>
+                              <th className="py-3 px-3">Cycle / UTR</th>
+                              <th className="py-3 px-3 text-right">Order Value</th>
+                              <th className="py-3 px-3 text-right">Fee &amp; Tax</th>
+                              <th className="py-3 px-3 text-right">Net Earned</th>
+                              <th className="py-3 pl-3 pr-4 text-right">State</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-100">
+                            {filteredOrders.length === 0 ? (
+                              <tr>
+                                <td colSpan={6} className="py-10 text-center text-zinc-500">
+                                  No order settlements found.
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredOrders.map((ord) => {
+                                const settled =
+                                  ord.isSettled ||
+                                  ord.settlementStatus === "PAID" ||
+                                  ord.settlementStatus === "SETTLED";
+                                const feeTotal =
+                                  (ord.commission || 0) +
+                                  (ord.gstOnCommission || 0) +
+                                  (ord.tcsGst || 0);
+                                return (
+                                  <tr key={ord.orderId} className="hover:bg-zinc-50/70">
+                                    <td className="py-3.5 pl-4 pr-3 whitespace-nowrap">
+                                      <div className="font-bold text-zinc-950 tabular-nums">
+                                        #{ord.orderCode}
+                                      </div>
+                                      <div className="text-[11px] text-zinc-500 tabular-nums">
+                                        {ord.date}
+                                      </div>
+                                    </td>
+                                    <td className="py-3.5 px-3 text-[11px] font-medium text-zinc-500 whitespace-nowrap tabular-nums">
+                                      {ord.utr
+                                        ? `UTR ${ord.utr}`
+                                        : formatDateMonthOnly(ord.cyclePeriod || "Current")}
+                                    </td>
+                                    <td className="py-3.5 px-3 text-right font-medium text-zinc-800 tabular-nums whitespace-nowrap">
+                                      {inr(ord.grossValue)}
+                                    </td>
+                                    <td className="py-3.5 px-3 text-right font-medium text-rose-600 tabular-nums whitespace-nowrap">
+                                      -{inr(feeTotal)}
+                                    </td>
+                                    <td
+                                      className={`py-3.5 px-3 text-right font-bold tabular-nums whitespace-nowrap ${
+                                        settled ? "text-emerald-700" : "text-zinc-950"
+                                      }`}
+                                    >
+                                      {inr(ord.netEarning)}
+                                    </td>
+                                    <td className="py-3.5 pl-3 pr-4 text-right whitespace-nowrap">
+                                      <span
+                                        className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                                          settled
+                                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                            : "border-amber-200 bg-amber-50 text-amber-800"
+                                        }`}
+                                      >
+                                        {settled ? "Settled" : "Accruing"}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {/* VIEW 2: CASHFLOW & MARGIN TRENDS */}
+              {activeSubTab === "trends" ? (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                  <section className="lg:col-span-8 rounded-2xl border border-zinc-200 bg-white p-5 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h2 className="text-sm font-bold text-zinc-950">Daily Payout Trajectory</h2>
+                        <p className="text-[11px] font-medium text-zinc-500 mt-0.5 tabular-nums">
+                          {hoveredDayIdx !== null && chartPoints[hoveredDayIdx]
+                            ? `${chartPoints[hoveredDayIdx]!.item.label}: Net ${inr(
+                                chartPoints[hoveredDayIdx]!.item.netPayout
+                              )} (${chartPoints[hoveredDayIdx]!.item.orderCount} orders)`
+                            : "Net store credits across recent settlement days"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {chartPoints.length > 0 ? (
+                      <>
+                        <svg
+                          viewBox="0 0 620 165"
+                          className="w-full h-44 overflow-visible"
+                          onMouseLeave={() => setHoveredDayIdx(null)}
+                        >
+                          <defs>
+                            <linearGradient id="payoutAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#059669" stopOpacity="0.18" />
+                              <stop offset="100%" stopColor="#059669" stopOpacity="0" />
+                            </linearGradient>
+                          </defs>
+                          {[20, 82, 143].map((yPos) => (
+                            <line
+                              key={yPos}
+                              x1="20"
+                              y1={yPos}
+                              x2="600"
+                              y2={yPos}
+                              stroke="#E4E4E7"
+                              strokeDasharray="3 4"
+                            />
+                          ))}
+                          {areaPath ? <path d={areaPath} fill="url(#payoutAreaGrad)" /> : null}
+                          {linePath ? (
+                            <path
+                              d={linePath}
+                              fill="none"
+                              stroke="#059669"
+                              strokeWidth="2.4"
+                              strokeLinecap="round"
+                            />
+                          ) : null}
+                          {chartPoints.map((pt, idx) => (
+                            <g key={idx}>
+                              <rect
+                                x={pt.x - 16}
+                                y={0}
+                                width={32}
+                                height={165}
+                                fill="transparent"
+                                className="cursor-pointer"
+                                onMouseEnter={() => setHoveredDayIdx(idx)}
+                              />
+                              <circle
+                                cx={pt.x}
+                                cy={pt.y}
+                                r={hoveredDayIdx === idx ? 5 : 3}
+                                fill="#059669"
+                                stroke="#fff"
+                                strokeWidth="1.5"
+                              />
+                            </g>
+                          ))}
+                        </svg>
+                        <div className="flex justify-between px-2 text-[10px] font-semibold text-zinc-400 tabular-nums">
+                          {dailyTrend.map((d, i) => (
+                            <span key={i}>{d.label}</span>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="py-12 text-center text-xs text-zinc-500">
+                        Daily trend curve will populate once order payouts record.
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="lg:col-span-4 rounded-2xl border border-zinc-200 bg-white p-5 space-y-5">
+                    <div>
+                      <h2 className="text-sm font-bold text-zinc-950">Take-Home Margin Split</h2>
+                      <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
+                        Net store retention per ₹100 billed
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs font-bold">
+                        <span>Net Store Payout</span>
+                        <span className="text-emerald-700 tabular-nums">{takeHomePct}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-zinc-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-emerald-600"
+                          style={{ width: `${takeHomePct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span>Platform Commission</span>
+                        <span className="tabular-nums">{commissionPct}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-zinc-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-zinc-900"
+                          style={{ width: `${commissionPct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span>Statutory TCS / TDS 194O</span>
+                        <span className="tabular-nums">{tcsPct}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-zinc-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-zinc-400"
+                          style={{ width: `${tcsPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              ) : null}
+
+              {/* VIEW 3: GST & TAX INVOICES */}
+              {activeSubTab === "invoices" ? (
+                <div className="space-y-4">
+                  {/* Monthly Platform Commission GST Invoices */}
+                  <section className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
+                    <div className="px-4 sm:px-5 py-3.5 border-b border-zinc-100">
+                      <h2 className="text-sm font-bold text-zinc-950">
+                        Monthly Commission GST Invoices
+                      </h2>
+                      <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
+                        Platform commission &amp; 18% GST input credit statements
+                      </p>
+                    </div>
+                    <div className="w-full overflow-x-auto">
+                      <table className="w-full min-w-[560px] text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-zinc-50/80 border-b border-zinc-100 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                            <th className="py-3 pl-4 pr-3">Invoice No.</th>
+                            <th className="py-3 px-3">Month</th>
+                            <th className="py-3 px-3 text-right">Fee Amount</th>
+                            <th className="py-3 px-3 text-right">GST</th>
+                            <th className="py-3 pl-3 pr-4 text-right">Download</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-100">
+                          {invoices.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="py-8 text-center text-zinc-500">
+                                Monthly GST commission invoices will appear here.
+                              </td>
+                            </tr>
+                          ) : (
+                            invoices.map((inv) => (
+                              <tr key={inv.invoiceNumber} className="hover:bg-zinc-50/70">
+                                <td className="py-3 pl-4 pr-3 font-bold text-zinc-950 tabular-nums whitespace-nowrap">
+                                  {inv.invoiceNumber}
+                                </td>
+                                <td className="py-3 px-3 text-zinc-700 whitespace-nowrap">
+                                  {inv.period}
+                                </td>
+                                <td className="py-3 px-3 text-right font-medium text-zinc-900 tabular-nums whitespace-nowrap">
+                                  {inr(inv.amount)}
+                                </td>
+                                <td className="py-3 px-3 text-right font-bold text-emerald-700 tabular-nums whitespace-nowrap">
+                                  {inr(inv.gstAmount)}
+                                </td>
+                                <td className="py-3 pl-3 pr-4 text-right whitespace-nowrap">
+                                  <div className="inline-flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      disabled={downloadingId === `comm-pdf-${inv.invoiceNumber}`}
+                                      onClick={() => handleDownloadCommissionPdf(inv)}
+                                      className="rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-800 cursor-pointer"
+                                    >
+                                      PDF
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={downloadingId === `comm-xls-${inv.invoiceNumber}`}
+                                      onClick={() => handleDownloadCommissionExcel(inv)}
+                                      className="rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-800 cursor-pointer"
+                                    >
+                                      Excel
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  {/* Order-Wise Tax Invoices (ONLY Invoice No & Order ID — Customer/Product removed) */}
+                  <section className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-4 sm:px-5 py-3.5 border-b border-zinc-100">
+                      <h2 className="text-sm font-bold text-zinc-950">Order-Wise Tax Invoices</h2>
+                      <div className="relative w-full sm:w-64">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder=""
+                          aria-label="Search order invoices"
+                          className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 focus:bg-white pl-8.5 pr-8 text-xs font-semibold text-zinc-950 focus:border-zinc-900 focus:outline-hidden"
+                        />
+                        {searchQuery ? (
+                          <button
+                            type="button"
+                            onClick={() => setSearchQuery("")}
+                            aria-label="Clear search"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-800 cursor-pointer"
+                          >
+                            <X className="size-3.5" />
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="w-full overflow-x-auto">
+                      <table className="w-full min-w-[480px] text-left border-collapse text-xs">
+                        <tbody className="divide-y divide-zinc-100">
+                          {filteredOrderInvoices.length === 0 ? (
+                            <tr>
+                              <td colSpan={3} className="py-8 text-center text-zinc-500">
+                                No order invoices matched.
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredOrderInvoices.map((inv) => (
+                              <tr key={inv.invoiceNumber} className="hover:bg-zinc-50/70">
+                                <td className="py-3 pl-4 pr-3 whitespace-nowrap">
+                                  <div className="font-bold text-zinc-950 tabular-nums">
+                                    {inv.invoiceNumber}
+                                  </div>
+                                  {inv.orderNumber ? (
+                                    <div className="text-[11px] text-zinc-500 tabular-nums">
+                                      Order #{inv.orderNumber}
+                                    </div>
+                                  ) : null}
+                                </td>
+                                <td className="py-3 px-3 text-right font-bold text-zinc-950 tabular-nums whitespace-nowrap">
+                                  {inr(inv.amount)}
+                                </td>
+                                <td className="py-3 pl-3 pr-4 text-right whitespace-nowrap">
+                                  <button
+                                    type="button"
+                                    disabled={downloadingId === inv.invoiceNumber}
+                                    onClick={() => handleDownloadOrderInvoicePdf(inv)}
+                                    className="inline-flex items-center gap-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 px-3 py-1.5 text-[11px] font-semibold text-white cursor-pointer"
+                                  >
+                                    <Download className="size-3" />
+                                    {downloadingId === inv.invoiceNumber ? "Loading..." : "PDF"}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                </div>
+              ) : null}
+            </>
+          )}
+        </div>
       </div>
       <Toaster />
     </PartnerLayout>
