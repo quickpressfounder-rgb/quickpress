@@ -552,13 +552,13 @@ export function HomePage({
             </span>
           </h1>
 
-          <p className="text-base sm:text-xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed font-normal animate-spring-up">
+          <p className="text-base sm:text-xl text-gray-600 max-w-2xl mx-auto mb-5 leading-relaxed font-normal animate-spring-up">
             Find the best laundry, dry cleaning & steam press partners in your city. Doorstep pickup in 45 minutes with 100% loss-free guarantee.
           </p>
 
           <div className="max-w-3xl mx-auto relative animate-pop-zoom">
             {/* ─── Zomato-Style App Download Strip (Transparent & Sleek) ─── */}
-            <div className="mt-8 sm:mt-10 animate-spring-up flex flex-col items-center justify-center space-y-4">
+            <div className="mt-0 animate-spring-up flex flex-col items-center justify-center space-y-3.5">
               <p className="text-xs sm:text-sm font-semibold text-gray-600 tracking-wide">
                 Experience fast & easy doorstep garment care on the QuickPress app
               </p>

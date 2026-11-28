@@ -6777,3 +6777,8 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
 - **Summary of Changes:**
   - Restored `website/src/index.css` and `website/src/pages/HomePage.tsx` back to commit `d6ce6b85` (removing the 0.7s splash curtain, 4-card hero highlight grid, eyebrow badge, and extra scroll classes) while keeping the official multi-color Google Play prism (`IconGooglePlay`) and colored Apple App Store emblem (`IconApple`) inside `website/src/components/Icons.tsx`.
 - **Verification & Deployment:** `ZERO_TS_ERRORS_IN_CHANGED_FILES`; `vite build` succeeded cleanly in `1.34s`; redeployed to EC2 `/var/www/quickpress/website/`.
+
+### 2026-11-28 — Tighten Hero Store Strip Spacing (`website/src/pages/HomePage.tsx`)
+- **Modified File:** `website/src/pages/HomePage.tsx`
+- **Summary of Changes:** Tightened vertical spacing (`mb-10` -> `mb-5`, `mt-8 sm:mt-10` -> `mt-0`) between the hero subtitle and the official colored Google Play / Apple App Store badges strip so the buttons sit cleanly inside the available space right below the subtitle.
+- **Verification & Deployment:** `ZERO_TS_ERRORS_IN_HOMEPAGE`; `vite build` succeeded cleanly in `1.06s`; deployed to EC2 `/var/www/quickpress/website/`.
