@@ -6641,3 +6641,17 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
 - **Verification**:
   - Verified zero strict TypeScript errors across all edited/new Partner UI files (`tsc --noEmit` filtered check passed).
   - Verified `partner-frontend` production Vite + Nitro build (`npx vite build` exited with code 0, built in 4.78s).
+
+---
+
+## Session: Partner Order Screen (/orders/$orderId) Clean Unified Redesign
+- **Date**: 2026-11-28
+- **User Directive**: Redesign the Partner Order Details screen (`/orders/$orderId` — `OrderDetailsScreen.tsx`) cleanly following the approved rough design (`order_details_rough_wireframe.html`) with all real APIs, Socket.IO sync, and interactive workflows functioning end-to-end.
+- **Accomplishments & Architectural Changes**:
+  1. **Unified Responsive Order Screen ([OrderDetailsScreen.tsx](file:///Users/himanshupal/Documents/Source%20Code/Scource%20Code%20/Officall-main/partner-frontend/src/screens/OrderDetailsScreen.tsx))**:
+     - Replaced duplicated 2,011-line mobile/desktop markup with a single clean `#FAFAFA` / `#FFFFFF` responsive 12-column grid layout with safe-area sticky header (`app-header-safe`), order ID copy button, stage badges, express indicators, `OrderSlaCountdown`, `Print Bag QR`, and overflow menu.
+     - Built a live 4-step segmented **Workflow Pipeline** (`Accepted → Captain → Washing → Ready`) with stage-contextual controls: `Accept / Decline`, `Confirm Shop Handover` (`confirmHandover`), `Start Washing`, `+15m ETA` extension (`extendOrderTime`), `Mark Ready`, and inline 4-digit Captain **Dispatch OTP Verification** (`verifyPartnerDispatchOtp`).
+     - Wired real **Garments & Pre-Wash Defect Inspection** (`PrewashDefectModal` + defect evidence photo zoom viewer), customer notes, **Payout & Billing Summary** (`InvoiceSheet`, `printThermalOrderTag`), masked **Customer & Captain Contact Card** with 1-tap `Call`, live `GoogleMapView` GPS tracking modal, live `OrderTimeline`, `PartnerReviewModal`, and order support navigation.
+- **Verification**:
+  - `tsc --noEmit` confirmed zero TypeScript errors in `partner-frontend/src/screens/OrderDetailsScreen.tsx`.
+  - `partner-frontend` production Vite + Nitro build passed cleanly (`npx vite build` exited with code 0).
