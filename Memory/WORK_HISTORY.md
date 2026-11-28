@@ -6655,3 +6655,18 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
 - **Verification**:
   - `tsc --noEmit` confirmed zero TypeScript errors in `partner-frontend/src/screens/OrderDetailsScreen.tsx`.
   - `partner-frontend` production Vite + Nitro build passed cleanly (`npx vite build` exited with code 0).
+
+---
+
+## Session: Full Multi-App Android APK, Play Store AAB & iOS Capacitor Release
+- **Date**: 2026-11-28
+- **User Directive**: `"apk all"`
+- **Accomplishments & Release Artifacts**:
+  1. **Automated Multi-App Compilation (`build_all_apks.py all` with JDK 17)**:
+     - Built production Vite + Nitro bundles (`VITE_API_BASE_URL=https://api.withquickpress.com`), patched SSR hoisting, generated static native fallback `index.html`, and synced Capacitor assets for Customer, Partner, and Rider apps.
+     - Compiled fresh Android APKs (`assembleDebug`) and Play Store AAB bundles (`bundleDebug`) via Gradle:
+       - `apks/QuickPress-Customer.apk` (20M) & `apks/QuickPress-Customer.aab` (19M)
+       - `apks/QuickPress-Partner.apk` (18M) & `apks/QuickPress-Partner.aab` (18M)
+       - `apks/QuickPress-Captain.apk` (18M) & `apks/QuickPress-Captain.aab` (18M)
+     - Mirrored all 3 APKs to `website/public/apks/` (`QuickPress-Customer.apk`, `QuickPress-Partner.apk`, `QuickPress-Captain.apk`).
+     - Synchronized iOS Capacitor assets/plugins (`npx cap sync ios`) for Customer and Rider projects.
