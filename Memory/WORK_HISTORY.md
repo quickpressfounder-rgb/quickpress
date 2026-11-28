@@ -6755,3 +6755,10 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
   - `apks/QuickPress-Customer.apk` (21,051,816 bytes) & `apks/QuickPress-Customer.aab` (20,027,593 bytes) — mirrored to `website/public/apks/QuickPress-Customer.apk` and uploaded to EC2 `/var/www/quickpress/website/apks/QuickPress-Customer.apk`, plus Customer iOS Capacitor sync.
   - `apks/QuickPress-Partner.apk` (19,339,918 bytes) & `apks/QuickPress-Partner.aab` (18,396,810 bytes) — includes upgraded `PartnerProfileScreen.tsx` (V4 KYC & Docs Vault) and `ShopManagementScreen.tsx` (classic clean mobile-first store profile); mirrored to `website/public/apks/QuickPress-Partner.apk` and uploaded to EC2 `/var/www/quickpress/website/apks/QuickPress-Partner.apk`.
   - `apks/QuickPress-Captain.apk` (19,293,330 bytes) & `apks/QuickPress-Captain.aab` (18,357,027 bytes) — mirrored to `website/public/apks/QuickPress-Captain.apk` and uploaded to EC2 `/var/www/quickpress/website/apks/QuickPress-Captain.apk`, plus Rider iOS Capacitor sync.
+
+### 2026-11-28 — Website Hero Cleanup & Disable Mobile Auto-Redirect (`website`)
+- **Modified Files:** `website/index.html`, `website/src/pages/HomePage.tsx`
+- **Summary of Changes:**
+  - Removed the inline auto-redirect `<script>` from `website/index.html` so mobile browsers visiting `withquickpress.com` load the website normally without automatically redirecting into `intent://`, `quickpress://`, or the app stores.
+  - Removed the hero Dual Search Bar (`Kasganj, Uttar Pradesh · 45-min pickup active`, location selector, `Search Wash & Fold, Dry Cleaning...`, `Explore Services` button), unavailable notice strip, and `Available:` quick-service pill row from `website/src/pages/HomePage.tsx`.
+- **Verification & Deployment:** `npm run build` (`vite build`) in `website` succeeded cleanly (`44 modules transformed`, built in `1.41s`); `npx tsc --noEmit` confirmed zero TypeScript errors in `HomePage.tsx` (only 4 pre-existing unrelated errors remain in `Modals.tsx` and `B2BPartnerPage.tsx`). Deployed fresh `website/dist` directly to EC2 `/var/www/quickpress/website/`.
