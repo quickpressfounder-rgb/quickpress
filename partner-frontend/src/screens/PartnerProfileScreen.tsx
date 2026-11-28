@@ -33,6 +33,7 @@ import {
   History,
   Hourglass,
   Scale,
+  IndianRupee,
   Info,
   Landmark,
   Layers,
@@ -638,38 +639,40 @@ export function PartnerProfileScreen() {
       subtitle={`${storeName} · ID: ${partnerId}`}
     >
       {/* ========================================================================= */}
-      {/* MOBILE DETAILED VIEW (< md)                                               */}
+      {/* UNIFIED RESPONSIVE CLEAN PROFILE WORKSPACE (Mobile & Desktop)             */}
       {/* ========================================================================= */}
-      <div className="min-h-screen bg-background pb-32 text-foreground md:hidden">
-        {/* Sticky Header */}
-        <header className="sticky top-0 z-20 flex min-h-14 items-center justify-between bg-card/90 backdrop-blur-xl px-4 pb-2 border-b border-border/70 shadow-xs app-header-safe">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate({ to: partnerRoutes.orders })}
-              className="text-foreground p-1 active:scale-95 cursor-pointer"
-            >
-              <ArrowLeft className="size-5" />
-            </button>
-            <h1 className="text-base font-black tracking-tight text-foreground">Partner Profile & Store</h1>
-          </div>
+      <div className="min-h-full bg-[#FAFAFA] pb-24 text-zinc-950">
+        {/* Sticky Clean Header */}
+        <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/95 backdrop-blur-md">
+          <div className="app-header-safe mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 pb-3 md:px-6 md:pt-3.5">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                type="button"
+                onClick={() => navigate({ to: partnerRoutes.orders })}
+                aria-label="Back to orders"
+                className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer"
+              >
+                <ArrowLeft className="size-4" />
+              </button>
+              <h1 className="text-base font-bold tracking-tight text-zinc-950 truncate">
+                Partner Profile &amp; Store
+              </h1>
+            </div>
 
-          <div className="flex items-center gap-2">
             <Link
               to={partnerRoutes.settings}
               aria-label="Settings"
-              className="flex size-9 items-center justify-center rounded-full bg-muted text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer"
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer"
             >
-              <Settings className="size-4.5" />
+              <Settings className="size-4" />
             </Link>
           </div>
         </header>
 
-        <div className="space-y-4 p-4">
-          {/* 1. Rich Partner Profile Hero Card */}
-          <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-soft">
+        <div className="mx-auto max-w-5xl space-y-5 px-4 pt-4 md:px-6 md:pt-5">
+          {/* 1. Partner Profile Hero Card + 3-Pillar Stats */}
+          <section className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3">
-              {/* Hidden file input for fast logo update */}
               <input
                 ref={logoInputRef}
                 type="file"
@@ -683,7 +686,7 @@ export function PartnerProfileScreen() {
                   <button
                     type="button"
                     onClick={() => navigate({ to: partnerRoutes.shop })}
-                    className="group relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/80 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 font-black text-xl shadow-xs active:scale-95 transition-transform cursor-pointer"
+                    className="group relative flex size-14 sm:size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-emerald-50 text-emerald-800 font-bold text-xl active:scale-95 transition-transform cursor-pointer"
                     title="Tap to manage Shop Profile & Photos"
                   >
                     {logoImg && !logoFailed ? (
@@ -696,7 +699,7 @@ export function PartnerProfileScreen() {
                     ) : storeName ? (
                       storeName.slice(0, 2).toUpperCase()
                     ) : (
-                      <Store className="size-6 text-brand-green" />
+                      <Store className="size-6 text-emerald-700" />
                     )}
                   </button>
 
@@ -705,7 +708,7 @@ export function PartnerProfileScreen() {
                     onClick={() => logoInputRef.current?.click()}
                     disabled={uploadingLogo}
                     title="Change Store Logo"
-                    className="absolute -bottom-1 -right-1 flex size-5.5 items-center justify-center rounded-full bg-brand-green text-white shadow-cta ring-2 ring-card transition-all hover:bg-brand-green-dark active:scale-90 cursor-pointer"
+                    className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full bg-emerald-600 text-white ring-2 ring-white transition-all hover:bg-emerald-700 active:scale-90 cursor-pointer"
                   >
                     {uploadingLogo ? (
                       <Loader2 className="size-3 animate-spin" />
@@ -714,25 +717,28 @@ export function PartnerProfileScreen() {
                     )}
                   </button>
                 </div>
+
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <h2 className="truncate text-base font-black text-zinc-900">
+                    <h2 className="truncate text-base font-bold text-zinc-950">
                       {storeName || (
                         <span className="inline-block h-5 w-32 rounded bg-zinc-200 animate-pulse" />
                       )}
                     </h2>
                     {isKycVerified ? (
-                      <BadgeCheck className="size-4 text-blue-500 fill-current shrink-0" />
+                      <BadgeCheck className="size-4 text-blue-600 shrink-0" />
                     ) : null}
                   </div>
-                  {phone ? <p className="text-xs font-semibold text-zinc-500">{phone}</p> : null}
-                  <div className="mt-1 flex items-center gap-2">
+                  {phone ? (
+                    <p className="text-xs font-medium text-zinc-500 tabular-nums mt-0.5">{phone}</p>
+                  ) : null}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     {partnerId ? (
-                      <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-700">
+                      <span className="rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-bold text-zinc-700 tabular-nums">
                         ID: {partnerId}
                       </span>
                     ) : null}
-                    <span className="flex items-center gap-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700">
+                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 tabular-nums">
                       <Star className="size-2.5 fill-current text-amber-500" />
                       {effectiveProfile?.rating !== undefined && Number(effectiveProfile.rating) > 0
                         ? Number(effectiveProfile.rating).toFixed(1)
@@ -745,60 +751,67 @@ export function PartnerProfileScreen() {
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.shop })}
-                className="rounded-full bg-zinc-100 p-2 text-zinc-700 active:scale-95"
+                aria-label="Edit Outlet Profile"
+                className="flex size-8 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 active:scale-95 cursor-pointer"
               >
                 <ChevronRight className="size-4" />
               </button>
             </div>
 
             {/* Quick 3-Pillar Stats */}
-            <div className="mt-4 grid grid-cols-3 gap-2 border-t border-zinc-100 pt-3 text-center">
-              <div className="rounded-2xl bg-zinc-50 p-2.5">
-                <p className="text-[10px] font-bold uppercase text-zinc-400">Total Orders</p>
-                <p className="text-sm font-black text-zinc-900">{effectiveProfile?.totalOrders ?? 0}</p>
+            <div className="mt-4 grid grid-cols-3 gap-2.5 border-t border-zinc-100 pt-3.5 text-center">
+              <div className="rounded-xl border border-zinc-100 bg-zinc-50/70 p-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                  Total Orders
+                </p>
+                <p className="mt-0.5 text-sm font-bold text-zinc-950 tabular-nums">
+                  {effectiveProfile?.totalOrders ?? 0}
+                </p>
               </div>
-              <div className="rounded-2xl bg-zinc-50 p-2.5">
-                <p className="text-[10px] font-bold uppercase text-zinc-400">City Outlet</p>
-                <p className="text-sm font-black text-zinc-900 truncate">{city || session?.city || "—"}</p>
+              <div className="rounded-xl border border-zinc-100 bg-zinc-50/70 p-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                  City Outlet
+                </p>
+                <p className="mt-0.5 text-sm font-bold text-zinc-950 truncate">
+                  {city || session?.city || "—"}
+                </p>
               </div>
-              <div className="rounded-2xl bg-zinc-50 p-2.5">
-                <p className="text-[10px] font-bold uppercase text-zinc-400">KYC Status</p>
+              <div className="rounded-xl border border-zinc-100 bg-zinc-50/70 p-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                  KYC Status
+                </p>
                 {isKycVerified ? (
-                  <p className="text-xs font-black text-emerald-600">VERIFIED ✓</p>
+                  <p className="mt-0.5 text-xs font-bold text-emerald-600">VERIFIED</p>
                 ) : isKycPending ? (
-                  <p className="text-xs font-black text-amber-600">PENDING</p>
+                  <p className="mt-0.5 text-xs font-bold text-amber-600">PENDING</p>
                 ) : (
-                  <p className="text-xs font-black text-rose-600">ACTION REQ</p>
+                  <p className="mt-0.5 text-xs font-bold text-rose-600">ACTION REQ</p>
                 )}
               </div>
             </div>
-          </div>
+          </section>
 
-
-
-          {/* 2. Section: Outlet & Store Settings - Responsive Auto-Adjusting Grid */}
-          <div>
-            <div className="flex items-center justify-between px-1 mb-2">
-              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">
+          {/* 2. Section: Outlet & Operations (4-Tile Grid) */}
+          <section>
+            <div className="flex items-center justify-between px-0.5 mb-2.5">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
                 Outlet &amp; Operations
               </h3>
-              <span className="text-[10px] font-bold text-zinc-400">Settings</span>
+              <span className="text-[10px] font-semibold text-zinc-400">Settings</span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.shop })}
-                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-sky-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
+                className="group flex flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-11 items-center justify-center rounded-xl bg-sky-50 text-sky-600 transition-colors group-hover:bg-sky-100 group-hover:text-sky-700">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
                   <Store className="size-5" />
                 </div>
-                <div className="mt-3 w-full">
-                  <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
-                    Outlet Info
-                  </p>
-                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
+                <div className="mt-3">
+                  <p className="text-xs font-bold text-zinc-950">Outlet Info</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
                     Profile &amp; details
                   </p>
                 </div>
@@ -807,16 +820,14 @@ export function PartnerProfileScreen() {
               <button
                 type="button"
                 onClick={() => setShowTimingsModal(true)}
-                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-emerald-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
+                className="group flex flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-100 group-hover:text-emerald-700">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                   <Clock className="size-5" />
                 </div>
-                <div className="mt-3 w-full">
-                  <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
-                    Timings &amp; Slots
-                  </p>
-                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
+                <div className="mt-3">
+                  <p className="text-xs font-bold text-zinc-950">Timings &amp; Slots</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
                     Open hours &amp; slots
                   </p>
                 </div>
@@ -825,16 +836,14 @@ export function PartnerProfileScreen() {
               <button
                 type="button"
                 onClick={() => setShowRadiusModal(true)}
-                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-violet-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
+                className="group flex flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-11 items-center justify-center rounded-xl bg-violet-50 text-violet-600 transition-colors group-hover:bg-violet-100 group-hover:text-violet-700">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
                   <MapPin className="size-5" />
                 </div>
-                <div className="mt-3 w-full">
-                  <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
-                    Pickup Radius
-                  </p>
-                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
+                <div className="mt-3">
+                  <p className="text-xs font-bold text-zinc-950">Pickup Radius</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
                     Delivery coverage
                   </p>
                 </div>
@@ -843,56 +852,52 @@ export function PartnerProfileScreen() {
               <button
                 type="button"
                 onClick={() => handleOpenDocuments("documents")}
-                className="group flex flex-col items-start sm:items-center justify-between rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 text-left sm:text-center shadow-xs transition-all hover:border-amber-300 hover:shadow-sm active:scale-[0.98] cursor-pointer"
+                className="group flex flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex size-11 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-100 group-hover:text-amber-700">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
                   <FileCheck2 className="size-5" />
                 </div>
-                <div className="mt-3 w-full">
-                  <div className="flex items-center justify-between sm:justify-center gap-1">
-                    <p className="text-xs sm:text-[11px] font-bold text-zinc-900 leading-tight">
-                      KYC &amp; Docs
-                    </p>
-                    {isKycVerified ? (
-                      <span className="size-1.5 rounded-full bg-emerald-500" />
-                    ) : (
-                      <span className="size-1.5 rounded-full bg-amber-500" />
-                    )}
+                <div className="mt-3">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-zinc-950">KYC &amp; Docs</p>
+                    <span
+                      className={`size-1.5 rounded-full ${
+                        isKycVerified ? "bg-emerald-500" : "bg-amber-500"
+                      }`}
+                    />
                   </div>
-                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 sm:truncate">
+                  <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
                     {isKycVerified ? "Verified" : "Verification"}
                   </p>
                 </div>
               </button>
             </div>
-          </div>
+          </section>
 
-          {/* 3. Section: Finance, Payouts & Settlements - Responsive Auto-Adjusting Grid */}
-          <div>
-            <div className="flex items-center justify-between px-1 mb-2">
-              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">
+          {/* 3. Section: Finance & Settlements (4-Tile Grid) */}
+          <section>
+            <div className="flex items-center justify-between px-0.5 mb-2.5">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
                 Finance &amp; Settlements
               </h3>
-              <span className="text-[10px] font-bold text-zinc-400">Realtime Ledger</span>
+              <span className="text-[10px] font-semibold text-zinc-400">Realtime Ledger</span>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.earnings })}
-                className="group flex flex-col justify-between rounded-2xl border border-zinc-200/90 bg-white p-3.5 sm:p-4 text-left shadow-2xs transition-all hover:border-emerald-300 hover:shadow-xs active:scale-[0.98] cursor-pointer"
+                className="group flex flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 active:scale-[0.98] cursor-pointer"
               >
                 <div className="flex items-center justify-between w-full">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-100 group-hover:text-emerald-700">
-                    <Coins className="size-5" />
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                    <IndianRupee className="size-5" />
                   </div>
-                  <ChevronRight className="size-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
+                  <ChevronRight className="size-4 text-zinc-300 group-hover:text-zinc-600" />
                 </div>
                 <div className="mt-3">
-                  <p className="text-xs font-black text-zinc-950 leading-tight">
-                    Weekly Payouts
-                  </p>
-                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 truncate">
+                  <p className="text-xs font-bold text-zinc-950">Weekly Payouts</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
                     Bank transfer cycle
                   </p>
                 </div>
@@ -901,19 +906,17 @@ export function PartnerProfileScreen() {
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.earnings })}
-                className="group flex flex-col justify-between rounded-2xl border border-zinc-200/90 bg-white p-3.5 sm:p-4 text-left shadow-2xs transition-all hover:border-amber-300 hover:shadow-xs active:scale-[0.98] cursor-pointer"
+                className="group flex flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 active:scale-[0.98] cursor-pointer"
               >
                 <div className="flex items-center justify-between w-full">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-100 group-hover:text-amber-700">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
                     <FileText className="size-5" />
                   </div>
-                  <ChevronRight className="size-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
+                  <ChevronRight className="size-4 text-zinc-300 group-hover:text-zinc-600" />
                 </div>
                 <div className="mt-3">
-                  <p className="text-xs font-black text-zinc-950 leading-tight">
-                    Settlements
-                  </p>
-                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 truncate">
+                  <p className="text-xs font-bold text-zinc-950">Settlements</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
                     Double-entry ledger
                   </p>
                 </div>
@@ -922,19 +925,17 @@ export function PartnerProfileScreen() {
               <button
                 type="button"
                 onClick={handleOpenBank}
-                className="group flex flex-col justify-between rounded-2xl border border-zinc-200/90 bg-white p-3.5 sm:p-4 text-left shadow-2xs transition-all hover:border-indigo-300 hover:shadow-xs active:scale-[0.98] cursor-pointer"
+                className="group flex flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 active:scale-[0.98] cursor-pointer"
               >
                 <div className="flex items-center justify-between w-full">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-colors group-hover:bg-indigo-100 group-hover:text-indigo-700">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
                     <CreditCard className="size-5" />
                   </div>
-                  <ChevronRight className="size-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
+                  <ChevronRight className="size-4 text-zinc-300 group-hover:text-zinc-600" />
                 </div>
                 <div className="mt-3">
-                  <p className="text-xs font-black text-zinc-950 leading-tight">
-                    Bank Account
-                  </p>
-                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 truncate">
+                  <p className="text-xs font-bold text-zinc-950">Bank Account</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
                     Linked &amp; Verified
                   </p>
                 </div>
@@ -943,77 +944,77 @@ export function PartnerProfileScreen() {
               <button
                 type="button"
                 onClick={handleOpenGst}
-                className="group flex flex-col justify-between rounded-2xl border border-zinc-200/90 bg-white p-3.5 sm:p-4 text-left shadow-2xs transition-all hover:border-rose-300 hover:shadow-xs active:scale-[0.98] cursor-pointer"
+                className="group flex flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 active:scale-[0.98] cursor-pointer"
               >
                 <div className="flex items-center justify-between w-full">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600 transition-colors group-hover:bg-rose-100 group-hover:text-rose-700">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
                     <Receipt className="size-5" />
                   </div>
-                  <ChevronRight className="size-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
+                  <ChevronRight className="size-4 text-zinc-300 group-hover:text-zinc-600" />
                 </div>
                 <div className="mt-3">
-                  <p className="text-xs font-black text-zinc-950 leading-tight">
-                    GST &amp; Taxes
-                  </p>
-                  <p className="mt-0.5 text-[10px] font-medium text-zinc-400 truncate">
+                  <p className="text-xs font-bold text-zinc-950">GST &amp; Taxes</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
                     18% GST &amp; 1% TDS
                   </p>
                 </div>
               </button>
             </div>
-          </div>
+          </section>
 
-          {/* 4. Section: Store Growth & Promotion - Adaptive Cards */}
-          <div className="space-y-3">
-            <h3 className="px-1 text-xs font-black uppercase tracking-wider text-zinc-500">
-              Growth &amp; Marketing
-            </h3>
+          {/* 4. Section: Growth & Marketing */}
+          <section>
+            <div className="px-0.5 mb-2.5">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+                Growth &amp; Marketing
+              </h3>
+            </div>
 
-            {/* Standee QR Card */}
-            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs transition-all hover:border-zinc-300 hover:shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start sm:items-center gap-3 min-w-0">
-                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-700 border border-purple-100">
-                    <QrCode className="size-5.5" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Store Counter QR & Standee */}
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-700">
+                    <QrCode className="size-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-black text-zinc-950">Store Counter QR &amp; Standee</p>
-                    <p className="text-[11px] font-medium text-zinc-500 leading-normal mt-0.5">
-                      Scan QR to order or share store profile link with walk-in customers
+                    <p className="text-xs font-bold text-zinc-950">
+                      Store Counter QR &amp; Standee
+                    </p>
+                    <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
+                      Scan QR to order or share storefront link
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowQrStandeeModal(true)}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-900 bg-zinc-950 px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer shrink-0 self-start sm:self-auto"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 px-3.5 py-2 text-xs font-semibold text-white shrink-0 active:scale-95 transition-all cursor-pointer"
                 >
                   <QrCode className="size-3.5" />
                   <span>QR &amp; Share</span>
                 </button>
               </div>
-            </div>
 
-            {/* Refer & Earn Card */}
-            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs transition-all hover:border-zinc-300 hover:shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start sm:items-center gap-3 min-w-0">
-                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100">
-                    <Gift className="size-5.5" />
+              {/* Refer & Earn Card */}
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                    <Gift className="size-5" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <p className="text-xs font-black text-zinc-950">
+                      <p className="text-xs font-bold text-zinc-950">
                         Refer &amp; Earn ₹{referralHub?.activeRule?.referrerReward ?? 500}
                       </p>
                       {referralHub?.claimableBalance && referralHub.claimableBalance > 0 ? (
-                        <span className="rounded-md bg-emerald-700 text-[10px] font-bold text-white px-1.5 py-0.5">
+                        <span className="rounded-md bg-emerald-600 text-[10px] font-bold text-white px-1.5 py-0.5">
                           ₹{referralHub.claimableBalance} Ready
                         </span>
                       ) : null}
                     </div>
-                    <p className="text-[11px] font-medium text-zinc-500 leading-normal mt-0.5">
-                      Invite a laundromat &amp; get ₹{referralHub?.activeRule?.referrerReward ?? 500} directly in your weekly bank payout
+                    <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
+                      Invite a laundromat &amp; earn payout rewards
                     </p>
                   </div>
                 </div>
@@ -1023,67 +1024,76 @@ export function PartnerProfileScreen() {
                     setShowReferralModal(true);
                     void loadReferralHub();
                   }}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer shrink-0 self-start sm:self-auto"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 text-xs font-semibold text-white shrink-0 active:scale-95 transition-all cursor-pointer"
                 >
                   <Gift className="size-3.5" />
                   <span>Invite &amp; Earn</span>
                 </button>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* 5. Section: Support & Preferences - Unified Grouped Container */}
-          <div>
-            <h3 className="px-1 mb-2 text-xs font-black uppercase tracking-wider text-zinc-500">
-              Support &amp; Feedback
-            </h3>
+          {/* 5. Section: Support & Feedback */}
+          <section>
+            <div className="px-0.5 mb-2.5">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+                Support &amp; Feedback
+              </h3>
+            </div>
 
-            <div className="rounded-2xl border border-zinc-200/90 bg-white divide-y divide-zinc-100 shadow-2xs overflow-hidden">
-              {/* Customer Reviews & Ratings */}
+            <div className="rounded-2xl border border-zinc-200 bg-white divide-y divide-zinc-100 overflow-hidden">
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.reviews })}
-                className="w-full flex items-center justify-between p-3.5 hover:bg-zinc-50/80 active:bg-zinc-100 transition-colors text-left cursor-pointer"
+                className="w-full flex items-center justify-between p-3.5 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                    <Star className="size-5 fill-amber-400 text-amber-500" />
+                    <Star className="size-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-zinc-950">Customer Reviews &amp; Ratings</p>
-                    <p className="text-[10px] font-medium text-zinc-500 truncate">View customer feedback, store rating &amp; reply</p>
+                    <p className="text-xs font-bold text-zinc-950">
+                      Customer Reviews &amp; Ratings
+                    </p>
+                    <p className="text-[11px] font-medium text-zinc-500 truncate">
+                      View customer feedback, store rating &amp; reply
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 text-zinc-400 shrink-0">
-                  <span className="flex items-center gap-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700">
+                  <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 tabular-nums">
                     <Star className="size-2.5 fill-current text-amber-500" />
-                    <span>5.0</span>
+                    <span>
+                      {effectiveProfile?.rating !== undefined && Number(effectiveProfile.rating) > 0
+                        ? Number(effectiveProfile.rating).toFixed(1)
+                        : "5.0"}
+                    </span>
                   </span>
                   <ChevronRight className="size-4" />
                 </div>
               </button>
 
-              {/* Help Centre & Tickets */}
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.help })}
-                className="w-full flex items-center justify-between p-3.5 hover:bg-zinc-50/80 active:bg-zinc-100 transition-colors text-left cursor-pointer"
+                className="w-full flex items-center justify-between p-3.5 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
                     <HelpCircle className="size-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-zinc-950">Help Centre &amp; Support Tickets</p>
-                    <p className="text-[10px] font-medium text-zinc-500 truncate">Order assistance, fleet dispute &amp; ticket tracking</p>
+                    <p className="text-xs font-bold text-zinc-950">
+                      Help Centre &amp; Support Tickets
+                    </p>
+                    <p className="text-[11px] font-medium text-zinc-500 truncate">
+                      Order assistance, fleet dispute &amp; ticket tracking
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 text-zinc-400 shrink-0">
-                  <ChevronRight className="size-4" />
-                </div>
+                <ChevronRight className="size-4 text-zinc-400 shrink-0" />
               </button>
 
-              {/* 24/7 Helpline */}
               <div className="flex items-center justify-between p-3.5">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
@@ -1091,32 +1101,35 @@ export function PartnerProfileScreen() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-zinc-950">Partner Help &amp; Support</p>
-                    <p className="text-[10px] font-medium text-zinc-500 truncate">Available 24/7 for active laundry partners</p>
+                    <p className="text-[11px] font-medium text-zinc-500 truncate">
+                      Available 24/7 for active laundry partners
+                    </p>
                   </div>
                 </div>
                 <a
                   href="tel:18008890123"
-                  className="flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3.5 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all shadow-2xs shrink-0"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all shrink-0"
                 >
                   <PhoneCall className="size-3" />
                   <span>Call 24/7</span>
                 </a>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* 6. Section: Log Out Button */}
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => setShowLogoutModal(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200/90 bg-red-50/60 hover:bg-red-50 py-3.5 text-xs font-bold text-red-600 shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
-            >
-              <LogOut className="size-4" />
-              <span>Log out from QuickPress Partner</span>
-            </button>
-          </div>
+          {/* 6. Log Out Button */}
+          <button
+            type="button"
+            onClick={() => setShowLogoutModal(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-white hover:bg-rose-50 py-3.5 text-xs font-bold text-rose-600 transition-all active:scale-[0.98] cursor-pointer"
+          >
+            <LogOut className="size-4" />
+            <span>Log out from QuickPress Partner</span>
+          </button>
         </div>
+      </div>
+
+      {/* All Working Modals Mounted Globally (Mobile & Desktop) */}
 
         {/* ------------------------------------------------------------- */}
         {/* MODAL 1: Timings & Slot Capacity                              */}
@@ -2397,525 +2410,6 @@ export function PartnerProfileScreen() {
             </div>
           </div>
         ) : null}
-      </div>
-
-      {/* ========================================================================= */}
-      {/* DESKTOP PROFILE VIEW (>= md)                                              */}
-      {/* ========================================================================= */}
-      <div className="hidden mx-auto w-full max-w-5xl px-4 py-4 md:block md:px-8 md:py-6">
-        <div className="space-y-6">
-          <section className="flex items-center gap-4 rounded-3xl border border-border/80 bg-card p-6 shadow-sm">
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => navigate({ to: partnerRoutes.shop })}
-                className="group relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-3xl border border-border/90 bg-primary/20 text-brand-dark font-black text-2xl shadow-xs active:scale-95 transition-transform"
-                title="Tap to manage Shop Profile & Photos"
-              >
-                {logoImg && !logoFailed ? (
-                  <img
-                    src={logoImg}
-                    alt={`${storeName} logo`}
-                    onError={() => setLogoFailed(true)}
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  storeName.slice(0, 2).toUpperCase()
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => logoInputRef.current?.click()}
-                disabled={uploadingLogo}
-                title="Change Store Logo"
-                className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full bg-primary text-white shadow-md ring-2 ring-white transition-all hover:bg-primary-dark active:scale-90 cursor-pointer"
-              >
-                {uploadingLogo ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Camera className="size-3.5" />
-                )}
-              </button>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="truncate text-xl font-black text-foreground">{storeName}</p>
-                <BadgeCheck className="size-5 text-blue-500 fill-current" />
-              </div>
-              <p className="text-xs font-semibold text-muted-foreground">
-                {profile?.ownerName || "Partner Admin"} · Store ID: {partnerId} · {phone}
-              </p>
-            </div>
-          </section>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm">
-              <p className="text-xs font-bold text-muted-foreground">{t("profile.rating", "Partner Rating")}</p>
-              <p className="text-2xl font-black text-foreground">★ {profile?.rating || "5.0"}</p>
-            </div>
-            <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm">
-              <p className="text-xs font-bold text-muted-foreground">{t("profile.completedOrders", "Completed Orders")}</p>
-              <p className="text-2xl font-black text-foreground">{profile?.totalOrders ?? 0}</p>
-            </div>
-            <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm">
-              <p className="text-xs font-bold text-muted-foreground">{t("profile.location", "Location")}</p>
-              <p className="text-2xl font-black text-foreground">{city}</p>
-            </div>
-          </div>
-
-
-          {/* ================================================================= */}
-          {/* SERVICES & CATALOG MANAGEMENT SECTION                             */}
-          {/* ================================================================= */}
-          <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card p-6 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-primary text-white shadow-md shadow-primary/30">
-                  <Sparkles className="size-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-black text-foreground">Services & Rate Card</h2>
-                    <span className="rounded-full bg-primary/15 border border-primary/30 px-2.5 py-0.5 text-xs font-black text-primary">
-                      {activeServicesCount > 0 ? `${activeServicesCount} Live in Catalog` : `${services.length} Total Services`}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Configure laundry service pricing, turnaround times, and customer booking availability
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => navigate({ to: partnerRoutes.serviceNew })}
-                  className="flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-xs font-bold text-foreground hover:bg-muted active:scale-95 transition-all cursor-pointer"
-                >
-                  <span>+ Add New Service</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate({ to: partnerRoutes.services })}
-                  className="flex items-center gap-2 rounded-full bg-primary hover:bg-primary-dark px-5 py-2 text-xs font-black text-white shadow-md shadow-primary/25 active:scale-95 transition-all cursor-pointer"
-                >
-                  <span>Manage Catalog</span>
-                  <ArrowRight className="size-3.5" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* ================================================================= */}
-          {/* KYC & DOCUMENTS COMPLIANCE SECTION                                */}
-          {/* ================================================================= */}
-          <div className="rounded-3xl border border-border/80 bg-card p-6 shadow-sm space-y-6">
-            {/* Header & Verification Badge */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/60 pb-5">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="flex size-9 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                    <ShieldCheck className="size-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-black text-foreground">{t("profile.kycTitle", "KYC & Official Documents")}</h2>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-black text-emerald-700">
-                        <CheckCircle2 className="size-3.5" />
-                        {t("common.verifiedPartner", "Verified Partner")}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Business identity and payout accounts verified by QuickPress Compliance
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowKycEditModal(true)}
-                  className="flex items-center gap-2 rounded-2xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 px-4 py-2.5 text-xs font-black shadow-xs hover:opacity-90 active:scale-95 transition-all cursor-pointer"
-                >
-                  <PenTool className="size-3.5" />
-                  {t("profile.requestKycUpdate", "Request Document / Bank Edit")}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleOpenApprovals}
-                  className="flex items-center gap-1.5 rounded-2xl border border-border/80 bg-muted/30 px-3.5 py-2.5 text-xs font-bold text-foreground hover:bg-muted/60 active:scale-95 transition-all cursor-pointer"
-                >
-                  <History className="size-3.5 text-muted-foreground" />
-                  Approvals ({approvalRequests.length})
-                </button>
-              </div>
-            </div>
-
-            {/* Pending Admin Review Banner (if any) */}
-            {pendingRequest && (
-              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="flex size-2 rounded-full bg-amber-500 animate-ping" />
-                    <p className="text-xs font-black text-amber-900 dark:text-amber-300">
-                      Change Request #{pendingRequest.requestId} Under Review
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-amber-500/20 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-200">
-                    Awaiting Admin Approval
-                  </span>
-                </div>
-                <p className="text-xs text-amber-800/90 dark:text-amber-200/90">
-                  You requested an update to your KYC / Banking details on{" "}
-                  {new Date(pendingRequest.submittedAt).toLocaleDateString("en-IN", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                  . QuickPress Admin is verifying your documents. Your current verified account details remain active until approved.
-                </p>
-              </div>
-            )}
-
-            {/* Document Tabs */}
-            <div className="flex items-center gap-2 border-b border-border/60 pb-3">
-              <button
-                type="button"
-                onClick={() => setActiveKycTab("documents")}
-                className={`rounded-xl px-3.5 py-2 text-xs font-black transition-all cursor-pointer ${
-                  activeKycTab === "documents"
-                    ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Verified Documents (4)
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveKycTab("history")}
-                className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-black transition-all cursor-pointer ${
-                  activeKycTab === "history"
-                    ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Change Requests & Approvals
-                {approvalRequests.length > 0 && (
-                  <span className="rounded-full bg-muted px-1.5 py-0.2 text-[10px] font-bold text-foreground">
-                    {approvalRequests.length}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            {/* Tab 1: Documents Grid */}
-            {activeKycTab === "documents" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* 1. Aadhaar Card */}
-                <div className="rounded-2xl border border-border/70 bg-muted/20 p-5 space-y-4 hover:border-border transition-all">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex size-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 border border-blue-500/20 font-black text-xs">
-                        UIDAI
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-black text-foreground">{t("profile.aadhaarCard", "Aadhaar Card (UIDAI)")}</h3>
-                        <p className="text-[11px] text-muted-foreground">National Identity Card</p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-black text-emerald-600 border border-emerald-500/20">
-                      <Check className="size-3" />
-                      {t("common.verified", "Verified ✓")}
-                    </span>
-                  </div>
-
-                  <div className="rounded-xl border border-border/60 bg-card p-3.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-muted-foreground">Aadhaar Number</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowAadhaarNumber(!showAadhaarNumber)}
-                        className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline cursor-pointer"
-                      >
-                        {showAadhaarNumber ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
-                        {showAadhaarNumber ? t("profile.hide", "Mask") : t("profile.show", "Reveal")}
-                      </button>
-                    </div>
-                    <p className="font-mono text-base font-black tracking-wider text-foreground">
-                      {effectiveProfile?.aadhaar
-                        ? (showAadhaarNumber
-                            ? effectiveProfile.aadhaar
-                            : `•••• •••• ${String(effectiveProfile.aadhaar).slice(-4)}`)
-                        : "Not Uploaded"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Authorized Signatory: <span className="font-bold text-foreground">{effectiveProfile?.ownerName || session?.ownerName || storeName || "Registered Partner"}</span>
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowDocPreview({
-                          isOpen: true,
-                          title: "Aadhaar Card (Front)",
-                          imageUrl: effectiveProfile?.aadhaarFront || "",
-                          subtitle: `UIDAI Verified · ${effectiveProfile?.ownerName || session?.ownerName || storeName}`,
-                        })
-                      }
-                      className="flex-1 rounded-xl border border-border/80 bg-card py-2 text-center text-xs font-bold text-foreground hover:bg-muted/40 transition-all cursor-pointer"
-                    >
-                      View Front Side
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowDocPreview({
-                          isOpen: true,
-                          title: "Aadhaar Card (Back)",
-                          imageUrl: effectiveProfile?.aadhaarBack || "",
-                          subtitle: `Address Verification · ${city || session?.city || "Registered City"}`,
-                        })
-                      }
-                      className="flex-1 rounded-xl border border-border/80 bg-card py-2 text-center text-xs font-bold text-foreground hover:bg-muted/40 transition-all cursor-pointer"
-                    >
-                      View Back Side
-                    </button>
-                  </div>
-                </div>
-
-                {/* 2. PAN Card */}
-                <div className="rounded-2xl border border-border/70 bg-muted/20 p-5 space-y-4 hover:border-border transition-all">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex size-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20 font-black text-xs">
-                        ITD
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-black text-foreground">{t("profile.panCard", "Permanent Account Number (PAN)")}</h3>
-                        <p className="text-[11px] text-muted-foreground">Income Tax Dept of India</p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-black text-emerald-600 border border-emerald-500/20">
-                      <Check className="size-3" />
-                      {t("common.verified", "Verified ✓")}
-                    </span>
-                  </div>
-
-                  <div className="rounded-xl border border-border/60 bg-card p-3.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-muted-foreground">Permanent Account Number</span>
-                      <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-black text-emerald-700">
-                        194C Compliant
-                      </span>
-                    </div>
-                    <p className="font-mono text-base font-black tracking-widest text-foreground">
-                      {effectiveProfile?.pan || "Not Provided"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Entity: <span className="font-bold text-foreground">Authorized Partner</span> · TDS Rate: 1%
-                    </p>
-                  </div>
-
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowDocPreview({
-                          isOpen: true,
-                          title: "PAN Card Document",
-                          imageUrl: effectiveProfile?.panCard || "",
-                          subtitle: `Permanent Account Number: ${effectiveProfile?.pan || "N/A"}`,
-                        })
-                      }
-                      className="w-full rounded-xl border border-border/80 bg-card py-2 text-center text-xs font-bold text-foreground hover:bg-muted/40 transition-all cursor-pointer"
-                    >
-                      View PAN Card Document
-                    </button>
-                  </div>
-                </div>
-
-                {/* 3. Settlement Bank Account */}
-                <div className="rounded-2xl border border-border/70 bg-muted/20 p-5 space-y-4 hover:border-border transition-all">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex size-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 border border-purple-500/20">
-                        <Landmark className="size-5" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-black text-foreground">{t("profile.bankAccount", "Bank Payout Account")}</h3>
-                        <p className="text-[11px] text-muted-foreground">Daily Automated Payouts</p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-black text-emerald-600 border border-emerald-500/20">
-                      <Check className="size-3" />
-                      {t("profile.activeVerified", "Active & Verified")}
-                    </span>
-                  </div>
-
-                  <div className="rounded-xl border border-border/60 bg-card p-3.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-foreground">{effectiveProfile?.bankName || "Bank Account"}</span>
-                      {effectiveProfile?.ifsc ? (
-                        <span className="font-mono text-xs font-bold text-muted-foreground">
-                          IFSC: {effectiveProfile.ifsc}
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="font-mono text-base font-black tracking-wider text-foreground">
-                      {effectiveProfile?.accountNumber
-                        ? `•••• •••• ${String(effectiveProfile.accountNumber).slice(-4)}`
-                        : "A/C Linked"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {t("profile.accountHolder", "Beneficiary")}: <span className="font-bold text-foreground">{effectiveProfile?.accountHolder || storeName}</span>
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowDocPreview({
-                          isOpen: true,
-                          title: t("profile.cancelledCheque", "Cancelled Cheque / Passbook Proof"),
-                          imageUrl: effectiveProfile?.chequePhoto || "",
-                          subtitle: `${effectiveProfile?.bankName || "Bank Proof"} · A/C: ${effectiveProfile?.accountNumber || "Linked"}`,
-                        })
-                      }
-                      className="flex-1 rounded-xl border border-border/80 bg-card py-2 text-center text-xs font-bold text-foreground hover:bg-muted/40 transition-all cursor-pointer"
-                    >
-                      {t("profile.cancelledCheque", "View Cheque Copy")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowKycEditModal(true)}
-                      className="rounded-xl border border-border/80 bg-card px-3 py-2 text-xs font-bold text-primary hover:underline cursor-pointer"
-                    >
-                      {t("common.edit", "Edit")}
-                    </button>
-                  </div>
-                </div>
-
-                {/* 4. GSTIN & Business Master SLA */}
-                <div className="rounded-2xl border border-border/70 bg-muted/20 p-5 space-y-4 hover:border-border transition-all">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                        <FileCheck className="size-5" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-black text-foreground">{t("profile.slaAgreement", "Partner Service Level Agreement (SLA)")}</h3>
-                        <p className="text-[11px] text-muted-foreground">Compliance & Legal Binding</p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-black text-blue-600 border border-blue-500/20">
-                      SLA Active
-                    </span>
-                  </div>
-
-                  <div className="rounded-xl border border-border/60 bg-card p-3.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-muted-foreground">GSTIN Number</span>
-                      <span className="text-[10px] font-bold text-muted-foreground">
-                        {effectiveProfile?.gstin ? "Registered" : "Composition / Exemption"}
-                      </span>
-                    </div>
-                    <p className="font-mono text-sm font-black text-foreground">
-                      {effectiveProfile?.gstin || "Unregistered (Below ₹40L Limit)"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Registered Address:{" "}
-                      <span className="font-semibold text-foreground">
-                        {effectiveProfile?.address || "Store Address"} {effectiveProfile?.pincode ? `(${effectiveProfile.pincode})` : ""}
-                      </span>
-                    </p>
-                  </div>
-
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowDocPreview({
-                          isOpen: true,
-                          title: "Master Partnership SLA Agreement",
-                          imageUrl: effectiveProfile?.signatureUrl || "",
-                          subtitle: `Version: ${effectiveProfile?.agreementVersion || "QP-SLA-v4"} · E-Signed by ${effectiveProfile?.signedByName || effectiveProfile?.ownerName || storeName}`,
-                        })
-                      }
-                      className="w-full rounded-xl border border-border/80 bg-card py-2 text-center text-xs font-bold text-foreground hover:bg-muted/40 transition-all cursor-pointer"
-                    >
-                      View SLA Agreement Terms
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* Tab 2: Change Requests History */
-              <div className="space-y-3">
-                {approvalRequests.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-border/80 p-8 text-center space-y-2">
-                    <Clock className="size-8 mx-auto text-muted-foreground opacity-50" />
-                    <p className="text-sm font-black text-foreground">No Change Requests Yet</p>
-                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                      All your documents and bank details are currently verified and up to date. You can request edits whenever needed.
-                    </p>
-                  </div>
-                ) : (
-                  approvalRequests.map((req) => (
-                    <div
-                      key={req.requestId}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between rounded-2xl border border-border/70 bg-muted/20 p-4 gap-3"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-black text-foreground">#{req.requestId}</span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
-                              req.status === "approved"
-                                ? "bg-emerald-500/15 text-emerald-700 border border-emerald-500/30"
-                                : req.status === "rejected"
-                                ? "bg-rose-500/15 text-rose-700 border border-rose-500/30"
-                                : "bg-amber-500/15 text-amber-700 border border-amber-500/30 animate-pulse"
-                            }`}
-                          >
-                            {req.status === "pending" ? "Pending Admin Approval" : req.status.toUpperCase()}
-                          </span>
-                        </div>
-                        <p className="text-xs font-bold text-foreground">
-                          {req.requestType.replace("_", " ").toUpperCase()}: {req.reason || "Document details update"}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          Submitted on{" "}
-                          {new Date(req.submittedAt).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                          {req.reviewedBy ? ` · Reviewed by ${req.reviewedBy}` : ""}
-                        </p>
-                      </div>
-
-                      {req.rejectionReason && (
-                        <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 text-xs text-rose-800">
-                          <span className="font-bold">Reason:</span> {req.rejectionReason}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* ========================================================================= */}
       {/* MODAL: KYC & BANK DETAILS EDIT REQUEST (REQUIRES ADMIN APPROVAL)          */}
       {/* ========================================================================= */}

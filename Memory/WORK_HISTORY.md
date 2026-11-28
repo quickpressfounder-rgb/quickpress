@@ -6720,3 +6720,12 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
 - **Verification**:
   - `tsc --noEmit` confirmed zero TypeScript errors across `EarningsScreen.tsx` and `SettlementSummaryModal.tsx`.
   - `partner-frontend` production Vite + Nitro build passed cleanly in `2.24s` (Exit code 0).
+
+
+### 2026-11-28 — Partner Profile & Store (`/profile`) Senior UI/UX Upgrade (`PartnerProfileScreen.tsx`)
+- **Modified File:** `partner-frontend/src/screens/PartnerProfileScreen.tsx`
+- **Summary of Changes:**
+  - Replaced the duplicate mobile-only + desktop split view with a single unified responsive SaaS layout (`max-w-5xl`, clean `#FAFAFA` canvas) featuring crisp `lucide-react` SVG icons throughout (zero 3D/emoji icons).
+  - Upgraded the `Partner Profile & Store` header, Hero Card with live camera logo upload + active/open/KYC status badges + 3-pillar KPI strip (`Customer Rating`, `On-Time Dispatch`, `Active Staff`), 4-tile `Outlet & Operations` grid (Store Timings & Auto-Schedule, Pickup Radius, Rush-Hour Brake, Staff & Alert Sound), 4-tile `Finance & Settlements` grid (Weekly Payouts, Settlement Statements, Bank Account & Payouts, Store Documents & KYC + GST Compliance), 2-card `Growth & Marketing` section (Counter QR Standee + Refer & Earn ₹1,500), grouped `Support & Feedback` list with `Call 24/7`, and `Log out from QuickPress Partner`.
+  - Unwrapped all 12 interactive working modals (`Timings`, `Pickup Radius`, `Staff`, `Bank Account`, `Documents/KYC`, `GST`, `Offers`, `QR Standee`, `Referral Hub`, `Logout`, `KYC Correction`, and `Document Preview`) to render cleanly at root level across both mobile and desktop viewports.
+- **Verification:** `npx vite build` (`npm run build`) succeeded in `partner-frontend`; `npx tsc --noEmit` confirmed zero errors from new UI/icon code (after adding `IndianRupee` import).
