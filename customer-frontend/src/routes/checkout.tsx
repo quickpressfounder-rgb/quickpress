@@ -424,7 +424,7 @@ export function CheckoutPage() {
         deliveryAddress: selectedDelivery,
         pickup: {
           day: "Today",
-          slot: isExpressActive ? "15-Min Express Pickup" : "Standard (45–60 mins)",
+          slot: isExpressActive ? "15-Min Express Pickup" : "Doorstep Pickup (45–60 mins)",
           express: isExpressActive,
         },
         isExpress: isExpressActive,
@@ -506,7 +506,7 @@ export function CheckoutPage() {
         deliveryAddress: selectedDelivery,
         pickup: {
           day: "Today",
-          slot: isExpressActive ? "15-Min Express Pickup" : "Standard (45–60 mins)",
+          slot: isExpressActive ? "15-Min Express Pickup" : "Doorstep Pickup (45–60 mins)",
           express: isExpressActive,
         },
         isExpress: isExpressActive,
@@ -652,7 +652,7 @@ export function CheckoutPage() {
           isRefreshing={isRefreshing}
         />
 
-        {/* 2. Pickup Schedule & Speed (Standard vs Express) */}
+        {/* 2. Pickup Speed & Express Upgrade */}
         <CheckoutSlotPicker
           isExpressActive={isExpressActive}
           onToggleExpress={(val) => setIsExpress(val)}

@@ -423,9 +423,8 @@ export function MapPicker({
         {/* Center Animated Delivery Pin */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-20">
           <div
-            className={`flex flex-col items-center transition-all duration-200 ease-out ${
-              isDragging ? "-translate-y-9 scale-110" : "-translate-y-5 scale-100"
-            }`}
+            className={`flex flex-col items-center transition-all duration-200 ease-out ${isDragging ? "-translate-y-9 scale-110" : "-translate-y-5 scale-100"
+              }`}
           >
             {/* Pin Head */}
             <div className="flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 text-white shadow-2xl border-2 border-white ring-4 ring-emerald-600/20">
@@ -438,11 +437,10 @@ export function MapPicker({
             <div className="h-2 w-0.5 bg-emerald-600" />
             {/* Ground Target Dot & Shadow */}
             <div
-              className={`rounded-full transition-all duration-200 ${
-                isDragging
+              className={`rounded-full transition-all duration-200 ${isDragging
                   ? "size-2.5 bg-black/20 blur-[2px] mt-2 scale-75"
                   : "size-3 bg-black/40 blur-[1px] mt-0.5 scale-100"
-              }`}
+                }`}
             />
           </div>
         </div>
@@ -528,7 +526,7 @@ export function MapPicker({
             <p className="line-clamp-2 text-xs text-muted-foreground mt-0.5 leading-relaxed">
               {details
                 ? [details.area, details.city, details.state, details.pincode].filter(Boolean).join(", ") ||
-                  details.formattedAddress
+                details.formattedAddress
                 : point
                   ? `Lat: ${point.latitude.toFixed(5)}, Lng: ${point.longitude.toFixed(5)}`
                   : "Tap map or search to choose"}
