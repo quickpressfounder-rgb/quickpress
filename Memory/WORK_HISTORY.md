@@ -1,5 +1,15 @@
 # QuickPress — Engineering Work History
 
+## Session: November 28, 2026 (Part 102)
+
+### Disable Automatic Mobile Redirect to Play Store (`website/src/App.tsx`)
+
+1. **Normal Mobile Web Opening (`website/src/App.tsx`):**
+   - Removed the mount `useEffect` and store-route redirect that automatically invoked `triggerInstantAppLaunch()` on mobile/tablet page loads (which redirected visitors without the APK installed to Google Play Store / App Store).
+   - Direct `/store/:id` and `/partner/:id` links now resolve normally on the website (`setPartnerStoreId(id); setCurrentPage("store")`), keeping explicit app-download buttons working only when clicked.
+
+---
+
 ## Session: November 27, 2026 (Part 101)
 
 ### Scope Image 1 Neutral Icon Styling Strictly to Statutory Policies Photo (`AboutPage.tsx`)

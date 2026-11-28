@@ -26,13 +26,6 @@ import { CareersPage } from "@/pages/CareersPage";
 import { InvestorRelationsPage } from "@/pages/InvestorRelationsPage";
 import { ReportFraudPage } from "@/pages/ReportFraudPage";
 
-// Mobile App Redirection Utility
-import {
-  isMobileOrTabletDevice,
-  shouldBypassRedirect,
-  triggerInstantAppLaunch,
-} from "@/utils/mobileAppRedirect";
-
 interface ToastState {
   show: boolean;
   message: string;
@@ -46,12 +39,6 @@ export default function App() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedService, setSelectedService] = useState<ServiceInfo | null>(null);
   const [toast, setToast] = useState<ToastState>({ show: false, message: "" });
-  // On mobile devices, attempt instant app launch directly without showing any intermediate blocking screen
-  useEffect(() => {
-    if (typeof window !== "undefined" && isMobileOrTabletDevice() && !shouldBypassRedirect()) {
-      triggerInstantAppLaunch(partnerStoreId ? `partner/${partnerStoreId}` : undefined);
-    }
-  }, [partnerStoreId]);
 
   const showToast = (message: string) => {
     setToast({ show: true, message });
@@ -86,12 +73,8 @@ export default function App() {
 
       if (storeMatch && storeMatch[1]) {
         const id = decodeURIComponent(storeMatch[1]);
-        // Device Check: If opened on mobile, instantly launch Customer APK directly
-        if (isMobileOrTabletDevice() && !shouldBypassRedirect()) {
-          triggerInstantAppLaunch(`partner/${id}`);
-        } else {
-          setCurrentPage("home");
-        }
+        setPartnerStoreId(id);
+        setCurrentPage("store");
         return;
       }
 
