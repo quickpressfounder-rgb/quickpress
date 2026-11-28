@@ -6738,3 +6738,12 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
   - Upgraded the `Upload & Edit` tab into a split-pane workflow with real compressed document image uploaders for `chequePhoto`, `aadhaarFront`, `aadhaarBack`, and `panCard`, paired with a sticky real-time `Pre-Submit Change Diff` (`Before -> After`) panel submitting via `submitKycChangeRequest`.
   - Upgraded `Approvals` with live status filter pills (`All`, `Pending`, `Approved`, `Rejected`), `requestedChanges` summaries, and a `Fix & Resubmit` workflow; upgraded `showDocPreview` lightbox with `Front`/`Back` switcher, Zoom (`75%–200%`), and `90°` rotation controls.
 - **Verification:** `npx tsc --noEmit` reported zero new errors in `PartnerProfileScreen.tsx`; `npm run build` (`npx vite build`) succeeded cleanly in `2.43s`.
+
+### 2026-11-28 — Manage Store Profile (`/shop`) Classic Clean Mobile-First Upgrade (`ShopManagementScreen.tsx`)
+- **Modified File:** `partner-frontend/src/screens/ShopManagementScreen.tsx`
+- **Summary of Changes:**
+  - Redesigned `ShopManagementScreen.tsx` around a clean, airy classic SaaS layout (`#F8F9FA` canvas, `#FFFFFF` bordered surfaces, crisp hairline dividers, pure Lucide SVG icons) optimized for mobile and desktop viewports.
+  - Replaced the crowded top bar and stacked emerald boxes with an uncluttered header (`Store Profile` + live status pill opening `ShopStatusSheet`) and editorial horizontal underline navigation (`Overview`, `Timings & Status`, `Coverage & PINs`, `Photos`, `Customer View`).
+  - Built an integrated storefront hero card with cover banner & logo image compression uploaders (`uploadBanner`, `uploadLogo`), inline expandable profile editor (`updateProfile`), a clean 3-metric divider strip (`Store Rating`, `Total Orders`, `Revenue`), and a grouped `Store Configuration` settings list.
+  - Added working forms for `Timings & Status` (`updateHours` + live `setStatus` toggles for order intake and temporary closure), interactive `Coverage & PINs` sliders and 6-digit service pincode tag manager (`updateArea` + `updateProfile`), real gallery upload/delete with image preview lightbox (`addImage`, `removeImage`), and a live `Customer View` storefront card preview.
+- **Verification:** `npx tsc --noEmit` confirmed zero TypeScript errors in `ShopManagementScreen.tsx` (`ZERO_TS_ERRORS_IN_SHOP`); `npm run build` (`npx vite build`) succeeded cleanly in `1.73s`.
