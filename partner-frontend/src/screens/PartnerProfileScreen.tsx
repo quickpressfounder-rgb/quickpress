@@ -27,6 +27,7 @@ import {
   FileCheck2,
   FileSpreadsheet,
   FileText,
+  Fingerprint,
   Gift,
   Headphones,
   HelpCircle,
@@ -53,6 +54,7 @@ import {
   Receipt,
   RefreshCw,
   RotateCcw,
+  RotateCw,
   Search,
   Settings,
   Share2,
@@ -74,6 +76,8 @@ import {
   Wallet,
   X,
   Zap,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -187,13 +191,24 @@ export function PartnerProfileScreen() {
   }, []);
 
   // KYC & Change Request State
-  const [showKycEditModal, setShowKycEditModal] = useState(false);
-  const [showDocPreview, setShowDocPreview] = useState<{ isOpen: boolean; title: string; imageUrl: string; subtitle?: string } | null>(null);
+  const [showDocPreview, setShowDocPreview] = useState<{
+    isOpen: boolean;
+    title: string;
+    subtitle?: string;
+    imageUrl: string;
+    backImageUrl?: string;
+    activeSide?: "front" | "back";
+  } | null>(null);
+  const [docZoom, setDocZoom] = useState(1);
+  const [docRotation, setDocRotation] = useState(0);
   const [showAadhaarNumber, setShowAadhaarNumber] = useState(false);
   const [submittingKyc, setSubmittingKyc] = useState(false);
-  const [activeKycTab, setActiveKycTab] = useState<"documents" | "history">("documents");
-  const [uploadingCheque, setUploadingCheque] = useState(false);
-  const chequeInputRef = useRef<HTMLInputElement>(null);
+  const [activeKycTab, setActiveKycTab] = useState<"documents" | "update" | "history">("documents");
+  const [kycDocFilter, setKycDocFilter] = useState<"all" | "identity" | "finance" | "legal" | "attention">("all");
+  const [auditStatusFilter, setAuditStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [uploadingDocField, setUploadingDocField] = useState<"chequePhoto" | "aadhaarFront" | "aadhaarBack" | "panCard" | null>(null);
+  const kycUploadTargetRef = useRef<"chequePhoto" | "aadhaarFront" | "aadhaarBack" | "panCard">("chequePhoto");
+  const kycFileInputRef = useRef<HTMLInputElement>(null);
 
   const [kycForm, setKycForm] = useState({
     businessName: "",
@@ -201,7 +216,10 @@ export function PartnerProfileScreen() {
     phone: "",
     email: "",
     pan: "",
+    panCard: "",
     aadhaar: "",
+    aadhaarFront: "",
+    aadhaarBack: "",
     gstin: "",
     bankName: "",
     accountHolder: "",
@@ -222,7 +240,10 @@ export function PartnerProfileScreen() {
         phone: profile.phone || "",
         email: profile.email || "",
         pan: profile.pan || "",
+        panCard: profile.panCard || "",
         aadhaar: profile.aadhaar || "",
+        aadhaarFront: profile.aadhaarFront || "",
+        aadhaarBack: profile.aadhaarBack || "",
         gstin: profile.gstin || "",
         bankName: profile.bankName || "",
         accountHolder: profile.accountHolder || profile.businessName || "",
@@ -247,19 +268,59 @@ export function PartnerProfileScreen() {
     (r) => r.status === "pending" && (r.requestType === "kyc_update" || r.requestType === "bank_update" || r.requestType === "pan_update" || r.requestType === "profile_update")
   );
 
-  const handleChequeSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const triggerKycFileUpload = (field: "chequePhoto" | "aadhaarFront" | "aadhaarBack" | "panCard") => {
+    kycUploadTargetRef.current = field;
+    kycFileInputRef.current?.click();
+  };
+
+  const handleKycDocSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploadingCheque(true);
+    const targetField = kycUploadTargetRef.current;
+    const labelMap: Record<typeof targetField, string> = {
+      chequePhoto: "Cancelled Cheque / Passbook",
+      aadhaarFront: "Aadhaar Front Scan",
+      aadhaarBack: "Aadhaar Back Scan",
+      panCard: "PAN Card Scan",
+    };
+    setUploadingDocField(targetField);
     try {
       const dataUrl = await compressImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.85 });
-      setKycForm((prev) => ({ ...prev, chequePhoto: dataUrl }));
-      toast.success("Cheque / Passbook document attached!");
+      setKycForm((prev) => ({ ...prev, [targetField]: dataUrl }));
+      toast.success(`${labelMap[targetField]} attached!`);
     } catch {
       toast.error("Failed to process document image.");
     } finally {
-      setUploadingCheque(false);
-      if (chequeInputRef.current) chequeInputRef.current.value = "";
+      setUploadingDocField(null);
+      if (kycFileInputRef.current) kycFileInputRef.current.value = "";
+    }
+  };
+
+  const openDocumentLightbox = (opts: {
+    title: string;
+    subtitle?: string;
+    imageUrl: string;
+    backImageUrl?: string;
+  }) => {
+    setDocZoom(1);
+    setDocRotation(0);
+    setShowDocPreview({
+      isOpen: true,
+      activeSide: "front",
+      ...opts,
+    });
+  };
+
+  const copyKycValue = async (val: string, label: string) => {
+    if (!val) {
+      toast.error(`No ${label} available to copy`);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(val);
+      toast.success(`${label} copied`);
+    } catch {
+      toast.error("Failed to copy to clipboard");
     }
   };
 
@@ -275,10 +336,10 @@ export function PartnerProfileScreen() {
         ...kycForm,
         reason: kycForm.reason || "Partner submitted KYC & Bank details update",
       });
-      setShowKycEditModal(false);
       toast.success(res.message || "Change request submitted to Admin! Review typically takes 12-24 hours.");
       const reqs = await fetchPartnerApprovalRequests();
       setApprovalRequests(reqs);
+      setActiveKycTab("history");
       await reloadProfile();
     } catch (err: any) {
       toast.error(err?.message || "Failed to submit KYC update request.");
@@ -418,6 +479,71 @@ export function PartnerProfileScreen() {
   ).toLowerCase();
   const isKycVerified = kycStatusRaw === "verified" || kycStatusRaw === "active" || kycStatusRaw === "approved";
   const isKycPending = kycStatusRaw === "pending" || kycStatusRaw === "under_review" || kycStatusRaw === "submitted";
+
+  const aadhaarValue = effectiveProfile?.aadhaar || "";
+  const panValue = effectiveProfile?.pan || "";
+  const bankNameValue = bankData.bankName || effectiveProfile?.bankName || "";
+  const bankAccountValue = bankData.accountNumber || effectiveProfile?.accountNumber || "";
+  const bankIfscValue = bankData.ifscCode || effectiveProfile?.ifsc || "";
+  const bankHolderValue = bankData.accountHolderName || effectiveProfile?.accountHolder || effectiveProfile?.ownerName || "";
+  const gstinValue = effectiveProfile?.gstin || "";
+  const storePhotoUrl =
+    effectiveProfile?.banner ||
+    effectiveProfile?.bannerUrl ||
+    effectiveProfile?.cover ||
+    effectiveProfile?.gallery?.[0] ||
+    logoImg;
+  const hasAadhaarScan = Boolean(effectiveProfile?.aadhaarFront || effectiveProfile?.aadhaarBack);
+  const hasPanScan = Boolean(effectiveProfile?.panCard);
+  const hasChequeScan = Boolean(kycForm.chequePhoto || effectiveProfile?.chequePhoto);
+  const needsUploadCount =
+    (!hasAadhaarScan && !aadhaarValue ? 1 : 0) +
+    (!hasPanScan ? 1 : 0) +
+    (!hasChequeScan && !bankAccountValue ? 1 : 0);
+  const kycReadinessChecks = [
+    Boolean(aadhaarValue || hasAadhaarScan),
+    Boolean(panValue),
+    Boolean(hasPanScan),
+    Boolean(bankAccountValue && bankIfscValue),
+    Boolean(effectiveProfile?.address || city),
+    Boolean(effectiveProfile?.signatureUrl || effectiveProfile?.signedAt || isKycVerified),
+  ].filter(Boolean).length;
+  const kycReadinessPct = Math.round((kycReadinessChecks / 6) * 100);
+
+  const kycChangeDiff = (() => {
+    const diffs: Array<{ label: string; from: string; to: string }> = [];
+    const baseHolder = profile?.accountHolder || profile?.businessName || "";
+    const textPairs: Array<[string, string, string]> = [
+      ["Bank Name", profile?.bankName || "", kycForm.bankName],
+      ["Account Holder", baseHolder, kycForm.accountHolder],
+      ["Account Number", profile?.accountNumber || "", kycForm.accountNumber],
+      ["IFSC Code", (profile?.ifsc || "").toUpperCase(), kycForm.ifsc.toUpperCase()],
+      ["PAN Number", (profile?.pan || "").toUpperCase(), kycForm.pan.toUpperCase()],
+      ["Aadhaar Number", profile?.aadhaar || "", kycForm.aadhaar],
+      ["GSTIN", (profile?.gstin || "").toUpperCase(), kycForm.gstin.toUpperCase()],
+      ["Pincode", profile?.pincode || "", kycForm.pincode],
+      ["Address", profile?.address || "", kycForm.address],
+      ["Audit Note", "", kycForm.reason],
+    ];
+    for (const [label, fromVal, toVal] of textPairs) {
+      if (toVal.trim() && toVal !== fromVal) {
+        diffs.push({ label, from: fromVal || "Empty", to: toVal });
+      }
+    }
+    if (kycForm.chequePhoto && kycForm.chequePhoto !== (profile?.chequePhoto || "")) {
+      diffs.push({ label: "Cancelled Cheque Photo", from: profile?.chequePhoto ? "Existing" : "Empty", to: "New Scan Attached" });
+    }
+    if (kycForm.aadhaarFront && kycForm.aadhaarFront !== (profile?.aadhaarFront || "")) {
+      diffs.push({ label: "Aadhaar Front Scan", from: profile?.aadhaarFront ? "Existing" : "Empty", to: "New Scan Attached" });
+    }
+    if (kycForm.aadhaarBack && kycForm.aadhaarBack !== (profile?.aadhaarBack || "")) {
+      diffs.push({ label: "Aadhaar Back Scan", from: profile?.aadhaarBack ? "Existing" : "Empty", to: "New Scan Attached" });
+    }
+    if (kycForm.panCard && kycForm.panCard !== (profile?.panCard || "")) {
+      diffs.push({ label: "PAN Card Photo", from: profile?.panCard ? "Existing" : "Empty", to: "New Scan Attached" });
+    }
+    return diffs;
+  })();
   const [logoFailed, setLogoFailed] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -538,13 +664,18 @@ export function PartnerProfileScreen() {
     } catch {}
   };
 
-  const handleOpenDocuments = async (tab: "documents" | "history" = "documents") => {
+  const handleOpenDocuments = async (tab: "documents" | "update" | "history" = "documents") => {
     setActiveKycTab(tab);
+    setKycDocFilter("all");
     setShowDocumentsModal(true);
     setLoadingApprovals(true);
     try {
-      const reqs = await fetchPartnerApprovalRequests();
+      const [reqs, bank] = await Promise.all([
+        fetchPartnerApprovalRequests(),
+        fetchBankDetails().catch(() => null),
+      ]);
       setApprovalRequests(reqs);
+      if (bank) setBankData(bank);
     } catch {
       toast.error("Failed to fetch approval requests");
     } finally {
@@ -1463,8 +1594,10 @@ export function PartnerProfileScreen() {
         {/* ------------------------------------------------------------- */}
         {/* MODAL 4B: Store Documents, Government KYC & Verification Hub  */}
         {/* ------------------------------------------------------------- */}
+        {/* MODAL 4: KYC & STORE DOCUMENTS VAULT (V4 CLEAN)               */}
+        {/* ------------------------------------------------------------- */}
         {(showDocumentsModal || showApprovalsModal) && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-zinc-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-zinc-950/70 backdrop-blur-xs animate-in fade-in duration-200">
             <div
               onClick={() => {
                 setShowDocumentsModal(false);
@@ -1472,424 +1605,1005 @@ export function PartnerProfileScreen() {
               }}
               className="absolute inset-0"
             />
-            <div className="relative w-full max-w-lg max-h-[88vh] flex flex-col rounded-3xl bg-white shadow-2xl overflow-hidden border border-zinc-200/90 z-10 animate-in zoom-in-95 duration-200">
-              {/* Header */}
-              <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between shrink-0 bg-white">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-2xl bg-zinc-950 text-white shadow-xs">
-                    <FileCheck2 className="size-5 text-emerald-400" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm sm:text-base font-black text-zinc-950 tracking-tight">
-                        Store Documents &amp; Verification
-                      </h3>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2 py-0.5 text-[10px] font-bold border border-emerald-200/80">
-                        <Check className="size-2.5" /> Level 2 Verified ✓
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-zinc-400 font-medium mt-0.5">
-                      Government KYC, Settlement Bank &amp; SLA Franchise Agreement
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowDocumentsModal(false);
-                    setShowApprovalsModal(false);
-                  }}
-                  className="rounded-full size-8 flex items-center justify-center text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors cursor-pointer"
-                >
-                  <X className="size-4" />
-                </button>
-              </div>
+            <div className="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-white shadow-2xl overflow-hidden border border-zinc-200/90 z-10 animate-in zoom-in-95 duration-200">
+              {/* Hidden Shared File Input for Aadhaar Front/Back, PAN, Cheque */}
+              <input
+                ref={kycFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleKycDocSelect}
+              />
 
-              {/* Segmented Tab Bar */}
-              <div className="px-5 pt-3 pb-2 bg-white shrink-0">
-                <div className="flex p-1 rounded-2xl bg-zinc-100 border border-zinc-200/60">
+              {/* Clean Header */}
+              <div className="px-4 sm:px-6 pt-4 pb-3.5 border-b border-zinc-200 bg-white shrink-0">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Readiness SVG Ring */}
+                    <div className="relative size-11 shrink-0 flex items-center justify-center">
+                      <svg className="size-11 -rotate-90" viewBox="0 0 56 56">
+                        <circle cx="28" cy="28" r="23" stroke="#E4E4E7" strokeWidth="5" fill="none" />
+                        <circle
+                          cx="28"
+                          cy="28"
+                          r="23"
+                          stroke="#10B981"
+                          strokeWidth="5"
+                          fill="none"
+                          strokeDasharray="144.51"
+                          strokeDashoffset={144.51 - (144.51 * kycReadinessPct) / 100}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <span className="absolute text-[10px] font-extrabold text-zinc-950">{kycReadinessPct}%</span>
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-sm sm:text-base font-extrabold text-zinc-950 tracking-tight truncate">
+                          KYC &amp; Store Documents
+                        </h3>
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-bold border whitespace-nowrap ${
+                            isKycVerified
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-amber-50 text-amber-800 border-amber-200"
+                          }`}
+                        >
+                          <span className={`size-1.5 rounded-full ${isKycVerified ? "bg-emerald-500" : "bg-amber-500"}`} />
+                          {isKycVerified ? "Verified" : isKycPending ? "Under Review" : "Action Needed"}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 font-medium mt-0.5 truncate">
+                        {storeName || "Store"} · <span className="font-mono font-semibold text-zinc-700">{partnerId}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDocumentsModal(false);
+                      setShowApprovalsModal(false);
+                    }}
+                    className="rounded-full size-8 border border-zinc-200 flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-colors cursor-pointer shrink-0"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+
+                {/* Non-Overlapping Horizontal Scrollable Tab Bar */}
+                <div className="mt-3.5 flex flex-nowrap overflow-x-auto no-scrollbar gap-1 p-1 rounded-2xl bg-zinc-100 border border-zinc-200/80">
                   <button
                     type="button"
                     onClick={() => setActiveKycTab("documents")}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`flex-1 shrink-0 whitespace-nowrap flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl text-xs transition-all cursor-pointer ${
                       activeKycTab === "documents"
-                        ? "bg-white text-zinc-950 shadow-xs font-black"
-                        : "text-zinc-500 hover:text-zinc-800"
+                        ? "bg-white text-zinc-950 shadow-2xs font-bold"
+                        : "text-zinc-600 hover:text-zinc-950 font-semibold"
                     }`}
                   >
-                    <FileText className="size-3.5" />
-                    Uploaded Documents (6)
+                    <FileText className="size-3.5 shrink-0" />
+                    Documents (6)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveKycTab("update")}
+                    className={`flex-1 shrink-0 whitespace-nowrap flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl text-xs transition-all cursor-pointer ${
+                      activeKycTab === "update"
+                        ? "bg-white text-zinc-950 shadow-2xs font-bold"
+                        : "text-zinc-600 hover:text-zinc-950 font-semibold"
+                    }`}
+                  >
+                    <UploadCloud className="size-3.5 shrink-0" />
+                    Upload &amp; Edit
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveKycTab("history")}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`flex-1 shrink-0 whitespace-nowrap flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl text-xs transition-all cursor-pointer ${
                       activeKycTab === "history"
-                        ? "bg-white text-zinc-950 shadow-xs font-black"
-                        : "text-zinc-500 hover:text-zinc-800"
+                        ? "bg-white text-zinc-950 shadow-2xs font-bold"
+                        : "text-zinc-600 hover:text-zinc-950 font-semibold"
                     }`}
                   >
-                    <ShieldCheck className="size-3.5" />
-                    Verification &amp; Approvals
+                    <Clock className="size-3.5 shrink-0" />
+                    Approvals ({approvalRequests.length})
                     {approvalRequests.filter((r) => r.status === "pending").length > 0 && (
-                      <span className="rounded-full bg-amber-500 text-white px-1.5 py-0.2 text-[9px] font-black animate-pulse">
-                        {approvalRequests.filter((r) => r.status === "pending").length}
-                      </span>
+                      <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
                     )}
                   </button>
                 </div>
               </div>
 
-              {/* Modal Body Content (Scrollable) */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
-                {/* Dual-Control Policy Callout */}
-                <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-3.5 flex items-start gap-3">
-                  <ShieldAlert className="size-4.5 text-sky-600 shrink-0 mt-0.5" />
-                  <div className="text-xs space-y-0.5">
-                    <p className="font-bold text-sky-950">
-                      Dual-Control Security Policy
-                    </p>
-                    <p className="text-[11px] text-sky-700 leading-relaxed">
-                      All document and banking updates require QuickPress Admin Approval. When you request a change, your current verified account remains active until our compliance team reviews and approves your submission.
-                    </p>
-                  </div>
-                </div>
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#FAFAFA] space-y-4">
 
-                {/* Tab 1: Uploaded Documents Detail */}
+                {/* ==================== TAB 1: DOCUMENTS VAULT ==================== */}
                 {activeKycTab === "documents" && (
-                  <div className="space-y-3.5">
-                    {/* Top Action to Request Edit */}
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                        Active Verified Documents
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowDocumentsModal(false);
-                          setShowApprovalsModal(false);
-                          setShowKycEditModal(true);
-                        }}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
-                      >
-                        <PenTool className="size-3 text-white" />
-                        Request Document Edit
-                      </button>
-                    </div>
-
-                    {/* 1. Aadhaar Card */}
-                    <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 space-y-3 shadow-2xs hover:border-zinc-300 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-700 border border-blue-200/70 font-black text-[11px]">
-                            UIDAI
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-black text-zinc-900">Aadhaar Card (National ID)</h4>
-                            <p className="text-[10px] text-zinc-400">UIDAI Verified Identity Document</p>
-                          </div>
-                        </div>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2 py-0.5 text-[10px] font-black">
-                          <Check className="size-2.5" /> Verified ✓
-                        </span>
-                      </div>
-                      <div className="rounded-xl bg-zinc-50 p-2.5 flex items-center justify-between border border-zinc-100">
-                        <div>
-                          <p className="text-[10px] text-zinc-400 font-bold uppercase">Aadhaar Number</p>
-                          <p className="font-mono text-xs font-black text-zinc-900 tracking-wider">
-                            {showAadhaarNumber
-                              ? (profile?.aadhaar || "9812 4987 1234")
-                              : (profile?.aadhaar ? `•••• •••• ${String(profile.aadhaar).slice(-4)}` : "•••• •••• 1234")}
-                          </p>
-                        </div>
+                  <div className="space-y-4">
+                    {/* Single-Line Horizontal Filter Slider */}
+                    <div className="flex flex-nowrap items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
+                      {(
+                        [
+                          { id: "all", label: "All (6)" },
+                          { id: "identity", label: "Identity (2)" },
+                          { id: "finance", label: "Bank & Tax (2)" },
+                          { id: "legal", label: "Store & SLA (2)" },
+                          ...(needsUploadCount > 0 ? [{ id: "attention", label: `Needs Upload (${needsUploadCount})`, warn: true }] : []),
+                        ] as Array<{ id: typeof kycDocFilter; label: string; warn?: boolean }>
+                      ).map((pill) => (
                         <button
+                          key={pill.id}
                           type="button"
-                          onClick={() => setShowAadhaarNumber(!showAadhaarNumber)}
-                          className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
+                          onClick={() => setKycDocFilter(pill.id)}
+                          className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[11.5px] border transition-colors cursor-pointer ${
+                            kycDocFilter === pill.id
+                              ? pill.warn
+                                ? "bg-amber-700 text-white border-amber-700 font-bold"
+                                : "bg-zinc-950 text-white border-zinc-950 font-bold"
+                              : pill.warn
+                              ? "bg-amber-50 text-amber-800 border-amber-200 font-semibold hover:bg-amber-100"
+                              : "bg-white text-zinc-600 border-zinc-200 font-semibold hover:text-zinc-950"
+                          }`}
                         >
-                          {showAadhaarNumber ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                          {showAadhaarNumber ? "Mask" : "Reveal"}
+                          {pill.label}
                         </button>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-0.5">
-                        <span>Holder: <strong className="text-zinc-800">{profile?.ownerName || "Kasganj Express Hub"}</strong></span>
-                        <span className="text-emerald-700 font-bold text-[10px] bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">KYC Compliant</span>
-                      </div>
+                      ))}
                     </div>
 
-                    {/* 2. PAN Card */}
-                    <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 space-y-3 shadow-2xs hover:border-zinc-300 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-800 border border-amber-200/70 font-black text-[11px]">
-                            ITD
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-black text-zinc-900">Permanent Account Number (PAN)</h4>
-                            <p className="text-[10px] text-zinc-400">Income Tax Department of India</p>
-                          </div>
-                        </div>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2 py-0.5 text-[10px] font-black">
-                          <Check className="size-2.5" /> Verified ✓
-                        </span>
-                      </div>
-                      <div className="rounded-xl bg-zinc-50 p-2.5 flex items-center justify-between border border-zinc-100">
-                        <div>
-                          <p className="text-[10px] text-zinc-400 font-bold uppercase">PAN Number</p>
-                          <p className="font-mono text-xs font-black text-zinc-900 tracking-wider">
-                            {showPanNumber
-                              ? (profile?.pan || "ABCDE1234F")
-                              : (profile?.pan ? `${String(profile.pan).slice(0, 2)}•••••${String(profile.pan).slice(-2)}` : "AB•••••4F")}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setShowPanNumber(!showPanNumber)}
-                          className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
-                        >
-                          {showPanNumber ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                          {showPanNumber ? "Mask" : "Reveal"}
-                        </button>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-0.5">
-                        <span>Entity: <strong className="text-zinc-800">{storeName}</strong></span>
-                        <span className="text-blue-700 font-bold text-[10px] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/80">TDS 194O Enabled</span>
-                      </div>
-                    </div>
+                    {/* 2-Column Document Vault Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
 
-                    {/* 3. Settlement Bank & Cancelled Cheque */}
-                    <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 space-y-3 shadow-2xs hover:border-zinc-300 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/70 font-black text-xs">
-                            <CreditCard className="size-4" />
+                      {/* 1. Aadhaar Card (UIDAI) */}
+                      {(kycDocFilter === "all" ||
+                        kycDocFilter === "identity" ||
+                        (kycDocFilter === "attention" && !hasAadhaarScan && !aadhaarValue)) && (
+                        <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col justify-between space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shrink-0">
+                                <Fingerprint className="size-4.5" />
+                              </div>
+                              <div>
+                                <h4 className="text-[13px] font-bold text-zinc-950">Aadhaar Card (UIDAI)</h4>
+                                <p className="text-[11px] text-zinc-500">
+                                  {hasAadhaarScan ? "Front & Back Scan Attached" : "Proprietor National ID"}
+                                </p>
+                              </div>
+                            </div>
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 text-[10.5px] font-bold border ${
+                                aadhaarValue || hasAadhaarScan
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : "bg-amber-50 text-amber-800 border-amber-200"
+                              }`}
+                            >
+                              {aadhaarValue || hasAadhaarScan ? "Verified" : "Pending"}
+                            </span>
                           </div>
-                          <div>
-                            <h4 className="text-xs font-black text-zinc-900">Settlement Bank Account</h4>
-                            <p className="text-[10px] text-zinc-400">Direct Weekly Payout Rail (IMPS / NEFT)</p>
+
+                          <div className="rounded-xl bg-[#FAFAFA] border border-zinc-200 px-3 py-2 flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-bold uppercase text-zinc-400">Aadhaar Number</p>
+                              <p className="font-mono text-xs font-bold text-zinc-950 tracking-wider mt-0.5 truncate">
+                                {aadhaarValue
+                                  ? showAadhaarNumber
+                                    ? aadhaarValue
+                                    : `XXXX XXXX ${String(aadhaarValue).slice(-4)}`
+                                  : "Not provided"}
+                              </p>
+                            </div>
+                            {aadhaarValue && (
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setShowAadhaarNumber(!showAadhaarNumber)}
+                                  className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50 cursor-pointer"
+                                >
+                                  {showAadhaarNumber ? "Mask" : "Reveal"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => copyKycValue(aadhaarValue, "Aadhaar")}
+                                  className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50 cursor-pointer"
+                                >
+                                  Copy
+                                </button>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2.5 py-0.5 text-[10px] font-black">
-                          <Check className="size-2.5" /> Penny Drop Verified ✓
-                        </span>
-                      </div>
-                      <div className="rounded-xl bg-zinc-50 p-3 space-y-1.5 border border-zinc-100 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-zinc-400 text-[11px]">Bank Name:</span>
-                          <strong className="text-zinc-900">{bankData.bankName || "HDFC Bank"}</strong>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-zinc-400 text-[11px]">Account Number:</span>
-                          <strong className="font-mono text-zinc-900">
-                            {bankData.accountNumber
-                              ? `•••• •••• ${String(bankData.accountNumber).slice(-4)}`
-                              : "•••• •••• 8842"}
-                          </strong>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-zinc-400 text-[11px]">IFSC Code:</span>
-                          <strong className="font-mono text-zinc-900">{bankData.ifscCode || "HDFC0001249"}</strong>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-zinc-400 text-[11px]">Account Holder:</span>
-                          <strong className="text-zinc-900">{bankData.accountHolderName || profile?.ownerName || "Partner"}</strong>
-                        </div>
-                      </div>
-                      {kycForm.chequePhoto && (
-                        <div className="rounded-xl border border-zinc-200 p-2 flex items-center justify-between bg-zinc-50">
-                          <span className="text-[11px] font-bold text-zinc-700">Attached Cancelled Cheque / Passbook</span>
-                          <button
-                            type="button"
-                            onClick={() => setShowDocPreview({ isOpen: true, title: "Bank Document", imageUrl: kycForm.chequePhoto })}
-                            className="text-[11px] font-black text-blue-600 hover:underline cursor-pointer"
-                          >
-                            View Document
-                          </button>
+
+                          <div className="flex items-center justify-between pt-2.5 border-t border-zinc-100 text-[11.5px]">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openDocumentLightbox({
+                                  title: "Aadhaar Card (UIDAI)",
+                                  subtitle: `Owner: ${effectiveProfile?.ownerName || storeName}`,
+                                  imageUrl: effectiveProfile?.aadhaarFront || "",
+                                  backImageUrl: effectiveProfile?.aadhaarBack || "",
+                                })
+                              }
+                              className="inline-flex items-center gap-1.5 font-bold text-zinc-950 hover:underline cursor-pointer"
+                            >
+                              <Eye className="size-3.5 text-zinc-500" />
+                              Inspect Front &amp; Back
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveKycTab("update")}
+                              className="font-semibold text-zinc-500 hover:text-zinc-950 cursor-pointer"
+                            >
+                              Update
+                            </button>
+                          </div>
                         </div>
                       )}
-                    </div>
 
-                    {/* 4. GSTIN Certificate */}
-                    <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 space-y-2.5 shadow-2xs hover:border-zinc-300 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex size-9 items-center justify-center rounded-xl bg-purple-50 text-purple-700 border border-purple-200/70 font-black text-xs">
-                            GST
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-black text-zinc-900">Goods &amp; Services Tax (GSTIN)</h4>
-                            <p className="text-[10px] text-zinc-400">Government Tax Compliance Record</p>
-                          </div>
-                        </div>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200/80 px-2 py-0.5 text-[10px] font-black">
-                          {profile?.gstin ? "Registered" : "Exemption Declared"}
-                        </span>
-                      </div>
-                      <div className="rounded-xl bg-zinc-50 p-2.5 border border-zinc-100 flex items-center justify-between">
-                        <span className="text-[11px] text-zinc-500">GSTIN Number:</span>
-                        <strong className="font-mono text-xs text-zinc-900">{profile?.gstin || "09AAAAA0000A1Z5 (Composition)"}</strong>
-                      </div>
-                    </div>
-
-                    {/* 5. Outlet Frontage Photo */}
-                    <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 space-y-2.5 shadow-2xs hover:border-zinc-300 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 border border-zinc-200">
-                            <Store className="size-4" />
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-black text-zinc-900">Store Setup &amp; Outlet Frontage</h4>
-                            <p className="text-[10px] text-zinc-400">Physical Storefront Board &amp; Machinery Photo</p>
-                          </div>
-                        </div>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2 py-0.5 text-[10px] font-black">
-                          <Check className="size-2.5" /> Inspected ✓
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-zinc-500">
-                        Store Location: <strong className="text-zinc-800">{city}, Uttar Pradesh</strong>
-                      </p>
-                    </div>
-
-                    {/* 6. Bilateral Franchise SLA Agreement */}
-                    <div className="rounded-2xl border border-emerald-200/90 bg-emerald-50/40 p-4 space-y-2.5 shadow-2xs">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
-                            <Scale className="size-4" />
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-black text-emerald-950">Franchise &amp; Merchant SLA Agreement</h4>
-                            <p className="text-[10px] text-emerald-700">Official 3-Page Bilateral Legal Agreement (QP-SLA-2026.4)</p>
-                          </div>
-                        </div>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-0.5 text-[10px] font-black">
-                          Digitally Stamped ✓
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-emerald-900 space-y-1">
-                        <p>Platform Signatory: <strong>QuickPress Platform</strong> (Authorized Signatory)</p>
-                        <p>Partner Signatory: <strong>{profile?.ownerName || "Store Proprietor"}</strong></p>
-                      </div>
-                      <div className="pt-1 flex items-center justify-between border-t border-emerald-200/80">
-                        <span className="text-[10px] text-emerald-700">Dispatched via Hostinger API to {profile?.email || "Registered Email"}</span>
-                        <a
-                          href={`/api/admin/emails/agreements/${partnerId}/pdf`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-800 hover:text-emerald-950 bg-white px-2.5 py-1 rounded-lg border border-emerald-300 shadow-2xs"
+                      {/* 2. PAN Card (Income Tax) */}
+                      {(kycDocFilter === "all" ||
+                        kycDocFilter === "identity" ||
+                        (kycDocFilter === "attention" && !hasPanScan)) && (
+                        <div
+                          className={`rounded-2xl border bg-white p-4 flex flex-col justify-between space-y-3 ${
+                            !hasPanScan ? "border-amber-300" : "border-zinc-200"
+                          }`}
                         >
-                          <Download className="size-3" />
-                          Download PDF
-                        </a>
-                      </div>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                              <div
+                                className={`flex size-9 items-center justify-center rounded-xl border shrink-0 ${
+                                  !hasPanScan
+                                    ? "bg-amber-50 text-amber-600 border-amber-200"
+                                    : "bg-amber-50 text-amber-700 border-amber-100"
+                                }`}
+                              >
+                                <CreditCard className="size-4.5" />
+                              </div>
+                              <div>
+                                <h4 className="text-[13px] font-bold text-zinc-950">PAN Card (Income Tax)</h4>
+                                <p className={`text-[11px] ${!hasPanScan ? "text-amber-700 font-semibold" : "text-zinc-500"}`}>
+                                  {hasPanScan ? "PAN Scan Attached" : panValue ? "Number Added · Photo Missing" : "Identity Tax Record"}
+                                </p>
+                              </div>
+                            </div>
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 text-[10.5px] font-bold border ${
+                                !hasPanScan
+                                  ? "bg-amber-50 text-amber-800 border-amber-200"
+                                  : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              }`}
+                            >
+                              {!hasPanScan ? "Scan Missing" : "Verified"}
+                            </span>
+                          </div>
+
+                          <div className="rounded-xl bg-[#FAFAFA] border border-zinc-200 px-3 py-2 flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-bold uppercase text-zinc-400">PAN Number</p>
+                              <p className="font-mono text-xs font-bold text-zinc-950 tracking-wider mt-0.5 truncate">
+                                {panValue
+                                  ? showPanNumber
+                                    ? panValue
+                                    : `${String(panValue).slice(0, 2)}XXXXX${String(panValue).slice(-2)}`
+                                  : "Not provided"}
+                              </p>
+                            </div>
+                            {panValue && (
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPanNumber(!showPanNumber)}
+                                  className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50 cursor-pointer"
+                                >
+                                  {showPanNumber ? "Mask" : "Reveal"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => copyKycValue(panValue, "PAN Number")}
+                                  className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50 cursor-pointer"
+                                >
+                                  Copy
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2.5 border-t border-zinc-100 text-[11.5px]">
+                            {!hasPanScan ? (
+                              <button
+                                type="button"
+                                onClick={() => setActiveKycTab("update")}
+                                className="inline-flex items-center gap-1.5 font-bold text-amber-700 hover:underline cursor-pointer"
+                              >
+                                <UploadCloud className="size-3.5" />
+                                Upload PAN Photo
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openDocumentLightbox({
+                                    title: "Permanent Account Number (PAN)",
+                                    subtitle: storeName || "Income Tax Record",
+                                    imageUrl: effectiveProfile?.panCard || "",
+                                  })
+                                }
+                                className="inline-flex items-center gap-1.5 font-bold text-zinc-950 hover:underline cursor-pointer"
+                              >
+                                <Eye className="size-3.5 text-zinc-500" />
+                                Inspect PAN Copy
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openDocumentLightbox({
+                                  title: "Permanent Account Number (PAN)",
+                                  subtitle: storeName || "Income Tax Record",
+                                  imageUrl: effectiveProfile?.panCard || "",
+                                })
+                              }
+                              className="font-semibold text-zinc-500 hover:text-zinc-950 cursor-pointer"
+                            >
+                              View Record
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 3. Settlement Bank & Cancelled Cheque */}
+                      {(kycDocFilter === "all" ||
+                        kycDocFilter === "finance" ||
+                        (kycDocFilter === "attention" && !hasChequeScan && !bankAccountValue)) && (
+                        <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col justify-between space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 shrink-0">
+                                <Landmark className="size-4.5" />
+                              </div>
+                              <div>
+                                <h4 className="text-[13px] font-bold text-zinc-950">Settlement Bank &amp; Cheque</h4>
+                                <p className="text-[11px] text-zinc-500">
+                                  {bankNameValue ? `${bankNameValue} · Payout Account` : "Weekly Payout Account"}
+                                </p>
+                              </div>
+                            </div>
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 text-[10.5px] font-bold border ${
+                                bankAccountValue
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : "bg-amber-50 text-amber-800 border-amber-200"
+                              }`}
+                            >
+                              {bankAccountValue ? "Verified" : "Pending"}
+                            </span>
+                          </div>
+
+                          <div className="rounded-xl bg-[#FAFAFA] border border-zinc-200 p-2.5 space-y-1.5 text-[11.5px]">
+                            <div className="flex justify-between items-center">
+                              <span className="text-zinc-500">Account No</span>
+                              <strong className="font-mono text-zinc-950">
+                                {bankAccountValue ? `•••• •••• ${String(bankAccountValue).slice(-4)}` : "Not linked"}
+                              </strong>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-zinc-500">IFSC Code</span>
+                              <div className="flex items-center gap-1.5">
+                                <strong className="font-mono text-zinc-950">{bankIfscValue || "—"}</strong>
+                                {bankIfscValue && (
+                                  <button
+                                    type="button"
+                                    onClick={() => copyKycValue(bankIfscValue, "IFSC")}
+                                    className="rounded-md border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-zinc-600 hover:bg-zinc-50 cursor-pointer"
+                                  >
+                                    Copy
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2.5 border-t border-zinc-100 text-[11.5px]">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openDocumentLightbox({
+                                  title: "Cancelled Cheque / Passbook",
+                                  subtitle: bankNameValue ? `${bankNameValue} ••${String(bankAccountValue).slice(-4)}` : "Bank Proof",
+                                  imageUrl: kycForm.chequePhoto || effectiveProfile?.chequePhoto || "",
+                                })
+                              }
+                              className="inline-flex items-center gap-1.5 font-bold text-zinc-950 hover:underline cursor-pointer"
+                            >
+                              <Eye className="size-3.5 text-zinc-500" />
+                              Inspect Cancelled Cheque
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveKycTab("update")}
+                              className="font-semibold text-zinc-500 hover:text-zinc-950 cursor-pointer"
+                            >
+                              Switch Bank
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 4. GSTIN Registration */}
+                      {(kycDocFilter === "all" || kycDocFilter === "finance") && (
+                        <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col justify-between space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex size-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600 border border-violet-100 shrink-0">
+                                <FileText className="size-4.5" />
+                              </div>
+                              <div>
+                                <h4 className="text-[13px] font-bold text-zinc-950">GSTIN Registration</h4>
+                                <p className="text-[11px] text-zinc-500">Goods &amp; Services Tax Record</p>
+                              </div>
+                            </div>
+                            <span className="rounded-full bg-sky-50 text-sky-700 border border-sky-200 px-2.5 py-0.5 text-[10.5px] font-bold">
+                              {gstinValue ? "Registered" : "Exempt"}
+                            </span>
+                          </div>
+
+                          <div className="rounded-xl bg-[#FAFAFA] border border-zinc-200 px-3 py-2 flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-bold uppercase text-zinc-400">GSTIN Number</p>
+                              <p className="font-mono text-xs font-bold text-zinc-950 mt-0.5 truncate">
+                                {gstinValue || "Exemption Declared"}
+                              </p>
+                            </div>
+                            {gstinValue && (
+                              <button
+                                type="button"
+                                onClick={() => copyKycValue(gstinValue, "GSTIN")}
+                                className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50 cursor-pointer shrink-0"
+                              >
+                                Copy
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2.5 border-t border-zinc-100 text-[11.5px]">
+                            <span className="text-zinc-500">Tax Compliance Active</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveKycTab("update")}
+                              className="font-semibold text-zinc-500 hover:text-zinc-950 cursor-pointer"
+                            >
+                              Update GSTIN
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 5. Outlet Frontage & Address */}
+                      {(kycDocFilter === "all" || kycDocFilter === "legal") && (
+                        <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col justify-between space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 border border-zinc-200 shrink-0">
+                                <Store className="size-4.5" />
+                              </div>
+                              <div>
+                                <h4 className="text-[13px] font-bold text-zinc-950">Outlet Frontage &amp; Address</h4>
+                                <p className="text-[11px] text-zinc-500">
+                                  {city || "City"}{effectiveProfile?.pincode ? ` · PIN ${effectiveProfile.pincode}` : ""}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 text-[10.5px] font-bold">
+                              Inspected
+                            </span>
+                          </div>
+
+                          <div className="rounded-xl bg-[#FAFAFA] border border-zinc-200 p-2.5 text-[11.5px] text-zinc-600 line-clamp-2">
+                            {effectiveProfile?.address || city || "Registered store location verified"}
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2.5 border-t border-zinc-100 text-[11.5px]">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openDocumentLightbox({
+                                  title: "Store Frontage Photo",
+                                  subtitle: `${city || "Outlet"}${effectiveProfile?.pincode ? ` (${effectiveProfile.pincode})` : ""}`,
+                                  imageUrl: storePhotoUrl || "",
+                                })
+                              }
+                              className="inline-flex items-center gap-1.5 font-bold text-zinc-950 hover:underline cursor-pointer"
+                            >
+                              <Eye className="size-3.5 text-zinc-500" />
+                              View Store Photo
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveKycTab("update")}
+                              className="font-semibold text-zinc-500 hover:text-zinc-950 cursor-pointer"
+                            >
+                              Edit Address
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 6. Bilateral Franchise SLA Agreement */}
+                      {(kycDocFilter === "all" || kycDocFilter === "legal") && (
+                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4 flex flex-col justify-between space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white shrink-0">
+                                <Scale className="size-4.5" />
+                              </div>
+                              <div>
+                                <h4 className="text-[13px] font-bold text-emerald-950">Franchise SLA Agreement</h4>
+                                <p className="text-[11px] text-emerald-700">
+                                  {effectiveProfile?.agreementVersion || "QP-SLA-2026.4"} · Digitally Signed
+                                </p>
+                              </div>
+                            </div>
+                            <span className="rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 text-[10.5px] font-bold">
+                              Executed
+                            </span>
+                          </div>
+
+                          <div className="rounded-xl bg-white/80 border border-emerald-200/80 p-2.5 text-[11.5px] flex items-center justify-between gap-2">
+                            <span className="text-emerald-900 truncate">
+                              Signatory: <strong>{effectiveProfile?.signedByName || effectiveProfile?.ownerName || "Proprietor"}</strong>
+                            </span>
+                            {effectiveProfile?.signedAt && (
+                              <span className="font-mono text-[11px] font-bold text-emerald-700 shrink-0">
+                                {new Date(effectiveProfile.signedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2.5 border-t border-emerald-200/70 text-[11.5px]">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openDocumentLightbox({
+                                  title: "Signed SLA & Signature",
+                                  subtitle: effectiveProfile?.agreementVersion || "QP-SLA-2026.4",
+                                  imageUrl: effectiveProfile?.signatureUrl || "",
+                                })
+                              }
+                              className="font-bold text-emerald-900 hover:underline cursor-pointer"
+                            >
+                              View Signature
+                            </button>
+                            <a
+                              href={`/api/admin/emails/agreements/${partnerId}/pdf`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 rounded-lg bg-white border border-emerald-300 px-2.5 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-50"
+                            >
+                              <Download className="size-3" />
+                              Download PDF
+                            </a>
+                          </div>
+                        </div>
+                      )}
+
                     </div>
                   </div>
                 )}
 
-                {/* Tab 2: Verification & Live Approvals Tracking */}
+                {/* ==================== TAB 2: UPLOAD & EDIT KYC ==================== */}
+                {activeKycTab === "update" && (
+                  <form onSubmit={handleSubmitKycEdit} className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+                    {/* Left 2/3 Form Sections */}
+                    <div className="lg:col-span-2 space-y-4">
+                      {/* Section 1: Settlement Bank & Cancelled Cheque */}
+                      <div className="rounded-2xl border border-zinc-200 bg-white p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="flex size-5.5 items-center justify-center rounded-md bg-zinc-950 text-[11px] font-extrabold text-white">
+                            1
+                          </span>
+                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-zinc-950">
+                            Settlement Bank &amp; Cancelled Cheque
+                          </h4>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <label className="font-semibold text-zinc-500 block mb-1">Bank Name *</label>
+                            <input
+                              type="text"
+                              required
+                              value={kycForm.bankName}
+                              onChange={(e) => setKycForm({ ...kycForm, bankName: e.target.value })}
+                              placeholder="e.g. HDFC Bank"
+                              className="w-full rounded-xl border border-zinc-200 bg-[#FAFAFA] px-3 py-2 text-xs font-semibold text-zinc-950 focus:bg-white focus:border-zinc-950 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="font-semibold text-zinc-500 block mb-1">Account Holder Name *</label>
+                            <input
+                              type="text"
+                              required
+                              value={kycForm.accountHolder}
+                              onChange={(e) => setKycForm({ ...kycForm, accountHolder: e.target.value })}
+                              placeholder="Name as per Passbook"
+                              className="w-full rounded-xl border border-zinc-200 bg-[#FAFAFA] px-3 py-2 text-xs font-semibold text-zinc-950 focus:bg-white focus:border-zinc-950 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="font-semibold text-zinc-500 block mb-1">Account Number *</label>
+                            <input
+                              type="text"
+                              required
+                              value={kycForm.accountNumber}
+                              onChange={(e) => setKycForm({ ...kycForm, accountNumber: e.target.value })}
+                              placeholder="e.g. 50200088194422"
+                              className="w-full rounded-xl border border-zinc-200 bg-[#FAFAFA] px-3 py-2 text-xs font-mono font-bold text-zinc-950 focus:bg-white focus:border-zinc-950 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="font-semibold text-zinc-500 block mb-1">IFSC Code *</label>
+                            <input
+                              type="text"
+                              required
+                              maxLength={11}
+                              value={kycForm.ifsc}
+                              onChange={(e) => setKycForm({ ...kycForm, ifsc: e.target.value.toUpperCase() })}
+                              placeholder="e.g. HDFC0002733"
+                              className="w-full rounded-xl border border-zinc-200 bg-[#FAFAFA] px-3 py-2 text-xs font-mono font-bold uppercase text-zinc-950 focus:bg-white focus:border-zinc-950 outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-dashed border-zinc-300 bg-[#FAFAFA] p-3 flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-zinc-950">Cancelled Cheque / Passbook Proof</p>
+                            <p className={`text-[10.5px] font-semibold ${kycForm.chequePhoto ? "text-emerald-700" : "text-zinc-500"}`}>
+                              {kycForm.chequePhoto ? "Cheque / passbook image attached" : "Upload clear photo of cheque or passbook"}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => triggerKycFileUpload("chequePhoto")}
+                            disabled={uploadingDocField === "chequePhoto"}
+                            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[11px] font-bold text-zinc-900 hover:bg-zinc-50 cursor-pointer"
+                          >
+                            {uploadingDocField === "chequePhoto" ? (
+                              <Loader2 className="size-3 animate-spin" />
+                            ) : (
+                              <UploadCloud className="size-3.5" />
+                            )}
+                            {kycForm.chequePhoto ? "Replace" : "Upload"}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Section 2: Identity Proofs & Scans */}
+                      <div className="rounded-2xl border border-zinc-200 bg-white p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="flex size-5.5 items-center justify-center rounded-md bg-zinc-950 text-[11px] font-extrabold text-white">
+                            2
+                          </span>
+                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-zinc-950">
+                            Identity Proofs &amp; Scans
+                          </h4>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <label className="font-semibold text-zinc-500 block mb-1">PAN Number</label>
+                            <input
+                              type="text"
+                              maxLength={10}
+                              value={kycForm.pan}
+                              onChange={(e) => setKycForm({ ...kycForm, pan: e.target.value.toUpperCase() })}
+                              placeholder="e.g. ABCDE1234F"
+                              className="w-full rounded-xl border border-zinc-200 bg-[#FAFAFA] px-3 py-2 text-xs font-mono font-bold uppercase text-zinc-950 focus:bg-white focus:border-zinc-950 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="font-semibold text-zinc-500 block mb-1">Aadhaar Number</label>
+                            <input
+                              type="text"
+                              maxLength={12}
+                              value={kycForm.aadhaar}
+                              onChange={(e) => setKycForm({ ...kycForm, aadhaar: e.target.value })}
+                              placeholder="12 digit Aadhaar"
+                              className="w-full rounded-xl border border-zinc-200 bg-[#FAFAFA] px-3 py-2 text-xs font-mono font-bold text-zinc-950 focus:bg-white focus:border-zinc-950 outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                          {(
+                            [
+                              { field: "aadhaarFront", label: "Aadhaar Front", attached: Boolean(kycForm.aadhaarFront) },
+                              { field: "aadhaarBack", label: "Aadhaar Back", attached: Boolean(kycForm.aadhaarBack) },
+                              { field: "panCard", label: "PAN Card Photo", attached: Boolean(kycForm.panCard) },
+                            ] as const
+                          ).map((slot) => (
+                            <button
+                              key={slot.field}
+                              type="button"
+                              onClick={() => triggerKycFileUpload(slot.field)}
+                              disabled={uploadingDocField === slot.field}
+                              className={`rounded-xl border border-dashed p-3 text-left transition-colors cursor-pointer ${
+                                slot.attached
+                                  ? "border-zinc-300 bg-[#FAFAFA] hover:bg-zinc-100"
+                                  : "border-amber-300 bg-amber-50/60 hover:bg-amber-100/60"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className={`text-[11.5px] font-bold ${slot.attached ? "text-zinc-950" : "text-amber-950"}`}>
+                                  {slot.label}
+                                </span>
+                                {uploadingDocField === slot.field ? (
+                                  <Loader2 className="size-3 animate-spin text-zinc-500" />
+                                ) : (
+                                  <span className={`size-2 rounded-full ${slot.attached ? "bg-emerald-500" : "bg-amber-500"}`} />
+                                )}
+                              </div>
+                              <p className={`text-[10px] mt-1 ${slot.attached ? "text-zinc-500" : "text-amber-800 font-semibold"}`}>
+                                {slot.attached ? "Attached · Tap to replace" : "Tap to upload scan"}
+                              </p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Section 3: GSTIN & Registered Address */}
+                      <div className="rounded-2xl border border-zinc-200 bg-white p-4 space-y-3 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="flex size-5.5 items-center justify-center rounded-md bg-zinc-950 text-[11px] font-extrabold text-white">
+                            3
+                          </span>
+                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-zinc-950">
+                            GSTIN &amp; Registered Address
+                          </h4>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="font-semibold text-zinc-500 block mb-1">GSTIN (Optional)</label>
+                            <input
+                              type="text"
+                              maxLength={15}
+                              value={kycForm.gstin}
+                              onChange={(e) => setKycForm({ ...kycForm, gstin: e.target.value.toUpperCase() })}
+                              placeholder="15 digit GSTIN"
+                              className="w-full rounded-xl border border-zinc-200 bg-[#FAFAFA] px-3 py-2 text-xs font-mono font-bold uppercase text-zinc-950 focus:bg-white focus:border-zinc-950 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="font-semibold text-zinc-500 block mb-1">Operating Pincode</label>
+                            <input
+                              type="text"
+                              maxLength={6}
+                              value={kycForm.pincode}
+                              onChange={(e) => setKycForm({ ...kycForm, pincode: e.target.value })}
+                              placeholder="e.g. 207123"
+                              className="w-full rounded-xl border border-zinc-200 bg-[#FAFAFA] px-3 py-2 text-xs font-mono font-bold text-zinc-950 focus:bg-white focus:border-zinc-950 outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="font-semibold text-zinc-500 block mb-1">Registered Store Address</label>
+                          <input
+                            type="text"
+                            value={kycForm.address}
+                            onChange={(e) => setKycForm({ ...kycForm, address: e.target.value })}
+                            placeholder="Shop address, street, landmark"
+                            className="w-full rounded-xl border border-zinc-200 bg-[#FAFAFA] px-3 py-2 text-xs font-semibold text-zinc-950 focus:bg-white focus:border-zinc-950 outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="font-semibold text-zinc-500 block mb-1">Reason for Change</label>
+                          <input
+                            type="text"
+                            value={kycForm.reason}
+                            onChange={(e) => setKycForm({ ...kycForm, reason: e.target.value })}
+                            placeholder="e.g. Uploaded PAN scan or updated current bank account"
+                            className="w-full rounded-xl border border-zinc-200 bg-[#FAFAFA] px-3 py-2 text-xs font-semibold text-zinc-950 focus:bg-white focus:border-zinc-950 outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right 1/3 Sticky Pre-Submit Change Diff Card */}
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-4 space-y-3.5 lg:sticky lg:top-0">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-zinc-100">
+                        <div>
+                          <h4 className="text-[13px] font-extrabold text-zinc-950">Pre-Submit Change Diff</h4>
+                          <p className="text-[11px] text-zinc-500">Before → After summary</p>
+                        </div>
+                        <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[10.5px] font-bold text-zinc-700">
+                          {kycChangeDiff.length} {kycChangeDiff.length === 1 ? "edit" : "edits"}
+                        </span>
+                      </div>
+
+                      {kycChangeDiff.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-zinc-200 bg-[#FAFAFA] p-4 text-center text-[11.5px] text-zinc-500">
+                          Edit any field or attach a document on the left to inspect exact Before → After changes before submitting.
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-56 overflow-y-auto pr-0.5">
+                          {kycChangeDiff.map((item) => (
+                            <div key={item.label} className="rounded-xl border border-zinc-200 bg-[#FAFAFA] p-2.5 text-[11px]">
+                              <div className="text-[10px] font-bold uppercase text-zinc-400">{item.label}</div>
+                              <div className="mt-0.5 flex items-center justify-between gap-2 font-mono">
+                                <span className="text-zinc-400 line-through truncate">{item.from}</span>
+                                <span className="font-bold text-emerald-700 truncate">→ {item.to}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="rounded-xl border border-sky-200 bg-sky-50 p-2.5 text-[11px] text-sky-900 leading-relaxed">
+                        Current payouts &amp; store operations remain active during Admin verification (12–24 hrs).
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={submittingKyc}
+                        className="w-full flex items-center justify-center gap-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white py-2.5 text-xs font-bold active:scale-[0.98] transition-all cursor-pointer"
+                      >
+                        {submittingKyc && <Loader2 className="size-3.5 animate-spin" />}
+                        Submit Update for Approval
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* ==================== TAB 3: APPROVALS TIMELINE ==================== */}
                 {activeKycTab === "history" && (
                   <div className="space-y-3.5">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                        Change Requests &amp; Admin Approvals
-                      </p>
+                    <div className="flex flex-nowrap items-center justify-between gap-2 overflow-x-auto no-scrollbar pb-0.5">
+                      <div className="flex flex-nowrap items-center gap-1.5">
+                        {(
+                          [
+                            { id: "all", label: `All (${approvalRequests.length})` },
+                            { id: "pending", label: `Pending (${approvalRequests.filter((r) => r.status === "pending").length})` },
+                            { id: "approved", label: `Approved (${approvalRequests.filter((r) => r.status === "approved").length})` },
+                            { id: "rejected", label: `Rejected (${approvalRequests.filter((r) => r.status === "rejected").length})` },
+                          ] as const
+                        ).map((f) => (
+                          <button
+                            key={f.id}
+                            type="button"
+                            onClick={() => setAuditStatusFilter(f.id)}
+                            className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] border transition-colors cursor-pointer ${
+                              auditStatusFilter === f.id
+                                ? "bg-zinc-950 text-white border-zinc-950 font-bold"
+                                : "bg-white text-zinc-600 border-zinc-200 font-semibold hover:text-zinc-950"
+                            }`}
+                          >
+                            {f.label}
+                          </button>
+                        ))}
+                      </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          setShowDocumentsModal(false);
-                          setShowApprovalsModal(false);
-                          setShowKycEditModal(true);
-                        }}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
+                        onClick={() => setActiveKycTab("update")}
+                        className="shrink-0 whitespace-nowrap rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white px-3.5 py-1.5 text-xs font-bold cursor-pointer"
                       >
-                        <PenTool className="size-3 text-white" />
-                        New Change Request
+                        + New Request
                       </button>
                     </div>
 
                     {loadingApprovals ? (
-                      <div className="py-12 text-center text-zinc-500 font-bold text-xs">
-                        <RefreshCw className="size-5 animate-spin mx-auto mb-2 text-blue-600" />
+                      <div className="py-12 text-center text-zinc-500 font-semibold text-xs">
+                        <RefreshCw className="size-5 animate-spin mx-auto mb-2 text-zinc-700" />
                         Fetching live verification requests...
                       </div>
-                    ) : approvalRequests.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-zinc-200 p-8 text-center bg-zinc-50/50">
-                        <ShieldCheck className="mx-auto size-10 text-emerald-600 mb-2" />
-                        <h4 className="text-xs font-black text-zinc-900">All Store Documents Verified</h4>
-                        <p className="text-[11px] text-zinc-400 mt-1 max-w-xs mx-auto">
-                          You have no pending change requests. All your government KYC, bank account, and service information are verified and active in live operations.
+                    ) : approvalRequests.filter((r) => auditStatusFilter === "all" || r.status === auditStatusFilter).length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-zinc-200 p-8 text-center bg-white">
+                        <ShieldCheck className="mx-auto size-9 text-emerald-600 mb-2" />
+                        <h4 className="text-xs font-bold text-zinc-950">
+                          {approvalRequests.length === 0 ? "All Store Documents Verified" : "No Requests in This Filter"}
+                        </h4>
+                        <p className="text-[11px] text-zinc-500 mt-1 max-w-xs mx-auto">
+                          {approvalRequests.length === 0
+                            ? "You have no pending change requests. All verified KYC and banking records are active."
+                            : "Switch filter pills above to view all approval records."}
                         </p>
                       </div>
                     ) : (
-                      approvalRequests.map((req) => (
-                        <div
-                          key={req.requestId}
-                          className="rounded-2xl border border-zinc-200/90 p-4 space-y-2.5 bg-zinc-50/50 shadow-2xs"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-black text-zinc-900 text-xs uppercase tracking-wide">
-                              {req.requestType?.replace(/_/g, " ") || "KYC & Document Update"}
-                            </span>
-                            <span
-                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-black ${
-                                req.status === "approved"
-                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                                  : req.status === "rejected"
-                                  ? "bg-rose-100 text-rose-800 border border-rose-200"
-                                  : "bg-amber-100 text-amber-900 border border-amber-200 animate-pulse"
-                              }`}
-                            >
-                              {req.status === "approved"
-                                ? "Approved by Admin"
-                                : req.status === "rejected"
-                                ? "Request Rejected"
-                                : "Under Admin Review"}
-                            </span>
-                          </div>
-
-                          <div className="text-[11px] text-zinc-500 font-mono">
-                            ID: <strong>{req.requestId}</strong> · Submitted:{" "}
-                            {new Date(req.submittedAt).toLocaleDateString("en-IN", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </div>
-
-                          {req.reason && (
-                            <p className="text-[11px] text-zinc-600 bg-white p-2 rounded-xl border border-zinc-200/70">
-                              <span className="font-bold text-zinc-400">Partner Note:</span> {req.reason}
-                            </p>
-                          )}
-
-                          {req.rejectionReason && (
-                            <div className="rounded-xl bg-rose-50 border border-rose-200 p-2.5 text-[11px] text-rose-800 font-medium">
-                              <strong>Admin Rejection Reason:</strong> {req.rejectionReason}
+                      approvalRequests
+                        .filter((r) => auditStatusFilter === "all" || r.status === auditStatusFilter)
+                        .map((req) => (
+                          <div
+                            key={req.requestId}
+                            className={`rounded-2xl border p-4 space-y-2.5 bg-white ${
+                              req.status === "pending" ? "border-amber-300" : "border-zinc-200"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="font-bold text-zinc-950 text-xs uppercase tracking-wide">
+                                    {req.requestType?.replace(/_/g, " ") || "KYC & Document Update"}
+                                  </span>
+                                  <span className="font-mono text-[10.5px] text-zinc-400">{req.requestId}</span>
+                                </div>
+                                <p className="text-[11px] text-zinc-500 mt-0.5">
+                                  {new Date(req.submittedAt).toLocaleDateString("en-IN", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
+                              <span
+                                className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10.5px] font-bold border ${
+                                  req.status === "approved"
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                    : req.status === "rejected"
+                                    ? "bg-rose-50 text-rose-700 border-rose-200"
+                                    : "bg-amber-50 text-amber-800 border-amber-200"
+                                }`}
+                              >
+                                {req.status === "approved" ? "Approved" : req.status === "rejected" ? "Rejected" : "Pending"}
+                              </span>
                             </div>
-                          )}
 
-                          {req.status === "approved" && (
-                            <p className="text-[10px] text-emerald-700 font-bold bg-emerald-50 p-2 rounded-xl border border-emerald-200">
-                              Verified &amp; Approved by {req.reviewedBy || "Operations Team"} on{" "}
-                              {req.reviewedAt ? new Date(req.reviewedAt).toLocaleDateString() : "Approval Date"}
-                            </p>
-                          )}
-                        </div>
-                      ))
+                            {req.requestedChanges && Object.keys(req.requestedChanges).length > 0 && (
+                              <div className="rounded-xl bg-[#FAFAFA] border border-zinc-200 p-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+                                {Object.entries(req.requestedChanges)
+                                  .filter(([, v]) => typeof v === "string" && !v.startsWith("data:") && v.trim() !== "")
+                                  .slice(0, 4)
+                                  .map(([k, v]) => (
+                                    <span key={k} className="text-zinc-500">
+                                      {k}: <strong className="font-mono text-zinc-900">{String(v)}</strong>
+                                    </span>
+                                  ))}
+                              </div>
+                            )}
+
+                            {req.reason && (
+                              <p className="text-[11px] text-zinc-600">
+                                <span className="font-semibold text-zinc-400">Note:</span> {req.reason}
+                              </p>
+                            )}
+
+                            {req.rejectionReason && (
+                              <div className="rounded-xl bg-rose-50 border border-rose-200 p-2.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-rose-800">
+                                <span>
+                                  <strong>Rejection Reason:</strong> {req.rejectionReason}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveKycTab("update")}
+                                  className="shrink-0 rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-[11px] font-bold text-rose-700 hover:bg-rose-100 cursor-pointer"
+                                >
+                                  Fix &amp; Resubmit
+                                </button>
+                              </div>
+                            )}
+
+                            {req.status === "approved" && (
+                              <p className="text-[11px] text-emerald-700 font-semibold">
+                                Approved by {req.reviewedBy || "Compliance Team"} on{" "}
+                                {req.reviewedAt ? new Date(req.reviewedAt).toLocaleDateString("en-IN") : "Approval Date"}
+                              </p>
+                            )}
+                          </div>
+                        ))
                     )}
                   </div>
                 )}
               </div>
 
-              {/* Modal Footer */}
-              <div className="px-5 py-3.5 border-t border-zinc-100 bg-white flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 font-medium">
+              {/* Clean Modal Footer */}
+              <div className="px-5 py-3.5 border-t border-zinc-200 bg-white flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 font-medium">
                   <ShieldCheck className="size-3.5 text-emerald-600" />
-                  <span>QuickPress Compliance System</span>
+                  <span>Encrypted Compliance Vault</span>
                 </div>
                 <button
                   type="button"
@@ -1897,7 +2611,7 @@ export function PartnerProfileScreen() {
                     setShowDocumentsModal(false);
                     setShowApprovalsModal(false);
                   }}
-                  className="rounded-xl bg-zinc-950 hover:bg-zinc-800 px-5 py-2 text-xs font-bold text-white active:scale-95 transition-all cursor-pointer shadow-xs"
+                  className="rounded-xl bg-zinc-950 hover:bg-zinc-800 px-5 py-1.5 text-xs font-bold text-white transition-all cursor-pointer"
                 >
                   Close
                 </button>
@@ -2413,278 +3127,149 @@ export function PartnerProfileScreen() {
       {/* ========================================================================= */}
       {/* MODAL: KYC & BANK DETAILS EDIT REQUEST (REQUIRES ADMIN APPROVAL)          */}
       {/* ========================================================================= */}
-      {showKycEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-xs">
-          <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white border border-zinc-200/90 p-6 shadow-2xl space-y-5">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-border/60 pb-3">
-              <div>
-                <h3 className="text-base font-black text-foreground">Request KYC & Document Update</h3>
-                <p className="text-xs text-muted-foreground">Requires QuickPress Admin Verification</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowKycEditModal(false)}
-                className="rounded-full bg-muted/60 p-2 text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            {/* Admin Approval Notice Callout */}
-            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 flex items-start gap-3">
-              <ShieldAlert className="size-5 text-amber-600 shrink-0 mt-0.5" />
-              <div className="text-xs space-y-1">
-                <p className="font-black text-amber-900 dark:text-amber-200">
-                  Admin Approval Required for Identity & Bank Changes
-                </p>
-                <p className="text-amber-800/90 dark:text-amber-300/90 text-[11px] leading-relaxed">
-                  For platform fraud prevention and settlement accuracy, any edits to your Bank Account, IFSC, PAN or Aadhaar must be verified and approved by the QuickPress Admin team before taking effect. Your live payouts will continue uninterrupted.
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmitKycEdit} className="space-y-4 text-xs">
-              {/* Bank Account Details */}
-              <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
-                <p className="font-black text-foreground uppercase tracking-wider text-[11px]">
-                  1. Settlement Bank Account Details
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-bold text-muted-foreground block mb-1">Bank Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={kycForm.bankName}
-                      onChange={(e) => setKycForm({ ...kycForm, bankName: e.target.value })}
-                      placeholder="e.g. HDFC Bank"
-                      className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-muted-foreground block mb-1">Account Holder Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={kycForm.accountHolder}
-                      onChange={(e) => setKycForm({ ...kycForm, accountHolder: e.target.value })}
-                      placeholder="Name as per Passbook"
-                      className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-muted-foreground block mb-1">Account Number *</label>
-                    <input
-                      type="text"
-                      required
-                      value={kycForm.accountNumber}
-                      onChange={(e) => setKycForm({ ...kycForm, accountNumber: e.target.value })}
-                      placeholder="e.g. 50200088194422"
-                      className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs font-mono font-bold text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-muted-foreground block mb-1">IFSC Code *</label>
-                    <input
-                      type="text"
-                      required
-                      value={kycForm.ifsc}
-                      onChange={(e) => setKycForm({ ...kycForm, ifsc: e.target.value.toUpperCase() })}
-                      placeholder="e.g. HDFC0002733"
-                      className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs font-mono font-bold uppercase text-foreground"
-                    />
-                  </div>
-                </div>
-
-                {/* Cancelled Cheque Upload */}
-                <div>
-                  <label className="font-bold text-muted-foreground block mb-1">
-                    Upload Cancelled Cheque / Passbook Copy
-                  </label>
-                  <input
-                    ref={chequeInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleChequeSelect}
-                  />
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => chequeInputRef.current?.click()}
-                      disabled={uploadingCheque}
-                      className="flex items-center gap-1.5 rounded-xl border border-dashed border-border bg-card px-4 py-2 font-bold text-foreground hover:bg-muted/40 transition-all cursor-pointer"
-                    >
-                      {uploadingCheque ? <Loader2 className="size-3.5 animate-spin" /> : <UploadCloud className="size-3.5 text-primary" />}
-                      {kycForm.chequePhoto ? "Replace Document" : "Select Document Image"}
-                    </button>
-                    {kycForm.chequePhoto && (
-                      <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
-                        <CheckCircle2 className="size-3.5" />
-                        Document Attached
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Tax & Identity Details */}
-              <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
-                <p className="font-black text-foreground uppercase tracking-wider text-[11px]">
-                  2. Official ID & Tax Details
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-bold text-muted-foreground block mb-1">PAN Card Number</label>
-                    <input
-                      type="text"
-                      maxLength={10}
-                      value={kycForm.pan}
-                      onChange={(e) => setKycForm({ ...kycForm, pan: e.target.value.toUpperCase() })}
-                      placeholder="e.g. ABCDE1234F"
-                      className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs font-mono font-bold uppercase text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-muted-foreground block mb-1">Aadhaar Number</label>
-                    <input
-                      type="text"
-                      maxLength={12}
-                      value={kycForm.aadhaar}
-                      onChange={(e) => setKycForm({ ...kycForm, aadhaar: e.target.value })}
-                      placeholder="12 digit Aadhaar"
-                      className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs font-mono font-bold text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-muted-foreground block mb-1">GSTIN (Optional)</label>
-                    <input
-                      type="text"
-                      maxLength={15}
-                      value={kycForm.gstin}
-                      onChange={(e) => setKycForm({ ...kycForm, gstin: e.target.value.toUpperCase() })}
-                      placeholder="15 digit GSTIN"
-                      className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs font-mono font-bold uppercase text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-muted-foreground block mb-1">Operating Pincode</label>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      value={kycForm.pincode}
-                      onChange={(e) => setKycForm({ ...kycForm, pincode: e.target.value })}
-                      placeholder="e.g. 207123"
-                      className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs font-mono font-bold text-foreground"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="font-bold text-muted-foreground block mb-1">Registered Address</label>
-                  <input
-                    type="text"
-                    value={kycForm.address}
-                    onChange={(e) => setKycForm({ ...kycForm, address: e.target.value })}
-                    placeholder="Shop address, street, landmark"
-                    className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground"
-                  />
-                </div>
-              </div>
-
-              {/* Reason for Update */}
-              <div>
-                <label className="font-bold text-muted-foreground block mb-1">
-                  Reason for update (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={kycForm.reason}
-                  onChange={(e) => setKycForm({ ...kycForm, reason: e.target.value })}
-                  placeholder="e.g. Changed current bank account branch"
-                  className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground"
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowKycEditModal(false)}
-                  className="rounded-2xl border border-border/80 px-4 py-2.5 text-xs font-bold text-foreground hover:bg-muted/40 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingKyc}
-                  className="flex items-center gap-2 rounded-2xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 px-5 py-2.5 text-xs font-black shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer"
-                >
-                  {submittingKyc && <Loader2 className="size-3.5 animate-spin" />}
-                  Submit for Admin Approval
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: DOCUMENT PREVIEW LIGHTBOX                                          */}
+      {/* MODAL: DOCUMENT PREVIEW LIGHTBOX (ZOOM + ROTATE + FRONT/BACK)             */}
       {/* ========================================================================= */}
       {showDocPreview && showDocPreview.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-xs">
-          <div className="relative w-full max-w-lg rounded-3xl bg-white border border-zinc-200/90 p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white border border-zinc-200 p-5 shadow-2xl space-y-3.5">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div>
-                <h3 className="text-sm font-black text-foreground">{showDocPreview.title}</h3>
+                <h3 className="text-sm font-extrabold text-zinc-950">{showDocPreview.title}</h3>
                 {showDocPreview.subtitle && (
-                  <p className="text-[11px] text-muted-foreground">{showDocPreview.subtitle}</p>
+                  <p className="text-[11px] text-zinc-500">{showDocPreview.subtitle}</p>
                 )}
               </div>
               <button
                 type="button"
                 onClick={() => setShowDocPreview(null)}
-                className="rounded-full bg-muted/60 p-2 text-muted-foreground hover:text-foreground cursor-pointer"
+                className="rounded-full size-8 bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-zinc-900 cursor-pointer"
               >
                 <X className="size-4" />
               </button>
             </div>
 
-            <div className="rounded-2xl border border-border/60 bg-muted/30 p-6 flex flex-col items-center justify-center min-h-60 text-center">
-              {showDocPreview.imageUrl && showDocPreview.imageUrl.startsWith("data:") ? (
-                <img
-                  src={showDocPreview.imageUrl}
-                  alt={showDocPreview.title}
-                  className="max-h-72 w-auto rounded-xl object-contain shadow-sm"
-                />
-              ) : (
-                <div className="space-y-3 p-4">
-                  <div className="size-16 rounded-2xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 mx-auto flex items-center justify-center">
-                    <ShieldCheck className="size-8" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-foreground">Verified Document on File</p>
-                    <p className="text-xs text-muted-foreground max-w-xs mx-auto mt-1">
-                      Official document verified during onboarding and securely vaulted under compliance regulations.
-                    </p>
-                  </div>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 text-xs font-black text-emerald-700">
-                    <CheckCircle2 className="size-3.5" />
-                    Verified Partner
-                  </span>
+            {/* Side Switcher + Zoom / Rotate Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              {showDocPreview.backImageUrl !== undefined && (
+                <div className="inline-flex rounded-xl bg-zinc-100 p-1 border border-zinc-200">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowDocPreview((prev) => (prev ? { ...prev, activeSide: "front" } : prev))
+                    }
+                    className={`px-3 py-1 rounded-lg text-xs cursor-pointer ${
+                      showDocPreview.activeSide !== "back"
+                        ? "bg-white text-zinc-950 font-bold shadow-2xs"
+                        : "text-zinc-500 font-semibold"
+                    }`}
+                  >
+                    Front
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowDocPreview((prev) => (prev ? { ...prev, activeSide: "back" } : prev))
+                    }
+                    className={`px-3 py-1 rounded-lg text-xs cursor-pointer ${
+                      showDocPreview.activeSide === "back"
+                        ? "bg-white text-zinc-950 font-bold shadow-2xs"
+                        : "text-zinc-500 font-semibold"
+                    }`}
+                  >
+                    Back
+                  </button>
                 </div>
               )}
+
+              <div className="flex items-center gap-1.5 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => setDocZoom((z) => Math.max(0.75, +(z - 0.25).toFixed(2)))}
+                  className="rounded-lg border border-zinc-200 bg-white p-1.5 text-zinc-700 hover:bg-zinc-50 cursor-pointer"
+                  aria-label="Zoom out"
+                >
+                  <ZoomOut className="size-3.5" />
+                </button>
+                <span className="font-mono text-[11px] font-bold text-zinc-600 min-w-[38px] text-center">
+                  {Math.round(docZoom * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setDocZoom((z) => Math.min(2, +(z + 0.25).toFixed(2)))}
+                  className="rounded-lg border border-zinc-200 bg-white p-1.5 text-zinc-700 hover:bg-zinc-50 cursor-pointer"
+                  aria-label="Zoom in"
+                >
+                  <ZoomIn className="size-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDocRotation((r) => (r + 90) % 360)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50 cursor-pointer"
+                >
+                  <RotateCw className="size-3" />
+                  90°
+                </button>
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowDocPreview(null)}
-              className="w-full rounded-2xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 py-2.5 text-xs font-black cursor-pointer"
-            >
-              Close Document Preview
-            </button>
+            {(() => {
+              const displayedUrl =
+                showDocPreview.activeSide === "back"
+                  ? showDocPreview.backImageUrl || ""
+                  : showDocPreview.imageUrl || "";
+              return (
+                <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-5 flex flex-col items-center justify-center min-h-60 overflow-hidden text-center">
+                  {displayedUrl ? (
+                    <img
+                      src={displayedUrl}
+                      alt={showDocPreview.title}
+                      style={{ transform: `scale(${docZoom}) rotate(${docRotation}deg)` }}
+                      className="max-h-72 w-auto rounded-xl object-contain transition-transform duration-200"
+                    />
+                  ) : (
+                    <div
+                      style={{ transform: `scale(${docZoom}) rotate(${docRotation}deg)` }}
+                      className="space-y-3 p-4 transition-transform duration-200"
+                    >
+                      <div className="size-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-400/30 mx-auto flex items-center justify-center">
+                        <ShieldCheck className="size-6" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-white">
+                          {showDocPreview.activeSide === "back" ? "Back Side Scan Not Uploaded" : "Verified Digital Record on File"}
+                        </p>
+                        <p className="text-[11px] text-zinc-400 max-w-xs mx-auto mt-1">
+                          {showDocPreview.activeSide === "back"
+                            ? "You can upload or replace this side from Upload & Edit."
+                            : "Verified compliance record active on QuickPress Partner vault."}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            <div className="flex items-center justify-between gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDocPreview(null);
+                  setShowDocumentsModal(true);
+                  setActiveKycTab("update");
+                }}
+                className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 cursor-pointer"
+              >
+                Replace Document
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDocPreview(null)}
+                className="rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white px-5 py-2 text-xs font-bold cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
