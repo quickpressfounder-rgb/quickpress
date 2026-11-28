@@ -6747,3 +6747,11 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
   - Built an integrated storefront hero card with cover banner & logo image compression uploaders (`uploadBanner`, `uploadLogo`), inline expandable profile editor (`updateProfile`), a clean 3-metric divider strip (`Store Rating`, `Total Orders`, `Revenue`), and a grouped `Store Configuration` settings list.
   - Added working forms for `Timings & Status` (`updateHours` + live `setStatus` toggles for order intake and temporary closure), interactive `Coverage & PINs` sliders and 6-digit service pincode tag manager (`updateArea` + `updateProfile`), real gallery upload/delete with image preview lightbox (`addImage`, `removeImage`), and a live `Customer View` storefront card preview.
 - **Verification:** `npx tsc --noEmit` confirmed zero TypeScript errors in `ShopManagementScreen.tsx` (`ZERO_TS_ERRORS_IN_SHOP`); `npm run build` (`npx vite build`) succeeded cleanly in `1.73s`.
+
+### 2026-11-28 — Full Platform Android APK & AAB Release (`build_all_apks.py all`)
+- **Triggered By:** `"apk reseals"`
+- **Execution:** `JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home python3 build_all_apks.py all`
+- **Generated Bundles:**
+  - `apks/QuickPress-Customer.apk` (21,051,816 bytes) & `apks/QuickPress-Customer.aab` (20,027,593 bytes) — mirrored to `website/public/apks/QuickPress-Customer.apk` and uploaded to EC2 `/var/www/quickpress/website/apks/QuickPress-Customer.apk`, plus Customer iOS Capacitor sync.
+  - `apks/QuickPress-Partner.apk` (19,339,918 bytes) & `apks/QuickPress-Partner.aab` (18,396,810 bytes) — includes upgraded `PartnerProfileScreen.tsx` (V4 KYC & Docs Vault) and `ShopManagementScreen.tsx` (classic clean mobile-first store profile); mirrored to `website/public/apks/QuickPress-Partner.apk` and uploaded to EC2 `/var/www/quickpress/website/apks/QuickPress-Partner.apk`.
+  - `apks/QuickPress-Captain.apk` (19,293,330 bytes) & `apks/QuickPress-Captain.aab` (18,357,027 bytes) — mirrored to `website/public/apks/QuickPress-Captain.apk` and uploaded to EC2 `/var/www/quickpress/website/apks/QuickPress-Captain.apk`, plus Rider iOS Capacitor sync.
