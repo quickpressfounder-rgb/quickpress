@@ -298,21 +298,21 @@ export function MapPicker({
   const modalContent = (
     <div className="fixed inset-0 z-[99999] flex flex-col bg-background select-none overflow-hidden animate-fade-in">
       {/* 1. Header Bar */}
-      <header className="relative z-30 flex items-center justify-between border-none bg-card/90 px-4 py-3.5 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
-        <div className="flex items-center gap-3">
+      <header className="relative z-30 flex items-center justify-between gap-3 border-none bg-card/95 px-4 pb-3.5 pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] app-header-safe backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <button
             type="button"
             aria-label="Back"
             onClick={onClose}
-            className="flex size-10 items-center justify-center rounded-full bg-muted/80 text-foreground transition-all active:scale-90 hover:bg-muted"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted/80 text-foreground transition-all active:scale-90 hover:bg-muted"
           >
             <ArrowLeft className="size-5" />
           </button>
-          <div>
-            <h2 className="text-base font-black tracking-tight text-foreground">
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-base font-black tracking-tight text-foreground">
               Select Delivery Location
             </h2>
-            <p className="text-[11px] font-medium text-muted-foreground">
+            <p className="truncate text-[11px] font-medium text-muted-foreground">
               Drag map or search to place pin accurately
             </p>
           </div>
@@ -322,7 +322,7 @@ export function MapPicker({
           type="button"
           aria-label="Close"
           onClick={onClose}
-          className="flex size-9 items-center justify-center rounded-full bg-muted/50 text-muted-foreground transition-all active:scale-90 hover:bg-muted hover:text-foreground"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted/50 text-muted-foreground transition-all active:scale-90 hover:bg-muted hover:text-foreground"
         >
           <X className="size-4" />
         </button>

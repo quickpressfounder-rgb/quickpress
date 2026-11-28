@@ -1,5 +1,15 @@
 # QuickPress — Engineering Work History
 
+## Session: November 28, 2026 (Part 103)
+
+### Fix MapPicker (`Select Delivery Location`) Mobile Header Safe-Area Overlap
+
+1. **Header Safe-Area & Flex Layout (`customer-frontend/src/components/MapPicker.tsx`):**
+   - Added `app-header-safe` and `pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.5rem))] pb-3.5` to the `Select Delivery Location` modal header so it clears the Android/iOS status bar cleanly instead of clipping behind system clock/battery icons.
+   - Added `min-w-0 flex-1` + `truncate` on title/subtitle and `shrink-0` on Back/Close buttons.
+
+---
+
 ## Session: November 28, 2026 (Part 102)
 
 ### Disable Automatic Mobile Redirect to Play Store (`website/src/App.tsx`)
