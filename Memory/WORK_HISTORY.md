@@ -6670,3 +6670,20 @@ Implemented 8 architectural protections across Customer, Partner, Rider, Admin, 
        - `apks/QuickPress-Captain.apk` (18M) & `apks/QuickPress-Captain.aab` (18M)
      - Mirrored all 3 APKs to `website/public/apks/` (`QuickPress-Customer.apk`, `QuickPress-Partner.apk`, `QuickPress-Captain.apk`).
      - Synchronized iOS Capacitor assets/plugins (`npx cap sync ios`) for Customer and Rider projects.
+
+---
+
+## Session: Partner Dashboard Tweaks — Remove Walk-In, Clean Empty State, Real Registration Shop Logo & Camera Bag QR Scanner
+- **Date**: 2026-11-28
+- **User Directive**: Remove Walk-In Order button from dashboard, remove sub-description under "No orders in queue yet", display partner's uploaded registration shop logo in the top header logo slot, and upgrade Bag Scan with live camera QR/barcode scanning.
+- **Accomplishments & Changes**:
+  1. **Real Registration Shop Logo & Cleanup ([OrdersScreen.tsx](file:///Users/himanshupal/Documents/Source%20Code/Scource%20Code%20/Officall-main/partner-frontend/src/screens/OrdersScreen.tsx))**:
+     - Replaced initial fallback badge in the sticky header with partner's real uploaded shop logo (`logo || logoUrl || storeImage || image || documents.store_logo` from profile/session and `qp:partner-profile-updated` live listener), falling back gracefully on error.
+     - Removed `+ Walk-In Order` button and `WalkInOrderModal` from `OrdersScreen.tsx`.
+     - Removed secondary sub-description paragraph below empty queue states (`"No orders in queue yet"`).
+  2. **Working Camera QR & Barcode Scanner ([ScanBagTagModal.tsx](file:///Users/himanshupal/Documents/Source%20Code/Scource%20Code%20/Officall-main/partner-frontend/src/components/dashboard/ScanBagTagModal.tsx))**:
+     - Added `jsqr` dependency (`partner-frontend/package.json`) and built portal-rendered camera scanner (`getUserMedia` rear camera auto-open, corner scan guides, Flip front/back camera, Stop/Resume toggle, camera permission error recovery).
+     - Combined native `BarcodeDetector` with `jsQR` canvas scanning so bag tags scan reliably across Android APK WebViews, iOS WKWebView, Safari, and Chrome, plus clean manual/handheld fallback search.
+- **Verification**:
+  - `tsc --noEmit` confirmed zero TypeScript errors in `OrdersScreen.tsx` and `ScanBagTagModal.tsx`.
+  - `partner-frontend` production Vite + Nitro build passed cleanly in `1.58s` (Exit code 0).

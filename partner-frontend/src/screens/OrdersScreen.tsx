@@ -54,7 +54,6 @@ import { PartnerOnlineToggle } from "../components/layout/PartnerOnlineToggle";
 import { OrderCard, OrderStatusBadge } from "../components/orders/OrderCard";
 import { IncomingOrderModal } from "../components/orders/IncomingOrderModal";
 import { AcceptedOrderPipelineCard } from "../components/orders/AcceptedOrderPipelineCard";
-import { WalkInOrderModal } from "../components/dashboard/WalkInOrderModal";
 import { ScanBagTagModal } from "../components/dashboard/ScanBagTagModal";
 import {
   playPartnerOrderAcceptedTone,
@@ -132,6 +131,22 @@ export function OrdersScreen() {
       "QuickPress Partner"
     )
   );
+  const [shopLogo, setShopLogo] = useState<string>(() => {
+    const p = cachedProfile as any;
+    const s = session as any;
+    return String(
+      p?.logo ||
+        p?.logoUrl ||
+        p?.storeImage ||
+        p?.image ||
+        p?.documents?.store_logo ||
+        s?.logo ||
+        s?.logoUrl ||
+        s?.storeImage ||
+        ""
+    );
+  });
+  const [logoFailed, setLogoFailed] = useState(false);
   const [todayEarnings, setTodayEarnings] = useState<number>(
     Number(cachedSummary?.todayEarnings || 0)
   );
@@ -140,7 +155,6 @@ export function OrdersScreen() {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<StageFilter>("all");
   const [spotlightOrderId, setSpotlightOrderId] = useState<string | null>(null);
-  const [showWalkInModal, setShowWalkInModal] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
 
   // Sync live KPIs & profile metadata
@@ -166,15 +180,25 @@ export function OrdersScreen() {
         }
       }
       if (profileRes.status === "fulfilled" && profileRes.value) {
+        const p = profileRes.value as any;
         const name = getCleanPartnerName(
-          [
-            profileRes.value.businessName,
-            profileRes.value.ownerName,
-            (profileRes.value as any).name,
-          ],
+          [p.businessName, p.ownerName, p.name, p.storeName],
           ""
         );
         if (name) setShopName(name);
+        const foundLogo = String(
+          p.logo ||
+            p.logoUrl ||
+            p.storeImage ||
+            p.image ||
+            p.shopLogo ||
+            p.documents?.store_logo ||
+            ""
+        );
+        if (foundLogo) {
+          setShopLogo(foundLogo);
+          setLogoFailed(false);
+        }
       }
       if (unreadRes.status === "fulfilled") {
         setUnreadCount(Number(unreadRes.value || 0));
@@ -191,8 +215,23 @@ export function OrdersScreen() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const onNewOrder = () => void loadMetrics();
+    const onProfileUpdated = (e: any) => {
+      const updated = e?.detail;
+      if (!updated) return;
+      const found = String(
+        updated.logo || updated.logoUrl || updated.storeImage || updated.image || ""
+      );
+      if (found) {
+        setShopLogo(found);
+        setLogoFailed(false);
+      }
+    };
     window.addEventListener("qp:partner:new_order", onNewOrder);
-    return () => window.removeEventListener("qp:partner:new_order", onNewOrder);
+    window.addEventListener("qp:partner-profile-updated", onProfileUpdated);
+    return () => {
+      window.removeEventListener("qp:partner:new_order", onNewOrder);
+      window.removeEventListener("qp:partner-profile-updated", onProfileUpdated);
+    };
   }, [loadMetrics]);
 
   // Tab counts computed live from real orders
@@ -308,10 +347,19 @@ export function OrdersScreen() {
         <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/95 backdrop-blur-md">
           <div className="app-header-safe mx-auto max-w-6xl px-4 pb-3 md:pt-3.5 md:px-6">
             <div className="flex items-center justify-between gap-3">
-              {/* Left: Brand Identity */}
+              {/* Left: Partner Shop Logo & Storefront Identity */}
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-900 text-xs font-bold text-white tracking-tight">
-                  {(shopName[0] || "Q").toUpperCase()}
+                <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-zinc-900 text-xs font-bold text-white tracking-tight">
+                  {shopLogo && !logoFailed ? (
+                    <img
+                      src={shopLogo}
+                      alt={shopName}
+                      onError={() => setLogoFailed(true)}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    (shopName[0] || "Q").toUpperCase()
+                  )}
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-sm font-bold tracking-tight text-zinc-950 truncate">
@@ -489,24 +537,15 @@ export function OrdersScreen() {
             </button>
           </div>
 
-          {/* Streamlined Utility & POS Action Row */}
+          {/* Streamlined Utility Action Row */}
           <div className="flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
               <button
                 type="button"
-                onClick={() => setShowWalkInModal(true)}
+                onClick={() => setShowScanModal(true)}
                 className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 px-3 py-2 text-xs font-semibold text-white transition-all active:scale-95 cursor-pointer"
               >
-                <Plus className="size-3.5" />
-                Walk-In Order
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowScanModal(true)}
-                className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-800 transition-all active:scale-95 cursor-pointer"
-              >
-                <QrCode className="size-3.5 text-zinc-600" />
+                <QrCode className="size-3.5" />
                 Scan Bag QR
               </button>
 
@@ -629,13 +668,6 @@ export function OrdersScreen() {
                   : activeTab === "all"
                     ? "No orders in queue yet"
                     : `No ${STAGE_PILLS.find((p) => p.id === activeTab)?.label.toLowerCase()} orders`}
-              </p>
-              <p className="mt-1 text-xs font-medium text-zinc-500">
-                {query
-                  ? "Try clearing your search filter or scan a Bag QR tag."
-                  : isOnline
-                    ? "Your storefront is Live — incoming requests appear automatically."
-                    : "Go Live above to resume receiving nearby customer requests."}
               </p>
               {query || activeTab !== "all" ? (
                 <button
@@ -825,19 +857,7 @@ export function OrdersScreen() {
         onToggleMute={handleToggleSound}
       />
 
-      {/* Counter Walk-In POS & Bag QR Scanner */}
-      {showWalkInModal ? (
-        <WalkInOrderModal
-          onClose={() => setShowWalkInModal(false)}
-          onOrderCreated={(created) => {
-            setShowWalkInModal(false);
-            setSpotlightOrderId(created.id);
-            void refresh();
-            void loadMetrics();
-          }}
-        />
-      ) : null}
-
+      {/* Bag QR Scanner Modal (Live Camera) */}
       {showScanModal ? (
         <ScanBagTagModal
           orders={orders}
